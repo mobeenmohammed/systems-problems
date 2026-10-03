@@ -36,6 +36,12 @@ export const PROFILES = ['standard', 'sanitize', 'strict', 'parallel'];
    stays in the problem file. */
 const INDEX_FIELDS = ['id', 'title', 'topic', 'difficulty', 'type', 'tags', 'estimate'];
 
+/* The two characters a mis-escaped newline leaves behind. Built from a char
+   code rather than written as an escape so that there is no backslash in this
+   file to be eaten by whatever is editing it — which is how the bug this
+   guards against got in. */
+const LITERAL_NL = String.fromCharCode(92) + 'n';
+
 const readJson = file => JSON.parse(fs.readFileSync(file, 'utf8'));
 
 /* ---------------- loading ---------------- */
@@ -207,6 +213,9 @@ function validatePayload(p, err, where) {
       for (const [i, c] of (pay.cases || []).entries()) {
         if (typeof c.stdin !== 'string') err(where, `case ${i} has no stdin string`);
         if (typeof c.expect !== 'string') err(where, `case ${i} has no expect string`);
+        if (typeof c.expect === 'string' && c.expect.includes(LITERAL_NL)) {
+          err(where, `visible case ${i} expect contains a literal backslash-n`);
+        }
       }
       break;
 
@@ -278,6 +287,13 @@ function validateKey(p, sol, err, where) {
     }
     case 'predict': {
       if (typeof k.output !== 'string') err(where, 'predict key needs an output string');
+      /* A two-character backslash-n in an *expected output* is almost always an
+         escaping mistake rather than a program that really prints a backslash
+         — it means a newline was written as text. This was a real bug once,
+         and the only thing that caught it was compiling the snippet. */
+      else if (k.output.includes(LITERAL_NL)) {
+        err(where, 'output contains a literal backslash-n; a line break must be a real newline');
+      }
       /* A predict problem whose snippet is a complete program can have its key
          checked against a real compiler, which is the only way to be sure a
          predicted output is actually what the thing prints. */
@@ -299,6 +315,10 @@ function validateKey(p, sol, err, where) {
       for (const [i, c] of (k.cases || []).entries()) {
         if (typeof c.stdin !== 'string') err(where, `hidden case ${i} has no stdin string`);
         if (typeof c.expect !== 'string') err(where, `hidden case ${i} has no expect string`);
+        /* Same trap as a predict key: a line break written as text. */
+        if (typeof c.expect === 'string' && c.expect.includes(LITERAL_NL)) {
+          err(where, `hidden case ${i} expect contains a literal backslash-n`);
+        }
       }
       /* A reference solution per claimed language is what lets
          content.test.mjs prove the problem is actually solvable. */
