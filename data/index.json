@@ -1,0 +1,78 @@
+[
+  {
+    "id": "algo-running-max",
+    "title": "Running maximum, without reading past the end",
+    "topic": "algo",
+    "difficulty": "beginner",
+    "type": "code",
+    "tags": [
+      "arrays",
+      "bounds",
+      "sanitizers",
+      "io"
+    ],
+    "estimate": 15,
+    "prereqs": [
+      "array-bounds",
+      "sanitizers"
+    ],
+    "langs": [
+      "cpp",
+      "rust",
+      "js"
+    ]
+  },
+  {
+    "id": "arch-cache-line-stride",
+    "title": "How often does a sequential walk miss?",
+    "topic": "arch",
+    "difficulty": "beginner",
+    "type": "numeric",
+    "tags": [
+      "caches",
+      "locality",
+      "memory"
+    ],
+    "estimate": 6,
+    "prereqs": [
+      "cache-lines",
+      "spatial-locality"
+    ]
+  },
+  {
+    "id": "dist-partition-choice",
+    "title": "What a partition actually costs you",
+    "topic": "dist",
+    "difficulty": "beginner",
+    "type": "mcq",
+    "tags": [
+      "cap",
+      "consistency",
+      "availability",
+      "partitions"
+    ],
+    "estimate": 7,
+    "prereqs": [
+      "cap-theorem",
+      "replication"
+    ]
+  },
+  {
+    "id": "os-page-fault-walk",
+    "title": "What happens on a page fault",
+    "topic": "os",
+    "difficulty": "beginner",
+    "type": "order",
+    "tags": [
+      "virtual-memory",
+      "paging",
+      "mmu",
+      "page-faults"
+    ],
+    "estimate": 8,
+    "prereqs": [
+      "page-faults",
+      "mmu-tlb"
+    ]
+  }
+]

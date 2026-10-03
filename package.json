@@ -1,0 +1,20 @@
+{
+  "name": "bare-metal",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A personal problems site for low-level systems knowledge. The site has no runtime dependencies; jsdom is only used to test it.",
+  "type": "module",
+  "scripts": {
+    "build:index": "node scripts/build-index.mjs",
+    "check:index": "node scripts/build-index.mjs --check",
+    "test": "npm run test:unit && npm run test:browser",
+    "test:unit": "node tests/store.test.mjs && node tests/md.test.mjs && node tests/grade.test.mjs && node tests/runner.test.mjs && node tests/judge.test.mjs && node tests/content.test.mjs",
+    "test:browser": "node tests/browser/app.test.mjs && node tests/browser/styles.test.mjs",
+    "judge:up": "docker compose -f judge/compose.yml up -d",
+    "judge:down": "docker compose -f judge/compose.yml down",
+    "serve": "python -m http.server 8000"
+  },
+  "devDependencies": {
+    "jsdom": "^29.1.1"
+  }
+}

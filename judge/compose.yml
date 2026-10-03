@@ -1,0 +1,45 @@
+# The judge, for C++ and Rust submissions.
+#
+#   docker compose -f judge/compose.yml up -d     start it
+#   docker compose -f judge/compose.yml logs      see which languages came up
+#   docker compose -f judge/compose.yml down      stop it
+#
+# The port is published to 127.0.0.1 ONLY. That is deliberate and is the main
+# thing keeping this safe: it cannot be reached from another machine on your
+# network, let alone from the internet. Do not change it to 0.0.0.0.
+
+services:
+  judge:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bare-metal-judge
+    # 127.0.0.1 on the host side. The container side binds 0.0.0.0 because
+    # that is the only address Docker's port forwarding can reach.
+    ports:
+      - "127.0.0.1:2000:2000"
+    restart: unless-stopped
+
+    # A fork bomb in a submission should cost you one failed case, not the
+    # machine. prlimit inside the server guards each process; these guard the
+    # container as a whole.
+    pids_limit: 1024
+    mem_limit: 4g
+    cpus: 2.0
+
+    # Nothing in here needs to write to the image.
+    read_only: true
+    tmpfs:
+      # Compiling needs real scratch space: a debug C++ binary with the
+      # sanitizers linked in is tens of megabytes.
+      - /tmp:exec,mode=1777,size=1g
+
+    security_opt:
+      - no-new-privileges:true
+
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:2000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

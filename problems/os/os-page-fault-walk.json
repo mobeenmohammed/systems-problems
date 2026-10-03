@@ -1,0 +1,32 @@
+{
+  "id": "os-page-fault-walk",
+  "title": "What happens on a page fault",
+  "topic": "os",
+  "difficulty": "beginner",
+  "type": "order",
+  "tags": ["virtual-memory", "paging", "mmu", "page-faults"],
+  "estimate": 8,
+  "prereqs": [
+    { "concept": "page-faults", "why": "This is the fault path itself — the thing the problem is asking you to sequence." },
+    { "concept": "mmu-tlb", "why": "The TLB is checked before anything else happens, and refilled at the very end." }
+  ],
+  "statement": "A process reads a byte from a page that is **mapped but not currently resident** — a legitimate access to memory the kernel has promised but not yet backed with a physical frame. This is the ordinary case, a *minor* fault, and it happens millions of times during a normal boot.\n\nPut the seven steps below in the order they actually occur, from the instruction issuing the address to that same instruction completing.\n\nTwo things worth holding onto while you sort them:\n\n- The CPU knows nothing about files, mappings or permissions. It knows how to walk a page table and how to raise a fault.\n- Nothing is *skipped* on the way back out. Whatever made the access fail has to be fixed before the instruction can succeed.",
+  "hints": [
+    "Where is the very first place a virtual address is looked up? It is not the page table.",
+    "The MMU cannot decide whether an access is *legal* — it only knows whether a translation is present. Something else owns the question of legality.",
+    "The faulting instruction never finds out it faulted. Work backwards from that: what has to be true before it can be re-run?"
+  ],
+  "payload": {
+    "prompt": "First at the top, last at the bottom. Drag them, or use the arrows on each row.",
+    "labels": ["the instruction issues its address", "the instruction completes"],
+    "items": [
+      "The kernel finds or allocates a physical frame and fills it with the page's contents.",
+      "The TLB is searched for the virtual page, and misses.",
+      "The faulting instruction is re-executed, and this time the translation is there.",
+      "The MMU walks the page table and finds the entry marked not-present.",
+      "The kernel checks the address against the process's mappings and decides the access is legitimate.",
+      "The page-table entry is updated to point at the frame and marked present.",
+      "The MMU raises a page fault, and the CPU traps into the kernel."
+    ]
+  }
+}

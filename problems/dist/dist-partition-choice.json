@@ -1,0 +1,26 @@
+{
+  "id": "dist-partition-choice",
+  "title": "What a partition actually costs you",
+  "topic": "dist",
+  "difficulty": "beginner",
+  "type": "mcq",
+  "tags": ["cap", "consistency", "availability", "partitions"],
+  "estimate": 7,
+  "prereqs": [
+    { "concept": "cap-theorem", "why": "The question is exactly the trade-off CAP describes, and the wrong answers are the usual misreadings of it." },
+    { "concept": "replication", "why": "There is no trade-off to make until the same data lives in more than one place." }
+  ],
+  "statement": "A key-value store runs with three replicas in London and three in Frankfurt. Clients in each city talk to their local replicas.\n\nThe link between the two cities drops. Both sides stay up, both sides can still reach their own three replicas, and neither can reach the other three. The operators have configured the system to **keep accepting reads and writes on both sides** for the duration.\n\nWhich of the following is true while the partition lasts?",
+  "hints": [
+    "Six replicas, split three and three. How many does a strict majority need?",
+    "The system was configured to keep serving. That is a choice, and every choice gives something up — the question is what."
+  ],
+  "payload": {
+    "options": [
+      "Writes are accepted on both sides, and some reads will return stale or conflicting data until the link heals and the conflict is resolved.",
+      "The system has given up availability, because a partition always forces one side to stop serving.",
+      "Reads can still be linearizable on both sides, as long as each side can reach a quorum of its own three replicas.",
+      "CAP says you pick two of consistency, availability and partition tolerance, so this deployment has chosen consistency and availability."
+    ]
+  }
+}

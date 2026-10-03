@@ -1,0 +1,264 @@
+/* The content: every problem file, every solution file, and the concept graph
+   they point into.
+
+   This is the suite that matters most. Hand-written JSON and a shared concept
+   graph will not stay consistent on good intentions, and a broken problem is
+   not a crash — it is a problem that silently cannot be solved, or one whose
+   prerequisites point at a concept that no longer exists.
+
+   The second half is the part worth having: it feeds each answer key back
+   through the real grader and insists the grader calls it correct. That
+   catches the authoring mistake no schema check can — a key that is valid in
+   shape but wrong, like an `order` permutation written in the wrong direction.
+
+   Run: node tests/content.test.mjs */
+
+import { loadAll, validate, buildIndex } from '../scripts/build-index.mjs';
+import { loadScripts, section, check, ok, report } from './harness.mjs';
+
+const { grab } = loadScripts([
+  'js/md.js',
+  'js/types/registry.js',
+  'js/types/mcq.js',
+  'js/types/numeric.js',
+  'js/types/order.js',
+]);
+const Types = grab('ProblemTypes');
+
+const loaded = loadAll();
+const { problems, concepts, solutions } = loaded;
+
+/* ---------------- the schema ---------------- */
+
+section('structure');
+ok('there are problems at all', problems.length > 0);
+ok('there are concepts at all', Object.keys(concepts).length > 0);
+
+const errors = validate(loaded);
+if (errors.length) {
+  for (const e of errors) console.log(`  FAIL  ${e}`);
+}
+check('no content errors', errors.length, 0);
+
+section('the index is current');
+const fresh = JSON.stringify(buildIndex(problems), null, 2) + '\n';
+let committed = '';
+try { committed = (await import('node:fs')).readFileSync(new URL('../data/index.json', import.meta.url), 'utf8'); } catch {}
+ok('data/index.json matches the problem files (run npm run build:index)', committed === fresh);
+
+/* ---------------- every key grades as correct ---------------- */
+
+/* The ideal answer, derived from the key itself. If the grader does not call
+   this correct, the key and the grader disagree and the problem is either
+   unsolvable or wrongly marked. */
+function idealAnswer(problem, key) {
+  switch (problem.type) {
+    case 'mcq':     return key.answer;
+    case 'multi':   return key.answers;
+    case 'numeric': return key.value;
+    case 'short':   return (key.accept || [])[0];
+    case 'order':   return key.order;
+    case 'match':   return key.pairs;
+    case 'predict': return key.output;
+    case 'locate':  return key.line;
+    default:        return undefined;   /* code is covered by the judge suite */
+  }
+}
+
+section('every answer key is graded correct by its own grader');
+for (const p of problems) {
+  const sol = solutions[p.id];
+  if (!sol || !sol.key) continue;
+  const impl = Types.get(p.type);
+  if (!impl) {
+    /* A type with no module yet is a gap to be aware of, not a failure. */
+    console.log(`  --    ${p.id}: type "${p.type}" has no grader in this build`);
+    continue;
+  }
+  const answer = idealAnswer(p, sol.key);
+  if (answer === undefined) continue;
+
+  const res = impl.grade(answer, sol.key, p);
+  ok(`${p.id}: the key answers its own problem`, res.correct === true);
+  ok(`${p.id}: and scores a full 1`, res.score === 1);
+}
+
+/* ---------------- a wrong answer must not be graded correct ---------------- */
+
+/* The mirror of the check above: a key that calls everything correct would
+   pass the first test and be useless. */
+section('a deliberately wrong answer is not graded correct');
+for (const p of problems) {
+  const sol = solutions[p.id];
+  const impl = sol && sol.key ? Types.get(p.type) : null;
+  if (!impl) continue;
+
+  let wrong;
+  switch (p.type) {
+    case 'mcq': {
+      const n = (p.payload.options || []).length;
+      wrong = (sol.key.answer + 1) % n;
+      break;
+    }
+    case 'multi': {
+      const n = (p.payload.options || []).length;
+      const right = new Set(sol.key.answers);
+      const other = [...Array(n).keys()].find(i => !right.has(i));
+      wrong = other === undefined ? [] : [other];
+      break;
+    }
+    case 'numeric':
+      /* Out by a factor of three — well outside any sane tolerance, and not
+         one of the "named mistake" factors. */
+      wrong = (Number(sol.key.value) || 1) * 3 + 1;
+      break;
+    case 'short':
+      wrong = 'definitely-not-the-answer';
+      break;
+    case 'order': {
+      const o = [...sol.key.order];
+      [o[0], o[1]] = [o[1], o[0]];
+      wrong = o;
+      break;
+    }
+    case 'locate':
+      wrong = sol.key.line === 1 ? 2 : 1;
+      break;
+    default:
+      continue;
+  }
+
+  const res = impl.grade(wrong, sol.key, p);
+  ok(`${p.id}: a wrong answer is marked wrong`, res.correct === false);
+}
+
+/* ---------------- things a schema cannot check ---------------- */
+
+section('statements and explanations read like content');
+for (const p of problems) {
+  ok(`${p.id}: statement is more than a stub`, String(p.statement).length > 80);
+  const sol = solutions[p.id];
+  if (!sol) continue;
+  /* The explanation is the whole reason the site exists, so a one-line
+     "because it is" is a content bug. */
+  ok(`${p.id}: explanation teaches rather than asserts`, String(sol.explanation).length > 400);
+}
+
+section('hints are a ramp, not a giveaway');
+for (const p of problems) {
+  for (const [i, h] of (p.hints || []).entries()) {
+    ok(`${p.id}: hint ${i + 1} is a real sentence`, String(h).trim().length > 15);
+  }
+}
+
+section('mcq problems name why the wrong options are wrong');
+for (const p of problems) {
+  if (p.type !== 'mcq' && p.type !== 'multi') continue;
+  const sol = solutions[p.id];
+  if (!sol) continue;
+  const n = (p.payload.options || []).length;
+  const explained = Object.keys(sol.distractors || {}).length;
+  /* Getting it wrong and being told only "no" teaches nothing; the reason the
+     attractive wrong answer is wrong is the actual lesson. */
+  ok(`${p.id}: every option has a note (${explained}/${n})`, explained === n);
+}
+
+/* ---------------- code problems are actually solvable ---------------- */
+
+/* The strongest check in the suite: each reference solution is compiled and
+   run against the problem's own visible and hidden cases, in every language
+   the problem claims to accept. A `code` problem whose reference does not pass
+   is a problem nobody can solve, and no amount of schema checking would say so.
+
+   Languages this machine lacks are skipped with a notice; CI's ubuntu-latest
+   has g++, rustc and python3, so they are verified on every push. */
+section('every code problem is solvable in every language it claims');
+const codeProblems = problems.filter(p => p.type === 'code');
+
+if (codeProblems.length) {
+  const { run, languages, detectPrlimit } = await import('../judge/server.mjs');
+  const { default: fsSync } = await import('node:fs');
+  await detectPrlimit();
+  const toolchains = await languages();
+  const have = Object.fromEntries(toolchains.map(l => [l.id, l.available]));
+
+  const RunHarness = loadScripts(['js/runners/harness.js']).grab('RunHarness');
+
+  for (const p of codeProblems) {
+    const sol = solutions[p.id];
+    if (!sol || !sol.key || !sol.key.reference) continue;
+    const pay = p.payload || {};
+    const cases = [...(pay.cases || []), ...(sol.key.cases || [])];
+
+    for (const lang of pay.langs || []) {
+      if (!have[lang]) {
+        console.log(`  --    ${p.id} [${lang}]: no toolchain here — verified in CI`);
+        continue;
+      }
+
+      const source = sol.key.reference[lang];
+      const reply = await run({
+        lang, source,
+        profile: pay.profile || 'standard',
+        cases: cases.map(c => ({ stdin: c.stdin })),
+        limits: pay.limits,
+      });
+
+      /* A profile this host cannot build (MinGW has no libasan) is a gap in
+         the machine, not in the content. */
+      if (!reply.compile.ok && /cannot find -l|unrecognized command|not supported/.test(reply.compile.stderr)) {
+        console.log(`  --    ${p.id} [${lang}]: profile "${pay.profile}" unsupported here — verified in CI`);
+        continue;
+      }
+
+      const verdict = RunHarness.judgeRun(reply, cases.map(c => c.expect),
+        { requireClean: !!pay.requireClean });
+
+      if (!ok(`${p.id} [${lang}]: the reference solution passes all ${cases.length} cases`, verdict.correct)) {
+        console.log(`        ${verdict.feedback}`);
+        if (!verdict.built) console.log(`        compile: ${reply.compile.stderr.slice(0, 500)}`);
+        else {
+          const bad = verdict.cases.find(c => !c.pass);
+          if (bad) {
+            console.log(`        stdin:    ${JSON.stringify((cases[verdict.cases.indexOf(bad)] || {}).stdin)}`);
+            console.log(`        expected: ${JSON.stringify(bad.expect)}`);
+            console.log(`        got:      ${JSON.stringify(bad.stdout)}`);
+            if (bad.stderr) console.log(`        stderr:   ${bad.stderr.slice(0, 300)}`);
+          }
+        }
+      }
+    }
+  }
+} else {
+  console.log('  --    no code problems yet');
+}
+
+section('every concept is actually used');
+const used = new Set();
+for (const p of problems) {
+  for (const pre of p.prereqs || []) {
+    used.add(pre.concept);
+    /* Its transitive needs count as used too. */
+    const stack = [pre.concept];
+    while (stack.length) {
+      const at = stack.pop();
+      for (const need of (concepts[at] || {}).needs || []) {
+        if (!used.has(need)) { used.add(need); stack.push(need); }
+      }
+    }
+  }
+}
+for (const id of Object.keys(concepts)) {
+  /* Not a failure — a concept can legitimately be written ahead of the
+     problem that will need it — but it should be visible. */
+  if (!used.has(id)) console.log(`  --    concepts.json/${id}: not referenced by any problem yet`);
+}
+ok('at least one concept is in use', used.size > 0);
+
+section('topic coverage');
+const byTopic = {};
+for (const p of problems) byTopic[p.topic] = (byTopic[p.topic] || 0) + 1;
+console.log(`  --    ${Object.entries(byTopic).map(([t, n]) => `${t}:${n}`).join('  ')}`);
+ok('every problem sits in a known topic', problems.every(p => p.topic));
+
+report('content');

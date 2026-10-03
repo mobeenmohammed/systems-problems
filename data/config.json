@@ -1,0 +1,4 @@
+{
+  "judgeUrl": "http://127.0.0.1:2000",
+  "pyodideUrl": "https://cdn.jsdelivr.net/pyodide/v0.28.0/full/pyodide.js"
+}

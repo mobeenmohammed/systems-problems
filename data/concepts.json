@@ -1,0 +1,263 @@
+{
+  "memory-hierarchy": {
+    "name": "The memory hierarchy",
+    "topic": "arch",
+    "oneLine": "Registers, caches, DRAM and disk differ in latency by factors of ten to a million, and every performance question is really about which one you are talking to.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "Computer Systems: A Programmer's Perspective",
+        "kind": "book",
+        "where": "Ch. 6.1–6.2",
+        "url": "https://csapp.cs.cmu.edu/"
+      },
+      {
+        "title": "Latency numbers every programmer should know",
+        "kind": "docs",
+        "where": "the classic table",
+        "url": "https://colin-scott.github.io/personal_website/research/interactive_latency.html"
+      },
+      {
+        "title": "What Every Programmer Should Know About Memory",
+        "kind": "paper",
+        "where": "§2–3, Ulrich Drepper",
+        "url": "https://people.freebsd.org/~lstewart/articles/cpumemory.pdf"
+      }
+    ]
+  },
+  "cache-lines": {
+    "name": "Cache lines and blocks",
+    "topic": "arch",
+    "oneLine": "A cache never moves a byte; it moves a whole line, typically 64 bytes, so touching one byte brings its neighbours along for free.",
+    "needs": [
+      "memory-hierarchy"
+    ],
+    "readings": [
+      {
+        "title": "Computer Systems: A Programmer's Perspective",
+        "kind": "book",
+        "where": "Ch. 6.3–6.4"
+      },
+      {
+        "title": "What Every Programmer Should Know About Memory",
+        "kind": "paper",
+        "where": "§3.3 on cache lines"
+      },
+      {
+        "title": "Cache Blocking Techniques",
+        "kind": "docs",
+        "where": "Intel, short and practical",
+        "url": "https://www.intel.com/content/www/us/en/developer/articles/technical/cache-blocking-techniques.html"
+      }
+    ]
+  },
+  "spatial-locality": {
+    "name": "Spatial locality and stride",
+    "topic": "arch",
+    "oneLine": "Walking memory in small steps reuses lines already fetched; walking in steps larger than a line throws most of every fetch away.",
+    "needs": [
+      "cache-lines"
+    ],
+    "readings": [
+      {
+        "title": "Computer Systems: A Programmer's Perspective",
+        "kind": "book",
+        "where": "Ch. 6.2 and 6.6"
+      },
+      {
+        "title": "MIT 6.172 Performance Engineering",
+        "kind": "course",
+        "where": "Lecture 14, caching",
+        "url": "https://ocw.mit.edu/courses/6-172-performance-engineering-of-software-systems-fall-2018/"
+      }
+    ]
+  },
+  "virtual-memory": {
+    "name": "Virtual memory",
+    "topic": "os",
+    "oneLine": "Each process sees its own address space, and the hardware translates those addresses to physical frames through page tables the kernel maintains.",
+    "needs": [
+      "memory-hierarchy"
+    ],
+    "readings": [
+      {
+        "title": "Operating Systems: Three Easy Pieces",
+        "kind": "book",
+        "where": "Ch. 13–16, free online",
+        "url": "https://pages.cs.wisc.edu/~remzi/OSTEP/"
+      },
+      {
+        "title": "Computer Systems: A Programmer's Perspective",
+        "kind": "book",
+        "where": "Ch. 9.1–9.5"
+      }
+    ]
+  },
+  "paging": {
+    "name": "Pages and page tables",
+    "topic": "os",
+    "oneLine": "Memory is managed in fixed-size pages, usually 4 KiB, and a multi-level page table maps virtual page numbers to physical frame numbers.",
+    "needs": [
+      "virtual-memory"
+    ],
+    "readings": [
+      {
+        "title": "Operating Systems: Three Easy Pieces",
+        "kind": "book",
+        "where": "Ch. 18–20, including multi-level tables",
+        "url": "https://pages.cs.wisc.edu/~remzi/OSTEP/vm-paging.pdf"
+      },
+      {
+        "title": "Five-level page tables",
+        "kind": "docs",
+        "where": "Linux kernel docs, for how deep it really goes",
+        "url": "https://docs.kernel.org/arch/x86/x86_64/5level-paging.html"
+      }
+    ]
+  },
+  "mmu-tlb": {
+    "name": "The MMU and the TLB",
+    "topic": "os",
+    "oneLine": "Address translation is done in hardware by the MMU, and the TLB caches recent translations so that most memory accesses do not need a page-table walk at all.",
+    "needs": [
+      "paging"
+    ],
+    "readings": [
+      {
+        "title": "Operating Systems: Three Easy Pieces",
+        "kind": "book",
+        "where": "Ch. 19, the TLB",
+        "url": "https://pages.cs.wisc.edu/~remzi/OSTEP/vm-tlbs.pdf"
+      },
+      {
+        "title": "Computer Systems: A Programmer's Perspective",
+        "kind": "book",
+        "where": "Ch. 9.6, address translation"
+      }
+    ]
+  },
+  "page-faults": {
+    "name": "Page faults",
+    "topic": "os",
+    "oneLine": "When a translation is missing or forbidden the MMU raises a fault, the kernel decides whether it is legitimate, and the faulting instruction is re-run as though nothing happened.",
+    "needs": [
+      "mmu-tlb"
+    ],
+    "readings": [
+      {
+        "title": "Operating Systems: Three Easy Pieces",
+        "kind": "book",
+        "where": "Ch. 21–22, swapping and the fault path",
+        "url": "https://pages.cs.wisc.edu/~remzi/OSTEP/vm-beyondphys.pdf"
+      },
+      {
+        "title": "The Linux Programming Interface",
+        "kind": "book",
+        "where": "Ch. 49 on mmap, for what a fault does to a mapping"
+      },
+      {
+        "title": "Linux fault handling",
+        "kind": "docs",
+        "where": "kernel docs: handle_mm_fault",
+        "url": "https://docs.kernel.org/mm/index.html"
+      }
+    ]
+  },
+  "cap-theorem": {
+    "name": "Partitions, consistency and availability",
+    "topic": "dist",
+    "oneLine": "A network partition forces a choice between refusing to answer and answering from possibly stale state; the rest of the time the trade-off is latency, not availability.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "Designing Data-Intensive Applications",
+        "kind": "book",
+        "where": "Ch. 9, especially the critique of CAP"
+      },
+      {
+        "title": "Please stop calling databases CP or AP",
+        "kind": "docs",
+        "where": "Martin Kleppmann",
+        "url": "https://martin.kleppmann.com/2015/05/11/please-stop-calling-databases-cp-or-ap.html"
+      },
+      {
+        "title": "CAP Twelve Years Later",
+        "kind": "paper",
+        "where": "Brewer's own revision",
+        "url": "https://www.infoq.com/articles/cap-twelve-years-later-how-the-rules-have-changed/"
+      }
+    ]
+  },
+  "replication": {
+    "name": "Replication",
+    "topic": "dist",
+    "oneLine": "The same data is kept on several nodes so that one can fail without losing it, which immediately raises the question of what to do when copies disagree.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "Designing Data-Intensive Applications",
+        "kind": "book",
+        "where": "Ch. 5, leaders and followers"
+      },
+      {
+        "title": "MIT 6.824 Distributed Systems",
+        "kind": "course",
+        "where": "Lectures 2–4",
+        "url": "https://pdos.csail.mit.edu/6.824/"
+      }
+    ]
+  },
+  "array-bounds": {
+    "name": "Array bounds and off-by-one",
+    "topic": "algo",
+    "oneLine": "C and C++ do not check indexes, so reading one element past the end is undefined behaviour that usually looks like it worked.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "C++ Core Guidelines",
+        "kind": "docs",
+        "where": "ES.103, and the Bounds profile",
+        "url": "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#es103-dont-overflow"
+      },
+      {
+        "title": "cppreference: std::vector::at",
+        "kind": "docs",
+        "where": "the checked alternative to []",
+        "url": "https://en.cppreference.com/w/cpp/container/vector/at"
+      },
+      {
+        "title": "Computer Systems: A Programmer's Perspective",
+        "kind": "book",
+        "where": "Ch. 3.10, buffer overflows and why they are exploitable"
+      }
+    ]
+  },
+  "sanitizers": {
+    "name": "Sanitizers",
+    "topic": "compilers",
+    "oneLine": "AddressSanitizer and UndefinedBehaviorSanitizer instrument your program at compile time so that memory errors and undefined behaviour fail loudly instead of appearing to work.",
+    "needs": [
+      "array-bounds"
+    ],
+    "readings": [
+      {
+        "title": "AddressSanitizer",
+        "kind": "docs",
+        "where": "the flags, and how to read a report",
+        "url": "https://github.com/google/sanitizers/wiki/AddressSanitizer"
+      },
+      {
+        "title": "UndefinedBehaviorSanitizer",
+        "kind": "docs",
+        "where": "the list of checks it can make",
+        "url": "https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html"
+      },
+      {
+        "title": "GCC instrumentation options",
+        "kind": "docs",
+        "where": "-fsanitize= and what each one costs",
+        "url": "https://gcc.gnu.org/onlinedocs/gcc/Instrumentation-Options.html"
+      }
+    ]
+  }
+}

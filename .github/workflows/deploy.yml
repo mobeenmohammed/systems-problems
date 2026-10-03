@@ -1,0 +1,83 @@
+# Test, then publish to GitHub Pages.
+#
+# ubuntu-latest already ships g++, rustc and python3, so the compiled-language
+# paths are exercised on every push whether or not Docker was running on the
+# machine the commit came from. That is what keeps the C++ and Rust reference
+# solutions honest: tests/content.test.mjs compiles and runs every one of them
+# against the problem's own hidden cases.
+
+name: test and deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Which toolchains this runner has
+        run: |
+          g++ --version | head -1
+          rustc --version
+          python3 --version
+          node --version
+
+      - run: npm ci
+
+      # The whole suite, including the judge's own tests and every code
+      # problem's reference solution compiled with the profile it asks for.
+      - run: npm test
+
+      # A stale index would mean the catalog disagrees with the problem files,
+      # which is invisible until a problem fails to open.
+      - name: The committed index matches the problem files
+        run: npm run check:index
+
+      # An answer key in problems/ would be served alongside the problem it
+      # answers, which defeats the one bit of answer-hiding a static site has.
+      - name: No answer key leaked into problems/
+        run: |
+          if grep -rl '"key"' problems/ 2>/dev/null | grep -q .; then
+            echo "A problem file contains a \"key\" field. Keys belong in solutions/."
+            grep -rl '"key"' problems/
+            exit 1
+          fi
+          echo "ok"
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/configure-pages@v5
+
+      # The whole repo is the site: no build step, no bundler. node_modules is
+      # not present because npm ci is not run in this job.
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

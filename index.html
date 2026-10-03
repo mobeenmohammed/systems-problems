@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="theme-dark" data-accent="accent-default" data-frame="frame-none">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bare Metal</title>
+<meta name="description" content="A personal problems site for the knowledge every low-level systems developer should know.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#9638;</text></svg>">
+<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/themes.css">
+<script>
+/* Applied before first paint, directly off localStorage. Waiting for store.js
+   would mean a flash of the default dark theme on every load for anyone who
+   bought a different one — and on Paper that flash is blinding. */
+(function () {
+  try {
+    var s = JSON.parse(localStorage.getItem('bare-metal/state/v1') || 'null');
+    var e = (s && s.equipped) || {};
+    var r = document.documentElement;
+    if (e.theme)  r.setAttribute('data-theme',  e.theme);
+    if (e.accent) r.setAttribute('data-accent', e.accent);
+    if (e.frame)  r.setAttribute('data-frame',  e.frame);
+  } catch (err) { /* a corrupt or blocked store just means the default look */ }
+})();
+</script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="4.5" y="4.5" width="15" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/>
+      <rect x="9" y="9" width="6" height="6" fill="currentColor"/>
+      <path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3M5 1.9 6.5 4.5M19 1.9 17.5 4.5M5 22.1 6.5 19.5M19 22.1 17.5 19.5"
+            stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+    </svg>
+    <div class="brand-text">
+      <h1><a href="#/" style="color:inherit">Bare Metal</a></h1>
+      <p>Problems for low-level systems</p>
+    </div>
+  </div>
+
+  <nav class="topbar-nav" id="nav" aria-label="Views">
+    <a href="#/" data-route="home">Dashboard</a>
+    <a href="#/problems" data-route="problems">Problems</a>
+    <a href="#/concepts" data-route="concepts">Reading</a>
+    <a href="#/profile" data-route="profile">Profile</a>
+    <a href="#/shop" data-route="shop">Shop</a>
+    <a href="#/settings" data-route="settings">Settings</a>
+  </nav>
+
+  <div class="purse" id="purse" aria-live="polite">
+    <span class="xp" title="Total XP — permanent, and what sets your rank">
+      <b id="purseXp">0</b> xp
+    </span>
+    <span class="coin" title="Coins — spend these in the shop">
+      <b id="purseCoins">0</b> ◉
+    </span>
+    <span class="streak tiny" id="purseStreak" hidden></span>
+  </div>
+</header>
+
+<main class="main" id="main">
+
+  <!-- ---------------- dashboard ---------------- -->
+  <section id="view-home" class="view" hidden>
+    <div class="hero">
+      <div>
+        <h1>Every low-level thing, one problem at a time</h1>
+        <p class="muted">Nine topics, three difficulties, and a reading list attached to each
+           problem so a thing you cannot do yet comes with the chapter that fixes that.</p>
+      </div>
+      <div class="card rank-card">
+        <div class="rank-head">
+          <span class="rank-name" id="homeRank">Userland</span>
+          <span class="rank-next" id="homeRankNext"></span>
+        </div>
+        <div class="bar"><i id="homeRankBar" style="width:0%"></i></div>
+        <p class="tiny faint" style="margin:.5rem 0 0" id="homeStreakLine"></p>
+      </div>
+    </div>
+
+    <div class="stat-row" id="homeStats"></div>
+
+    <div id="homeReview"></div>
+
+    <h2>Topics</h2>
+    <div class="topic-grid" id="homeTopics"></div>
+
+    <h2 style="margin-top:2rem">Activity</h2>
+    <div class="card">
+      <div class="heat" id="homeHeat" aria-label="Problems solved per day over the last 26 weeks"></div>
+      <p class="tiny faint" style="margin:.6rem 0 0">Last 26 weeks. A square is a day you solved something.</p>
+    </div>
+  </section>
+
+  <!-- ---------------- catalog ---------------- -->
+  <section id="view-problems" class="view" hidden>
+    <h1>Problems</h1>
+    <div class="filters">
+      <input type="search" id="fSearch" placeholder="Search titles and tags…" aria-label="Search problems" autocomplete="off">
+      <label>Topic
+        <select id="fTopic"><option value="">All topics</option></select>
+      </label>
+      <label>Difficulty
+        <select id="fDiff"><option value="">Any</option></select>
+      </label>
+      <label>Type
+        <select id="fType"><option value="">Any type</option></select>
+      </label>
+      <label>Status
+        <select id="fStatus">
+          <option value="">Any status</option>
+          <option value="unsolved">Not solved</option>
+          <option value="attempted">Attempted</option>
+          <option value="solved">Solved</option>
+          <option value="read">Read the answer</option>
+          <option value="flagged">Flagged or due</option>
+        </select>
+      </label>
+      <button class="btn btn-sm btn-ghost" id="fClear">Clear</button>
+    </div>
+    <p class="small muted" id="catalogCount"></p>
+    <div class="plist" id="catalogList"></div>
+  </section>
+
+  <!-- ---------------- one problem ---------------- -->
+  <section id="view-problem" class="view" hidden>
+    <div id="problemHost"></div>
+  </section>
+
+  <!-- ---------------- reading map ---------------- -->
+  <section id="view-concepts" class="view" hidden>
+    <h1>Reading</h1>
+    <p class="muted">Every concept the problems rest on, with where to actually read it.
+       Tick a reading when you have read it — it is your own record, and twenty of them
+       unlocks something.</p>
+    <div class="filters">
+      <input type="search" id="cSearch" placeholder="Search concepts…" aria-label="Search concepts" autocomplete="off">
+      <label>Topic
+        <select id="cTopic"><option value="">All topics</option></select>
+      </label>
+    </div>
+    <div id="conceptList"></div>
+  </section>
+
+  <!-- ---------------- profile ---------------- -->
+  <section id="view-profile" class="view" hidden>
+    <div class="profile-head">
+      <div class="avatar" id="profAvatar">▚</div>
+      <div>
+        <h1 style="margin-bottom:.1rem" id="profName">Anonymous</h1>
+        <p class="muted small" style="margin:0" id="profTitle"></p>
+        <div class="row small" style="margin-top:.4rem">
+          <span class="pill pill-plain" id="profRank">Userland</span>
+          <span class="faint" id="profXp"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="stat-row" id="profStats"></div>
+
+    <h2>Per topic</h2>
+    <div class="card stack" id="profTopics" style="margin-bottom:1.5rem"></div>
+
+    <h2>Titles</h2>
+    <p class="small muted">Earned, never bought. Wearing one is a claim the record supports.</p>
+    <div class="row" id="profTitles" style="margin-bottom:1.5rem"></div>
+
+    <h2>Achievements</h2>
+    <div class="badges" id="profBadges"></div>
+  </section>
+
+  <!-- ---------------- shop ---------------- -->
+  <section id="view-shop" class="view" hidden>
+    <h1>Shop</h1>
+    <p class="muted">Cosmetics only. Spending coins never costs you XP or a rank,
+       so there is nothing here to regret buying.</p>
+    <div id="shopHost"></div>
+  </section>
+
+  <!-- ---------------- settings ---------------- -->
+  <section id="view-settings" class="view" hidden>
+    <h1>Settings</h1>
+
+    <div class="card" style="margin-bottom:1rem">
+      <h3>Profile</h3>
+      <label class="small muted">Display name<br>
+        <input id="setName" style="margin-top:.2rem;width:min(100%,22rem)" maxlength="40">
+      </label>
+    </div>
+
+    <div class="card" style="margin-bottom:1rem">
+      <h3>The judge</h3>
+      <p class="small muted">C++ and Rust compile and run on a small judge you start locally
+         under Docker. JavaScript and Python run in the browser and need nothing.</p>
+      <div class="judge-state" id="judgeState" data-up="false">
+        <span class="dot"></span><span id="judgeStateText">Not checked yet</span>
+      </div>
+      <div class="row" style="margin-top:.7rem">
+        <input id="setJudge" style="flex:1 1 18rem" placeholder="http://127.0.0.1:2000" spellcheck="false">
+        <button class="btn btn-sm" id="judgeCheck">Check</button>
+      </div>
+      <p class="tiny faint" style="margin:.5rem 0 0">
+        Use the address <code>127.0.0.1</code> rather than the name <code>localhost</code>:
+        browsers exempt loopback <em>addresses</em> from mixed-content blocking so this page can
+        reach them over plain HTTP, but Firefox does not extend that to the name.
+      </p>
+      <pre class="code-block" style="margin-top:.7rem"><code>docker compose -f judge/compose.yml up -d</code></pre>
+    </div>
+
+    <div class="card" style="margin-bottom:1rem">
+      <h3>Your data</h3>
+      <p class="small muted">Progress lives in this browser. Export it to carry it to another
+         machine, or to commit it as <code>data/progress.json</code>.</p>
+      <div class="row">
+        <button class="btn btn-sm" id="setExport">Export progress…</button>
+        <button class="btn btn-sm" id="setImport">Import progress…</button>
+        <button class="btn btn-sm" id="setExportSolves">Export solves for Learning Tree…</button>
+      </div>
+      <p class="tiny faint" style="margin:.6rem 0 0">
+        Solves export in the shape the tracker's <strong>Data ▸ Import solved problems</strong>
+        already accepts, under the source <code>systems</code>.
+      </p>
+    </div>
+
+    <div class="card">
+      <h3>Danger</h3>
+      <p class="small muted">Clears every solve, all XP and coins, and everything you own.
+         Export first if you want it back.</p>
+      <button class="btn btn-sm btn-danger" id="setReset">Reset everything</button>
+    </div>
+  </section>
+
+  <!-- ---------------- not found ---------------- -->
+  <section id="view-404" class="view" hidden>
+    <div class="empty">
+      <h2>Nothing here</h2>
+      <p>That link does not point at a problem.</p>
+      <a class="btn" href="#/problems">Back to the problems</a>
+    </div>
+  </section>
+
+</main>
+
+<div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
+
+<script src="js/store.js"></script>
+<script src="js/md.js"></script>
+<script src="js/highlight.js"></script>
+<script src="js/catalog.js"></script>
+<script src="js/runners/harness.js"></script>
+<script src="js/runners/index.js"></script>
+<script src="js/editor.js"></script>
+<script src="js/types/registry.js"></script>
+<script src="js/types/mcq.js"></script>
+<script src="js/types/numeric.js"></script>
+<script src="js/types/order.js"></script>
+<script src="js/types/code.js"></script>
+<script src="js/problem.js"></script>
+<script src="js/views.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

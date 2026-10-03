@@ -1,0 +1,322 @@
+/* ============================================================
+   themes.css — the purchasable themes.
+
+   A theme is data, not code: one block of token overrides keyed
+   by the shop item's id, which is what html[data-theme] is set to.
+   Adding a theme is a block here plus a row in Store.SHOP.
+
+   Every block MUST define the whole REQUIRED set below.
+   tests/browser/styles.test.mjs enforces it, because a theme that
+   forgets --text renders invisible text and the failure shows up
+   as "the site is broken", not as "that theme is incomplete".
+
+   REQUIRED: bg bg-elev bg-elev-2 bg-inset border border-strong
+             text text-dim text-faint accent accent-text accent-soft
+             ok warn danger
+             diff-beginner diff-intermediate diff-advanced
+             st-unsolved st-attempted st-solved st-read
+             hl-keyword hl-type hl-string hl-comment hl-num hl-fn
+             hl-literal hl-preproc
+
+   theme-dark is the :root default in styles.css and is therefore
+   not repeated here.
+
+   An equipped accent still wins over a theme's --accent: the
+   [data-accent] rules in styles.css are written after these, so
+   mixing the two is deliberate rather than accidental.
+   ============================================================ */
+
+/* ---------------- Paper — light, for daylight ---------------- */
+html[data-theme="theme-paper"] {
+  --bg:            #f6f7f4;
+  --bg-elev:       #ffffff;
+  --bg-elev-2:     #eceee8;
+  --bg-inset:      #f1f2ee;
+  --border:        #dcdfd6;
+  --border-strong: #c3c8ba;
+  --text:          #1c2024;
+  --text-dim:      #555d66;
+  --text-faint:    #7d868f;
+
+  --accent:        #0a66c2;
+  --accent-text:   #ffffff;
+  --accent-soft:   rgba(10, 102, 194, .10);
+
+  --ok:            #0f7a4d;
+  --warn:          #9a6700;
+  --danger:        #b42318;
+
+  --diff-beginner:     #0f7a4d;
+  --diff-intermediate: #9a6700;
+  --diff-advanced:     #b42318;
+
+  --st-unsolved:  #7d868f;
+  --st-attempted: #9a6700;
+  --st-solved:    #0f7a4d;
+  --st-read:      #6d28d9;
+
+  --hl-keyword: #b3246b;
+  --hl-type:    #0a66c2;
+  --hl-string:  #156b3a;
+  --hl-comment: #7d868f;
+  --hl-num:     #9a4a00;
+  --hl-fn:      #6d28d9;
+  --hl-literal: #9a4a00;
+  --hl-preproc: #3f5468;
+
+  --shadow: 0 8px 24px rgba(28, 32, 36, .10);
+}
+
+/* ---------------- Gruvbox — warm and retro ---------------- */
+html[data-theme="theme-gruvbox"] {
+  --bg:            #1d2021;
+  --bg-elev:       #282828;
+  --bg-elev-2:     #3c3836;
+  --bg-inset:      #141617;
+  --border:        #3c3836;
+  --border-strong: #504945;
+  --text:          #ebdbb2;
+  --text-dim:      #bdae93;
+  --text-faint:    #928374;
+
+  --accent:        #fabd2f;
+  --accent-text:   #1d2021;
+  --accent-soft:   rgba(250, 189, 47, .14);
+
+  --ok:            #b8bb26;
+  --warn:          #fe8019;
+  --danger:        #fb4934;
+
+  --diff-beginner:     #b8bb26;
+  --diff-intermediate: #fabd2f;
+  --diff-advanced:     #fb4934;
+
+  --st-unsolved:  #928374;
+  --st-attempted: #fe8019;
+  --st-solved:    #b8bb26;
+  --st-read:      #d3869b;
+
+  --hl-keyword: #fb4934;
+  --hl-type:    #8ec07c;
+  --hl-string:  #b8bb26;
+  --hl-comment: #928374;
+  --hl-num:     #d3869b;
+  --hl-fn:      #fabd2f;
+  --hl-literal: #d3869b;
+  --hl-preproc: #83a598;
+}
+
+/* ---------------- Nord — cold and quiet ---------------- */
+html[data-theme="theme-nord"] {
+  --bg:            #2e3440;
+  --bg-elev:       #3b4252;
+  --bg-elev-2:     #434c5e;
+  --bg-inset:      #272c36;
+  --border:        #434c5e;
+  --border-strong: #4c566a;
+  --text:          #eceff4;
+  --text-dim:      #d8dee9;
+  --text-faint:    #7b88a1;
+
+  --accent:        #88c0d0;
+  --accent-text:   #2e3440;
+  --accent-soft:   rgba(136, 192, 208, .14);
+
+  --ok:            #a3be8c;
+  --warn:          #ebcb8b;
+  --danger:        #bf616a;
+
+  --diff-beginner:     #a3be8c;
+  --diff-intermediate: #ebcb8b;
+  --diff-advanced:     #bf616a;
+
+  --st-unsolved:  #7b88a1;
+  --st-attempted: #ebcb8b;
+  --st-solved:    #a3be8c;
+  --st-read:      #b48ead;
+
+  --hl-keyword: #81a1c1;
+  --hl-type:    #8fbcbb;
+  --hl-string:  #a3be8c;
+  --hl-comment: #7b88a1;
+  --hl-num:     #b48ead;
+  --hl-fn:      #88c0d0;
+  --hl-literal: #d08770;
+  --hl-preproc: #5e81ac;
+}
+
+/* ---------------- Tokyo Night — neon on deep blue ---------------- */
+html[data-theme="theme-tokyo"] {
+  --bg:            #1a1b26;
+  --bg-elev:       #1f2335;
+  --bg-elev-2:     #292e42;
+  --bg-inset:      #16161e;
+  --border:        #292e42;
+  --border-strong: #3b4261;
+  --text:          #c0caf5;
+  --text-dim:      #9aa5ce;
+  --text-faint:    #565f89;
+
+  --accent:        #7aa2f7;
+  --accent-text:   #16161e;
+  --accent-soft:   rgba(122, 162, 247, .14);
+
+  --ok:            #9ece6a;
+  --warn:          #e0af68;
+  --danger:        #f7768e;
+
+  --diff-beginner:     #9ece6a;
+  --diff-intermediate: #e0af68;
+  --diff-advanced:     #f7768e;
+
+  --st-unsolved:  #565f89;
+  --st-attempted: #e0af68;
+  --st-solved:    #9ece6a;
+  --st-read:      #bb9af7;
+
+  --hl-keyword: #bb9af7;
+  --hl-type:    #2ac3de;
+  --hl-string:  #9ece6a;
+  --hl-comment: #565f89;
+  --hl-num:     #ff9e64;
+  --hl-fn:      #7aa2f7;
+  --hl-literal: #ff9e64;
+  --hl-preproc: #7dcfff;
+}
+
+/* ---------------- Solarized Dark — the old standard ---------------- */
+html[data-theme="theme-solarized"] {
+  --bg:            #002b36;
+  --bg-elev:       #073642;
+  --bg-elev-2:     #0b4350;
+  --bg-inset:      #00212b;
+  --border:        #0b4350;
+  --border-strong: #16555f;
+  --text:          #eee8d5;
+  --text-dim:      #93a1a1;
+  --text-faint:    #657b83;
+
+  --accent:        #268bd2;
+  --accent-text:   #002b36;
+  --accent-soft:   rgba(38, 139, 210, .16);
+
+  --ok:            #859900;
+  --warn:          #b58900;
+  --danger:        #dc322f;
+
+  --diff-beginner:     #859900;
+  --diff-intermediate: #b58900;
+  --diff-advanced:     #dc322f;
+
+  --st-unsolved:  #657b83;
+  --st-attempted: #b58900;
+  --st-solved:    #859900;
+  --st-read:      #6c71c4;
+
+  --hl-keyword: #859900;
+  --hl-type:    #b58900;
+  --hl-string:  #2aa198;
+  --hl-comment: #657b83;
+  --hl-num:     #d33682;
+  --hl-fn:      #268bd2;
+  --hl-literal: #cb4b16;
+  --hl-preproc: #6c71c4;
+}
+
+/* ---------------- Dracula — purple and loud ---------------- */
+html[data-theme="theme-dracula"] {
+  --bg:            #282a36;
+  --bg-elev:       #343746;
+  --bg-elev-2:     #44475a;
+  --bg-inset:      #21222c;
+  --border:        #44475a;
+  --border-strong: #565a71;
+  --text:          #f8f8f2;
+  --text-dim:      #c3c5d4;
+  --text-faint:    #6272a4;
+
+  --accent:        #bd93f9;
+  --accent-text:   #21222c;
+  --accent-soft:   rgba(189, 147, 249, .16);
+
+  --ok:            #50fa7b;
+  --warn:          #ffb86c;
+  --danger:        #ff5555;
+
+  --diff-beginner:     #50fa7b;
+  --diff-intermediate: #ffb86c;
+  --diff-advanced:     #ff5555;
+
+  --st-unsolved:  #6272a4;
+  --st-attempted: #ffb86c;
+  --st-solved:    #50fa7b;
+  --st-read:      #bd93f9;
+
+  --hl-keyword: #ff79c6;
+  --hl-type:    #8be9fd;
+  --hl-string:  #f1fa8c;
+  --hl-comment: #6272a4;
+  --hl-num:     #bd93f9;
+  --hl-fn:      #50fa7b;
+  --hl-literal: #bd93f9;
+  --hl-preproc: #ffb86c;
+}
+
+/* ---------------- Phosphor — a green CRT ----------------
+   Deliberately almost monochrome: the whole point is that a P1
+   phosphor tube had one colour and brightness did the rest. The
+   status and difficulty tokens are the one concession, kept as
+   brightness steps rather than hues so the look survives. */
+html[data-theme="theme-phosphor"] {
+  --bg:            #040a05;
+  --bg-elev:       #0a140b;
+  --bg-elev-2:     #112017;
+  --bg-inset:      #020603;
+  --border:        #1b3a22;
+  --border-strong: #2a5c34;
+  --text:          #8cff9e;
+  --text-dim:      #4fc967;
+  --text-faint:    #2f8542;
+
+  --accent:        #33ff66;
+  --accent-text:   #020603;
+  --accent-soft:   rgba(51, 255, 102, .14);
+
+  --ok:            #33ff66;
+  --warn:          #b9ff7a;
+  --danger:        #ff6b4a;
+
+  --diff-beginner:     #2f8542;
+  --diff-intermediate: #4fc967;
+  --diff-advanced:     #8cff9e;
+
+  --st-unsolved:  #2f8542;
+  --st-attempted: #b9ff7a;
+  --st-solved:    #33ff66;
+  --st-read:      #4fc967;
+
+  --hl-keyword: #8cff9e;
+  --hl-type:    #4fc967;
+  --hl-string:  #b9ff7a;
+  --hl-comment: #2f8542;
+  --hl-num:     #d8ffa8;
+  --hl-fn:      #33ff66;
+  --hl-literal: #d8ffa8;
+  --hl-preproc: #4fc967;
+
+  --shadow: 0 0 24px rgba(51, 255, 102, .10);
+}
+
+/* A faint scanline wash, only for the theme that asks for it. Pointer events
+   are off so it can never intercept a click. */
+html[data-theme="theme-phosphor"] body::after {
+  content: ""; position: fixed; inset: 0; z-index: 100; pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0 2px,
+    rgba(0, 0, 0, .16) 2px 4px
+  );
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="theme-phosphor"] body::after { display: none; }
+}

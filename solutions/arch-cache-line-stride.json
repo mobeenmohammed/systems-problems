@@ -1,0 +1,13 @@
+{
+  "id": "arch-cache-line-stride",
+  "key": {
+    "value": 0.0625,
+    "rtol": 0.02,
+    "accept": ["1/16", "6.25%"]
+  },
+  "explanation": "## One in sixteen\n\nA 64-byte line holds `64 / 4 = 16` ints. Walking the array one element at a time, the access to `a[0]` misses and the whole line containing `a[0]` through `a[15]` is fetched. The next fifteen accesses hit in that line. Then `a[16]` misses, and the pattern repeats.\n\nSo one access in sixteen misses:\n\n```\nmiss rate = 1 / (line size / element size)\n          = 1 / (64 / 4)\n          = 1 / 16\n          = 0.0625 = 6.25%\n```\n\n### Why this is the most useful number in the subject\n\nNotice what the miss rate depends on: **the element size and the line size**, and nothing else. Not the array length, not the cache capacity. A sequential walk over data that does not fit in cache has a miss rate fixed by the geometry of the line.\n\nThat gives you a reference point to compare any real measurement against. If you measure a sequential loop and see a miss rate near 6.25% on 4-byte elements, the loop is doing as well as a sequential walk can. If you see something close to 100%, you are not really walking sequentially — the stride is bigger than you think, or you are chasing pointers, or the array-of-structs layout means each \"element\" is far apart in memory.\n\n### The two obvious variations\n\n- **`double` instead of `int`** — 8-byte elements, so `64 / 8 = 8` per line, and the miss rate doubles to `1/8`. Bigger elements means fewer per line means more misses per element touched.\n- **A stride of 16 ints instead of 1** — now every access lands on a fresh line, and the miss rate is **100%**, fetching 64 bytes to use 4 of them. This is the same loop doing sixteen times the memory traffic for the same arithmetic, and it is the single most common reason a loop is slower than it looks.\n\nReal hardware does better than the first case, because the prefetcher recognises a sequential stream and fetches lines before you ask. That is why the problem rules prefetching out: it changes the measured answer, but not the geometry the answer comes from.",
+  "readMore": [
+    { "concept": "cache-lines", "where": "CS:APP ch. 6.3–6.4" },
+    { "concept": "spatial-locality", "where": "Drepper §3.3, then MIT 6.172 lecture 14" }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "id": "arch-cache-line-stride",
+  "title": "How often does a sequential walk miss?",
+  "topic": "arch",
+  "difficulty": "beginner",
+  "type": "numeric",
+  "tags": ["caches", "locality", "memory"],
+  "estimate": 6,
+  "prereqs": [
+    { "concept": "cache-lines", "why": "The whole answer turns on the fact that a cache fetches a line and not a byte." },
+    { "concept": "spatial-locality", "why": "You need to be able to turn a stride in elements into a stride in bytes." }
+  ],
+  "statement": "A machine has **64-byte cache lines**. You walk a large array of 4-byte `int`s from start to finish, one element at a time:\n\n```c\nlong sum = 0;\nfor (size_t i = 0; i < n; i++)\n    sum += a[i];\n```\n\nThe array is far too big to fit in any level of cache, so nothing is still resident from a previous pass, and assume no hardware prefetching.\n\n**What fraction of the `n` accesses miss in the cache?**\n\nGive it as a fraction, a decimal or a percentage — `1/16`, `0.0625` and `6.25%` are all read as the same number.",
+  "hints": [
+    "How many 4-byte `int`s fit in one 64-byte line?",
+    "The first access to a line misses and pays for the fetch. What happens on the accesses to the other elements that arrived in that same line?"
+  ],
+  "payload": {
+    "unit": "of all accesses",
+    "placeholder": "e.g. 1/16, 0.0625 or 6.25%"
+  }
+}
