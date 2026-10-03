@@ -111,6 +111,79 @@
     ]
   },
   {
+    "id": "compilers-expression-lexer",
+    "title": "Write the lexer",
+    "topic": "compilers",
+    "difficulty": "beginner",
+    "type": "code",
+    "tags": [
+      "lexing",
+      "tokens",
+      "parsing",
+      "strings"
+    ],
+    "estimate": 25,
+    "prereqs": [
+      "lexing",
+      "compilation-pipeline"
+    ],
+    "langs": [
+      "cpp",
+      "python",
+      "js"
+    ]
+  },
+  {
+    "id": "compilers-source-to-binary",
+    "title": "Source to running program",
+    "topic": "compilers",
+    "difficulty": "beginner",
+    "type": "order",
+    "tags": [
+      "compilation",
+      "linking",
+      "toolchain"
+    ],
+    "estimate": 9,
+    "prereqs": [
+      "compilation-pipeline"
+    ]
+  },
+  {
+    "id": "compilers-integer-promotions",
+    "title": "The arithmetic is not the arithmetic you wrote",
+    "topic": "compilers",
+    "difficulty": "intermediate",
+    "type": "predict",
+    "tags": [
+      "integer-promotion",
+      "signedness",
+      "conversions",
+      "c"
+    ],
+    "estimate": 15,
+    "prereqs": [
+      "integer-conversions"
+    ]
+  },
+  {
+    "id": "compilers-wrapv-flag",
+    "title": "Make signed overflow behave",
+    "topic": "compilers",
+    "difficulty": "intermediate",
+    "type": "short",
+    "tags": [
+      "undefined-behaviour",
+      "overflow",
+      "compiler-flags",
+      "gcc"
+    ],
+    "estimate": 9,
+    "prereqs": [
+      "undefined-behaviour"
+    ]
+  },
+  {
     "id": "dist-partition-choice",
     "title": "What a partition actually costs you",
     "topic": "dist",
@@ -159,6 +232,58 @@
     "estimate": 7,
     "prereqs": [
       "file-permissions"
+    ]
+  },
+  {
+    "id": "linux-redirection-order",
+    "title": "What the shell does, in order",
+    "topic": "linux",
+    "difficulty": "intermediate",
+    "type": "order",
+    "tags": [
+      "file-descriptors",
+      "redirection",
+      "shell"
+    ],
+    "estimate": 12,
+    "prereqs": [
+      "file-descriptors"
+    ]
+  },
+  {
+    "id": "linux-strace-missing-library",
+    "title": "Read the strace and say what is wrong",
+    "topic": "linux",
+    "difficulty": "intermediate",
+    "type": "mcq",
+    "tags": [
+      "strace",
+      "dynamic-linking",
+      "debugging",
+      "syscalls"
+    ],
+    "estimate": 12,
+    "prereqs": [
+      "syscall-tracing",
+      "dynamic-linking"
+    ]
+  },
+  {
+    "id": "linux-oom-in-a-container",
+    "title": "Killed at 2 GB on a 64 GB machine",
+    "topic": "linux",
+    "difficulty": "advanced",
+    "type": "multi",
+    "tags": [
+      "oom",
+      "cgroups",
+      "containers",
+      "memory"
+    ],
+    "estimate": 16,
+    "prereqs": [
+      "cgroups-oom",
+      "virtual-memory"
     ]
   },
   {

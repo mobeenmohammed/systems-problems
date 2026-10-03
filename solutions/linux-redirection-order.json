@@ -1,0 +1,18 @@
+{
+  "key": {
+    "order": [
+      1,
+      3,
+      0,
+      2
+    ]
+  },
+  "explanation": "## The order\n\n1. **The shell forks**, and in the child fd 1 and fd 2 both point at the terminal — inherited, as everything is.\n2. **`2>&1`** makes fd 2 a duplicate of fd 1. Right now fd 1 is the terminal, so **fd 2 becomes the terminal** — which it already was. This step achieves nothing.\n3. **`>out.txt`** opens the file and points fd 1 at it. fd 2 is not touched and still points at the terminal.\n4. **`execve`** runs `cmd`, which inherits that table: stdout to the file, stderr to the terminal.\n\nSo `cmd 2>&1 >out.txt` sends stdout to the file and leaves stderr on the terminal, which is almost never what the person typing it wanted.\n\n## `>&` copies, it does not alias\n\nThis is the whole lesson and it is worth stating in one sentence: **`2>&1` is `dup2(1, 2)`** — copy the value in slot 1 into slot 2, *now*. It is an assignment, not a reference.\n\nIn C, the shell is doing roughly this:\n\n```c\n/* cmd 2>&1 >out.txt */\ndup2(1, 2);                                  /* 2>&1  : fd 2 = whatever fd 1 is (terminal) */\nint f = open(\"out.txt\", O_WRONLY|O_CREAT|O_TRUNC, 0644);\ndup2(f, 1);                                  /* >out  : fd 1 = the file */\nexecvp(\"cmd\", argv);\n```\n\nversus the order that works:\n\n```c\n/* cmd >out.txt 2>&1 */\nint f = open(\"out.txt\", O_WRONLY|O_CREAT|O_TRUNC, 0644);\ndup2(f, 1);                                  /* >out  : fd 1 = the file */\ndup2(1, 2);                                  /* 2>&1  : fd 2 = whatever fd 1 is (the file) */\nexecvp(\"cmd\", argv);\n```\n\nIdentical pairs of operations, different order, different outcome. If `2>&1` created a lasting link rather than a copy, both would behave the same — and it does not.\n\n## What each spelling actually does\n\n| Command | stdout | stderr |\n| --- | --- | --- |\n| `cmd >out 2>&1` | out | out |\n| `cmd 2>&1 >out` | out | terminal |\n| `cmd >out 2>out` | out | out, **and the two fight** |\n| `cmd &>out` | out | out (bash shorthand for the first) |\n| `cmd 2>&1 \\| less` | piped | piped |\n| `cmd \\| less 2>&1` | piped | terminal |\n\nThe third row is worth a word: `>out 2>out` opens the same file **twice**, giving two independent file descriptions with two independent offsets. Both start writing at 0 and overwrite each other. `2>&1` exists precisely to avoid that — it makes both descriptors share one description, and therefore one offset.\n\n## Swapping them, the one case where order is the point\n\nOccasionally you want stderr down a pipe and stdout left alone, and then the copy-not-alias behaviour is the tool rather than the trap:\n\n```bash\ncmd 3>&1 1>&2 2>&3 3>&- | grep something\n```\n\nRead it as three assignments through a temporary: fd 3 holds the original stdout, fd 1 takes stderr's destination, fd 2 takes the saved one, and then fd 3 is closed. It is exactly `tmp = a; a = b; b = tmp`, written in file descriptors.\n\n## Debugging it\n\n`strace` settles any argument about this instantly:\n\n```bash\nstrace -f -e trace=dup2,openat,execve sh -c 'echo hi 2>&1 >out.txt'\n```\n\nYou will see the `dup2(1, 2)` happen *before* the `openat`, which is the whole explanation in two lines of output.",
+  "readMore": [
+    {
+      "concept": "file-descriptors",
+      "where": "TLPI ch. 5.5 on dup2, then the bash manual on redirections"
+    }
+  ],
+  "id": "linux-redirection-order"
+}

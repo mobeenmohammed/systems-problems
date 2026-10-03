@@ -1,0 +1,38 @@
+{
+  "id": "linux-strace-missing-library",
+  "title": "Read the strace and say what is wrong",
+  "topic": "linux",
+  "difficulty": "intermediate",
+  "type": "mcq",
+  "tags": [
+    "strace",
+    "dynamic-linking",
+    "debugging",
+    "syscalls"
+  ],
+  "estimate": 12,
+  "prereqs": [
+    {
+      "concept": "syscall-tracing",
+      "why": "The evidence is a syscall trace, and reading one is the skill being tested."
+    },
+    {
+      "concept": "dynamic-linking",
+      "why": "What the trace shows is the loader doing its search, so you need to know what it is searching for and where."
+    }
+  ],
+  "statement": "A colleague says a program \"just exits immediately and prints nothing useful\". You run it under `strace` and this is the tail of the output:\n\n```\nexecve(\"./analyse\", [\"./analyse\"], 0x7ffd1a2b3c40 /* 41 vars */) = 0\nbrk(NULL)                               = 0x55a3f8c21000\nopenat(AT_FDCWD, \"/etc/ld.so.cache\", O_RDONLY|O_CLOEXEC) = 3\nfstat(3, {st_mode=S_IFREG|0644, st_size=78412, ...}) = 0\nmmap(NULL, 78412, PROT_READ, MAP_PRIVATE, 3, 0) = 0x7f2c1d4a1000\nclose(3)                                = 0\nopenat(AT_FDCWD, \"/lib/x86_64-linux-gnu/libanalytics.so.2\", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)\nopenat(AT_FDCWD, \"/usr/lib/x86_64-linux-gnu/libanalytics.so.2\", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)\nwritev(2, [{iov_base=\"./analyse: \", iov_len=11}, {iov_base=\"error while loading shared libra\"..., iov_len=43}], 2) = 54\nexit_group(127)                         = 0\n```\n\n**What is actually wrong?**",
+  "hints": [
+    "Look at which call failed and what it was trying to open. Notice there is no openat of the program's own data files anywhere in the trace.",
+    "`execve` returned 0, so the program was found and started. What runs between execve succeeding and main() being entered?",
+    "Exit status 127 is a specific convention. So is the fact that the error came out on fd 2 before any of the program's own work happened."
+  ],
+  "payload": {
+    "options": [
+      "The dynamic loader cannot find `libanalytics.so.2`, so the program is killed before `main` ever runs.",
+      "The program lacks permission to read `libanalytics.so.2`, which is why the open returns an error.",
+      "The program crashed inside `main` while trying to open a data file it needs.",
+      "`/etc/ld.so.cache` is corrupt, which is why the subsequent opens fail."
+    ]
+  }
+}

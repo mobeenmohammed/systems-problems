@@ -1,0 +1,33 @@
+{
+  "id": "compilers-integer-promotions",
+  "title": "The arithmetic is not the arithmetic you wrote",
+  "topic": "compilers",
+  "difficulty": "intermediate",
+  "type": "predict",
+  "tags": [
+    "integer-promotion",
+    "signedness",
+    "conversions",
+    "c"
+  ],
+  "estimate": 15,
+  "prereqs": [
+    {
+      "concept": "integer-conversions",
+      "why": "Every line of the output is one application of the promotion and conversion rules."
+    }
+  ],
+  "statement": "Every line here is **well defined** — there is no undefined behaviour and nothing implementation-specific on a normal 64-bit Linux build where `int` is 32 bits.\n\n\n**What does it print?** Four lines.",
+  "hints": [
+    "Before any arithmetic, C promotes anything narrower than `int` to `int`. So what are the types of `a` and `b` by the time the `+` happens?",
+    "The third line is asking about the *type* of `a + b`, not its value. `sizeof` never evaluates its operand — it only asks what type it would have.",
+    "The second line is the famous one. When one operand is `unsigned int` and the other is `int`, which way does the conversion go? Work out what -1 becomes."
+  ],
+  "payload": {
+    "lang": "c",
+    "lines": 5,
+    "prompt": "Four lines of output, exactly.",
+    "verifyAs": "cpp",
+    "code": "#include <stdio.h>\n\nint main(void) {\n    unsigned char a = 200, b = 100;\n    printf(\"%d\\n\", a + b);\n\n    unsigned int u = 1;\n    int i = -1;\n    printf(\"%d\\n\", i < u);\n\n    printf(\"%zu\\n\", sizeof(a + b));\n\n    char c = 'A';\n    printf(\"%zu %zu\\n\", sizeof(c), sizeof(c + 0));\n\n    return 0;\n}"
+  }
+}

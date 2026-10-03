@@ -278,6 +278,14 @@ function validateKey(p, sol, err, where) {
     }
     case 'predict': {
       if (typeof k.output !== 'string') err(where, 'predict key needs an output string');
+      /* A predict problem whose snippet is a complete program can have its key
+         checked against a real compiler, which is the only way to be sure a
+         predicted output is actually what the thing prints. */
+      const verifyAs = (p.payload || {}).verifyAs;
+      if (verifyAs && !LANGS.includes(verifyAs)) err(where, `unknown verifyAs "${verifyAs}"`);
+      if (verifyAs && !(p.payload || {}).code) err(where, 'verifyAs needs payload.code to compile');
+      const vplat = (p.payload || {}).verifyPlatform;
+      if (vplat && !['linux', 'darwin', 'win32'].includes(vplat)) err(where, `unknown verifyPlatform "${vplat}"`);
       break;
     }
     case 'locate': {

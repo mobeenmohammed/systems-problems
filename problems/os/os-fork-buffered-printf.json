@@ -21,7 +21,7 @@
       "why": "You need to know what fork duplicates, and that the answer includes the process's own memory."
     }
   ],
-  "statement": "```c\n#include <stdio.h>\n#include <unistd.h>\n\nint main(void) {\n    printf(\"AB\");\n    fork();\n    printf(\"CD\\n\");\n    return 0;\n}\n```\n\nIt is compiled and run with **stdout redirected to a file**:\n\n```bash\n./prog > out.txt\n```\n\nThe `fork()` succeeds. Both processes run to completion with no error.\n\n**What is in `out.txt` afterwards?**\n\nWrite it exactly, including the line breaks.",
+  "statement": "It is compiled and run with **stdout redirected to a file**:\n\n```bash\n./prog > out.txt\n```\n\nThe `fork()` succeeds. Both processes run to completion with no error.\n\n**What is in `out.txt` afterwards?**\n\nWrite it exactly, including the line breaks.",
   "hints": [
     "printf does not call write(2) every time. Where does the text go in between, and when does it leave?",
     "Redirected to a file, stdout is fully buffered — nothing is written out until the buffer fills or the process exits. Is the buffer full here?",
@@ -30,6 +30,9 @@
   "payload": {
     "lang": "c",
     "lines": 4,
-    "prompt": "The exact contents of out.txt."
+    "prompt": "The exact contents of out.txt.",
+    "code": "#include <stdio.h>\n#include <unistd.h>\n\nint main(void) {\n    printf(\"AB\");\n    fork();\n    printf(\"CD\\n\");\n    return 0;\n}",
+    "verifyAs": "cpp",
+    "verifyPlatform": "linux"
   }
 }

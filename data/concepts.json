@@ -561,5 +561,184 @@
         "url": "https://www.gnu.org/software/bash/manual/html_node/Redirections.html"
       }
     ]
+  },
+  "dynamic-linking": {
+    "name": "Dynamic linking and the loader",
+    "topic": "linux",
+    "oneLine": "A dynamically linked program names the shared libraries it needs, and the loader finds them at startup by searching a defined list of places.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "Computer Systems: A Programmer's Perspective",
+        "kind": "book",
+        "where": "Ch. 7.10-7.12, dynamic linking"
+      },
+      {
+        "title": "man ld.so",
+        "kind": "docs",
+        "where": "the search order, which is the part worth knowing",
+        "url": "https://man7.org/linux/man-pages/man8/ld.so.8.html"
+      },
+      {
+        "title": "How To Write Shared Libraries",
+        "kind": "paper",
+        "where": "Drepper, for what the loader is really doing",
+        "url": "https://www.akkadia.org/drepper/dsohowto.pdf"
+      }
+    ]
+  },
+  "syscall-tracing": {
+    "name": "Tracing syscalls",
+    "topic": "linux",
+    "oneLine": "strace shows every system call a process makes with its arguments and its result, which turns 'it does not work' into a specific failing call.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "man strace",
+        "kind": "docs",
+        "where": "especially -f, -e trace= and -k",
+        "url": "https://man7.org/linux/man-pages/man1/strace.1.html"
+      },
+      {
+        "title": "strace Wow Much Syscall",
+        "kind": "docs",
+        "where": "Julia Evans, the friendliest introduction there is",
+        "url": "https://jvns.ca/blog/2015/04/14/strace-zine/"
+      },
+      {
+        "title": "Systems Performance",
+        "kind": "book",
+        "where": "Gregg, ch. 5, on tracing tools and their costs"
+      }
+    ]
+  },
+  "cgroups-oom": {
+    "name": "cgroups and the OOM killer",
+    "topic": "linux",
+    "oneLine": "A cgroup caps a group of processes' memory, and exceeding it invokes the OOM killer inside that group rather than on the machine as a whole.",
+    "needs": [
+      "virtual-memory"
+    ],
+    "readings": [
+      {
+        "title": "Control Group v2",
+        "kind": "docs",
+        "where": "kernel docs, the memory controller section",
+        "url": "https://docs.kernel.org/admin-guide/cgroup-v2.html"
+      },
+      {
+        "title": "man proc",
+        "kind": "docs",
+        "where": "oom_score, oom_score_adj and overcommit_memory",
+        "url": "https://man7.org/linux/man-pages/man5/proc.5.html"
+      },
+      {
+        "title": "Systems Performance",
+        "kind": "book",
+        "where": "Gregg, ch. 7, memory"
+      }
+    ]
+  },
+  "compilation-pipeline": {
+    "name": "The compilation pipeline",
+    "topic": "compilers",
+    "oneLine": "Source becomes a running program through a fixed sequence of translations, and knowing which stage you are at tells you which tool to reach for.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "Computer Systems: A Programmer's Perspective",
+        "kind": "book",
+        "where": "Ch. 1.2 and ch. 7, compilation and linking"
+      },
+      {
+        "title": "Crafting Interpreters",
+        "kind": "book",
+        "where": "Ch. 1, free online, on what the stages are for",
+        "url": "https://craftinginterpreters.com/a-map-of-the-territory.html"
+      },
+      {
+        "title": "GCC overall options",
+        "kind": "docs",
+        "where": "-E, -S, -c and what each one stops after",
+        "url": "https://gcc.gnu.org/onlinedocs/gcc/Overall-Options.html"
+      }
+    ]
+  },
+  "lexing": {
+    "name": "Lexing and tokens",
+    "topic": "compilers",
+    "oneLine": "A lexer turns a flat stream of characters into a stream of tokens, which is the first point at which the text has any structure at all.",
+    "needs": [
+      "compilation-pipeline"
+    ],
+    "readings": [
+      {
+        "title": "Crafting Interpreters",
+        "kind": "book",
+        "where": "Ch. 4, scanning — the clearest treatment there is",
+        "url": "https://craftinginterpreters.com/scanning.html"
+      },
+      {
+        "title": "Compilers: Principles, Techniques and Tools",
+        "kind": "book",
+        "where": "the Dragon Book, ch. 3"
+      },
+      {
+        "title": "Engineering a Compiler",
+        "kind": "book",
+        "where": "Cooper & Torczon, ch. 2"
+      }
+    ]
+  },
+  "integer-conversions": {
+    "name": "Integer promotions and conversions",
+    "topic": "compilers",
+    "oneLine": "C promotes small integer types to int before arithmetic, and when the operands differ it converts them by a fixed ranking that can turn a signed value unsigned.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "Computer Systems: A Programmer's Perspective",
+        "kind": "book",
+        "where": "Ch. 2.2.5 and 2.3, signed and unsigned conversion"
+      },
+      {
+        "title": "cppreference: implicit conversions",
+        "kind": "docs",
+        "where": "the usual arithmetic conversions, spelled out",
+        "url": "https://en.cppreference.com/w/c/language/conversion"
+      },
+      {
+        "title": "SEI CERT C: INT02",
+        "kind": "docs",
+        "where": "the rule, and the bugs it prevents",
+        "url": "https://wiki.sei.cmu.edu/confluence/display/c/INT02-C.+Understand+integer+conversion+rules"
+      }
+    ]
+  },
+  "undefined-behaviour": {
+    "name": "Undefined behaviour",
+    "topic": "compilers",
+    "oneLine": "Some operations have no defined meaning at all, which licenses the optimiser to assume they never happen and to delete the code that would only matter if they did.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "What Every C Programmer Should Know About Undefined Behavior",
+        "kind": "docs",
+        "where": "Chris Lattner, all three parts",
+        "url": "https://blog.llvm.org/2011/05/what-every-c-programmer-should-know.html"
+      },
+      {
+        "title": "Undefined Behavior: What Happened to My Code?",
+        "kind": "paper",
+        "where": "Wang et al., with real examples from real projects",
+        "url": "https://pdos.csail.mit.edu/papers/ub:apsys12.pdf"
+      },
+      {
+        "title": "GCC code generation options",
+        "kind": "docs",
+        "where": "-fwrapv, -fno-strict-aliasing, -ftrapv and what each promises",
+        "url": "https://gcc.gnu.org/onlinedocs/gcc/Code-Gen-Options.html"
+      }
+    ]
   }
 }

@@ -1,0 +1,41 @@
+{
+  "id": "compilers-source-to-binary",
+  "title": "Source to running program",
+  "topic": "compilers",
+  "difficulty": "beginner",
+  "type": "order",
+  "tags": [
+    "compilation",
+    "linking",
+    "toolchain"
+  ],
+  "estimate": 9,
+  "prereqs": [
+    {
+      "concept": "compilation-pipeline",
+      "why": "This is the pipeline itself, and the point is that each stage has a tool and an output you can inspect."
+    }
+  ],
+  "statement": "A single C file becomes a running program through a fixed sequence of translations. Each one has a tool that performs it and an intermediate form you can stop at and look at.\n\nPut these seven steps in the order they happen, from the text you typed to the process running.\n\nThe one people get wrong is where **linking** goes relative to **assembling** — and the one people forget entirely is the very last step, which does not happen at build time at all.",
+  "hints": [
+    "`#include` and `#define` are handled before the compiler proper ever sees a keyword. That is why a macro can expand to anything.",
+    "`gcc -E`, `gcc -S` and `gcc -c` each stop after a different stage. That ordering is a strong clue.",
+    "The last step happens when you run the program, not when you build it, and it is why a missing .so is a runtime error rather than a link error."
+  ],
+  "payload": {
+    "prompt": "First at the top.",
+    "labels": [
+      "the text you typed",
+      "the process running"
+    ],
+    "items": [
+      "The assembler turns the assembly text into machine code in a relocatable object file.",
+      "The preprocessor expands includes and macros, producing one long translation unit.",
+      "The dynamic loader maps the shared libraries the program names and resolves their symbols.",
+      "The linker combines object files and libraries, assigning final addresses and resolving symbols between them.",
+      "The compiler's back end selects instructions and allocates registers, emitting assembly text.",
+      "The parser turns the token stream into an abstract syntax tree, checking that it is grammatical.",
+      "The lexer turns the character stream into tokens."
+    ]
+  }
+}

@@ -236,6 +236,55 @@ if (codeProblems.length) {
   console.log('  --    no code problems yet');
 }
 
+/* ---------------- predict keys checked against a real compiler ---------------- */
+
+/* A predicted output is the one kind of key that can be verified absolutely:
+   if the snippet is a complete program, compile it and see. Without this, a
+   predict problem is only as right as whoever wrote it, and "what does this
+   print" is exactly the question where being subtly wrong is worst. */
+section('predict snippets marked verifyAs are checked by compiling them');
+const verifiable = problems.filter(p => p.type === 'predict' && (p.payload || {}).verifyAs);
+
+if (verifiable.length) {
+  const { run, languages, detectPrlimit } = await import('../judge/server.mjs');
+  await detectPrlimit();
+  const toolchains = await languages();
+  const have = Object.fromEntries(toolchains.map(l => [l.id, l.available]));
+  const RunHarness = loadScripts(['js/runners/harness.js']).grab('RunHarness');
+
+  for (const p of verifiable) {
+    const lang = p.payload.verifyAs;
+    const sol = solutions[p.id];
+    if (!sol || !sol.key) continue;
+    if (!have[lang]) {
+      console.log(`  --    ${p.id}: no ${lang} toolchain here — verified in CI`);
+      continue;
+    }
+    /* Some snippets are POSIX — fork, mmap, signals — and will not build on a
+       MinGW toolchain however good it is. Gating on the platform says so
+       plainly instead of looking like a broken problem. */
+    const needPlat = p.payload.verifyPlatform;
+    if (needPlat && process.platform !== needPlat) {
+      console.log(`  --    ${p.id}: needs ${needPlat}, this is ${process.platform} — verified in CI`);
+      continue;
+    }
+
+    const reply = await run({ lang, source: p.payload.code, cases: [{ stdin: '' }] });
+    if (!reply.compile.ok) {
+      ok(`${p.id}: the snippet compiles`, false);
+      console.log(`        ${reply.compile.stderr.slice(0, 400)}`);
+      continue;
+    }
+    const got = reply.cases[0].stdout;
+    if (!ok(`${p.id}: the real output matches the key`, RunHarness.same(got, sol.key.output))) {
+      console.log(`        key says: ${JSON.stringify(sol.key.output)}`);
+      console.log(`        it prints: ${JSON.stringify(got)}`);
+    }
+  }
+} else {
+  console.log('  --    no predict problems marked verifyAs');
+}
+
 section('every concept is actually used');
 const used = new Set();
 for (const p of problems) {

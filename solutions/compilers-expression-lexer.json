@@ -1,0 +1,59 @@
+{
+  "key": {
+    "cases": [
+      {
+        "stdin": "total_2\n",
+        "expect": "IDENT total_2\n"
+      },
+      {
+        "stdin": "   7   \n",
+        "expect": "NUM 7\n"
+      },
+      {
+        "stdin": "((a))\n",
+        "expect": "LPAREN (\nLPAREN (\nIDENT a\nRPAREN )\nRPAREN )\n"
+      },
+      {
+        "stdin": "1234567890\n",
+        "expect": "NUM 1234567890\n"
+      },
+      {
+        "stdin": "a1b2c3\n",
+        "expect": "IDENT a1b2c3\n"
+      },
+      {
+        "stdin": "_x+_y\n",
+        "expect": "IDENT _x\nOP +\nIDENT _y\n"
+      },
+      {
+        "stdin": "2*(3+4)/5-1\n",
+        "expect": "NUM 2\nOP *\nLPAREN (\nNUM 3\nOP +\nNUM 4\nRPAREN )\nOP /\nNUM 5\nOP -\nNUM 1\n"
+      },
+      {
+        "stdin": "x%y\n",
+        "expect": "IDENT x\nOP %\nIDENT y\n"
+      },
+      {
+        "stdin": "9z\n",
+        "expect": "NUM 9\nIDENT z\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n#include <string>\n#include <cctype>\n\nstatic bool is_digit(char c) { return c >= '0' && c <= '9'; }\nstatic bool is_alpha(char c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'; }\nstatic bool is_alnum(char c) { return is_alpha(c) || is_digit(c); }\n\nint main() {\n    std::ios::sync_with_stdio(false);\n    std::string line;\n    if (!std::getline(std::cin, line)) return 0;\n\n    std::size_t i = 0;\n    while (i < line.size()) {\n        char c = line[i];\n        if (c == ' ' || c == '\\t') { ++i; continue; }\n\n        if (is_digit(c)) {\n            std::size_t j = i;\n            while (j < line.size() && is_digit(line[j])) ++j;\n            std::cout << \"NUM \" << line.substr(i, j - i) << \"\\n\";\n            i = j;\n        } else if (is_alpha(c)) {\n            std::size_t j = i;\n            while (j < line.size() && is_alnum(line[j])) ++j;\n            std::cout << \"IDENT \" << line.substr(i, j - i) << \"\\n\";\n            i = j;\n        } else if (c == '(') {\n            std::cout << \"LPAREN (\\n\";\n            ++i;\n        } else if (c == ')') {\n            std::cout << \"RPAREN )\\n\";\n            ++i;\n        } else {\n            std::cout << \"OP \" << c << \"\\n\";\n            ++i;\n        }\n    }\n    return 0;\n}\n",
+      "python": "import sys\n\nline = sys.stdin.readline().rstrip(\"\\n\").rstrip(\"\\r\")\n\nout = []\ni = 0\nwhile i < len(line):\n    c = line[i]\n    if c in \" \\t\":\n        i += 1\n    elif c.isdigit():\n        j = i\n        while j < len(line) and line[j].isdigit():\n            j += 1\n        out.append(\"NUM \" + line[i:j])\n        i = j\n    elif c.isalpha() or c == \"_\":\n        j = i\n        while j < len(line) and (line[j].isalnum() or line[j] == \"_\"):\n            j += 1\n        out.append(\"IDENT \" + line[i:j])\n        i = j\n    elif c == \"(\":\n        out.append(\"LPAREN (\")\n        i += 1\n    elif c == \")\":\n        out.append(\"RPAREN )\")\n        i += 1\n    else:\n        out.append(\"OP \" + c)\n        i += 1\n\nfor token in out:\n    print(token)\n",
+      "js": "const line = readLines()[0] || '';\n\nconst isDigit = c => c >= '0' && c <= '9';\nconst isAlpha = c => (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c === '_';\nconst isAlnum = c => isAlpha(c) || isDigit(c);\n\nlet i = 0;\nwhile (i < line.length) {\n  const c = line[i];\n  if (c === ' ' || c === '\\t') { i += 1; continue; }\n\n  if (isDigit(c)) {\n    let j = i;\n    while (j < line.length && isDigit(line[j])) j += 1;\n    print('NUM ' + line.slice(i, j));\n    i = j;\n  } else if (isAlpha(c)) {\n    let j = i;\n    while (j < line.length && isAlnum(line[j])) j += 1;\n    print('IDENT ' + line.slice(i, j));\n    i = j;\n  } else if (c === '(') {\n    print('LPAREN (');\n    i += 1;\n  } else if (c === ')') {\n    print('RPAREN )');\n    i += 1;\n  } else {\n    print('OP ' + c);\n    i += 1;\n  }\n}\n"
+    }
+  },
+  "explanation": "## The shape every lexer has\n\n```\ni = 0\nwhile i < length:\n    c = line[i]\n    if c is whitespace:  skip it\n    elif c starts a number:      consume the whole run of digits\n    elif c starts an identifier: consume the whole run of alnum/_\n    else:                        it is a one-character token\n```\n\nOne index, one pass, no backtracking. Look at the character under the index, decide from it alone what kind of token begins here, then consume exactly as much as belongs to that token. That is the entire algorithm, and it is the same in every hand-written lexer you will ever read.\n\n## Why splitting on spaces fails\n\n`line.split(\" \")` passes the first sample and fails the second, which is why `1+2` is a visible test case rather than a hidden one. Real source code has no obligation to put spaces between tokens — `a[i]=b*(c+1);` has none at all — so the lexer's job is precisely to find boundaries that whitespace does not mark.\n\nThe rule it uses is **maximal munch**: at each position, take the longest thing that is a valid token. That is why `1234567890` is one `NUM` and not ten, and why `a1b2c3` is one `IDENT` and not an alternating sequence.\n\n## The test case worth staring at\n\n```\n9z  ->  NUM 9\n        IDENT z\n```\n\n`9z` is not a legal identifier in any language, and the lexer emits two tokens for it anyway rather than reporting an error. That is correct, and it is the division of labour that makes the whole pipeline work: **the lexer's job is to classify characters, not to decide whether the result makes sense.** `NUM IDENT` is a perfectly well-formed token sequence; it just is not a grammatical expression, and the *parser* is what will say so.\n\nLexers that try to be clever about this end up needing to know the grammar, and then you have one tangled stage instead of two simple ones. Keep the stages separate and each is easy.\n\n## Where real lexers get harder\n\nEverything above is the easy 90%. The parts this problem leaves out are where the work actually is:\n\n- **Multi-character operators.** `==`, `<=`, `>>=`, `->`. Now a single character is not enough to decide, and you need one character of lookahead. The classic bug is lexing `a<=b` as `<` then `=`.\n- **Keywords.** They look exactly like identifiers. The standard approach is to lex them as identifiers and then check the text against a keyword table — not to special-case them in the scanner.\n- **Positions.** Every token needs a line and column, or no error message can point at anything. Track them as you consume; retrofitting it is miserable.\n- **Strings and comments.** A quote starts a sub-language with its own escape rules, and `/*` starts one that has to find its terminator. Both can be unterminated, which is the lexer's first real error case.\n- **The hard ones.** C needs to know whether a name is a type to parse `(x)*y`, which means the lexer and parser must talk — the \"lexer hack\". Python's indentation becomes INDENT and DEDENT tokens the scanner synthesises. C++ templates make `>>` ambiguous.\n\n## Doing it properly\n\nA lexer is a finite automaton, which is why `lex`/`flex` can generate one from regular expressions — you describe the token classes and it builds the state machine. Most production compilers still hand-write theirs, for better error messages and speed, but the automaton is the thing being written by hand.\n\n*Crafting Interpreters* chapter 4 is the best treatment of this there is, and it is free.",
+  "readMore": [
+    {
+      "concept": "lexing",
+      "where": "Crafting Interpreters ch. 4, then the Dragon Book ch. 3 for the automaton view"
+    },
+    {
+      "concept": "compilation-pipeline",
+      "where": "Crafting Interpreters ch. 1, for where this sits"
+    }
+  ],
+  "id": "compilers-expression-lexer"
+}

@@ -1,0 +1,18 @@
+{
+  "key": {
+    "accept": [
+      "-fwrapv",
+      "fwrapv"
+    ],
+    "pattern": "^-?fwrapv$",
+    "flags": "i"
+  },
+  "explanation": "## `-fwrapv`\n\nIt promises that signed arithmetic wraps in two's complement, which makes signed overflow **defined** rather than undefined. With it, `x + 100 < x` has to be computed, and it really is true for `x > INT_MAX - 100`.\n\n```bash\ngcc -O2 always_false.c -S -o -            # returns 0, unconditionally\ngcc -O2 -fwrapv always_false.c -S -o -    # does the add and the comparison\n```\n\n## Why the default is what it is\n\nIt looks perverse for a compiler to delete a check the programmer wrote. The reasoning is that undefined behaviour is a *promise from you to the compiler*: you are asserting that overflow does not occur, and in exchange the optimiser gets to reason freely. That buys real things:\n\n```c\nfor (int i = 0; i <= n; i++)  { ... }\n```\n\nIf `i` cannot overflow, the compiler knows the loop terminates, knows `i` is monotonically increasing, can widen `i` to 64 bits to match a pointer, can vectorise, and can compute the trip count in advance. With wrapping semantics, `i` might wrap back round and the loop might never end, so several of those are off the table.\n\nThat is the trade: `-fwrapv` costs you some optimisation, and buys you code that behaves the way almost everyone already assumed it did.\n\n## The family of related flags\n\n| Flag | What it does |\n| --- | --- |\n| `-fwrapv` | signed overflow wraps, and is defined |\n| `-ftrapv` | signed overflow traps at runtime — the program aborts |\n| `-fno-strict-overflow` | similar to `-fwrapv`, specifically stops overflow-based inference |\n| `-fsanitize=signed-integer-overflow` | reports it with a file and line, and keeps going unless told otherwise |\n| `-fno-strict-aliasing` | a different UB entirely: stops type-based aliasing assumptions |\n\nFor *finding* overflow, `-fsanitize=signed-integer-overflow` is the right tool — it tells you where. For *not caring*, `-fwrapv` is the right tool. `-ftrapv` sounds like the strict option and is historically the buggiest of the three.\n\nThe Linux kernel builds with `-fno-strict-overflow` and `-fno-strict-aliasing`, which tells you something about how much real C relies on assumptions the standard does not grant.\n\n## Why you still should not rely on wrapping\n\n`-fwrapv` makes *your* build safe. It does not make the code correct, because:\n\n- it is a non-standard extension, so the next compiler or the next build system may not have it;\n- a reader cannot tell from the source that overflow is intended;\n- and the arithmetic is still almost certainly wrong — a wrapped length or index is a bug whether or not the language defines it.\n\nThe right fix for the check in the problem is to write one that cannot overflow:\n\n```c\nif (x > INT_MAX - 100) return -1;          /* check before, not after */\n```\n\nor to use the builtins that tell you:\n\n```c\nint result;\nif (__builtin_add_overflow(x, 100, &result)) return -1;    /* GCC and Clang */\n```\n\n`__builtin_add_overflow` compiles to an add and a check of the carry flag — one instruction more than the unchecked version, no undefined behaviour, and the intent is visible in the source. C23 standardises this as `ckd_add` in `<stdckdint.h>`.",
+  "readMore": [
+    {
+      "concept": "undefined-behaviour",
+      "where": "Lattner's three-part series, then the GCC code-gen options page"
+    }
+  ],
+  "id": "compilers-wrapv-flag"
+}

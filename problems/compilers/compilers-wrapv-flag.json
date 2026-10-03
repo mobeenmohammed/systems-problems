@@ -1,0 +1,30 @@
+{
+  "id": "compilers-wrapv-flag",
+  "title": "Make signed overflow behave",
+  "topic": "compilers",
+  "difficulty": "intermediate",
+  "type": "short",
+  "tags": [
+    "undefined-behaviour",
+    "overflow",
+    "compiler-flags",
+    "gcc"
+  ],
+  "estimate": 9,
+  "prereqs": [
+    {
+      "concept": "undefined-behaviour",
+      "why": "The flag exists precisely to remove one piece of undefined behaviour, so you need to know what the default licenses."
+    }
+  ],
+  "statement": "Signed integer overflow is **undefined behaviour** in C and C++. The optimiser is therefore entitled to assume it never happens, which is why this function can be compiled to `return 0;`:\n\n```c\nint always_false(int x) {\n    return x + 100 < x;      /* \"obviously\" true when x is large */\n}\n```\n\nGCC and Clang both accept a flag that changes this: it defines signed overflow to **wrap around in two's complement**, exactly as unsigned arithmetic does, so the comparison above has to be evaluated for real.\n\n**What is that flag?**\n\nGive it exactly as you would type it on the command line.",
+  "hints": [
+    "It is a `-f` code-generation flag, and its name is a contraction of what it makes the arithmetic do.",
+    "It is not a warning and not a sanitizer — it changes the generated code's semantics rather than reporting anything.",
+    "There is a related flag, `-ftrapv`, which makes overflow *abort* instead. The one you want makes it wrap."
+  ],
+  "payload": {
+    "placeholder": "-f...",
+    "prompt": "The flag, as typed."
+  }
+}

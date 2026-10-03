@@ -1,0 +1,21 @@
+{
+  "key": {
+    "order": [
+      1,
+      6,
+      5,
+      4,
+      0,
+      3,
+      2
+    ]
+  },
+  "explanation": "## The order, with the tool for each\n\n| # | Stage | Tool | Stop after it with |\n| --- | --- | --- | --- |\n| 1 | Preprocess | `cpp` | `gcc -E` |\n| 2 | Lex | the compiler front end | — |\n| 3 | Parse to an AST | the compiler front end | `-fdump-tree-original` |\n| 4 | Instruction selection, register allocation | the compiler back end | `gcc -S` |\n| 5 | Assemble | `as` | `gcc -c` |\n| 6 | Link | `ld` | (produces the executable) |\n| 7 | Dynamic load | `ld.so` | happens at **run** time |\n\nThe two that trip people up are at the ends.\n\n**Assembling comes before linking.** Each source file is compiled and assembled on its own into a `.o`, and only then are the objects linked together. That is why a typo in one file is a *compile* error naming that file, while a missing function is a *link* error naming no file in particular — by then the compiler has forgotten which translation unit anything came from. It is also why you can rebuild one changed file and relink, which is the entire basis of `make`.\n\n**Dynamic loading is not a build step.** It happens every time the program starts. That is why a missing shared library is not caught by a successful build and shows up as `error while loading shared libraries` when someone runs it on a different machine.\n\n## Watching it happen\n\nEvery stage is inspectable, and doing this once is worth more than reading about it:\n\n```bash\ngcc -E hello.c -o hello.i     # preprocessed: one file, thousands of lines\ngcc -S hello.c -o hello.s     # assembly text you can read\ngcc -c hello.c -o hello.o     # an object file, not yet runnable\ngcc hello.o -o hello          # linked\n./hello\n```\n\nTwo things are worth noticing when you do:\n\n`hello.i` is enormous. A ten-line program that includes `<stdio.h>` preprocesses to a thousand-plus lines, because `#include` is literal textual inclusion. This is the whole reason C++ builds are slow and the reason modules exist.\n\n`hello.s` is short and readable. Looking at your own code's assembly at `-O0` and then at `-O2` is the single most educational thing you can do with a compiler, and it is one command away.\n\n## Where the errors come from\n\nKnowing the stage tells you which tool is complaining, which is most of diagnosing a build:\n\n- **Preprocessor**: `No such file or directory` for a header. An include-path problem — `-I`.\n- **Parser**: `expected ';' before ...`. Grammar, in your file, at that line.\n- **Semantic analysis**: `incompatible types`. Grammatical but meaningless.\n- **Linker**: `undefined reference to 'foo'`. Everything compiled; nothing *defines* `foo`. You need the library — `-lfoo` — or you declared it and never wrote it.\n- **Loader**: `error while loading shared libraries`. Built fine, cannot run here.\n\n`undefined reference` is the one people misread most. It is never a syntax problem and never fixed by including another header: a header declares, and the linker needs a *definition*.\n\n## The two stages this list simplifies\n\nReal compilers put an optimiser between the AST and instruction selection, working on an intermediate representation — LLVM IR, or GCC's GIMPLE — and that is where nearly all the interesting work happens. And modern toolchains can defer code generation to link time entirely (`-flto`), which smears the boundary between stages 4 and 6 so that the optimiser can inline across translation units. The sequence above is still the right mental model; it is just that two of the boxes are bigger than they look.",
+  "readMore": [
+    {
+      "concept": "compilation-pipeline",
+      "where": "CS:APP ch. 1.2, then ch. 7 for linking in detail"
+    }
+  ],
+  "id": "compilers-source-to-binary"
+}

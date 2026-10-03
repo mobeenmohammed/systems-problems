@@ -1,0 +1,51 @@
+{
+  "id": "compilers-expression-lexer",
+  "title": "Write the lexer",
+  "topic": "compilers",
+  "difficulty": "beginner",
+  "type": "code",
+  "tags": [
+    "lexing",
+    "tokens",
+    "parsing",
+    "strings"
+  ],
+  "estimate": 25,
+  "prereqs": [
+    {
+      "concept": "lexing",
+      "why": "This is the scanning stage itself — the first point at which flat text acquires any structure."
+    },
+    {
+      "concept": "compilation-pipeline",
+      "why": "Knowing which stage this is tells you what the lexer is allowed to care about and what it must leave to the parser."
+    }
+  ],
+  "statement": "Read **one line** containing an arithmetic expression and print its tokens, one per line.\n\nThe language has exactly five kinds of token:\n\n| Kind | What it is | Printed as |\n| --- | --- | --- |\n| number | one or more digits | `NUM 42` |\n| identifier | a letter or `_`, then letters, digits or `_` | `IDENT total_2` |\n| parenthesis | `(` or `)` | `LPAREN (` or `RPAREN )` |\n| operator | any other non-space character | `OP +` |\n\nSpaces and tabs separate tokens and are otherwise ignored. An operator is always a single character — there are no two-character operators in this language.\n\n### Example\n\n```\ninput:   x1 + 42 * (y - 3)\n\noutput:  IDENT x1\n         OP +\n         NUM 42\n         OP *\n         LPAREN (\n         IDENT y\n         OP -\n         NUM 3\n         RPAREN )\n```\n\nNote that whitespace is *not* required between tokens: `1+2` is three tokens, and so is `1 + 2`. That is the whole reason a lexer has to look at characters rather than just splitting on spaces.",
+  "hints": [
+    "Splitting the line on spaces will pass the first sample and fail everything else. `1+2` has no spaces in it and is still three tokens.",
+    "Walk the string with an index. At each position, decide what kind of token starts here from the first character, then consume as many characters as belong to it.",
+    "Numbers and identifiers are the only tokens longer than one character, and each is a run of characters of a particular class. Everything else advances the index by exactly one."
+  ],
+  "payload": {
+    "langs": [
+      "cpp",
+      "python",
+      "js"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "cases": [
+      {
+        "stdin": "x1 + 42 * (y - 3)\n",
+        "expect": "IDENT x1\nOP +\nNUM 42\nOP *\nLPAREN (\nIDENT y\nOP -\nNUM 3\nRPAREN )\n"
+      },
+      {
+        "stdin": "1+2\n",
+        "expect": "NUM 1\nOP +\nNUM 2\n"
+      }
+    ]
+  }
+}

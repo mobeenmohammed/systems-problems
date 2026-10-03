@@ -1,0 +1,38 @@
+{
+  "id": "linux-redirection-order",
+  "title": "What the shell does, in order",
+  "topic": "linux",
+  "difficulty": "intermediate",
+  "type": "order",
+  "tags": [
+    "file-descriptors",
+    "redirection",
+    "shell"
+  ],
+  "estimate": 12,
+  "prereqs": [
+    {
+      "concept": "file-descriptors",
+      "why": "Redirection is the shell rewriting the file-descriptor table, so the whole answer is in terms of that table."
+    }
+  ],
+  "statement": "These two commands are not the same thing, and the difference catches everybody once:\n\n```bash\ncmd >out.txt 2>&1     # both streams end up in the file\ncmd 2>&1 >out.txt     # stderr goes to the terminal, stdout to the file\n```\n\nThe reason is that the shell applies redirections **strictly left to right**, and `2>&1` copies *wherever fd 1 points at that moment* rather than setting up a permanent link.\n\nPut the four steps the shell takes for the **second** command — `cmd 2>&1 >out.txt` — into the order they happen.",
+  "hints": [
+    "Before any redirection, where do fd 1 and fd 2 point? That is the state the first redirection acts on.",
+    "`2>&1` means 'make fd 2 a copy of fd 1'. A copy of what fd 1 is *now*, not a promise to follow it later.",
+    "The last step is always the same one, and it is the step after which the program's own code finally runs."
+  ],
+  "payload": {
+    "prompt": "First at the top. These are the shell's steps, before the program starts.",
+    "labels": [
+      "the shell starts work",
+      "the program runs"
+    ],
+    "items": [
+      "fd 1 is pointed at out.txt, which is created or truncated.",
+      "The shell forks, and in the child both fd 1 and fd 2 point at the terminal.",
+      "The child execs cmd, which inherits fd 2 pointing at the terminal and fd 1 at out.txt.",
+      "fd 2 is made a duplicate of fd 1, so fd 2 now points at the terminal."
+    ]
+  }
+}
