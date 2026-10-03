@@ -40,6 +40,77 @@
     ]
   },
   {
+    "id": "arch-struct-padding",
+    "title": "How big is this struct?",
+    "topic": "arch",
+    "difficulty": "beginner",
+    "type": "numeric",
+    "tags": [
+      "alignment",
+      "padding",
+      "memory",
+      "structs"
+    ],
+    "estimate": 8,
+    "prereqs": [
+      "alignment",
+      "cache-lines"
+    ]
+  },
+  {
+    "id": "arch-amdahl-ceiling",
+    "title": "The ceiling on 64 cores",
+    "topic": "arch",
+    "difficulty": "intermediate",
+    "type": "numeric",
+    "tags": [
+      "amdahl",
+      "parallelism",
+      "scaling"
+    ],
+    "estimate": 10,
+    "prereqs": [
+      "amdahl"
+    ]
+  },
+  {
+    "id": "arch-load-use-stall",
+    "title": "Which instruction has to stall?",
+    "topic": "arch",
+    "difficulty": "intermediate",
+    "type": "locate",
+    "tags": [
+      "pipelining",
+      "hazards",
+      "forwarding",
+      "assembly"
+    ],
+    "estimate": 12,
+    "prereqs": [
+      "pipelining",
+      "memory-hierarchy"
+    ]
+  },
+  {
+    "id": "arch-false-sharing-fixes",
+    "title": "Two threads, one cache line",
+    "topic": "arch",
+    "difficulty": "advanced",
+    "type": "multi",
+    "tags": [
+      "false-sharing",
+      "coherence",
+      "concurrency",
+      "cache-lines"
+    ],
+    "estimate": 15,
+    "prereqs": [
+      "cache-coherence",
+      "cache-lines",
+      "alignment"
+    ]
+  },
+  {
     "id": "dist-partition-choice",
     "title": "What a partition actually costs you",
     "topic": "dist",
@@ -58,6 +129,57 @@
     ]
   },
   {
+    "id": "linux-count-unique-ips",
+    "title": "Count the distinct clients",
+    "topic": "linux",
+    "difficulty": "beginner",
+    "type": "short",
+    "tags": [
+      "shell",
+      "pipelines",
+      "text-processing",
+      "logs"
+    ],
+    "estimate": 10,
+    "prereqs": [
+      "shell-pipelines"
+    ]
+  },
+  {
+    "id": "linux-permission-octal",
+    "title": "Spell that permission in octal",
+    "topic": "linux",
+    "difficulty": "beginner",
+    "type": "numeric",
+    "tags": [
+      "permissions",
+      "chmod",
+      "files"
+    ],
+    "estimate": 7,
+    "prereqs": [
+      "file-permissions"
+    ]
+  },
+  {
+    "id": "os-fork-buffered-printf",
+    "title": "printf, then fork",
+    "topic": "os",
+    "difficulty": "beginner",
+    "type": "predict",
+    "tags": [
+      "fork",
+      "buffering",
+      "stdio",
+      "processes"
+    ],
+    "estimate": 10,
+    "prereqs": [
+      "stdio-buffering",
+      "processes-fork"
+    ]
+  },
+  {
     "id": "os-page-fault-walk",
     "title": "What happens on a page fault",
     "topic": "os",
@@ -73,6 +195,58 @@
     "prereqs": [
       "page-faults",
       "mmu-tlb"
+    ]
+  },
+  {
+    "id": "os-lock-order-deadlock",
+    "title": "Two locks, two orders",
+    "topic": "os",
+    "difficulty": "intermediate",
+    "type": "locate",
+    "tags": [
+      "deadlock",
+      "mutex",
+      "concurrency",
+      "locking"
+    ],
+    "estimate": 12,
+    "prereqs": [
+      "mutual-exclusion"
+    ]
+  },
+  {
+    "id": "os-scheduler-properties",
+    "title": "Which scheduler behaves like that?",
+    "topic": "os",
+    "difficulty": "intermediate",
+    "type": "match",
+    "tags": [
+      "scheduling",
+      "fairness",
+      "latency"
+    ],
+    "estimate": 12,
+    "prereqs": [
+      "scheduling"
+    ]
+  },
+  {
+    "id": "os-cow-after-fork",
+    "title": "Memory after a fork",
+    "topic": "os",
+    "difficulty": "advanced",
+    "type": "numeric",
+    "tags": [
+      "copy-on-write",
+      "fork",
+      "rss",
+      "virtual-memory"
+    ],
+    "estimate": 14,
+    "prereqs": [
+      "copy-on-write",
+      "page-faults",
+      "processes-fork"
     ]
   }
 ]

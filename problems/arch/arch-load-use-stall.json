@@ -1,0 +1,35 @@
+{
+  "id": "arch-load-use-stall",
+  "title": "Which instruction has to stall?",
+  "topic": "arch",
+  "difficulty": "intermediate",
+  "type": "locate",
+  "tags": [
+    "pipelining",
+    "hazards",
+    "forwarding",
+    "assembly"
+  ],
+  "estimate": 12,
+  "prereqs": [
+    {
+      "concept": "pipelining",
+      "why": "You need the five stages and what forwarding can and cannot rescue before the stall is visible."
+    },
+    {
+      "concept": "memory-hierarchy",
+      "why": "The reason a load is special here is that its result arrives a stage later than an arithmetic result."
+    }
+  ],
+  "statement": "A classic five-stage pipeline: **IF, ID, EX, MEM, WB**. It has full forwarding — a result can be handed from the end of EX or MEM straight to the EX of a later instruction, without waiting for WB.\n\nHere is a RISC-V sequence that copies two values from one array to another, adding 4 to each:\n\n```\nlw   t0, 0(a0)\naddi t1, t0, 4\nsw   t1, 0(a1)\nlw   t2, 8(a0)\naddi t3, t2, 4\nsw   t3, 8(a1)\n```\n\nEven with full forwarding, **one kind of dependency here still costs a stall cycle**. Click the first instruction that cannot start its EX stage in the cycle it otherwise would, and has to wait.",
+  "hints": [
+    "Forwarding solves the case where one instruction needs a result the previous instruction has already computed in EX. Which stage produces a load's result?",
+    "Write out the stage timings for the first two instructions, cycle by cycle. When is t0 actually available, and when does the next instruction want it?",
+    "There are two identical copies of the same pattern in this listing. The answer is in the first copy."
+  ],
+  "payload": {
+    "code": "lw   t0, 0(a0)\naddi t1, t0, 4\nsw   t1, 0(a1)\nlw   t2, 8(a0)\naddi t3, t2, 4\nsw   t3, 8(a1)",
+    "lang": "asm",
+    "prompt": "Click the instruction that has to stall."
+  }
+}

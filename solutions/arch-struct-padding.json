@@ -1,0 +1,18 @@
+{
+  "key": {
+    "value": 24,
+    "tol": 0
+  },
+  "explanation": "## 24 bytes, of which 10 are padding\n\nLay it out at increasing offsets, giving each member the first offset that satisfies its own alignment:\n\n```\noffset  size  member\n0       1     char   flag\n1-7     7     (padding: double needs offset % 8 == 0)\n8       8     double value\n16      4     int    count\n20      1     char   tag\n21-23   3     (tail padding: the struct's own alignment is 8)\n                                           total: 24\n```\n\nTwo separate rules are at work, and they are the two things worth taking away.\n\n### Internal padding: every member needs its own alignment\n\n`flag` takes offset 0. `value` is a `double` with alignment 8, so it cannot start at offset 1 — the next legal offset is 8, and the compiler inserts 7 bytes of nothing. Then `count` lands at 16, already a multiple of 4, so no padding is needed. `tag` goes at 20.\n\n### Tail padding: the struct is aligned to its strictest member\n\nThe struct's own alignment is the largest alignment of any member, so 8. That matters because of arrays. In `struct Record arr[2]`, element 1 begins `sizeof(struct Record)` bytes in, and *its* `double` must be correctly aligned too. The only way that holds for every element is if the size is a multiple of the alignment. 21 is not, so it rounds up to 24.\n\nThis is why `sizeof` is always a multiple of `alignof`, for every type, with no exceptions.\n\n## Reordering costs nothing and saves a third\n\nDeclare the members in decreasing order of alignment:\n\n```c\nstruct Record {\n    double value;   // 0-7\n    int    count;   // 8-11\n    char   flag;    // 12\n    char   tag;     // 13\n                    // 14-15 tail padding\n};                  // total: 16\n```\n\n**16 bytes instead of 24** — the same data, a third smaller, from nothing but the declaration order. Largest-first is a good default for exactly this reason, and it costs nothing.\n\n### Why this is a performance question rather than trivia\n\nA million of these is 24 MB laid out badly and 16 MB laid out well. At 64 bytes per line that is 375,000 cache lines against 250,000: half again as much memory traffic, and half again as much of your cache consumed, for identical work.\n\nIt is also why the answer is 24 and not \"whatever the compiler feels like\". The layout is fixed by the ABI rather than chosen per compilation — it has to be, or two separately compiled files could not agree on where `count` lives.\n\n## Checking your working\n\nNever count by hand when you can ask:\n\n```c\n#include <stdio.h>\n#include <stddef.h>\n\nint main(void) {\n    printf(\"size %zu align %zu, offsets %zu %zu %zu %zu\\n\",\n        sizeof(struct Record), _Alignof(struct Record),\n        offsetof(struct Record, flag),  offsetof(struct Record, value),\n        offsetof(struct Record, count), offsetof(struct Record, tag));\n}\n```\n\n`offsetof` is the one to reach for, because it shows you where the holes are and `sizeof` alone does not. And `-Wpadded` makes the compiler point out every one of them, which is startling the first time you run it over real code.",
+  "readMore": [
+    {
+      "concept": "alignment",
+      "where": "CS:APP ch. 3.9.3, then ESR's structure-packing piece"
+    },
+    {
+      "concept": "cache-lines",
+      "where": "CS:APP ch. 6.3, for why the wasted bytes cost you"
+    }
+  ],
+  "id": "arch-struct-padding"
+}

@@ -12,6 +12,9 @@ const { grab } = loadScripts([
   'js/types/mcq.js',
   'js/types/numeric.js',
   'js/types/order.js',
+  'js/types/match.js',
+  'js/types/predict.js',
+  'js/types/locate.js',
 ]);
 
 const Types = grab('ProblemTypes');
@@ -134,5 +137,61 @@ check('trailing spaces per line',      norm('1  \n2\t\n'), '1\n2');
 check('CRLF folded to LF',             norm('1\r\n2'), '1\n2');
 check('inner blank line is kept',      norm('1\n\n2'), '1\n\n2');
 check('leading space is kept',         norm('  1'), '  1');
+
+/* ---------------- match ---------------- */
+
+section('match');
+const mprob = { payload: { left: ['a', 'b', 'c'], right: ['X', 'Y', 'Z', 'W'] } };
+const mt = (resp, key) => g('match', resp, { pairs: key }, mprob);
+const MKEY = [2, 0, 3];
+
+check('all pairs right is correct',  mt(MKEY, MKEY).correct, true);
+check('and scores 1',                mt(MKEY, MKEY).score, 1);
+check('two of three',                mt([2, 0, 1], MKEY).score, 2 / 3);
+ok('and says so',                    mt([2, 0, 1], MKEY).feedback.includes('2 of 3'));
+check('none right scores 0',         mt([0, 1, 2], MKEY).score, 0);
+check('a short answer is rejected',  mt([2, 0], MKEY).correct, false);
+ok('and says it is incomplete',      mt([2, 0], MKEY).feedback.includes('Not every item'));
+/* The right column is longer than the left, so a spare option is a real
+   distractor rather than a free last pair. */
+check('choosing a distractor is wrong', mt([2, 0, 1], MKEY).correct, false);
+
+/* ---------------- predict ---------------- */
+
+section('predict');
+const pr = (resp, key) => g('predict', resp, key);
+
+check('exact match',                       pr('42', { output: '42' }).correct, true);
+check('trailing newline forgiven',         pr('42\n', { output: '42' }).correct, true);
+check('missing trailing newline forgiven', pr('42', { output: '42\n' }).correct, true);
+check('trailing spaces forgiven',          pr('42   ', { output: '42' }).correct, true);
+check('multi-line match',                  pr('1\n2\n3', { output: '1\n2\n3\n' }).correct, true);
+check('an inner blank line matters',       pr('1\n2', { output: '1\n\n2' }).correct, false);
+check('wrong value',                       pr('41', { output: '42' }).correct, false);
+check('an accepted alternative',           pr('b', { output: 'a', accept: ['b'] }).correct, true);
+check('an empty answer is not an answer',  pr('', { output: '' }).correct, true);
+
+ok('a wrong line count is named',
+  pr('1', { output: '1\n2' }).feedback.includes('2 lines'));
+ok('the first differing line is named',
+  pr('1\n9\n3', { output: '1\n2\n3' }).feedback.includes('Line 2'));
+/* Right lines in the wrong order is a specific misunderstanding — usually of
+   evaluation or buffering order — so it is called out as such. */
+ok('right lines in the wrong order is named',
+  pr('2\n1', { output: '1\n2' }).feedback.includes('not in that order'));
+
+/* ---------------- locate ---------------- */
+
+section('locate');
+const lo = (resp, key) => g('locate', resp, key);
+
+check('the right line',        lo(14, { line: 14 }).correct, true);
+check('a string line number',  lo('14', { line: 14 }).correct, true);
+check('the wrong line',        lo(9, { line: 14 }).correct, false);
+check('an also-accepted line', lo(15, { line: 14, alsoAccept: [15] }).correct, true);
+/* One line out usually means the right statement and the wrong row of it,
+   which is a different thing from not having found it at all. */
+ok('one line out says you are close', lo(13, { line: 14 }).feedback.includes('one line away'));
+ok('far out does not',                !lo(2, { line: 14 }).feedback.includes('one line away'));
 
 report('grade');

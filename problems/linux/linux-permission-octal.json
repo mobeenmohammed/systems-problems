@@ -1,0 +1,29 @@
+{
+  "id": "linux-permission-octal",
+  "title": "Spell that permission in octal",
+  "topic": "linux",
+  "difficulty": "beginner",
+  "type": "numeric",
+  "tags": [
+    "permissions",
+    "chmod",
+    "files"
+  ],
+  "estimate": 7,
+  "prereqs": [
+    {
+      "concept": "file-permissions",
+      "why": "The answer is the three permission triples written as three octal digits."
+    }
+  ],
+  "statement": "You have a deploy script. You want:\n\n- the **owner** to be able to read it, write it and run it\n- the **group** to be able to read it and run it, but not change it\n- **everyone else** to be able to do nothing at all with it\n\n**What octal mode does `chmod` need?**\n\nGive the three digits as a number, so `rwxrwxrwx` would be `777`.",
+  "hints": [
+    "Each digit is one triple, and within a triple read is 4, write is 2, execute is 1. Add the ones you want.",
+    "Owner wants all three. Group wants read and execute but not write. Others want nothing — and nothing has a digit too.",
+    "Write out the nine letters first: rwx for owner, r-x for group, --- for others. Then convert each group of three."
+  ],
+  "payload": {
+    "placeholder": "e.g. 644",
+    "hintFormat": "Three octal digits, as a plain number."
+  }
+}

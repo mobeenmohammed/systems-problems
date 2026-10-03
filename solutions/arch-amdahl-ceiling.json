@@ -1,0 +1,14 @@
+{
+  "key": {
+    "value": 10.6,
+    "rtol": 0.03
+  },
+  "explanation": "## About 10.6x, from 64 cores\n\nAmdahl's law, with `s` the serial fraction and `N` the cores:\n\n```\nspeedup = 1 / (s + (1 - s)/N)\n        = 1 / (0.08 + 0.92/64)\n        = 1 / (0.08 + 0.014375)\n        = 1 / 0.094375\n        = 10.6\n```\n\nSo 64 cores bought you **10.6x**, an efficiency of 10.6/64 = **17%**. Eighty-three per cent of the machine is idle, waiting.\n\n## The number worth memorising is the ceiling\n\nLet `N` go to infinity and the parallel term vanishes:\n\n```\nmax speedup = 1 / s = 1 / 0.08 = 12.5x\n```\n\n**An infinite number of cores gets you 12.5x.** You already have 10.6 of that 12.5 from 64 cores — 85% of the theoretical maximum, with nothing left to buy. That is the real content of the law: not the figure for 64 cores, but that the figure barely moves afterwards.\n\n| Cores | Speedup | Efficiency |\n| --- | --- | --- |\n| 1 | 1.0x | 100% |\n| 8 | 5.0x | 63% |\n| 32 | 8.8x | 28% |\n| 64 | 10.6x | 17% |\n| 256 | 11.9x | 5% |\n| infinite | 12.5x | 0% |\n\nGoing from 64 cores to 256 — four times the hardware — gains 12%. Going from 8 to 64, eight times the hardware, barely doubles it.\n\n## What to do instead\n\nThe table says the serial fraction is the only lever that matters, and that is the practical lesson. Cut the serial part from 8% to 2%:\n\n```\nceiling       = 1/0.02 = 50x\nat 64 cores   = 1/(0.02 + 0.92/64 + 0.06/64) ~ 29x\n```\n\nNearly three times the speedup at the same core count, from optimising the part that **does not run in parallel**. Shaving the parallel section is almost worthless by comparison — it is already divided by 64.\n\nSo the order of work is: profile, find the serial fraction, attack *that*, and only then think about cores. Teams routinely do this backwards, parallelise the hot loop, measure 10x on a 64-core box and conclude the machine is the problem.\n\n## Two honest caveats\n\n**This is an optimistic bound.** It assumes the parallel part divides perfectly with zero communication, zero synchronisation and perfect load balance. Real code also pays for thread creation, locks, cache-line ping-pong and memory bandwidth contention, all of which *grow* with `N`. Measured curves usually peak and then decline. Amdahl gives the best case and you will not reach it.\n\n**Gustafson's law is the other half.** Amdahl asks \"how much faster is this fixed problem?\" Gustafson asks \"how much bigger a problem can I do in the same time?\" — and for a lot of scientific computing the second is the real question, because the serial part (setup, I/O) stays roughly constant while the parallel part grows with the problem size. Weak scaling looks far better than strong scaling, and that is not a trick: it is a different question with a different answer.",
+  "readMore": [
+    {
+      "concept": "amdahl",
+      "where": "Hager & Wellein ch. 5, then Hill & Marty"
+    }
+  ],
+  "id": "arch-amdahl-ceiling"
+}

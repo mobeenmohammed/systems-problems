@@ -1,0 +1,42 @@
+{
+  "id": "arch-false-sharing-fixes",
+  "title": "Two threads, one cache line",
+  "topic": "arch",
+  "difficulty": "advanced",
+  "type": "multi",
+  "tags": [
+    "false-sharing",
+    "coherence",
+    "concurrency",
+    "cache-lines"
+  ],
+  "estimate": 15,
+  "prereqs": [
+    {
+      "concept": "cache-coherence",
+      "why": "False sharing is a direct consequence of coherence being maintained per line rather than per variable."
+    },
+    {
+      "concept": "cache-lines",
+      "why": "The whole problem is that the unit of coherence is 64 bytes and not 8."
+    },
+    {
+      "concept": "alignment",
+      "why": "Every fix here is an alignment or layout change, so you need to be able to reason about where things land."
+    }
+  ],
+  "statement": "Two threads each count their own events. The counters live in one struct:\n\n```cpp\nstruct Counters {\n    std::atomic<long> a;   // thread 1 only ever touches this\n    std::atomic<long> b;   // thread 2 only ever touches this\n};\nCounters shared;\n```\n\nEach thread runs a tight loop doing `shared.a++` or `shared.b++` ten million times. The threads are on different physical cores, and **neither ever reads or writes the other's counter**.\n\nMeasured on a machine with 64-byte cache lines:\n\n```\none thread alone, incrementing a      0.09 s\nboth threads, as written above        2.80 s\n```\n\nThirty times slower for running two independent counters in parallel. The cause is **false sharing**: `a` and `b` are 8 bytes apart, so they occupy the same cache line, and the line ping-pongs between the two cores' private caches on every increment.\n\n**Which of the following would substantially fix it?** Select all that apply.",
+  "hints": [
+    "The unit the hardware moves between cores is the line, not the variable. What has to be true of two addresses for them to be in different lines?",
+    "Ask of each option: does it change which cache line each counter lands in? Some options change the code a great deal and the layout not at all.",
+    "One option removes the sharing entirely rather than spacing it out. That is usually the right answer in real code."
+  ],
+  "payload": {
+    "options": [
+      "Pad the struct so each counter sits in its own line: `struct Counters { alignas(64) std::atomic<long> a; alignas(64) std::atomic<long> b; };`",
+      "Give each thread a plain local `long`, increment that in the loop, and add it to the shared atomic once at the end.",
+      "Change both counters from `std::atomic<long>` to plain `long`.",
+      "Use `std::memory_order_relaxed` on the increments instead of the default `seq_cst`."
+    ]
+  }
+}

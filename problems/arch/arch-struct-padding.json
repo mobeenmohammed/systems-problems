@@ -1,0 +1,35 @@
+{
+  "id": "arch-struct-padding",
+  "title": "How big is this struct?",
+  "topic": "arch",
+  "difficulty": "beginner",
+  "type": "numeric",
+  "tags": [
+    "alignment",
+    "padding",
+    "memory",
+    "structs"
+  ],
+  "estimate": 8,
+  "prereqs": [
+    {
+      "concept": "alignment",
+      "why": "The answer is the alignment rule applied to each member in turn, and then once more to the struct as a whole."
+    },
+    {
+      "concept": "cache-lines",
+      "why": "Why anyone cares: padding is wasted bytes in every cache line the struct occupies."
+    }
+  ],
+  "statement": "On x86-64 with the usual System V ABI, where `char` is 1 byte aligned to 1, `int` is 4 aligned to 4, and `double` is 8 aligned to 8:\n\n```c\nstruct Record {\n    char   flag;\n    double value;\n    int    count;\n    char   tag;\n};\n```\n\n**What does `sizeof(struct Record)` return?**\n\nWork it out rather than guessing. Lay the members out at increasing offsets, give each one the first offset that satisfies its alignment, and then remember what has to be true of the size of the whole thing.",
+  "hints": [
+    "A member with alignment 8 cannot start at offset 1. What is the next offset it can start at?",
+    "The member sizes add up to 1 + 8 + 4 + 1 = 14. The answer is larger, and the difference is padding.",
+    "An array of these structs must have every element correctly aligned, including the last. What does that force about the size of one element?"
+  ],
+  "payload": {
+    "unit": "bytes",
+    "placeholder": "e.g. 24",
+    "hintFormat": "A plain number of bytes."
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "id": "linux-count-unique-ips",
+  "title": "Count the distinct clients",
+  "topic": "linux",
+  "difficulty": "beginner",
+  "type": "short",
+  "tags": [
+    "shell",
+    "pipelines",
+    "text-processing",
+    "logs"
+  ],
+  "estimate": 10,
+  "prereqs": [
+    {
+      "concept": "shell-pipelines",
+      "why": "The answer is a pipeline, and which tool goes where is the whole question."
+    }
+  ],
+  "statement": "An access log, `access.log`, in the usual combined format. The client IP is the **first whitespace-separated field** of each line:\n\n```\n203.0.113.8 - - [03/Oct/2026:14:22:01 +0000] \"GET /index.html HTTP/1.1\" 200 5120\n198.51.100.2 - - [03/Oct/2026:14:22:03 +0000] \"GET /style.css HTTP/1.1\" 200 1024\n203.0.113.8 - - [03/Oct/2026:14:22:04 +0000] \"POST /api/v1 HTTP/1.1\" 201 64\n```\n\nThe file has forty million lines.\n\n**Write a one-line pipeline that prints just the number of distinct client IPs.** Nothing else — one number on stdout.\n\nAny of the obvious tools is fine; several spellings are accepted.",
+  "hints": [
+    "You need three things: pull out the first field, reduce it to distinct values, and count the lines that come out.",
+    "`uniq` only removes *adjacent* duplicates, so something has to happen before it. Or skip it — `sort` has a flag that does both.",
+    "`wc -l` counts lines. `cut -f1 -d' '` and `awk '{print $1}'` both pull a field."
+  ],
+  "payload": {
+    "placeholder": "cut ... | sort ... | ...",
+    "prompt": "One pipeline, on one line."
+  }
+}

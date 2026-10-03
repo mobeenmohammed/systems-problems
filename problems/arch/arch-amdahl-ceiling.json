@@ -1,0 +1,30 @@
+{
+  "id": "arch-amdahl-ceiling",
+  "title": "The ceiling on 64 cores",
+  "topic": "arch",
+  "difficulty": "intermediate",
+  "type": "numeric",
+  "tags": [
+    "amdahl",
+    "parallelism",
+    "scaling"
+  ],
+  "estimate": 10,
+  "prereqs": [
+    {
+      "concept": "amdahl",
+      "why": "This is the law itself applied once, but the point of the problem is what the number means afterwards."
+    }
+  ],
+  "statement": "You have profiled a program carefully. **8% of its runtime is inherently serial** — argument parsing, reading the input file, writing the result, and a final reduction that cannot be split. The other 92% parallelises perfectly, with no communication cost and no load imbalance.\n\nYou run it on **64 cores**.\n\n**What speedup do you get, relative to the single-core run?**\n\nGive it as a plain multiplier, so a doubling is `2`.",
+  "hints": [
+    "The serial part takes the same wall-clock time however many cores you have. Only the parallel part is divided by the core count.",
+    "If the original run took 1 unit of time, the new run takes 0.08 + 0.92/64. The speedup is 1 divided by that.",
+    "Before reaching for a calculator: the serial 8% alone means you can never beat 12.5x, so the answer is below that."
+  ],
+  "payload": {
+    "unit": "x faster",
+    "placeholder": "e.g. 7.4",
+    "hintFormat": "A multiplier, to about one decimal place."
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "id": "os-lock-order-deadlock",
+  "title": "Two locks, two orders",
+  "topic": "os",
+  "difficulty": "intermediate",
+  "type": "locate",
+  "tags": [
+    "deadlock",
+    "mutex",
+    "concurrency",
+    "locking"
+  ],
+  "estimate": 12,
+  "prereqs": [
+    {
+      "concept": "mutual-exclusion",
+      "why": "The bug is a lock-ordering mistake, which only makes sense once you know what holding two locks means."
+    }
+  ],
+  "statement": "Two accounts, each with its own mutex. Two functions move money between them:\n\n```cpp\nstruct Account { std::mutex m; long balance; };\nAccount alice, bob;\n```\n\nThis runs fine for weeks and then hangs under load, with two threads stuck and no CPU being used. **Click the line that makes the deadlock possible.**",
+  "hints": [
+    "Nothing here is wrong on its own. Look at what the two functions do in the same order, and what they do in opposite orders.",
+    "Imagine thread 1 part-way through the first function and thread 2 part-way through the second, both having taken exactly one lock. What does each now need?",
+    "The fix is to make every thread in the program take these two locks in the same order. Which line breaks that rule?"
+  ],
+  "payload": {
+    "code": "void alice_pays_bob(long amount) {\n    std::lock_guard<std::mutex> la(alice.m);\n    std::lock_guard<std::mutex> lb(bob.m);\n    alice.balance -= amount;\n    bob.balance   += amount;\n}\n\nvoid bob_pays_alice(long amount) {\n    std::lock_guard<std::mutex> lb(bob.m);\n    std::lock_guard<std::mutex> la(alice.m);\n    bob.balance   -= amount;\n    alice.balance += amount;\n}",
+    "lang": "cpp",
+    "prompt": "Click the line that makes the deadlock possible."
+  }
+}

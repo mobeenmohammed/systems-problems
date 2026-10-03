@@ -119,12 +119,17 @@ ok('a row links to its problem', rows()[0].getAttribute('href').startsWith('#/p/
 ok('a row shows what it is worth', rows()[0].textContent.includes('XP'));
 
 section('filtering');
+/* Counted from the catalog rather than written as a literal, so adding
+   problems does not break the test — only a filter that stops working does. */
+const inTopic = t => window.BareMetal.Catalog.all().filter(p => p.topic === t).length;
 const topicSel = document.getElementById('fTopic');
 topicSel.value = 'os';
 change(topicSel);
 await settle(window);
-ok('filtering by topic narrows the list', rows().length === 1);
-ok('and keeps the right one', rows()[0].getAttribute('href') === '#/p/os-page-fault-walk');
+ok('filtering by topic narrows the list',
+  rows().length === inTopic('os') && rows().length < window.BareMetal.Catalog.all().length);
+ok('and every row kept is from that topic',
+  rows().every(r => (window.BareMetal.Catalog.meta(r.getAttribute('href').replace('#/p/', '')) || {}).topic === 'os'));
 
 topicSel.value = '';
 change(topicSel);
@@ -134,7 +139,8 @@ const search = document.getElementById('fSearch');
 search.value = 'partition';
 input(search);
 ok('searching matches a title',
-  await waitFor(window, () => rows().length === 1 && rows()[0].textContent.includes('partition')));
+  await waitFor(window, () => rows().length > 0 &&
+    rows().every(r => r.textContent.toLowerCase().includes('partition'))));
 
 search.value = 'zzzznothing';
 input(search);
@@ -147,7 +153,7 @@ ok('clearing restores the list', rows().length === window.BareMetal.Catalog.all(
 
 section('a filter can arrive in the url');
 await go(window, '#/problems?topic=dist');
-ok('a topic link pre-filters the catalog', rows().length === 1);
+ok('a topic link pre-filters the catalog', rows().length === inTopic('dist'));
 ok('and the control shows it', document.getElementById('fTopic').value === 'dist');
 
 /* ---------------- opening a problem ---------------- */
@@ -264,7 +270,9 @@ const statusSel = document.getElementById('fStatus');
 statusSel.value = 'solved';
 change(statusSel);
 await settle(window);
-ok('filtering by solved finds it', rows().length === 1);
+ok('filtering by solved finds exactly the solved ones',
+  rows().length === Object.values(window.BareMetal.Store.state.progress)
+    .filter(r => r.status === 'solved').length);
 statusSel.value = '';
 change(statusSel);
 await settle(window);

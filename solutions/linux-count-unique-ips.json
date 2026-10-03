@@ -1,0 +1,24 @@
+{
+  "key": {
+    "accept": [
+      "cut -d' ' -f1 access.log | sort -u | wc -l",
+      "cut -d ' ' -f1 access.log | sort -u | wc -l",
+      "cut -f1 -d' ' access.log | sort -u | wc -l",
+      "awk '{print $1}' access.log | sort -u | wc -l",
+      "awk '{print $1}' access.log | sort | uniq | wc -l",
+      "cut -d' ' -f1 access.log | sort | uniq | wc -l",
+      "sort -u -k1,1 access.log | wc -l",
+      "awk '{print $1}' access.log | sort -u | wc -l"
+    ],
+    "pattern": "^(cut\\s+(-d\\s*['\\\"]? ['\\\"]?|-f\\s*1|\\s)+|awk\\s+['\\\"]\\{\\s*print\\s+\\$1\\s*\\}['\\\"])[^|]*\\|\\s*sort\\s*(-u)?[^|]*(\\|\\s*uniq[^|]*)?\\|\\s*wc\\s+-l\\s*$",
+    "flags": "i"
+  },
+  "explanation": "## The pipeline\n\n```bash\ncut -d' ' -f1 access.log | sort -u | wc -l\n```\n\nor equivalently\n\n```bash\nawk '{print $1}' access.log | sort -u | wc -l\n```\n\nThree stages, each doing one thing:\n\n1. **`cut -d' ' -f1`** — split on spaces, keep field 1. `awk '{print $1}'` is the same idea and handles runs of whitespace more gracefully, which matters on logs that are not perfectly uniform.\n2. **`sort -u`** — sort and drop duplicates in one pass.\n3. **`wc -l`** — count what is left.\n\n## The trap: `uniq` without `sort`\n\n```bash\ncut -d' ' -f1 access.log | uniq | wc -l      # WRONG\n```\n\n`uniq` only collapses **adjacent** identical lines. In a log, the same IP appears at 14:22 and again at 16:05 with thousands of lines in between, and `uniq` will count it twice. It is not a de-duplicator; it is a run-length collapser, and it is called `uniq` for historical reasons that mislead everybody once.\n\nSo `sort | uniq` works, and `sort -u` does the same thing in one process with less data crossing a pipe. Prefer `sort -u`.\n\n## Forty million lines is the interesting part\n\n`sort` is the only stage that needs to hold anything, and GNU sort is built for this: it sorts in memory up to a buffer size, spills sorted runs to temporary files, and merges them. It will finish on forty million lines on a laptop. Two knobs matter when it is slow:\n\n```bash\ncut -d' ' -f1 access.log | LC_ALL=C sort -u -S 2G --parallel=4 | wc -l\n```\n\n- **`LC_ALL=C`** is the big one, and it is not obvious. In a UTF-8 locale `sort` does locale-aware collation, which is dramatically slower than byte comparison. For IP addresses, where you only want distinctness, byte order is fine and this alone is often a 3-5x speedup.\n- **`-S`** sets the memory buffer, so fewer spills to disk.\n\n## The approach that avoids sorting entirely\n\nSorting to find distinct values is more work than necessary — a hash table only needs one pass and no ordering:\n\n```bash\nawk '{ seen[$1] } END { print length(seen) }' access.log\n```\n\nOne pass, no sorting, no temporary files, and usually several times faster. The catch is memory: the table holds every distinct IP at once. For a few hundred thousand distinct clients that is nothing; for a key with hundreds of millions of distinct values, `sort -u` streaming to disk is the one that survives and the hash table is the one that gets OOM-killed.\n\nThat trade — **sort streams and is slow, hash is fast and must fit** — is the same decision as choosing a sort-merge join over a hash join in a database, and knowing which way to go on it is most of practical data wrangling.\n\n## Where to go from here\n\nCounting distinct is the first question; the useful follow-up is almost always *which* ones:\n\n```bash\nawk '{print $1}' access.log | sort | uniq -c | sort -rn | head -20\n```\n\n`uniq -c` prefixes each distinct line with its count, and `sort -rn` puts the biggest first. That is the top-20 noisiest clients, and it is the single most useful log pipeline there is — the same shape answers \"which URL is hottest\", \"which status code dominates\", \"which user agent is hammering us\".",
+  "readMore": [
+    {
+      "concept": "shell-pipelines",
+      "where": "Kernighan & Pike ch. 4, then man sort for -u and -k"
+    }
+  ],
+  "id": "linux-count-unique-ips"
+}

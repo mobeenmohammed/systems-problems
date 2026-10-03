@@ -22,6 +22,9 @@ const { grab } = loadScripts([
   'js/types/mcq.js',
   'js/types/numeric.js',
   'js/types/order.js',
+  'js/types/match.js',
+  'js/types/predict.js',
+  'js/types/locate.js',
 ]);
 const Types = grab('ProblemTypes');
 

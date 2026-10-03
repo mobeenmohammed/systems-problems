@@ -1,0 +1,19 @@
+{
+  "key": {
+    "pairs": [
+      2,
+      3,
+      0,
+      4,
+      1
+    ]
+  },
+  "explanation": "## The pairings\n\n| Policy | Known for |\n| --- | --- |\n| **FCFS** | The convoy effect |\n| **Round robin** | Bounded response time, more switches |\n| **SJF** | Optimal average turnaround, needs the future |\n| **MLFQ** | Infers interactivity from behaviour |\n| **CFS** | Proportional share via virtual runtime |\n\nThe spare description — *runs the highest-priority task until it blocks and never adjusts a priority* — is **strict priority scheduling without aging**. It is a real policy, used in hard real-time systems where you want exactly that determinism, but it is not any of the five, and on a general-purpose system it starves low-priority work indefinitely.\n\n## What each one is really trading\n\n**FCFS** is the simplest possible policy and the one that shows why scheduling is interesting at all. One 100-second job ahead of five 1-second jobs: the short jobs finish at 101 through 105, average turnaround about 103 seconds. Run the short ones first and it is about 4. Same work, same hardware, twenty-five times better by one metric — from nothing but order.\n\n**SJF** is *provably* optimal for average turnaround time, and that is why it is worth knowing even though you can never run it. It needs job lengths in advance, which no scheduler has. It is the yardstick everything else is measured against, not a thing to implement.\n\n**Round robin** attacks the opposite metric. Nobody waits longer than `(n-1) x slice` to run, so an interactive task stays responsive however much batch work is queued. The costs are real: every switch is a few microseconds of direct cost plus a cold cache afterwards, and average turnaround gets *worse* than FCFS because every job is stretched out. The slice length is the whole design: too long and it degenerates towards FCFS, too short and you spend your time switching.\n\n**MLFQ** is the clever one, and the idea generalises well beyond scheduling. It cannot know which tasks are interactive, so it **watches behaviour and infers**: a task that blocks before using its slice is probably waiting for I/O or a person, so keep it high priority; a task that burns its whole slice is probably compute-bound, so demote it. It approximates SJF without needing the future. The classic failure is a task that games it by issuing a pointless I/O just before its slice expires, and the classic fix is periodic priority boosting, which also stops long-term starvation.\n\n**CFS** reframes the question. Rather than priorities and queues, each task accumulates **virtual runtime** — actual runtime divided by its weight — and the scheduler always runs the task with the lowest vruntime, kept in a red-black tree. A task with twice the weight accumulates vruntime at half the rate, so it gets twice the CPU. There is no time slice as such: the task runs until it is no longer the one furthest behind. \"Fair\" means proportional-share, not equal: `nice` sets the weight.\n\n## Why this matters when you are debugging\n\nThese are not interchangeable abstractions. If your latency-sensitive thread is being starved behind batch work, the thing to reach for depends on which policy is in play — `nice` and `sched_setscheduler` under CFS, or a cgroup CPU weight, or `SCHED_FIFO` if you genuinely want strict priority and accept the starvation risk that comes with it.\n\nAnd the MLFQ insight is the transferable one: when you cannot know something about the future, watch what actually happens and adapt. The same move shows up in branch predictors, cache replacement policies, TCP congestion control and JIT compilers.",
+  "readMore": [
+    {
+      "concept": "scheduling",
+      "where": "OSTEP ch. 7-9, then the CFS design doc"
+    }
+  ],
+  "id": "os-scheduler-properties"
+}

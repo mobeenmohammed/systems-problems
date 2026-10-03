@@ -259,5 +259,307 @@
         "url": "https://gcc.gnu.org/onlinedocs/gcc/Instrumentation-Options.html"
       }
     ]
+  },
+  "alignment": {
+    "name": "Alignment and padding",
+    "topic": "arch",
+    "oneLine": "A type must sit at an address that is a multiple of its alignment, so the compiler inserts padding between struct members and at the end of the struct.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "Computer Systems: A Programmer's Perspective",
+        "kind": "book",
+        "where": "Ch. 3.9.3, structural alignment"
+      },
+      {
+        "title": "The Lost Art of Structure Packing",
+        "kind": "docs",
+        "where": "Eric S. Raymond, the definitive walkthrough",
+        "url": "http://www.catb.org/esr/structure-packing/"
+      },
+      {
+        "title": "cppreference: alignof and alignas",
+        "kind": "docs",
+        "where": "the language-level controls",
+        "url": "https://en.cppreference.com/w/cpp/language/alignof"
+      }
+    ]
+  },
+  "pipelining": {
+    "name": "Instruction pipelining and hazards",
+    "topic": "arch",
+    "oneLine": "A CPU overlaps the stages of consecutive instructions, and a hazard is any case where the overlap would use a value that is not ready yet.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "Computer Organization and Design",
+        "kind": "book",
+        "where": "Patterson & Hennessy, ch. 4.5-4.8"
+      },
+      {
+        "title": "Digital Design and Computer Architecture",
+        "kind": "book",
+        "where": "Harris & Harris, ch. 7.5, with the five-stage diagrams"
+      },
+      {
+        "title": "Agner Fog's microarchitecture manual",
+        "kind": "docs",
+        "where": "what real pipelines look like",
+        "url": "https://www.agner.org/optimize/"
+      }
+    ]
+  },
+  "amdahl": {
+    "name": "Amdahl's law",
+    "topic": "hpc",
+    "oneLine": "Speedup from parallelism is bounded by the fraction of the work that stays serial, so a 5% serial part caps you at 20x however many cores you buy.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "Introduction to High Performance Computing for Scientists and Engineers",
+        "kind": "book",
+        "where": "Hager & Wellein, ch. 5"
+      },
+      {
+        "title": "Amdahl's Law in the Multicore Era",
+        "kind": "paper",
+        "where": "Hill & Marty, short and worth it",
+        "url": "https://research.cs.wisc.edu/multifacet/papers/ieeecomputer08_amdahl_multicore.pdf"
+      },
+      {
+        "title": "MIT 6.172 Performance Engineering",
+        "kind": "course",
+        "where": "Lecture 1, on what to expect from parallelism",
+        "url": "https://ocw.mit.edu/courses/6-172-performance-engineering-of-software-systems-fall-2018/"
+      }
+    ]
+  },
+  "cache-coherence": {
+    "name": "Cache coherence and false sharing",
+    "topic": "arch",
+    "oneLine": "Cores keep coherent copies of a cache line, so two threads writing different variables that share a line fight over it even though they never touch the same byte.",
+    "needs": [
+      "cache-lines"
+    ],
+    "readings": [
+      {
+        "title": "What Every Programmer Should Know About Memory",
+        "kind": "paper",
+        "where": "Drepper, section 3.3.4 on coherence"
+      },
+      {
+        "title": "Eliminate False Sharing",
+        "kind": "docs",
+        "where": "Herb Sutter, with measurements",
+        "url": "https://www.drdobbs.com/parallel/eliminate-false-sharing/217500206"
+      },
+      {
+        "title": "cppreference: hardware_destructive_interference_size",
+        "kind": "docs",
+        "where": "the standard's own name for a cache line",
+        "url": "https://en.cppreference.com/w/cpp/thread/hardware_destructive_interference_size"
+      }
+    ]
+  },
+  "stdio-buffering": {
+    "name": "stdio buffering",
+    "topic": "linux",
+    "oneLine": "The C library buffers output in your process's own memory and decides when to call write(2), and the policy depends on whether the destination is a terminal.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "The Linux Programming Interface",
+        "kind": "book",
+        "where": "Ch. 13, file I/O buffering"
+      },
+      {
+        "title": "man setvbuf",
+        "kind": "docs",
+        "where": "the three modes, and how to change them",
+        "url": "https://man7.org/linux/man-pages/man3/setvbuf.3.html"
+      },
+      {
+        "title": "Computer Systems: A Programmer's Perspective",
+        "kind": "book",
+        "where": "Ch. 10, on the gap between stdio and the syscalls"
+      }
+    ]
+  },
+  "processes-fork": {
+    "name": "Processes and fork",
+    "topic": "os",
+    "oneLine": "fork() creates a near-identical copy of the calling process, which continues from the same point with its own copy of everything the parent had.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "Operating Systems: Three Easy Pieces",
+        "kind": "book",
+        "where": "Ch. 5, the process API",
+        "url": "https://pages.cs.wisc.edu/~remzi/OSTEP/cpu-api.pdf"
+      },
+      {
+        "title": "The Linux Programming Interface",
+        "kind": "book",
+        "where": "Ch. 24-25, process creation and termination"
+      },
+      {
+        "title": "man fork",
+        "kind": "docs",
+        "where": "especially the long list of what is and is not inherited",
+        "url": "https://man7.org/linux/man-pages/man2/fork.2.html"
+      }
+    ]
+  },
+  "copy-on-write": {
+    "name": "Copy-on-write",
+    "topic": "os",
+    "oneLine": "fork() does not copy memory; it marks both processes' pages read-only and shared, and copies a page only when one of them writes to it.",
+    "needs": [
+      "page-faults",
+      "processes-fork"
+    ],
+    "readings": [
+      {
+        "title": "Operating Systems: Three Easy Pieces",
+        "kind": "book",
+        "where": "Ch. 23, on the VM system's lazy tricks"
+      },
+      {
+        "title": "The Linux Programming Interface",
+        "kind": "book",
+        "where": "Ch. 24.2.2, fork and copy-on-write"
+      },
+      {
+        "title": "Linux memory accounting",
+        "kind": "docs",
+        "where": "proc(5): statm, smaps and what RSS actually counts",
+        "url": "https://man7.org/linux/man-pages/man5/proc.5.html"
+      }
+    ]
+  },
+  "mutual-exclusion": {
+    "name": "Locks and deadlock",
+    "topic": "os",
+    "oneLine": "A mutex makes a critical section exclusive, and two threads taking two mutexes in opposite orders can each hold what the other needs.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "Operating Systems: Three Easy Pieces",
+        "kind": "book",
+        "where": "Ch. 28 and 32, locks and concurrency bugs",
+        "url": "https://pages.cs.wisc.edu/~remzi/OSTEP/threads-bugs.pdf"
+      },
+      {
+        "title": "C++ Concurrency in Action",
+        "kind": "book",
+        "where": "Williams, ch. 3.2.4 on avoiding deadlock"
+      },
+      {
+        "title": "cppreference: std::scoped_lock",
+        "kind": "docs",
+        "where": "the all-at-once alternative to nested lock_guards",
+        "url": "https://en.cppreference.com/w/cpp/thread/scoped_lock"
+      }
+    ]
+  },
+  "scheduling": {
+    "name": "CPU scheduling",
+    "topic": "os",
+    "oneLine": "The scheduler decides which runnable task gets the CPU next, trading average turnaround time against response time and fairness.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "Operating Systems: Three Easy Pieces",
+        "kind": "book",
+        "where": "Ch. 7-9, scheduling, MLFQ and lottery",
+        "url": "https://pages.cs.wisc.edu/~remzi/OSTEP/cpu-sched.pdf"
+      },
+      {
+        "title": "CFS scheduler design",
+        "kind": "docs",
+        "where": "Linux kernel docs, on virtual runtime",
+        "url": "https://docs.kernel.org/scheduler/sched-design-CFS.html"
+      },
+      {
+        "title": "Systems Performance",
+        "kind": "book",
+        "where": "Gregg, ch. 6, for how to observe scheduling in practice"
+      }
+    ]
+  },
+  "file-permissions": {
+    "name": "File permissions and modes",
+    "topic": "linux",
+    "oneLine": "Every file carries three sets of three bits — read, write, execute for owner, group and others — plus setuid, setgid and the sticky bit.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "The Linux Programming Interface",
+        "kind": "book",
+        "where": "Ch. 15, file attributes and permissions"
+      },
+      {
+        "title": "man 2 chmod",
+        "kind": "docs",
+        "where": "the mode bits, spelled out",
+        "url": "https://man7.org/linux/man-pages/man2/chmod.2.html"
+      },
+      {
+        "title": "man 1 chmod",
+        "kind": "docs",
+        "where": "the symbolic and octal forms",
+        "url": "https://man7.org/linux/man-pages/man1/chmod.1.html"
+      }
+    ]
+  },
+  "shell-pipelines": {
+    "name": "Pipelines and text tools",
+    "topic": "linux",
+    "oneLine": "Each tool reads a stream and writes a stream, and a pipeline composes them into something none of them does alone.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "The Unix Programming Environment",
+        "kind": "book",
+        "where": "Kernighan & Pike, ch. 4 — still the best thing on this"
+      },
+      {
+        "title": "Command-line Tools can be 235x Faster than your Hadoop Cluster",
+        "kind": "docs",
+        "where": "Adam Drake, for a sense of scale",
+        "url": "https://adamdrake.com/command-line-tools-can-be-235x-faster-than-your-hadoop-cluster.html"
+      },
+      {
+        "title": "man sort",
+        "kind": "docs",
+        "where": "especially -u, -k and -n",
+        "url": "https://man7.org/linux/man-pages/man1/sort.1.html"
+      }
+    ]
+  },
+  "file-descriptors": {
+    "name": "File descriptors and redirection",
+    "topic": "linux",
+    "oneLine": "A file descriptor is a small integer indexing a per-process table of open files, and redirection is the shell rewriting entries in that table before it execs your program.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "The Linux Programming Interface",
+        "kind": "book",
+        "where": "Ch. 5.4-5.5, duplicating descriptors"
+      },
+      {
+        "title": "Operating Systems: Three Easy Pieces",
+        "kind": "book",
+        "where": "Ch. 39, files and directories",
+        "url": "https://pages.cs.wisc.edu/~remzi/OSTEP/file-intro.pdf"
+      },
+      {
+        "title": "Bash Reference Manual: Redirections",
+        "kind": "docs",
+        "where": "the order of operations is the part to read",
+        "url": "https://www.gnu.org/software/bash/manual/html_node/Redirections.html"
+      }
+    ]
   }
 }

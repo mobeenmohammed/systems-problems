@@ -1,0 +1,44 @@
+{
+  "id": "os-scheduler-properties",
+  "title": "Which scheduler behaves like that?",
+  "topic": "os",
+  "difficulty": "intermediate",
+  "type": "match",
+  "tags": [
+    "scheduling",
+    "fairness",
+    "latency"
+  ],
+  "estimate": 12,
+  "prereqs": [
+    {
+      "concept": "scheduling",
+      "why": "Each pairing is a scheduling policy and the behaviour that falls out of it."
+    }
+  ],
+  "statement": "Five scheduling policies, and the behaviour each one is known for. Pair them up.\n\nOne of the descriptions on the right belongs to none of them — it is there because it describes something people often assume a scheduler does.",
+  "hints": [
+    "Two of these need information about the future that a real scheduler does not have. Only one of them is on the left.",
+    "Ask of each policy: what does it optimise, and what does it therefore give up? Every scheduler trades turnaround time against response time.",
+    "The leftover description is of a policy with no aging and no preemption by time — which is a real thing, just not one of these five."
+  ],
+  "payload": {
+    "leftLabel": "Policy",
+    "rightLabel": "Known for",
+    "left": [
+      "First-come, first-served (FCFS)",
+      "Round robin with a fixed time slice",
+      "Shortest job first (SJF)",
+      "Multi-level feedback queue (MLFQ)",
+      "Linux CFS"
+    ],
+    "right": [
+      "Optimal average turnaround time, but it has to know how long each job will run before it starts",
+      "Gives every runnable task a share of the CPU proportional to its weight, tracked by accumulated virtual runtime",
+      "A short job arriving behind a long one waits for the whole long one — the convoy effect",
+      "Bounded response time for every task, at the cost of more context switches and worse throughput",
+      "Infers which tasks are interactive by demoting those that use a whole slice and favouring those that block early",
+      "Runs the highest-priority runnable task until it blocks, and never adjusts a priority afterwards"
+    ]
+  }
+}

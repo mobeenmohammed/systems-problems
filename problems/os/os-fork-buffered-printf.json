@@ -1,0 +1,35 @@
+{
+  "id": "os-fork-buffered-printf",
+  "title": "printf, then fork",
+  "topic": "os",
+  "difficulty": "beginner",
+  "type": "predict",
+  "tags": [
+    "fork",
+    "buffering",
+    "stdio",
+    "processes"
+  ],
+  "estimate": 10,
+  "prereqs": [
+    {
+      "concept": "stdio-buffering",
+      "why": "The answer turns entirely on where the first string is when fork happens."
+    },
+    {
+      "concept": "processes-fork",
+      "why": "You need to know what fork duplicates, and that the answer includes the process's own memory."
+    }
+  ],
+  "statement": "```c\n#include <stdio.h>\n#include <unistd.h>\n\nint main(void) {\n    printf(\"AB\");\n    fork();\n    printf(\"CD\\n\");\n    return 0;\n}\n```\n\nIt is compiled and run with **stdout redirected to a file**:\n\n```bash\n./prog > out.txt\n```\n\nThe `fork()` succeeds. Both processes run to completion with no error.\n\n**What is in `out.txt` afterwards?**\n\nWrite it exactly, including the line breaks.",
+  "hints": [
+    "printf does not call write(2) every time. Where does the text go in between, and when does it leave?",
+    "Redirected to a file, stdout is fully buffered — nothing is written out until the buffer fills or the process exits. Is the buffer full here?",
+    "fork() duplicates the process's memory. The stdio buffer lives in the process's memory."
+  ],
+  "payload": {
+    "lang": "c",
+    "lines": 4,
+    "prompt": "The exact contents of out.txt."
+  }
+}

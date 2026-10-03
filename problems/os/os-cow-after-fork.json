@@ -1,0 +1,39 @@
+{
+  "id": "os-cow-after-fork",
+  "title": "Memory after a fork",
+  "topic": "os",
+  "difficulty": "advanced",
+  "type": "numeric",
+  "tags": [
+    "copy-on-write",
+    "fork",
+    "rss",
+    "virtual-memory"
+  ],
+  "estimate": 14,
+  "prereqs": [
+    {
+      "concept": "copy-on-write",
+      "why": "The entire answer is what copy-on-write does and does not copy, and when."
+    },
+    {
+      "concept": "page-faults",
+      "why": "The copying happens in a write fault, so the fault path is the mechanism."
+    },
+    {
+      "concept": "processes-fork",
+      "why": "You need to know that fork gives the child its own address space, even though it shares the physical pages at first."
+    }
+  ],
+  "statement": "A process allocates **100 MiB** of private anonymous memory with `malloc` and writes one byte to every page of it, so all of it is resident. Pages are **4 KiB**. Its RSS is 100 MiB.\n\nIt then calls `fork()`.\n\nThe **child** writes one byte to each of **10,240 distinct pages** of that region. The parent writes nothing and touches nothing. Neither process frees anything, and nothing is swapped out.\n\n**What is the total physical memory consumed by both processes together, in MiB?**\n\nCount only that 100 MiB region; ignore the executable, libraries and stacks.",
+  "hints": [
+    "fork() does not copy the 100 MiB. What does it actually do to the page tables of both processes?",
+    "10,240 pages at 4 KiB each is how many MiB? That is the amount that stops being shared.",
+    "The parent's pages are all still there. The question is how much is now *additional*."
+  ],
+  "payload": {
+    "unit": "MiB",
+    "placeholder": "e.g. 140",
+    "hintFormat": "A number of MiB."
+  }
+}
