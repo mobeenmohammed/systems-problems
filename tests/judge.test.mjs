@@ -216,7 +216,13 @@ if (sanitizerWorks) {
 
   check('it compiles under the sanitizer', whyNot(res), true);
   ok('the sanitizer fired',                res.cases[0].sanitizer === true);
-  ok('and said what it was',               /stack-buffer-overflow|AddressSanitizer/.test(res.cases[0].stderr));
+  /* Which sanitizer speaks first depends on the array. For a stack array with
+     bounds the compiler can see, UBSan gets there first and says "index 4 out
+     of bounds for type 'int [4]'" — more specific than ASan's
+     stack-buffer-overflow, since it names the type and the index. Either is a
+     real report, so the assertion is on there being a specific one. */
+  ok('and said what it was',
+    /out of bounds|stack-buffer-overflow|heap-buffer-overflow/.test(res.cases[0].stderr));
   ok('the process did not exit cleanly',   res.cases[0].exit !== 0);
 
   /* And the control: a clean program under the same profile must not be
