@@ -76,12 +76,19 @@ const LIMITS = ['--nproc=512', '--fsize=67108864', '--nofile=512'];
    misleading way to find out.
 
    So the cap applies to ordinary runs and is dropped for sanitized ones,
-   where the container's mem_limit is the backstop instead. */
+   where the container's mem_limit is the backstop instead.
+
+   It is also not applied to the compiler. rustc and g++ legitimately reserve
+   large virtual arenas, and capping them makes a compile crawl or stall — a
+   trivial Rust program took longer than the 20-second compile limit under a
+   4 GB cap. The compiler is our own trusted toolchain; the thing that needs
+   guarding is the submitted program's run. */
 const AS_LIMIT = '--as=4294967296';
 
-function wrap(cmd, args, { sanitized = false } = {}) {
+function wrap(cmd, args, { stage = 'run', sanitized = false } = {}) {
   if (!prlimit) return [cmd, args];
-  const limits = sanitized ? LIMITS : [...LIMITS, AS_LIMIT];
+  const capAddressSpace = stage === 'run' && !sanitized;
+  const limits = capAddressSpace ? [...LIMITS, AS_LIMIT] : LIMITS;
   return ['prlimit', [...limits, '--', cmd, ...args]];
 }
 
@@ -199,7 +206,7 @@ export async function run({ lang, source, profile = 'standard', cases = [], limi
     const sanitized = profile === 'sanitize';
 
     const [ccmd, cargs] = spec.compile({ src, bin, flags });
-    const [wc, wa] = wrap(ccmd, cargs, { sanitized });
+    const [wc, wa] = wrap(ccmd, cargs, { stage: 'compile', sanitized });
     const compiled = await exec(wc, wa, { cwd: dir, timeoutMs: compileMs });
 
     const compile = {
@@ -226,7 +233,7 @@ export async function run({ lang, source, profile = 'standard', cases = [], limi
     const results = [];
 
     for (const c of cases) {
-      const [wrc, wra] = wrap(rcmd, [...rargs, ...(Array.isArray(c.args) ? c.args.map(String) : [])], { sanitized });
+      const [wrc, wra] = wrap(rcmd, [...rargs, ...(Array.isArray(c.args) ? c.args.map(String) : [])], { stage: 'run', sanitized });
       const out = await exec(wrc, wra, {
         cwd: dir,
         stdin: typeof c.stdin === 'string' ? c.stdin : '',

@@ -26,6 +26,15 @@ ok('at least one language is available', langs.some(l => l.available));
 
 const one = (stdin = '') => [{ stdin }];
 
+/* When a compile was expected to succeed and did not, the compiler's own words
+   are the only useful thing to look at — and on CI they are the only thing
+   available. Printing them turns "rust compiles: expected true" into a
+   diagnosis. */
+const whyNot = res => {
+  if (!res.compile.ok) console.log(`        ${(res.compile.stderr || '(no stderr)').slice(0, 500)}`);
+  return res.compile.ok;
+};
+
 /* Having a working g++ does not mean having the sanitizer runtimes: MinGW on
    Windows has no libasan at all, so -fsanitize=address fails at link time.
    The judge's real home is the Linux container, where it works — so this is a
@@ -66,7 +75,7 @@ if (have.cpp) {
     source: '#include <iostream>\nint main(){int n;std::cin>>n;std::cout<<n*2<<"\\n";}',
     cases: [{ stdin: '21\n' }],
   });
-  check('cpp compiles',        res.compile.ok, true);
+  check('cpp compiles',        whyNot(res), true);
   check('cpp runs',            res.cases[0].stdout.trim(), '42');
   check('cpp exits cleanly',   res.cases[0].exit, 0);
 }
@@ -77,7 +86,7 @@ if (have.rust) {
     source: 'use std::io::Read;\nfn main(){let mut s=String::new();std::io::stdin().read_to_string(&mut s).unwrap();let n:i64=s.trim().parse().unwrap();println!("{}",n*2);}',
     cases: [{ stdin: '21\n' }],
   });
-  check('rust compiles',       res.compile.ok, true);
+  check('rust compiles',       whyNot(res), true);
   check('rust runs',           res.cases[0].stdout.trim(), '42');
 }
 
@@ -87,7 +96,7 @@ if (have.python) {
     source: 'import sys\nprint(int(sys.stdin.read().strip()) * 2)',
     cases: [{ stdin: '21\n' }],
   });
-  check('python compiles',     res.compile.ok, true);
+  check('python compiles',     whyNot(res), true);
   check('python runs',         res.cases[0].stdout.trim(), '42');
 }
 
@@ -123,7 +132,7 @@ if (have.cpp) {
     source: '#include <iostream>\nint main(){ int unused_variable; std::cout << "hi\\n"; }',
     cases: one(),
   });
-  check('it still builds',     res.compile.ok, true);
+  check('it still builds',     whyNot(res), true);
   check('and still runs',      res.cases[0].stdout.trim(), 'hi');
   /* -Wall -Wextra is on every profile precisely so this is true: a warning
      you never see is a warning that taught you nothing. */
@@ -205,7 +214,7 @@ if (sanitizerWorks) {
     cases: one(),
   });
 
-  check('it compiles under the sanitizer', res.compile.ok, true);
+  check('it compiles under the sanitizer', whyNot(res), true);
   ok('the sanitizer fired',                res.cases[0].sanitizer === true);
   ok('and said what it was',               /stack-buffer-overflow|AddressSanitizer/.test(res.cases[0].stderr));
   ok('the process did not exit cleanly',   res.cases[0].exit !== 0);
