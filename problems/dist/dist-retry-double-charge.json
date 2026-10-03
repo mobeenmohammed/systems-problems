@@ -1,0 +1,31 @@
+{
+  "id": "dist-retry-double-charge",
+  "title": "The retry that charges twice",
+  "topic": "dist",
+  "difficulty": "intermediate",
+  "type": "locate",
+  "tags": [
+    "idempotency",
+    "retries",
+    "exactly-once",
+    "payments"
+  ],
+  "estimate": 14,
+  "prereqs": [
+    {
+      "concept": "idempotency",
+      "why": "The bug is a retry of something that is not safe to apply twice, which is the definition of the problem."
+    }
+  ],
+  "statement": "A payment service. The client calls `charge()`, and because the network is unreliable it retries on timeout.\n\nThis passes every test, works in staging, and occasionally charges a customer twice in production.\n\n**Click the line that makes the double charge possible.**",
+  "hints": [
+    "A timeout tells you that no response arrived. What does it tell you about whether the request arrived?",
+    "Look at what is sent on the second attempt. Is there anything in it that lets the server recognise it as the same request as the first?",
+    "The retry loop is correct and necessary — you cannot not retry. Something has to make retrying safe, and that something is missing."
+  ],
+  "payload": {
+    "code": "Response charge(Request req) {\n    for (int attempt = 0; attempt < 3; attempt++) {\n        try {\n            String body = json({\n                \"amount\":   req.amount,\n                \"currency\": req.currency,\n                \"customer\": req.customerId\n            });\n            return http.post(\"/v1/charges\", body, timeout_ms(2000));\n        } catch (TimeoutException e) {\n            log.warn(\"charge timed out, retrying\", attempt);\n            sleep(backoff(attempt));\n        }\n    }\n    throw new ChargeFailedException(\"gave up after 3 attempts\");\n}",
+    "lang": "cpp",
+    "prompt": "Click the line that makes the double charge possible."
+  }
+}

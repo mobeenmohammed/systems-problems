@@ -1,0 +1,38 @@
+{
+  "id": "dist-quorum-read-size",
+  "title": "How many replicas must a read consult?",
+  "topic": "dist",
+  "difficulty": "advanced",
+  "type": "numeric",
+  "tags": [
+    "quorums",
+    "consistency",
+    "replication"
+  ],
+  "estimate": 13,
+  "prereqs": [
+    {
+      "concept": "quorums",
+      "why": "The answer is the quorum inequality, and the explanation is why that inequality is the whole mechanism."
+    },
+    {
+      "concept": "replication",
+      "why": "There is nothing to choose until the same key lives on several nodes."
+    },
+    {
+      "concept": "cap-theorem",
+      "why": "Choosing R and W is choosing where on the availability/consistency trade-off you sit, per operation."
+    }
+  ],
+  "statement": "A key-value store keeps every key on **N = 5** replicas. A write is acknowledged to the client once **W = 2** replicas have stored it.\n\nYou need the guarantee that **a read always sees the most recently acknowledged write** — no stale values, ever, assuming no replica loses data and enough nodes are reachable.\n\n**What is the smallest number of replicas R that a read must consult?**",
+  "hints": [
+    "Write down what has to be true of the set of W replicas that stored the write and the set of R replicas the read asks. What relationship between those two sets would make a stale read impossible?",
+    "Two subsets of a 5-element set are guaranteed to share a member when their sizes add up to more than 5.",
+    "Solve R + W > N for R, with N = 5 and W = 2, and remember R has to be a whole number."
+  ],
+  "payload": {
+    "unit": "replicas",
+    "placeholder": "e.g. 3",
+    "hintFormat": "A whole number of replicas."
+  }
+}

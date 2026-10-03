@@ -1,0 +1,46 @@
+{
+  "id": "fpga-fabric-primitives",
+  "title": "What is each block for?",
+  "topic": "fpga",
+  "difficulty": "beginner",
+  "type": "match",
+  "tags": [
+    "fpga",
+    "luts",
+    "bram",
+    "dsp",
+    "fabric"
+  ],
+  "estimate": 11,
+  "prereqs": [
+    {
+      "concept": "fpga-fabric",
+      "why": "Each pairing is a primitive in the fabric and the job it exists to do."
+    }
+  ],
+  "statement": "The building blocks you are given on an FPGA, and what each one is for. Pair them up.\n\nOne description on the right belongs to a block that is not in the list — it is the one that connects the chip to the world outside it.",
+  "hints": [
+    "Two of these could in principle be built out of the general-purpose logic. They exist as dedicated blocks because doing so would be wasteful — ask which two, and of what.",
+    "One of them is the only reason a design can have state at all. Without it you have combinational logic and nothing else.",
+    "One of them carries no data whatsoever."
+  ],
+  "payload": {
+    "leftLabel": "Block",
+    "rightLabel": "What it is for",
+    "left": [
+      "LUT (look-up table)",
+      "Flip-flop",
+      "Block RAM (BRAM)",
+      "DSP slice",
+      "Global clock buffer (BUFG)"
+    ],
+    "right": [
+      "A hardened multiply-accumulate unit, because building a wide multiplier out of general logic costs an enormous number of cells",
+      "A small truth table, typically six inputs to one output, which can implement any boolean function of those inputs",
+      "Connects the die to the outside world, with configurable voltage standards and drive strength",
+      "Stores one bit, updated on a clock edge — the thing that makes a design sequential rather than purely combinational",
+      "Drives one signal to every sequential element on the die with low and carefully balanced delay",
+      "Tens of kilobits of dedicated on-chip memory with one or two ports, far denser than the same storage built from registers"
+    ]
+  }
+}

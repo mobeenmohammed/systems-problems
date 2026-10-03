@@ -1,0 +1,38 @@
+{
+  "id": "fpga-blocking-shift-register",
+  "title": "The shift register that is not a shift register",
+  "topic": "fpga",
+  "difficulty": "beginner",
+  "type": "mcq",
+  "tags": [
+    "verilog",
+    "blocking",
+    "nonblocking",
+    "sequential-logic"
+  ],
+  "estimate": 12,
+  "prereqs": [
+    {
+      "concept": "hdl-assignments",
+      "why": "The entire question is what = does in a clocked block that <= would not."
+    },
+    {
+      "concept": "fpga-fabric",
+      "why": "The answer is about how many flip-flops the synthesiser infers, so you need to know what a flip-flop is for."
+    }
+  ],
+  "statement": "Someone writes a three-stage shift register:\n\n```verilog\nalways @(posedge clk) begin\n    q1 = d;\n    q2 = q1;\n    q3 = q2;\nend\n```\n\nThey expected `d` to take three clock cycles to reach `q3`, with `q1`, `q2` and `q3` holding the last three input values.\n\n**What does the synthesiser actually produce?**",
+  "hints": [
+    "`=` is a blocking assignment: it takes effect immediately, and the next statement in the block sees the new value. Trace what `q2 = q1` reads.",
+    "Ask yourself how many distinct values can exist in this block at the end of one clock edge.",
+    "The fix is one character per line, and it is the difference between describing hardware and describing a sequence of steps."
+  ],
+  "payload": {
+    "options": [
+      "All three registers load `d` on the same clock edge, so `q1`, `q2` and `q3` are always equal — one stage of delay in total, not three.",
+      "Exactly what was intended: three flip-flops in series, giving three cycles of delay.",
+      "A combinational path from `d` to `q3` with no flip-flops at all, because blocking assignments never infer registers.",
+      "Three flip-flops, but with the stages in reverse order, so `d` appears at `q3` first and `q1` last."
+    ]
+  }
+}

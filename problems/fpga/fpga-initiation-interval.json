@@ -1,0 +1,35 @@
+{
+  "id": "fpga-initiation-interval",
+  "title": "Throughput of a pipelined block",
+  "topic": "fpga",
+  "difficulty": "advanced",
+  "type": "numeric",
+  "tags": [
+    "pipelining-ii",
+    "throughput",
+    "hls",
+    "latency"
+  ],
+  "estimate": 13,
+  "prereqs": [
+    {
+      "concept": "pipelining-ii",
+      "why": "The whole question is which of the two numbers — latency or initiation interval — sets throughput."
+    },
+    {
+      "concept": "pipelining",
+      "why": "The reason an II can exceed 1 is a dependency the pipeline cannot resolve in one cycle."
+    }
+  ],
+  "statement": "An HLS tool reports this for a pipelined kernel:\n\n```\nLatency (cycles):              12\nInitiation interval (cycles):   3\nClock:                     250 MHz\n```\n\nThe kernel is fed a long, uninterrupted stream of input items.\n\n**How many items per second can it process, in millions of items per second?**\n\nThe two numbers mean different things, and only one of them is the answer.",
+  "hints": [
+    "Latency is how long one item takes from entering to leaving. Initiation interval is how many cycles must pass before the *next* item can be started.",
+    "If the stream is long, the 12-cycle latency is paid once at the beginning and then never again. What limits the steady state?",
+    "250 MHz with a new item accepted every 3 cycles."
+  ],
+  "payload": {
+    "unit": "million items/s",
+    "placeholder": "e.g. 83.3",
+    "hintFormat": "Millions of items per second, to one decimal place."
+  }
+}

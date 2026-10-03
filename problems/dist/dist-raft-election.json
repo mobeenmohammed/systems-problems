@@ -1,0 +1,45 @@
+{
+  "id": "dist-raft-election",
+  "title": "How a Raft leader gets elected",
+  "topic": "dist",
+  "difficulty": "intermediate",
+  "type": "order",
+  "tags": [
+    "raft",
+    "consensus",
+    "leader-election",
+    "quorum"
+  ],
+  "estimate": 15,
+  "prereqs": [
+    {
+      "concept": "consensus",
+      "why": "This is the election half of Raft, and the ordering only makes sense with terms and majorities in hand."
+    },
+    {
+      "concept": "replication",
+      "why": "The point of electing a leader is to have one place that orders writes before they are replicated."
+    }
+  ],
+  "statement": "A five-node Raft cluster has been running happily with a leader. The leader's machine loses power.\n\nPut the steps of the resulting election in the order they happen, from the failure to the cluster serving writes again.\n\nTwo things to hold onto:\n\n- A **term** is a logical clock for elections. Every election is for a numbered term, and a node always rejects anything stamped with a term older than its own.\n- Nothing is decided by a minority. With five nodes, a majority is **three**.",
+  "hints": [
+    "What actually makes a follower notice the leader is gone? Nothing announces it — a follower only knows that something expected has stopped arriving.",
+    "A candidate does not appoint itself. It asks, and the thing it needs back is a specific number of answers.",
+    "The last step is the new leader doing the one thing that stops the other followers starting their own elections."
+  ],
+  "payload": {
+    "prompt": "First at the top.",
+    "labels": [
+      "the leader dies",
+      "writes are served again"
+    ],
+    "items": [
+      "The candidate sends RequestVote to every other node, carrying the new term and how complete its own log is.",
+      "A follower's election timeout expires, because no heartbeat has arrived from the leader.",
+      "Having a majority, the candidate declares itself leader for the new term.",
+      "That follower increments its term, becomes a candidate, and votes for itself.",
+      "The new leader sends AppendEntries heartbeats to everyone, which resets their election timers and stops further elections.",
+      "Three of the five nodes — including the candidate itself — have now granted it their vote for this term."
+    ]
+  }
+}

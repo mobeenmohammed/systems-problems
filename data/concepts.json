@@ -896,5 +896,217 @@
         "url": "https://pdos.csail.mit.edu/6.824/"
       }
     ]
+  },
+  "consensus": {
+    "name": "Consensus and leader election",
+    "topic": "dist",
+    "oneLine": "A consensus protocol gets a majority of nodes to agree on a sequence of values despite crashes and message loss, and electing a leader is how Raft makes that tractable.",
+    "needs": [
+      "replication"
+    ],
+    "readings": [
+      {
+        "title": "In Search of an Understandable Consensus Algorithm",
+        "kind": "paper",
+        "where": "Ongaro & Ousterhout — the Raft paper, written to be readable",
+        "url": "https://raft.github.io/raft.pdf"
+      },
+      {
+        "title": "The Raft visualisation",
+        "kind": "docs",
+        "where": "watch an election happen, then kill the leader",
+        "url": "https://raft.github.io/"
+      },
+      {
+        "title": "MIT 6.824 Distributed Systems",
+        "kind": "course",
+        "where": "the Raft lectures and labs",
+        "url": "https://pdos.csail.mit.edu/6.824/"
+      }
+    ]
+  },
+  "idempotency": {
+    "name": "Idempotency and retries",
+    "topic": "dist",
+    "oneLine": "A network failure cannot tell you whether the request arrived, so retrying is unavoidable — which means every operation worth retrying must be safe to apply twice.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "Designing Data-Intensive Applications",
+        "kind": "book",
+        "where": "Ch. 8 and 11, on delivery guarantees and exactly-once"
+      },
+      {
+        "title": "Idempotency keys",
+        "kind": "docs",
+        "where": "Stripe's API design, which is the canonical worked example",
+        "url": "https://docs.stripe.com/api/idempotent_requests"
+      },
+      {
+        "title": "Implementing Stripe-like Idempotency Keys",
+        "kind": "docs",
+        "where": "Brandur Leach, on what it takes to do properly",
+        "url": "https://brandur.org/idempotency-keys"
+      }
+    ]
+  },
+  "quorums": {
+    "name": "Quorums",
+    "topic": "dist",
+    "oneLine": "Requiring a write to reach W replicas and a read to consult R of N, with R + W > N, guarantees the two sets overlap so a read cannot miss an acknowledged write.",
+    "needs": [
+      "replication"
+    ],
+    "readings": [
+      {
+        "title": "Designing Data-Intensive Applications",
+        "kind": "book",
+        "where": "Ch. 5, quorum reads and writes, and its limitations"
+      },
+      {
+        "title": "Dynamo: Amazon's Highly Available Key-value Store",
+        "kind": "paper",
+        "where": "section 4.5, where tunable N/R/W comes from",
+        "url": "https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf"
+      },
+      {
+        "title": "Cassandra consistency levels",
+        "kind": "docs",
+        "where": "the same idea as an operational knob",
+        "url": "https://cassandra.apache.org/doc/stable/cassandra/architecture/dynamo.html"
+      }
+    ]
+  },
+  "fpga-fabric": {
+    "name": "What an FPGA is made of",
+    "topic": "fpga",
+    "oneLine": "An FPGA is a sea of configurable logic blocks, flip-flops and routing, with hardened blocks for the things that would be wasteful to build from logic — memory, multipliers and clock distribution.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "Digital Design and Computer Architecture",
+        "kind": "book",
+        "where": "Harris & Harris, ch. 5.6 on FPGA structure"
+      },
+      {
+        "title": "Nandland: what is an FPGA",
+        "kind": "docs",
+        "where": "the friendliest introduction to the fabric",
+        "url": "https://nandland.com/what-is-an-fpga/"
+      },
+      {
+        "title": "7 Series FPGAs Configurable Logic Block User Guide",
+        "kind": "docs",
+        "where": "AMD/Xilinx UG474, for what a real slice contains",
+        "url": "https://docs.amd.com/v/u/en-US/ug474_7Series_CLB"
+      }
+    ]
+  },
+  "hdl-assignments": {
+    "name": "Blocking and non-blocking assignment",
+    "topic": "fpga",
+    "oneLine": "In a clocked block, = applies immediately so later statements see the new value, while <= schedules every update for the end of the time step so they all see the old values.",
+    "needs": [
+      "fpga-fabric"
+    ],
+    "readings": [
+      {
+        "title": "Nonblocking Assignments in Verilog Synthesis, Coding Styles That Kill",
+        "kind": "paper",
+        "where": "Cliff Cummings — the definitive paper on this exact mistake",
+        "url": "http://www.sunburst-design.com/papers/CummingsSNUG2000SJ_NBA.pdf"
+      },
+      {
+        "title": "Digital Design and Computer Architecture",
+        "kind": "book",
+        "where": "Harris & Harris, ch. 4.5 on HDL sequential logic"
+      },
+      {
+        "title": "HDLBits",
+        "kind": "course",
+        "where": "work the always-block exercises until this is reflex",
+        "url": "https://hdlbits.01xz.net/"
+      }
+    ]
+  },
+  "timing-closure": {
+    "name": "Timing closure",
+    "topic": "fpga",
+    "oneLine": "A clocked design works only if every path from one flip-flop to the next settles within a clock period, counting logic delay, routing, clock-to-output, setup time and clock skew.",
+    "needs": [
+      "fpga-fabric"
+    ],
+    "readings": [
+      {
+        "title": "Digital Design and Computer Architecture",
+        "kind": "book",
+        "where": "Harris & Harris, ch. 3.5, timing of sequential logic"
+      },
+      {
+        "title": "Vivado Design Suite User Guide: Design Analysis and Closure",
+        "kind": "docs",
+        "where": "UG906, for reading a real timing report",
+        "url": "https://docs.amd.com/r/en-US/ug906-vivado-design-analysis"
+      },
+      {
+        "title": "Nandland: timing and metastability",
+        "kind": "docs",
+        "where": "the practical introduction",
+        "url": "https://nandland.com/metastability-and-max-clock-frequency/"
+      }
+    ]
+  },
+  "state-machines": {
+    "name": "Finite state machines",
+    "topic": "fpga",
+    "oneLine": "A sequential circuit is a register holding the current state plus combinational logic computing the next state and the output, which is the standard way to describe control hardware.",
+    "needs": [
+      "fpga-fabric"
+    ],
+    "readings": [
+      {
+        "title": "Digital Design and Computer Architecture",
+        "kind": "book",
+        "where": "Harris & Harris, ch. 3.4, finite state machines"
+      },
+      {
+        "title": "HDLBits: finite state machines",
+        "kind": "course",
+        "where": "two dozen exercises, in increasing difficulty",
+        "url": "https://hdlbits.01xz.net/wiki/Exams/review2015_fsmseq"
+      },
+      {
+        "title": "Nandland: state machines",
+        "kind": "docs",
+        "where": "on the coding styles and which to use",
+        "url": "https://nandland.com/state-machines/"
+      }
+    ]
+  },
+  "pipelining-ii": {
+    "name": "Pipeline latency and initiation interval",
+    "topic": "fpga",
+    "oneLine": "Latency is how long one item takes to get through a pipeline; initiation interval is how often a new item can be started, and only the second one sets throughput.",
+    "needs": [
+      "pipelining"
+    ],
+    "readings": [
+      {
+        "title": "Vitis HLS: pipelining and loop optimisation",
+        "kind": "docs",
+        "where": "where II is a number you set and the tool reports",
+        "url": "https://docs.amd.com/r/en-US/ug1399-vitis-hls"
+      },
+      {
+        "title": "Digital Design and Computer Architecture",
+        "kind": "book",
+        "where": "Harris & Harris, ch. 7.5, on pipeline throughput"
+      },
+      {
+        "title": "Computer Architecture: A Quantitative Approach",
+        "kind": "book",
+        "where": "Hennessy & Patterson, appendix C on pipelining"
+      }
+    ]
   }
 }

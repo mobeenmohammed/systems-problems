@@ -1,0 +1,51 @@
+{
+  "id": "fpga-sequence-detector",
+  "title": "A sequence detector, as a state machine",
+  "topic": "fpga",
+  "difficulty": "intermediate",
+  "type": "code",
+  "tags": [
+    "state-machines",
+    "fsm",
+    "sequential-logic",
+    "verilog"
+  ],
+  "estimate": 22,
+  "prereqs": [
+    {
+      "concept": "state-machines",
+      "why": "The problem is to write the next-state and output logic of an FSM, which is the whole content of the topic."
+    },
+    {
+      "concept": "hdl-assignments",
+      "why": "In hardware this becomes one clocked block, and whether it works depends on using the right assignment."
+    }
+  ],
+  "statement": "Detect the bit sequence **1011** in a stream, with **overlapping matches allowed**.\n\nRead one line of `0` and `1` characters. Print one output bit per input bit: `1` on the bit that **completes** a `1011`, and `0` otherwise.\n\n```\ninput:   1011011\noutput:  0001001\n```\n\nTwo matches there: the first ends at index 3, and the second ends at index 6 — they overlap, sharing the `1` at index 3. Overlapping is the point of the problem. A detector that resets to the start after a match would find only the first.\n\nYou are writing the software form of a four-state machine. Hold one `state` variable, and for each input bit compute the next state and the output. No lookahead, no backtracking, no storing the input — which is exactly the constraint real hardware works under, because a flip-flop can only remember what you chose to put in it.",
+  "hints": [
+    "Four states are enough: nothing matched yet, matched `1`, matched `10`, matched `101`. Nothing else needs remembering.",
+    "Draw the table before coding. For each of the four states, what happens on a `0` and on a `1`? Eight entries, and then the code writes itself.",
+    "The overlapping case is one entry in that table. From the state meaning 'matched 101', an input of `1` completes the match — and the `1` just consumed is itself a valid start, so which state should you go to rather than back to the beginning?"
+  ],
+  "payload": {
+    "langs": [
+      "cpp",
+      "python",
+      "js"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "cases": [
+      {
+        "stdin": "1011011\n",
+        "expect": "0001001\n"
+      },
+      {
+        "stdin": "1011\n",
+        "expect": "0001\n"
+      }
+    ]
+  }
+}

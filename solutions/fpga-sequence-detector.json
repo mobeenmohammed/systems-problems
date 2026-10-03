@@ -1,0 +1,51 @@
+{
+  "key": {
+    "cases": [
+      {
+        "stdin": "0000\n",
+        "expect": "0000\n"
+      },
+      {
+        "stdin": "1111\n",
+        "expect": "0000\n"
+      },
+      {
+        "stdin": "10111011\n",
+        "expect": "00010001\n"
+      },
+      {
+        "stdin": "101\n",
+        "expect": "000\n"
+      },
+      {
+        "stdin": "1\n",
+        "expect": "0\n"
+      },
+      {
+        "stdin": "10110110111011\n",
+        "expect": "00010010010001\n"
+      },
+      {
+        "stdin": "0101101011\n",
+        "expect": "0000100001\n"
+      },
+      {
+        "stdin": "11011\n",
+        "expect": "00001\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n#include <string>\n\nint main() {\n    std::ios::sync_with_stdio(false);\n    std::string bits;\n    if (!std::getline(std::cin, bits)) return 0;\n\n    /* S0 nothing, S1 saw 1, S2 saw 10, S3 saw 101 */\n    int state = 0;\n    std::string out;\n\n    for (char c : bits) {\n        if (c != '0' && c != '1') continue;\n        int in = (c == '1') ? 1 : 0;\n        int detect = 0;\n\n        switch (state) {\n            case 0: state = in ? 1 : 0; break;\n            case 1: state = in ? 1 : 2; break;\n            case 2: state = in ? 3 : 0; break;\n            case 3:\n                if (in) { detect = 1; state = 1; }\n                else    { state = 2; }\n                break;\n            default: break;\n        }\n        out += detect ? '1' : '0';\n    }\n\n    std::cout << out << \"\\n\";\n    return 0;\n}\n",
+      "python": "import sys\n\nbits = sys.stdin.readline().strip()\n\nstate = 0          # 0 nothing, 1 saw \"1\", 2 saw \"10\", 3 saw \"101\"\nout = []\n\nfor c in bits:\n    if c not in \"01\":\n        continue\n    bit = 1 if c == \"1\" else 0\n    detect = 0\n\n    if state == 0:\n        state = 1 if bit else 0\n    elif state == 1:\n        state = 1 if bit else 2\n    elif state == 2:\n        state = 3 if bit else 0\n    elif state == 3:\n        if bit:\n            detect = 1\n            state = 1\n        else:\n            state = 2\n\n    out.append(\"1\" if detect else \"0\")\n\nprint(\"\".join(out))\n",
+      "js": "const bits = (readLines()[0] || '').trim();\n\nlet state = 0;          // 0 nothing, 1 saw \"1\", 2 saw \"10\", 3 saw \"101\"\nconst out = [];\n\nfor (const c of bits) {\n  if (c !== '0' && c !== '1') continue;\n  const bit = c === '1' ? 1 : 0;\n  let detect = 0;\n\n  if (state === 0)      state = bit ? 1 : 0;\n  else if (state === 1) state = bit ? 1 : 2;\n  else if (state === 2) state = bit ? 3 : 0;\n  else if (state === 3) {\n    if (bit) { detect = 1; state = 1; }\n    else     { state = 2; }\n  }\n\n  out.push(detect ? '1' : '0');\n}\n\nprint(out.join(''));\n"
+    }
+  },
+  "explanation": "## Four states and an eight-entry table\n\n| State | Means | on `0` | on `1` | output |\n| --- | --- | --- | --- | --- |\n| `S0` | nothing matched | `S0` | `S1` | 0 |\n| `S1` | matched `1` | `S2` | `S1` | 0 |\n| `S2` | matched `10` | `S0` | `S3` | 0 |\n| `S3` | matched `101` | `S2` | `S1` | **1** on the `1` |\n\nWrite that table down and the code is a transcription of it. Every FSM problem is this: find the states, fill in the table, translate.\n\n## The three entries that are easy to get wrong\n\n**`S1` on `1` goes to `S1`, not `S0`.** You were looking for `1011` and have just seen `11`. The second `1` is useless as the second character — but it is a perfectly good *first* character, so you are still in \"matched 1\". Sending this to `S0` loses the match in `11011`, which is one of the hidden tests.\n\n**`S3` on `1` goes to `S1`, not `S0`.** This is the overlap. Having matched `1011`, the trailing `1` can begin the next match, so you are already in \"matched 1\". Going to `S0` finds the match in `1011011` only once instead of twice.\n\n**`S3` on `0` goes to `S2`, not `S0`.** After `101` you see `0`, giving `1010`. The trailing `10` is a valid prefix, so you are in \"matched 10\".\n\nThe pattern behind all three: on a mismatch, **do not go back to the start — go to the state matching the longest suffix of what you have seen that is also a prefix of the target.** That is precisely the failure function of the Knuth-Morris-Pratt string search algorithm, and the FSM here is the KMP automaton for `1011` built by hand. The same problem, in two different disciplines, with the same answer.\n\n## In Verilog\n\n```verilog\nlocalparam S0 = 2'd0, S1 = 2'd1, S2 = 2'd2, S3 = 2'd3;\nreg [1:0] state;\n\nalways @(posedge clk) begin\n    if (rst) begin\n        state <= S0;\n        detect <= 1'b0;\n    end else begin\n        detect <= (state == S3) && din;     // Mealy: depends on state AND input\n        case (state)\n            S0: state <= din ? S1 : S0;\n            S1: state <= din ? S1 : S2;\n            S2: state <= din ? S3 : S0;\n            S3: state <= din ? S1 : S2;\n        endcase\n    end\nend\n```\n\nNote `<=` throughout — this is clocked logic, and the previous problem is what happens with `=`. Note also the reset: an FSM with no reset starts in whatever state the flip-flops power up in, which on an FPGA is usually zero but is not a thing to rely on.\n\nThis costs **two flip-flops** (four states need two bits) and a handful of LUTs. That is the whole circuit, and it runs at whatever the fabric's maximum frequency is, because the critical path is one small block of combinational logic.\n\n## Mealy against Moore, which is the real design choice\n\nThe version above is **Mealy**: the output depends on the current state *and* the current input, so `detect` responds in the same cycle as the input that completes the match. Fewer states, one cycle faster, and the output is combinational on the input, which means it can glitch and may create a long path into whatever consumes it.\n\nA **Moore** machine's output depends on the state alone, so it needs a fifth state meaning \"just detected\" and the output appears one cycle later. More states, one cycle of latency, and the output is a registered, glitch-free signal.\n\nNeither is correct in general, and the choice is usually made by whether the consumer needs a clean registered signal. Moore machines are the safer default for anything crossing a module boundary.\n\n## Why this generalises\n\nA sequence detector looks like a toy, and the structure is everywhere real: protocol framing (finding a sync word in a serial stream), run-length decoding, UART receivers finding a start bit, a memory controller's command sequencer, lexers. Every one is \"watch a stream, remember just enough, act when a pattern completes\" — and every one is a table like the one above.",
+  "readMore": [
+    {
+      "concept": "state-machines",
+      "where": "Harris & Harris ch. 3.4, then the HDLBits FSM exercises"
+    }
+  ],
+  "id": "fpga-sequence-detector"
+}

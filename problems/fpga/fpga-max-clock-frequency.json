@@ -1,0 +1,35 @@
+{
+  "id": "fpga-max-clock-frequency",
+  "title": "The fastest this design can be clocked",
+  "topic": "fpga",
+  "difficulty": "intermediate",
+  "type": "numeric",
+  "tags": [
+    "timing-closure",
+    "setup-time",
+    "clock-skew",
+    "fmax"
+  ],
+  "estimate": 14,
+  "prereqs": [
+    {
+      "concept": "timing-closure",
+      "why": "The sum you have to build is exactly the setup-time inequality from a timing report."
+    },
+    {
+      "concept": "fpga-fabric",
+      "why": "Each term in the sum belongs to a different piece of the fabric — the flop, the logic, the routing, the clock tree."
+    }
+  ],
+  "statement": "A design's worst path runs from one flip-flop, through combinational logic and routing, to the next flip-flop. After place and route, the tool reports:\n\n| Contribution | Delay |\n| --- | --- |\n| Clock-to-output of the source flip-flop (`t_co`) | 0.90 ns |\n| Combinational logic and routing along the path | 6.20 ns |\n| Setup time required at the destination flip-flop (`t_su`) | 0.35 ns |\n| Worst-case clock skew between the two flops | 0.25 ns |\n\n**What is the highest frequency this design can be clocked at, in MHz?**\n\nAssume the skew works against you — the destination's clock arrives early, so it has less time to wait.",
+  "hints": [
+    "Add up everything that must fit inside one clock period. All four rows contribute; the question is only whether skew adds or subtracts, and the problem tells you.",
+    "That sum is the minimum clock period. Frequency is one divided by the period — watch the units, since nanoseconds give gigahertz.",
+    "1 / 7.7 ns. A period in nanoseconds inverts to GHz, so multiply by 1000 to get MHz."
+  ],
+  "payload": {
+    "unit": "MHz",
+    "placeholder": "e.g. 130",
+    "hintFormat": "A frequency in MHz, to about the nearest MHz."
+  }
+}

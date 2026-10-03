@@ -1,0 +1,20 @@
+{
+  "key": {
+    "order": [
+      1,
+      3,
+      0,
+      5,
+      2,
+      4
+    ]
+  },
+  "explanation": "## The order\n\n1. **A follower's election timeout expires.** Nothing announces the leader's death; a follower simply notices that heartbeats have stopped. The timeout is randomised, typically 150-300 ms, and the randomisation is load-bearing — see below.\n2. **It increments its term and becomes a candidate, voting for itself.** The term going up is what makes this election distinct from the last one, and is how stale messages from the old leader get rejected.\n3. **It sends `RequestVote` to everyone**, carrying the new term and the index and term of its last log entry.\n4. **Three of five grant the vote.** A node votes yes only if it has not already voted in this term *and* the candidate's log is at least as up to date as its own.\n5. **With a majority, the candidate becomes leader.** No external authority confirms it. Holding a majority of votes for term `N` *is* being the leader for term `N`.\n6. **It sends heartbeats**, which reset everyone else's election timers and stop them starting elections of their own.\n\n## Three of five, and why the number is the whole design\n\nA majority is required because **two majorities of the same set must overlap**. With five nodes, two disjoint groups of three cannot exist. So at most one candidate can win any given term, and two leaders for the same term is impossible — not unlikely, impossible.\n\nThat single property is what makes the rest of Raft safe, and it is why cluster sizes are odd. Six nodes need four for a majority, which tolerates the same single failure as five while costing more and making a 3-3 split possible where nobody can win.\n\n| Nodes | Majority | Failures tolerated |\n| --- | --- | --- |\n| 3 | 2 | 1 |\n| 5 | 3 | 2 |\n| 7 | 4 | 3 |\n| 6 | 4 | 2 — no better than 5 |\n\n## The randomised timeout is not a detail\n\nIf all four surviving followers timed out at the same instant, all four would become candidates, all four would vote for themselves, and the votes would split with nobody reaching three. The term would end with no leader, everyone would time out again, and the cluster could in principle do this forever.\n\nRandomising the timeout makes one node almost always time out first and win before the others wake up. A split vote is still possible; it just resolves on the next attempt rather than repeating identically. This is the same idea as randomised exponential backoff on a shared medium, and it is the only part of Raft that relies on probability.\n\n## The log-completeness check is the safety property\n\nA node grants its vote only if the candidate's log is at least as up to date as its own, compared by (last term, last index). This is what prevents a node that missed committed entries from becoming leader and overwriting them.\n\nIt is the single subtlest part of the paper and worth reading section 5.4 for directly: the guarantee is that any node with a majority of votes must have every committed entry, because a majority granted the vote and every member of that majority had checked.\n\n## What the old leader does when it comes back\n\nIt returns believing it is leader for term `N`, and sends `AppendEntries` stamped with term `N`. Every node that has moved to term `N+1` rejects the message and replies with the current term. On seeing a higher term, the old leader **immediately steps down to follower** — that rule is unconditional and applies to every node on every message.\n\nSo the split-brain window closes by itself, with no fencing token and no external arbiter, and the mechanism is one comparison on every message. It is a remarkably small amount of machinery for the amount of trouble it prevents.",
+  "readMore": [
+    {
+      "concept": "consensus",
+      "where": "the Raft paper sections 5.1-5.4, then the visualisation"
+    }
+  ],
+  "id": "dist-raft-election"
+}

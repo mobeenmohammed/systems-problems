@@ -219,6 +219,154 @@
     ]
   },
   {
+    "id": "dist-raft-election",
+    "title": "How a Raft leader gets elected",
+    "topic": "dist",
+    "difficulty": "intermediate",
+    "type": "order",
+    "tags": [
+      "raft",
+      "consensus",
+      "leader-election",
+      "quorum"
+    ],
+    "estimate": 15,
+    "prereqs": [
+      "consensus",
+      "replication"
+    ]
+  },
+  {
+    "id": "dist-retry-double-charge",
+    "title": "The retry that charges twice",
+    "topic": "dist",
+    "difficulty": "intermediate",
+    "type": "locate",
+    "tags": [
+      "idempotency",
+      "retries",
+      "exactly-once",
+      "payments"
+    ],
+    "estimate": 14,
+    "prereqs": [
+      "idempotency"
+    ]
+  },
+  {
+    "id": "dist-quorum-read-size",
+    "title": "How many replicas must a read consult?",
+    "topic": "dist",
+    "difficulty": "advanced",
+    "type": "numeric",
+    "tags": [
+      "quorums",
+      "consistency",
+      "replication"
+    ],
+    "estimate": 13,
+    "prereqs": [
+      "quorums",
+      "replication",
+      "cap-theorem"
+    ]
+  },
+  {
+    "id": "fpga-blocking-shift-register",
+    "title": "The shift register that is not a shift register",
+    "topic": "fpga",
+    "difficulty": "beginner",
+    "type": "mcq",
+    "tags": [
+      "verilog",
+      "blocking",
+      "nonblocking",
+      "sequential-logic"
+    ],
+    "estimate": 12,
+    "prereqs": [
+      "hdl-assignments",
+      "fpga-fabric"
+    ]
+  },
+  {
+    "id": "fpga-fabric-primitives",
+    "title": "What is each block for?",
+    "topic": "fpga",
+    "difficulty": "beginner",
+    "type": "match",
+    "tags": [
+      "fpga",
+      "luts",
+      "bram",
+      "dsp",
+      "fabric"
+    ],
+    "estimate": 11,
+    "prereqs": [
+      "fpga-fabric"
+    ]
+  },
+  {
+    "id": "fpga-max-clock-frequency",
+    "title": "The fastest this design can be clocked",
+    "topic": "fpga",
+    "difficulty": "intermediate",
+    "type": "numeric",
+    "tags": [
+      "timing-closure",
+      "setup-time",
+      "clock-skew",
+      "fmax"
+    ],
+    "estimate": 14,
+    "prereqs": [
+      "timing-closure",
+      "fpga-fabric"
+    ]
+  },
+  {
+    "id": "fpga-sequence-detector",
+    "title": "A sequence detector, as a state machine",
+    "topic": "fpga",
+    "difficulty": "intermediate",
+    "type": "code",
+    "tags": [
+      "state-machines",
+      "fsm",
+      "sequential-logic",
+      "verilog"
+    ],
+    "estimate": 22,
+    "prereqs": [
+      "state-machines",
+      "hdl-assignments"
+    ],
+    "langs": [
+      "cpp",
+      "python",
+      "js"
+    ]
+  },
+  {
+    "id": "fpga-initiation-interval",
+    "title": "Throughput of a pipelined block",
+    "topic": "fpga",
+    "difficulty": "advanced",
+    "type": "numeric",
+    "tags": [
+      "pipelining-ii",
+      "throughput",
+      "hls",
+      "latency"
+    ],
+    "estimate": 13,
+    "prereqs": [
+      "pipelining-ii",
+      "pipelining"
+    ]
+  },
+  {
     "id": "hpc-loop-order-row-major",
     "title": "Which loop order, and why",
     "topic": "hpc",
