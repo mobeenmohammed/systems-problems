@@ -121,4 +121,17 @@ export const flagsFor = (lang, profile) => {
    can require cleanliness as well as correctness. */
 const SANITIZER = /AddressSanitizer|LeakSanitizer|ThreadSanitizer|UndefinedBehaviorSanitizer|runtime error:|SUMMARY: \w*Sanitizer/;
 
-export const sawSanitizer = stderr => SANITIZER.test(String(stderr || ''));
+/* The sanitizer can also fail to start, and it says so in words that match the
+   pattern above. The commonest cause is a resource limit: ASan reserves on the
+   order of 20 TB of virtual address space for shadow memory, so any RLIMIT_AS
+   kills it before main(). That is a fault in how the judge invoked it, not a
+   defect in the submitted program, and reporting it as "your code is unclean"
+   sends you hunting for a bug that is not there. */
+const SANITIZER_BROKEN = /failed to allocate|Shadow memory range interleaves|unable to mmap|Make sure to compile with -g|ASan runtime does not come first/;
+
+export const sanitizerBroken = stderr => SANITIZER_BROKEN.test(String(stderr || ''));
+
+export const sawSanitizer = stderr => {
+  const s = String(stderr || '');
+  return SANITIZER.test(s) && !SANITIZER_BROKEN.test(s);
+};

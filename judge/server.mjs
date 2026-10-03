@@ -65,10 +65,24 @@ async function detectPrlimit() {
   return prlimit;
 }
 
-const LIMITS = ['--nproc=512', '--fsize=67108864', '--as=4294967296', '--nofile=512'];
+const LIMITS = ['--nproc=512', '--fsize=67108864', '--nofile=512'];
 
-function wrap(cmd, args) {
-  return prlimit ? ['prlimit', [...LIMITS, '--', cmd, ...args]] : [cmd, args];
+/* An address-space cap is a useful guard against one runaway allocation
+   taking the whole container down — but it is fatal to a sanitized build.
+   AddressSanitizer reserves on the order of 20 TB of *virtual* address space
+   for its shadow memory at startup, so any RLIMIT_AS at all makes every
+   instrumented binary die before main() with an allocation failure. That
+   failure even looks like a sanitizer report, which is a thoroughly
+   misleading way to find out.
+
+   So the cap applies to ordinary runs and is dropped for sanitized ones,
+   where the container's mem_limit is the backstop instead. */
+const AS_LIMIT = '--as=4294967296';
+
+function wrap(cmd, args, { sanitized = false } = {}) {
+  if (!prlimit) return [cmd, args];
+  const limits = sanitized ? LIMITS : [...LIMITS, AS_LIMIT];
+  return ['prlimit', [...limits, '--', cmd, ...args]];
 }
 
 function exec(cmd, args, { cwd, stdin = '', timeoutMs = RUN_MS, env } = {}) {
@@ -180,8 +194,12 @@ export async function run({ lang, source, profile = 'standard', cases = [], limi
     const runMs     = Math.min(Number(limits.runMs) || RUN_MS, HARD_RUN_MS);
 
     /* --- compile --- */
+    /* The sanitizers change what resource limits are survivable, so both the
+       compile and the run need to know whether they are in play. */
+    const sanitized = profile === 'sanitize';
+
     const [ccmd, cargs] = spec.compile({ src, bin, flags });
-    const [wc, wa] = wrap(ccmd, cargs);
+    const [wc, wa] = wrap(ccmd, cargs, { sanitized });
     const compiled = await exec(wc, wa, { cwd: dir, timeoutMs: compileMs });
 
     const compile = {
@@ -208,7 +226,7 @@ export async function run({ lang, source, profile = 'standard', cases = [], limi
     const results = [];
 
     for (const c of cases) {
-      const [wrc, wra] = wrap(rcmd, [...rargs, ...(Array.isArray(c.args) ? c.args.map(String) : [])]);
+      const [wrc, wra] = wrap(rcmd, [...rargs, ...(Array.isArray(c.args) ? c.args.map(String) : [])], { sanitized });
       const out = await exec(wrc, wra, {
         cwd: dir,
         stdin: typeof c.stdin === 'string' ? c.stdin : '',
