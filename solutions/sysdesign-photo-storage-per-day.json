@@ -1,0 +1,18 @@
+{
+  "key": {
+    "value": 200,
+    "rtol": 0.03
+  },
+  "explanation": "## 200 TB a day\n\n```\nuploads/day = 50,000,000 users x 2 photos = 100,000,000 photos\nbytes/day   = 100,000,000 x 2 MB          = 200,000,000 MB\n            = 200,000 GB = 200 TB\n```\n\n## The other three numbers you get almost free\n\nA capacity estimate is never one figure, and the rest of them fall out of the same two multiplications. This is the actual skill — not the arithmetic, but knowing which four or five numbers to produce.\n\n**Average write rate:**\n\n```\n100,000,000 / 86,400 s = ~1,160 writes/s\n```\n\nNote 86,400 seconds in a day. It is worth committing to memory, along with \"a day is about 10^5 seconds\" for when you are estimating out loud.\n\n**Peak write rate.** Traffic is never flat — it follows waking hours, and a global service still has pronounced peaks. A factor of **2 to 3** over the daily average is the usual assumption:\n\n```\npeak = ~1,160 x 3 = ~3,500 writes/s\n```\n\nCapacity has to be provisioned for the peak, not the average, and forgetting this is the commonest error in a sizing exercise.\n\n**Ingest bandwidth:**\n\n```\n200 TB / 86,400 s = ~2.3 GB/s average, ~7 GB/s at peak\n```\n\nWhich is already an interesting number: 7 GB/s is around 56 Gbit/s of inbound traffic, so this is a multi-datacentre, multiple-10-GbE problem rather than something one rack absorbs.\n\n**Five-year storage:**\n\n```\n200 TB/day x 365 x 5 = ~365 PB\n```\n\nAnd with 3x replication for durability, **about 1.1 exabytes**. That single figure reframes the whole design: at that scale you are not choosing a database, you are choosing an object store and a replication strategy, and the cost of storage dominates every other line item.\n\n## Reads are usually the real load\n\nThe estimate above is all writes, and a photo service is overwhelmingly read-heavy. A read:write ratio of 100:1 is a conservative guess:\n\n```\nreads = ~1,160 x 100 = ~116,000 reads/s average\n```\n\nWhich is the number that actually decides the architecture. 116,000 requests per second is a CDN problem, not an application-server problem — and noticing that is the whole value of doing the estimate before designing anything. A design that handles the writes beautifully and routes every read through the application tier is wrong by two orders of magnitude.\n\n## Why one significant figure is the right answer\n\nEvery input here is a guess. \"2 photos per day\" might be 1.5 or 3. The point of the exercise is not precision, it is **ruling things in and out**:\n\n- 200 TB/day says: not one machine, not one disk array, object storage.\n- 3,500 writes/s says: comfortable for a sharded datastore, nothing exotic.\n- 116,000 reads/s says: a CDN is not optional.\n\nAll three conclusions survive the inputs being wrong by a factor of two, which is precisely why the estimate is useful despite being approximate. An estimate that changes its conclusion when an input moves 20% was not worth making.\n\n## The decimal/binary trap\n\nThe question specified decimal units deliberately. 200 TB decimal is about 182 TiB binary — a 9% difference, and it grows with scale: at the petabyte level it is 11%. Storage vendors quote decimal, operating systems report binary, and a capacity plan that mixes them is out by roughly a tenth in a direction nobody notices until the disks fill earlier than planned.",
+  "readMore": [
+    {
+      "concept": "capacity-estimation",
+      "where": "DDIA ch. 1, then Jeff Dean's back-of-the-envelope slides"
+    },
+    {
+      "concept": "latency-numbers",
+      "where": "for the second half of any estimate — whether it can be fast enough"
+    }
+  ],
+  "id": "sysdesign-photo-storage-per-day"
+}

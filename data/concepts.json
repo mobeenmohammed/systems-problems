@@ -1108,5 +1108,239 @@
         "where": "Hennessy & Patterson, appendix C on pipelining"
       }
     ]
+  },
+  "amortised-analysis": {
+    "name": "Amortised complexity",
+    "topic": "algo",
+    "oneLine": "An operation that is usually cheap and occasionally very expensive can still have a low average cost over any sequence of operations, which is a different and stronger claim than average-case.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "Introduction to Algorithms",
+        "kind": "book",
+        "where": "CLRS ch. 17, amortised analysis"
+      },
+      {
+        "title": "The Algorithm Design Manual",
+        "kind": "book",
+        "where": "Skiena, ch. 3 on data structures and their real costs"
+      },
+      {
+        "title": "cppreference: std::vector",
+        "kind": "docs",
+        "where": "the complexity guarantees, which are the standard's own amortised claims",
+        "url": "https://en.cppreference.com/w/cpp/container/vector/push_back"
+      }
+    ]
+  },
+  "hash-tables": {
+    "name": "Hash tables",
+    "topic": "algo",
+    "oneLine": "A hash table gives expected constant-time lookup by mapping a key to a bucket, and everything interesting about it is what happens when two keys collide.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "Introduction to Algorithms",
+        "kind": "book",
+        "where": "CLRS ch. 11, hash tables"
+      },
+      {
+        "title": "Swiss Tables design notes",
+        "kind": "docs",
+        "where": "Abseil, on what a fast modern hash table actually does",
+        "url": "https://abseil.io/about/design/swisstables"
+      },
+      {
+        "title": "The Algorithm Design Manual",
+        "kind": "book",
+        "where": "Skiena, ch. 3.7"
+      }
+    ]
+  },
+  "linked-structures": {
+    "name": "Linked structures and pointer chasing",
+    "topic": "algo",
+    "oneLine": "A linked list gives O(1) splice at the cost of a cache miss per step, which is why it wins only when you really need the splice.",
+    "needs": [
+      "memory-hierarchy"
+    ],
+    "readings": [
+      {
+        "title": "Computer Systems: A Programmer's Perspective",
+        "kind": "book",
+        "where": "Ch. 6.6, on why traversal pattern dominates"
+      },
+      {
+        "title": "Number crunching: Why you should never, ever, EVER use linked-list in your code again",
+        "kind": "docs",
+        "where": "Kjell Hedstrom, with measurements",
+        "url": "https://www.codeproject.com/Articles/340797/Number-crunching-Why-you-should-never-ever-EVER-use"
+      },
+      {
+        "title": "cppreference: std::list",
+        "kind": "docs",
+        "where": "the splice guarantee, which is the only reason to reach for it",
+        "url": "https://en.cppreference.com/w/cpp/container/list"
+      }
+    ]
+  },
+  "bit-tricks": {
+    "name": "Bitsets and packing",
+    "topic": "algo",
+    "oneLine": "Storing one bit per item instead of one byte or one word cuts memory by eight or sixty-four times, which turns a problem that does not fit in cache into one that does.",
+    "needs": [
+      "memory-hierarchy"
+    ],
+    "readings": [
+      {
+        "title": "Hacker's Delight",
+        "kind": "book",
+        "where": "Warren, the standard reference for bit manipulation"
+      },
+      {
+        "title": "cppreference: std::bitset and vector<bool>",
+        "kind": "docs",
+        "where": "and why vector<bool> is the famous exception to the container rules",
+        "url": "https://en.cppreference.com/w/cpp/utility/bitset"
+      },
+      {
+        "title": "Competitive Programmer's Handbook",
+        "kind": "book",
+        "where": "Laaksonen, ch. 10 on bit manipulation, free",
+        "url": "https://cses.fi/book/book.pdf"
+      }
+    ]
+  },
+  "latency-numbers": {
+    "name": "Latency numbers",
+    "topic": "sysdesign",
+    "oneLine": "The costs of a cache hit, a memory reference, an SSD read, a network round trip and a disk seek differ by factors of a hundred, and knowing the orders of magnitude is what makes a design estimate possible at all.",
+    "needs": [
+      "memory-hierarchy"
+    ],
+    "readings": [
+      {
+        "title": "Latency Numbers Every Programmer Should Know",
+        "kind": "docs",
+        "where": "the interactive version, which also shows how they changed over time",
+        "url": "https://colin-scott.github.io/personal_website/research/interactive_latency.html"
+      },
+      {
+        "title": "Designing Data-Intensive Applications",
+        "kind": "book",
+        "where": "Ch. 1 and 3, on where time actually goes"
+      },
+      {
+        "title": "Systems Performance",
+        "kind": "book",
+        "where": "Gregg, ch. 2, on scales and methodology"
+      }
+    ]
+  },
+  "capacity-estimation": {
+    "name": "Capacity estimation",
+    "topic": "sysdesign",
+    "oneLine": "Turning a product description into requests per second, bytes per day and machines required, to one significant figure, before building anything.",
+    "needs": [
+      "latency-numbers"
+    ],
+    "readings": [
+      {
+        "title": "Designing Data-Intensive Applications",
+        "kind": "book",
+        "where": "Ch. 1, describing load and performance"
+      },
+      {
+        "title": "Site Reliability Engineering",
+        "kind": "book",
+        "where": "the Google SRE book, ch. 18 on software engineering in SRE",
+        "url": "https://sre.google/sre-book/table-of-contents/"
+      },
+      {
+        "title": "Jeff Dean: Software Engineering Advice from Building Large-Scale Distributed Systems",
+        "kind": "docs",
+        "where": "the back-of-the-envelope section",
+        "url": "https://static.googleusercontent.com/media/research.google.com/en//people/jeff/stanford-295-talk.pdf"
+      }
+    ]
+  },
+  "delivery-guarantees": {
+    "name": "Delivery guarantees",
+    "topic": "sysdesign",
+    "oneLine": "A queue can promise at-most-once or at-least-once delivery; exactly-once is not a delivery property but a consequence of at-least-once delivery plus idempotent processing.",
+    "needs": [
+      "idempotency"
+    ],
+    "readings": [
+      {
+        "title": "Designing Data-Intensive Applications",
+        "kind": "book",
+        "where": "Ch. 11, stream processing and exactly-once semantics"
+      },
+      {
+        "title": "Exactly-Once Semantics Are Possible: Here's How Kafka Does It",
+        "kind": "docs",
+        "where": "Confluent, and read it for what the caveats are",
+        "url": "https://www.confluent.io/blog/exactly-once-semantics-are-possible-heres-how-apache-kafka-does-it/"
+      },
+      {
+        "title": "You Cannot Have Exactly-Once Delivery",
+        "kind": "docs",
+        "where": "Tyler Treat, the other side of the argument",
+        "url": "https://bravenewgeek.com/you-cannot-have-exactly-once-delivery/"
+      }
+    ]
+  },
+  "cache-policies": {
+    "name": "Cache read and write policies",
+    "topic": "sysdesign",
+    "oneLine": "Where a write goes and who is responsible for filling a miss are separate decisions, and each combination trades staleness against latency against durability.",
+    "needs": [
+      "memory-hierarchy"
+    ],
+    "readings": [
+      {
+        "title": "Designing Data-Intensive Applications",
+        "kind": "book",
+        "where": "Ch. 1 and 3, and ch. 11 on cache invalidation"
+      },
+      {
+        "title": "Caching strategies",
+        "kind": "docs",
+        "where": "AWS's ElastiCache guidance, which names each pattern",
+        "url": "https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/Strategies.html"
+      },
+      {
+        "title": "Scaling Memcache at Facebook",
+        "kind": "paper",
+        "where": "what cache-aside looks like at scale, including the failures",
+        "url": "https://www.usenix.org/system/files/conference/nsdi13/nsdi13-final170_update.pdf"
+      }
+    ]
+  },
+  "rate-limiting": {
+    "name": "Rate limiting",
+    "topic": "sysdesign",
+    "oneLine": "A rate limiter decides whether a request is allowed now, and the algorithm chosen determines whether short bursts are tolerated and whether the boundary between windows can be exploited.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "How we built rate limiting capable of scaling to millions of domains",
+        "kind": "docs",
+        "where": "Cloudflare, on sliding windows in practice",
+        "url": "https://blog.cloudflare.com/counting-things-a-lot-of-different-things/"
+      },
+      {
+        "title": "Stripe: Scaling your API with rate limiters",
+        "kind": "docs",
+        "where": "the token bucket as actually deployed",
+        "url": "https://stripe.com/blog/rate-limiters"
+      },
+      {
+        "title": "Designing Data-Intensive Applications",
+        "kind": "book",
+        "where": "Ch. 1, on load and backpressure"
+      }
+    ]
   }
 }

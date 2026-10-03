@@ -1,0 +1,55 @@
+{
+  "id": "algo-lru-cache",
+  "title": "An LRU cache with no scanning",
+  "topic": "algo",
+  "difficulty": "intermediate",
+  "type": "code",
+  "tags": [
+    "lru",
+    "hash-tables",
+    "linked-structures",
+    "caching"
+  ],
+  "estimate": 30,
+  "prereqs": [
+    {
+      "concept": "hash-tables",
+      "why": "The lookup half of the structure is a hash table, and O(1) lookup is half the requirement."
+    },
+    {
+      "concept": "linked-structures",
+      "why": "The ordering half is a doubly linked list, and the splice is the only reason to use one here."
+    },
+    {
+      "concept": "cache-lines",
+      "why": "The structure is named after the hardware idea, and the eviction policy is the same question a cache controller answers."
+    }
+  ],
+  "statement": "Implement a **least-recently-used cache** of fixed capacity.\n\nFirst line: `capacity` and `q`, the number of operations. Then `q` lines, each one of:\n\n```\nPUT k v     store value v under key k\nGET k       print the value under key k, or -1 if it is not there\n```\n\nBoth `PUT` and `GET` count as **using** a key, making it the most recently used. When a `PUT` would exceed the capacity, evict the **least** recently used key first.\n\n### Example\n\n```\ninput:              output:\n2 6                 1\nPUT 1 100           -1\nPUT 2 200           300\nGET 1\nPUT 3 300\nGET 2\nGET 3\n```\n\nWalk it through: after `PUT 1`/`PUT 2` the cache holds both. `GET 1` returns 100 and makes key 1 most recent, so key 2 is now least recent. `PUT 3` is over capacity and evicts key 2. `GET 2` is therefore -1, and `GET 3` is 300.\n\n**Both operations must be O(1)**, not O(capacity). Scanning for the oldest entry is the obvious approach and the one to avoid — with a capacity of 100,000 and a million operations it is far too slow. The hidden tests are sized so that a scan will time out.",
+  "hints": [
+    "You need two things at once: find a value by key in O(1), and find the least recently used key in O(1). One data structure will not do both.",
+    "A hash table gives the first. For the second, keep the keys in a list ordered by recency — most recent at one end, least recent at the other.",
+    "The trick that makes it O(1): store in the hash table not just the value but a *handle* to that key's position in the list. Then 'move this key to the front' is a splice, with no searching."
+  ],
+  "payload": {
+    "langs": [
+      "cpp",
+      "python",
+      "js"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 5000
+    },
+    "cases": [
+      {
+        "stdin": "2 6\nPUT 1 100\nPUT 2 200\nGET 1\nPUT 3 300\nGET 2\nGET 3\n",
+        "expect": "100\n-1\n300\n"
+      },
+      {
+        "stdin": "1 4\nPUT 5 50\nGET 5\nPUT 6 60\nGET 5\n",
+        "expect": "50\n-1\n"
+      }
+    ]
+  }
+}

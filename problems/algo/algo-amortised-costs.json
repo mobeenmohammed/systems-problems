@@ -1,0 +1,48 @@
+{
+  "id": "algo-amortised-costs",
+  "title": "What does that operation really cost?",
+  "topic": "algo",
+  "difficulty": "beginner",
+  "type": "match",
+  "tags": [
+    "amortised-analysis",
+    "complexity",
+    "data-structures"
+  ],
+  "estimate": 12,
+  "prereqs": [
+    {
+      "concept": "amortised-analysis",
+      "why": "Three of these five are amortised rather than worst-case bounds, and the distinction is the point of the problem."
+    },
+    {
+      "concept": "hash-tables",
+      "why": "One of the operations is a hash insert, whose honest cost needs the collision story."
+    }
+  ],
+  "statement": "Five operations on common data structures, and the cost each one actually has. Pair them up.\n\nBe careful: two of these have a **worst case** much worse than the cost you would quote in an interview, and the honest answer names which kind of bound it is.\n\nOne description on the right matches none of the five.",
+  "hints": [
+    "For each one, ask: is this cost guaranteed on *every single call*, or only averaged over a long sequence of calls?",
+    "Two of these occasionally do an amount of work proportional to the whole structure, and are still cheap on average. Which two, and what is the expensive step?",
+    "One operation has a genuinely logarithmic worst case with no amortisation and no expectation involved — it is the same every time."
+  ],
+  "payload": {
+    "leftLabel": "Operation",
+    "rightLabel": "Cost",
+    "left": [
+      "std::vector push_back",
+      "std::unordered_map insert",
+      "std::map insert (a red-black tree)",
+      "std::priority_queue push (a binary heap)",
+      "std::list splice"
+    ],
+    "right": [
+      "O(log n) worst case, every time — the tree is kept balanced, so there is no bad call and nothing is amortised",
+      "O(1) amortised, O(n) on the call that reallocates — capacity doubles, so the copying averages out to a constant per element",
+      "O(1) worst case, genuinely — a few pointer writes, with no reallocation and no rebalancing possible",
+      "O(1) expected and amortised, O(n) when the table rehashes, and O(n) for a single call if every key collides",
+      "O(log n) worst case — the new element sifts up at most the height of the tree",
+      "O(n log n) worst case, because the structure must be re-sorted after every modification"
+    ]
+  }
+}

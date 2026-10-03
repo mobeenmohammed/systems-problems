@@ -1,0 +1,39 @@
+{
+  "id": "compilers-check-the-optimiser-deletes",
+  "title": "The safety check that -O2 removes",
+  "topic": "compilers",
+  "difficulty": "advanced",
+  "type": "locate",
+  "tags": [
+    "undefined-behaviour",
+    "optimisation",
+    "overflow",
+    "security"
+  ],
+  "estimate": 18,
+  "prereqs": [
+    {
+      "concept": "undefined-behaviour",
+      "why": "The deletion is legal precisely because the check tests for something the standard says cannot happen."
+    },
+    {
+      "concept": "integer-conversions",
+      "why": "Which arithmetic is undefined and which merely wraps depends on the signedness, and that decides whether the check survives."
+    },
+    {
+      "concept": "compilation-pipeline",
+      "why": "The deletion happens in the optimiser, so you need to know that there is a stage between your source and the instructions."
+    }
+  ],
+  "statement": "This function is reviewed, approved, and shipped. Compiled at `-O0` it behaves exactly as written. Compiled at `-O2`, **one of these checks is not in the generated code at all** — GCC and Clang both remove it, and both are entitled to.\n\nClick the line whose check the optimiser deletes.\n\n(`len` and `max` come from a caller that may be passing attacker-controlled values, which is why the checks are there.)",
+  "hints": [
+    "Three of these lines are comparisons. For each, ask whether the condition could ever be true in a program with no undefined behaviour.",
+    "The optimiser is allowed to assume undefined behaviour never happens, and to propagate that assumption backwards through the code. Which comparison tests for a condition that only undefined behaviour could produce?",
+    "If signed overflow cannot happen, what does the compiler know about the relationship between `len + 100` and `len`?"
+  ],
+  "payload": {
+    "code": "int copy_prefix(char *dst, const char *src, int len, int max) {\n    if (len < 0)\n        return -1;\n\n    if (len > max)\n        return -1;\n\n    int end = len + 100;\n    if (end < len)\n        return -1;\n\n    for (int i = 0; i < len; i++)\n        dst[i] = src[i];\n\n    return len;\n}",
+    "lang": "cpp",
+    "prompt": "Click the line whose check is deleted at -O2."
+  }
+}

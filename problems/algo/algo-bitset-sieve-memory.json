@@ -1,0 +1,39 @@
+{
+  "id": "algo-bitset-sieve-memory",
+  "title": "How much memory for a sieve to a billion?",
+  "topic": "algo",
+  "difficulty": "advanced",
+  "type": "numeric",
+  "tags": [
+    "bit-tricks",
+    "memory",
+    "sieve",
+    "caches"
+  ],
+  "estimate": 14,
+  "prereqs": [
+    {
+      "concept": "bit-tricks",
+      "why": "The whole point is the difference between one bit per candidate and one byte."
+    },
+    {
+      "concept": "memory-hierarchy",
+      "why": "The reason the packing matters is not the memory saved but the cache behaviour it buys."
+    },
+    {
+      "concept": "spatial-locality",
+      "why": "A sieve's inner loop strides, and how far it strides in *bytes* depends on the packing."
+    }
+  ],
+  "statement": "You want a sieve of Eratosthenes over every integer from 0 to **10^9**, using a **bitset** — one bit per candidate, packed into words.\n\n**How much memory does the bitset occupy, in MiB?**\n\nIgnore any other overhead; count only the bits of the sieve itself. 1 MiB is 2^20 bytes.",
+  "hints": [
+    "10^9 bits. How many bytes is that?",
+    "A MiB is 1,048,576 bytes, not 1,000,000 — the question asks for MiB, and the difference is about 5%.",
+    "10^9 / 8 bytes, then divide by 2^20."
+  ],
+  "payload": {
+    "unit": "MiB",
+    "placeholder": "e.g. 119.2",
+    "hintFormat": "A number of MiB, to about one decimal place."
+  }
+}

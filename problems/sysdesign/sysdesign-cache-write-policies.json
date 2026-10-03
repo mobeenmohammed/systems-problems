@@ -1,0 +1,49 @@
+{
+  "id": "sysdesign-cache-write-policies",
+  "title": "Which caching policy is that?",
+  "topic": "sysdesign",
+  "difficulty": "intermediate",
+  "type": "match",
+  "tags": [
+    "cache-policies",
+    "caching",
+    "consistency",
+    "durability"
+  ],
+  "estimate": 13,
+  "prereqs": [
+    {
+      "concept": "cache-policies",
+      "why": "Each pairing is a policy and the behaviour — good and bad — that follows from it."
+    },
+    {
+      "concept": "memory-hierarchy",
+      "why": "These are the same policies a CPU cache implements, in a different setting and at a different scale."
+    }
+  ],
+  "statement": "Five caching policies, and what each one actually does. Pair them up.\n\nNote that two separate decisions are mixed in here: **where a write goes**, and **who is responsible for filling a miss**. Keeping those apart is most of the work.\n\nOne description on the right is not a caching policy at all.",
+  "hints": [
+    "Three of these are about writes and two are about reads. Sorting them into those groups first halves the problem.",
+    "Of the write policies, one is the safest, one is the fastest, and one skips the cache altogether. The trade is between staleness, latency and what happens if the cache dies.",
+    "Of the read policies, the difference is whether the *application* or the *cache* knows how to reach the underlying store."
+  ],
+  "payload": {
+    "leftLabel": "Policy",
+    "rightLabel": "What it does",
+    "left": [
+      "Write-through",
+      "Write-back (write-behind)",
+      "Write-around (write-no-allocate)",
+      "Cache-aside (lazy loading)",
+      "Read-through"
+    ],
+    "right": [
+      "On a read miss the application fetches from the store and populates the cache itself; the cache knows nothing about the store",
+      "Every write goes to the cache and the store together, so the cache is never stale and writes pay the slow path every time",
+      "Writes land in the cache and are flushed to the store later, which is the fastest option and loses data if the cache dies before the flush",
+      "Writes bypass the cache entirely and go straight to the store, which suits data that is written once and rarely read back",
+      "On a read miss the cache itself fetches from the store and fills the entry, so the application only ever talks to the cache",
+      "Two caches keep a value consistent by broadcasting an invalidation to each other on every write"
+    ]
+  }
+}

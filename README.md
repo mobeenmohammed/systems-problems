@@ -19,11 +19,28 @@ serves it directly.
 
 ## What is in it
 
+**45 problems** across nine topics — five each, two Beginner, two Intermediate
+and one Advanced — using all nine problem types. **53 concepts** with **154
+readings** between them, every one naming a book and a chapter or a specific
+page.
+
 ```
 Topics        arch · os · linux · compilers · hpc · dist · fpga · algo · sysdesign
 Difficulty    Beginner · Intermediate · Advanced
 Types         mcq · multi · numeric · short · order · match · predict · locate · code
 ```
+
+| Topic | Problems |
+| --- | --- |
+| **Computer Architecture** | How big is this struct? `numeric`, How often does a sequential walk miss? `numeric`, The ceiling on 64 cores `numeric`, Which instruction has to stall? `locate`, Two threads, one cache line `multi` |
+| **Operating Systems** | What happens on a page fault `order`, printf, then fork `predict`, Two locks, two orders `locate`, Which scheduler behaves like that? `match`, Memory after a fork `numeric` |
+| **Linux & Tooling** | Count the distinct clients `short`, Spell that permission in octal `numeric`, Read the strace and say what is wrong `mcq`, What the shell does, in order `order`, Killed at 2 GB on a 64 GB machine `multi` |
+| **Compilers & Interpreters** | Source to running program `order`, Write the lexer `code`, Make signed overflow behave `short`, The arithmetic is not the arithmetic you wrote `predict`, The safety check that -O2 removes `locate` |
+| **HPC & Parallelism** | Compute-bound or memory-bound? `numeric`, Which loop order, and why `mcq`, Running totals `code`, Which collective is that? `match`, The fewest lines a transpose can move `numeric` |
+| **Distributed Systems** | Order the events by their Lamport clock `order`, What a partition actually costs you `mcq`, How a Raft leader gets elected `order`, The retry that charges twice `locate`, How many replicas must a read consult? `numeric` |
+| **FPGAs & Hardware** | The shift register that is not a shift register `mcq`, What is each block for? `match`, A sequence detector, as a state machine `code`, The fastest this design can be clocked `numeric`, Throughput of a pipelined block `numeric` |
+| **Algorithms** | Running maximum, without reading past the end `code`, What does that operation really cost? `match`, An LRU cache with no scanning `code`, The binary search that breaks on big arrays `locate`, How much memory for a sieve to a billion? `numeric` |
+| **System Design** | How much storage a day? `numeric`, Put these in order of how long they take `order`, What at-least-once actually promises `multi`, Which caching policy is that? `match`, A token bucket rate limiter `code` |
 
 ### The nine problem types
 
@@ -154,6 +171,25 @@ npm run build:index
 npm test
 ```
 
+### Having the test check your key for you
+
+Two kinds of key can be verified absolutely rather than trusted, and both are
+worth using:
+
+- A **`code`** problem's key carries a `reference` solution per language it
+  claims. `tests/content.test.mjs` compiles and runs each one against the
+  problem's own hidden cases, so a problem nobody can solve fails the build.
+- A **`predict`** problem can set `payload.verifyAs: "cpp"` when its snippet is
+  a complete program. The test then compiles it and compares the real output
+  against the key. Add `payload.verifyPlatform: "linux"` for a POSIX snippet —
+  one using `fork` will not build on a MinGW toolchain, so it is skipped
+  locally with a notice and verified on Linux in CI.
+
+Both have already caught a wrong key: a hand-written expected output with two
+digits transposed, and a line break written as the two characters `
+` instead
+of a newline. Neither is findable by reading.
+
 ### Why the answer lives in a separate file
 
 Because then it is not in the page you are reading. It is still fetchable if you
@@ -209,7 +245,7 @@ js/problem.js           a problem: its tabs, submitting, the verdict
 js/views.js             dashboard, catalog, reading map, profile, shop, settings
 js/app.js               bootstrap, hash routing, shortcuts
 judge/                  the local C++/Rust/Python judge (Docker)
-problems/<topic>/*.json the problems
+problems/<topic>/*.json 45 problems
 solutions/*.json        keys and explanations
 scripts/build-index.mjs generate and validate the catalog
 ```

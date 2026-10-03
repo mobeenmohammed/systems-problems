@@ -1,0 +1,30 @@
+{
+  "id": "sysdesign-photo-storage-per-day",
+  "title": "How much storage a day?",
+  "topic": "sysdesign",
+  "difficulty": "beginner",
+  "type": "numeric",
+  "tags": [
+    "capacity-estimation",
+    "storage",
+    "back-of-envelope"
+  ],
+  "estimate": 11,
+  "prereqs": [
+    {
+      "concept": "capacity-estimation",
+      "why": "This is the first step of any capacity estimate: turn a product sentence into bytes per unit time."
+    }
+  ],
+  "statement": "You are sizing a photo-sharing service.\n\n- **50 million** daily active users\n- each uploads **2 photos per day** on average\n- the average photo is **2 MB** after processing\n- every upload is stored\n\n**How many terabytes of new storage are needed per day?**\n\nUse decimal units throughout — 1 TB is 10^6 MB — since that is how storage is sold and quoted. One significant figure is the right level of precision for this kind of estimate.",
+  "hints": [
+    "How many photos are uploaded in a day, in total?",
+    "Multiply that by the size of one photo to get megabytes, then convert.",
+    "100 million photos at 2 MB each. 1 TB is a million MB."
+  ],
+  "payload": {
+    "unit": "TB per day",
+    "placeholder": "e.g. 200",
+    "hintFormat": "A number of TB per day."
+  }
+}

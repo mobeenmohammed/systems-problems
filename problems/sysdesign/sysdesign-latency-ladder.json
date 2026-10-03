@@ -1,0 +1,45 @@
+{
+  "id": "sysdesign-latency-ladder",
+  "title": "Put these in order of how long they take",
+  "topic": "sysdesign",
+  "difficulty": "beginner",
+  "type": "order",
+  "tags": [
+    "latency-numbers",
+    "estimation",
+    "storage",
+    "network"
+  ],
+  "estimate": 10,
+  "prereqs": [
+    {
+      "concept": "latency-numbers",
+      "why": "This is the ladder itself, and having it in your head is what makes a back-of-the-envelope estimate possible."
+    },
+    {
+      "concept": "memory-hierarchy",
+      "why": "The first half of the ladder is the memory hierarchy; the second half is storage and network."
+    }
+  ],
+  "statement": "Six operations, each a thing a server does constantly. Put them in order from **fastest to slowest**.\n\nApproximate figures are fine — the orders of magnitude are what matter, and the gaps between these are large. Nobody should be guessing within a factor of two here; the useful knowledge is which of two things is a hundred times the other.",
+  "hints": [
+    "Start by splitting them into three groups: things that happen inside the CPU and its memory, things that touch a storage device, and things that go over a network.",
+    "Within the storage group, one of them has a mechanical arm that has to physically move. That is the slow one, by a lot.",
+    "Within the network group, one is limited by the speed of light over thousands of kilometres. Nothing you do in software improves it."
+  ],
+  "payload": {
+    "prompt": "Fastest at the top.",
+    "labels": [
+      "fastest",
+      "slowest"
+    ],
+    "items": [
+      "A round trip between two machines in the same datacentre",
+      "A main-memory (DRAM) reference",
+      "A packet round trip from California to the Netherlands and back",
+      "An L1 cache reference",
+      "A seek on a spinning disk",
+      "A random read from an SSD"
+    ]
+  }
+}

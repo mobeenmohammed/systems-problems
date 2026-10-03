@@ -1,5 +1,22 @@
 [
   {
+    "id": "algo-amortised-costs",
+    "title": "What does that operation really cost?",
+    "topic": "algo",
+    "difficulty": "beginner",
+    "type": "match",
+    "tags": [
+      "amortised-analysis",
+      "complexity",
+      "data-structures"
+    ],
+    "estimate": 12,
+    "prereqs": [
+      "amortised-analysis",
+      "hash-tables"
+    ]
+  },
+  {
     "id": "algo-running-max",
     "title": "Running maximum, without reading past the end",
     "topic": "algo",
@@ -20,6 +37,67 @@
       "cpp",
       "rust",
       "js"
+    ]
+  },
+  {
+    "id": "algo-binary-search-overflow",
+    "title": "The binary search that breaks on big arrays",
+    "topic": "algo",
+    "difficulty": "intermediate",
+    "type": "locate",
+    "tags": [
+      "binary-search",
+      "overflow",
+      "integer-conversions",
+      "bugs"
+    ],
+    "estimate": 12,
+    "prereqs": [
+      "integer-conversions",
+      "undefined-behaviour"
+    ]
+  },
+  {
+    "id": "algo-lru-cache",
+    "title": "An LRU cache with no scanning",
+    "topic": "algo",
+    "difficulty": "intermediate",
+    "type": "code",
+    "tags": [
+      "lru",
+      "hash-tables",
+      "linked-structures",
+      "caching"
+    ],
+    "estimate": 30,
+    "prereqs": [
+      "hash-tables",
+      "linked-structures",
+      "cache-lines"
+    ],
+    "langs": [
+      "cpp",
+      "python",
+      "js"
+    ]
+  },
+  {
+    "id": "algo-bitset-sieve-memory",
+    "title": "How much memory for a sieve to a billion?",
+    "topic": "algo",
+    "difficulty": "advanced",
+    "type": "numeric",
+    "tags": [
+      "bit-tricks",
+      "memory",
+      "sieve",
+      "caches"
+    ],
+    "estimate": 14,
+    "prereqs": [
+      "bit-tricks",
+      "memory-hierarchy",
+      "spatial-locality"
     ]
   },
   {
@@ -181,6 +259,25 @@
     "estimate": 9,
     "prereqs": [
       "undefined-behaviour"
+    ]
+  },
+  {
+    "id": "compilers-check-the-optimiser-deletes",
+    "title": "The safety check that -O2 removes",
+    "topic": "compilers",
+    "difficulty": "advanced",
+    "type": "locate",
+    "tags": [
+      "undefined-behaviour",
+      "optimisation",
+      "overflow",
+      "security"
+    ],
+    "estimate": 18,
+    "prereqs": [
+      "undefined-behaviour",
+      "integer-conversions",
+      "compilation-pipeline"
     ]
   },
   {
@@ -628,6 +725,98 @@
       "copy-on-write",
       "page-faults",
       "processes-fork"
+    ]
+  },
+  {
+    "id": "sysdesign-latency-ladder",
+    "title": "Put these in order of how long they take",
+    "topic": "sysdesign",
+    "difficulty": "beginner",
+    "type": "order",
+    "tags": [
+      "latency-numbers",
+      "estimation",
+      "storage",
+      "network"
+    ],
+    "estimate": 10,
+    "prereqs": [
+      "latency-numbers",
+      "memory-hierarchy"
+    ]
+  },
+  {
+    "id": "sysdesign-photo-storage-per-day",
+    "title": "How much storage a day?",
+    "topic": "sysdesign",
+    "difficulty": "beginner",
+    "type": "numeric",
+    "tags": [
+      "capacity-estimation",
+      "storage",
+      "back-of-envelope"
+    ],
+    "estimate": 11,
+    "prereqs": [
+      "capacity-estimation"
+    ]
+  },
+  {
+    "id": "sysdesign-at-least-once",
+    "title": "What at-least-once actually promises",
+    "topic": "sysdesign",
+    "difficulty": "intermediate",
+    "type": "multi",
+    "tags": [
+      "delivery-guarantees",
+      "queues",
+      "idempotency",
+      "exactly-once"
+    ],
+    "estimate": 14,
+    "prereqs": [
+      "delivery-guarantees",
+      "idempotency"
+    ]
+  },
+  {
+    "id": "sysdesign-cache-write-policies",
+    "title": "Which caching policy is that?",
+    "topic": "sysdesign",
+    "difficulty": "intermediate",
+    "type": "match",
+    "tags": [
+      "cache-policies",
+      "caching",
+      "consistency",
+      "durability"
+    ],
+    "estimate": 13,
+    "prereqs": [
+      "cache-policies",
+      "memory-hierarchy"
+    ]
+  },
+  {
+    "id": "sysdesign-token-bucket",
+    "title": "A token bucket rate limiter",
+    "topic": "sysdesign",
+    "difficulty": "advanced",
+    "type": "code",
+    "tags": [
+      "rate-limiting",
+      "backpressure",
+      "bursts"
+    ],
+    "estimate": 28,
+    "prereqs": [
+      "rate-limiting",
+      "capacity-estimation"
+    ],
+    "langs": [
+      "cpp",
+      "python",
+      "js"
     ]
   }
 ]

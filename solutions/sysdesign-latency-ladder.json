@@ -1,0 +1,20 @@
+{
+  "key": {
+    "order": [
+      3,
+      1,
+      5,
+      0,
+      4,
+      2
+    ]
+  },
+  "explanation": "## The ladder\n\n| Operation | Roughly | Relative to L1 |\n| --- | --- | --- |\n| L1 cache reference | **1 ns** | 1x |\n| Main memory (DRAM) reference | **100 ns** | 100x |\n| SSD random read | **100 us** | 100,000x |\n| Same-datacentre round trip | **500 us** | 500,000x |\n| Spinning disk seek | **10 ms** | 10,000,000x |\n| California to Netherlands and back | **150 ms** | 150,000,000x |\n\nEight orders of magnitude from top to bottom. That span is why the ordering is worth memorising even though the individual figures drift with hardware.\n\n## The gaps are the content\n\n**L1 to DRAM is 100x.** This is the gap every cache optimisation is about, and the reason a cache-friendly loop can be eight times faster than an identical one with a bad access order. On a modern core, 100 ns is about 300 instruction slots — a DRAM miss is not a small delay, it is hundreds of instructions' worth of nothing.\n\n**DRAM to SSD is 1000x.** The gap that makes an in-memory cache worth having. If a request can be served from RAM instead of disk, you have not saved a little time, you have saved essentially all of it.\n\n**SSD to disk seek is 100x.** Which is the entire reason SSDs took over. And note it is *seek* — a spinning disk's sequential throughput is respectable (100-200 MB/s), but every random access pays for the head to move. This is why B-trees have high fanout, why log-structured storage became popular, and why \"sequential is much faster than random\" was such a dominant design pressure. On SSDs the gap narrowed but did not vanish.\n\n**Same datacentre to intercontinental is 300x.** And this one is bound by **physics**. Light in fibre travels about 200,000 km/s; California to Amsterdam and back is roughly 18,000 km of cable, giving about 90 ms before any routing or queueing. No protocol improvement, no faster hardware and no amount of money changes it. The only fix is to not make the trip — which is the entire justification for CDNs, regional replicas and edge computing.\n\n## Using it, which is the point\n\nThe ladder turns design questions into arithmetic. \"Can this API respond in 100 ms?\"\n\n```\n1 same-datacentre round trip to a service    0.5 ms\n3 sequential DB queries, cache misses          3 x 0.6 ms  (SSD + network)\n1 cross-continent hop to a third party       150 ms        <- already over budget\n```\n\nThe answer is no, and the reason is one line of the estimate. You do not need a profiler or a prototype to see it, and that is what makes this worth knowing by heart rather than looking up.\n\nTwo rules of thumb fall straight out:\n\n- **Each serial round trip costs you.** Ten sequential same-datacentre calls is 5 ms before any work happens. Issue them in parallel and it is 0.5 ms. \"Parallelise the fan-out\" is the single most common latency fix in a service architecture.\n- **Never put a cross-region hop in a synchronous request path** if you can avoid it. 150 ms is most of a human-perceptible delay all by itself.\n\n## How the numbers have moved\n\nThe *ordering* has been stable for twenty years; the *values* have not. SSD random reads have improved roughly tenfold with NVMe. DRAM latency has barely improved at all — bandwidth has grown, latency has not — which is why the L1-to-DRAM gap has got *worse* in relative terms as clocks got faster. Network round trips within a datacentre have improved; intercontinental ones cannot.\n\nColin Scott's interactive version of Jeff Dean's original list shows the trends by year, and watching the DRAM line stay flat while everything else moves is the clearest argument for why cache behaviour keeps mattering more, not less.",
+  "readMore": [
+    {
+      "concept": "latency-numbers",
+      "where": "Colin Scott's interactive numbers, then DDIA ch. 1"
+    }
+  ],
+  "id": "sysdesign-latency-ladder"
+}

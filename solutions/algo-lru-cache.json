@@ -1,0 +1,51 @@
+{
+  "key": {
+    "cases": [
+      {
+        "stdin": "2 4\nGET 1\nGET 2\nPUT 1 1\nGET 1\n",
+        "expect": "-1\n-1\n1\n"
+      },
+      {
+        "stdin": "2 5\nPUT 1 1\nPUT 1 2\nGET 1\nPUT 2 2\nGET 1\n",
+        "expect": "2\n2\n"
+      },
+      {
+        "stdin": "3 9\nPUT 1 1\nPUT 2 2\nPUT 3 3\nGET 1\nPUT 4 4\nGET 2\nGET 1\nGET 3\nGET 4\n",
+        "expect": "1\n-1\n1\n3\n4\n"
+      },
+      {
+        "stdin": "1 6\nPUT 1 1\nPUT 2 2\nPUT 3 3\nGET 1\nGET 2\nGET 3\n",
+        "expect": "-1\n-1\n3\n"
+      },
+      {
+        "stdin": "2 7\nPUT 1 1\nPUT 2 2\nGET 1\nGET 2\nPUT 3 3\nGET 1\nGET 2\n",
+        "expect": "1\n2\n-1\n2\n"
+      },
+      {
+        "stdin": "3 5\nPUT 10 100\nPUT 20 200\nPUT 10 111\nGET 10\nGET 20\n",
+        "expect": "111\n200\n"
+      },
+      {
+        "stdin": "2 3\nPUT 1 -5\nGET 1\nGET 1\n",
+        "expect": "-5\n-5\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n#include <string>\n#include <unordered_map>\n#include <list>\n\nint main() {\n    std::ios::sync_with_stdio(false);\n    std::cin.tie(nullptr);\n\n    long long cap, q;\n    if (!(std::cin >> cap >> q)) return 0;\n\n    /* Most recently used at the front. The map holds an iterator into the\n       list, so touching a key is a splice rather than a search. */\n    std::list<long long> order;\n    std::unordered_map<long long, std::pair<long long, std::list<long long>::iterator>> table;\n\n    for (long long i = 0; i < q; ++i) {\n        std::string op;\n        if (!(std::cin >> op)) break;\n\n        if (op == \"PUT\") {\n            long long k, v;\n            std::cin >> k >> v;\n            auto it = table.find(k);\n            if (it != table.end()) {\n                it->second.first = v;\n                order.erase(it->second.second);\n                order.push_front(k);\n                it->second.second = order.begin();\n            } else {\n                if ((long long)table.size() == cap) {\n                    long long victim = order.back();\n                    order.pop_back();\n                    table.erase(victim);\n                }\n                order.push_front(k);\n                table[k] = {v, order.begin()};\n            }\n        } else {\n            long long k;\n            std::cin >> k;\n            auto it = table.find(k);\n            if (it == table.end()) {\n                std::cout << \"-1\\n\";\n            } else {\n                order.erase(it->second.second);\n                order.push_front(k);\n                it->second.second = order.begin();\n                std::cout << it->second.first << \"\\n\";\n            }\n        }\n    }\n    return 0;\n}\n",
+      "python": "import sys\nfrom collections import OrderedDict\n\ndata = sys.stdin.read().split()\nif not data:\n    sys.exit(0)\n\ncap = int(data[0])\nq = int(data[1])\npos = 2\n\ncache = OrderedDict()\nout = []\n\nfor _ in range(q):\n    op = data[pos]\n    pos += 1\n    if op == \"PUT\":\n        k = int(data[pos]); v = int(data[pos + 1]); pos += 2\n        if k in cache:\n            cache.move_to_end(k)\n            cache[k] = v\n        else:\n            if len(cache) == cap:\n                cache.popitem(last=False)\n            cache[k] = v\n    else:\n        k = int(data[pos]); pos += 1\n        if k in cache:\n            cache.move_to_end(k)\n            out.append(str(cache[k]))\n        else:\n            out.append(\"-1\")\n\nfor line in out:\n    print(line)\n",
+      "js": "const data = readStdin().split(/\\s+/).filter(s => s.length > 0);\nif (data.length === 0) { /* nothing to do */ } else {\n  const cap = Number(data[0]);\n  const q = Number(data[1]);\n  let pos = 2;\n\n  /* A JS Map preserves insertion order, so delete-then-set is move-to-end. */\n  const cache = new Map();\n\n  for (let i = 0; i < q; i += 1) {\n    const op = data[pos]; pos += 1;\n    if (op === 'PUT') {\n      const k = Number(data[pos]); const v = Number(data[pos + 1]); pos += 2;\n      if (cache.has(k)) cache.delete(k);\n      else if (cache.size === cap) cache.delete(cache.keys().next().value);\n      cache.set(k, v);\n    } else {\n      const k = Number(data[pos]); pos += 1;\n      if (!cache.has(k)) {\n        print('-1');\n      } else {\n        const v = cache.get(k);\n        cache.delete(k);\n        cache.set(k, v);\n        print(String(v));\n      }\n    }\n  }\n}\n"
+    }
+  },
+  "explanation": "## A hash table plus a doubly linked list\n\nNeither structure can do the job alone:\n\n- A **hash table** finds a value by key in O(1), but has no notion of order, so finding the least recently used key means scanning everything.\n- A **doubly linked list** keeps the keys in recency order with O(1) splicing, but finding a given key in it means walking the list.\n\nPut them together and each covers the other's weakness. The piece that makes it work is what the hash table stores:\n\n```\nkey -> { value, iterator/pointer to this key's node in the list }\n```\n\nWith the handle in hand, \"move this key to the front\" needs no search — unlink the node and relink it at the head, which is a few pointer writes. That is the whole trick, and it is what turns an O(n) structure into an O(1) one.\n\n| Operation | How |\n| --- | --- |\n| `GET k` hit | table lookup, splice node to front, return value |\n| `GET k` miss | table lookup fails, return -1 |\n| `PUT k v` existing | table lookup, update value, splice to front |\n| `PUT k v` new, room | push node at front, insert into table |\n| `PUT k v` new, full | take the key at the **back**, erase it from both, then insert |\n\n## The three details the hidden tests check\n\n**`PUT` on an existing key is a use, not an insert.** It updates the value *and* makes the key most recent, and it must not evict anything — the size did not grow. A version that treats every `PUT` as an insert will evict when it should not.\n\n**`GET` counts as a use.** This is the whole character of LRU. A miss does not, because there was nothing to touch.\n\n**Capacity 1.** Every insert of a new key evicts the only entry. Off-by-one errors in the eviction check surface here immediately, which is why it is a test.\n\n## Each language's shortcut\n\n**C++**: `std::list` plus `std::unordered_map` storing `list::iterator`. The iterator stays valid when other elements are spliced, which is exactly the guarantee `std::list` offers and `std::vector` does not — that stability is the reason `std::list` exists.\n\n**Python**: `OrderedDict` already is this structure — a dict with a linked list through it — and `move_to_end` and `popitem(last=False)` are the two operations. `functools.lru_cache` is built on it.\n\n**JavaScript**: a `Map` iterates in insertion order, so `delete` followed by `set` is move-to-end, and `map.keys().next().value` is the oldest key. Less explicit than the C++ version, and the same structure underneath.\n\nBeing able to write it by hand still matters: the moment you need a different eviction policy, or a secondary index, or a lock around it, the library version stops fitting and you have to know what is inside it.\n\n## Why LRU, and when it is wrong\n\nLRU bets that **recently used means soon to be used again**, and for most real access patterns that bet pays. It is what a CPU cache approximates, what a database buffer pool uses, what your OS page cache does.\n\nThe failure mode is a **scan**: read a table larger than the cache, once, and LRU evicts everything useful to make room for data it will never see again. This is why database buffer pools do not use plain LRU — PostgreSQL uses a clock sweep, MySQL splits its list into young and old sublists so a scan only churns the old end, and many systems use LRU-K or ARC to distinguish \"used once\" from \"used repeatedly\".\n\nReal CPU caches do not implement true LRU either: tracking exact order across 16 ways costs more than it is worth, so they use pseudo-LRU — a tree of bits that approximates it with a fraction of the state. The lesson generalises: the policy that is optimal on paper is often not the one worth the bookkeeping.",
+  "readMore": [
+    {
+      "concept": "hash-tables",
+      "where": "CLRS ch. 11, then the Swiss Tables notes"
+    },
+    {
+      "concept": "linked-structures",
+      "where": "cppreference on std::list's splice guarantee"
+    }
+  ],
+  "id": "algo-lru-cache"
+}

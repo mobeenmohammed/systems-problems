@@ -1,0 +1,38 @@
+{
+  "id": "sysdesign-at-least-once",
+  "title": "What at-least-once actually promises",
+  "topic": "sysdesign",
+  "difficulty": "intermediate",
+  "type": "multi",
+  "tags": [
+    "delivery-guarantees",
+    "queues",
+    "idempotency",
+    "exactly-once"
+  ],
+  "estimate": 14,
+  "prereqs": [
+    {
+      "concept": "delivery-guarantees",
+      "why": "The question is exactly what each guarantee does and does not promise."
+    },
+    {
+      "concept": "idempotency",
+      "why": "The reason at-least-once is workable at all is that duplicates can be made harmless."
+    }
+  ],
+  "statement": "A message queue is configured for **at-least-once** delivery. Consumers pull a message, process it, and then acknowledge it; an unacknowledged message is redelivered after a visibility timeout.\n\n**Which of the following are true?** Select all that apply.",
+  "hints": [
+    "Work through the failure: a consumer finishes the work and then its machine dies before the acknowledgement is sent. What does the broker see, and what does it do?",
+    "For the claim about exactly-once, ask what deduplicating at the broker protects against and what it does not. Which end performs the side effect?",
+    "At-most-once is the mirror image. If you move the acknowledgement to *before* the processing, which problem goes away and which appears?"
+  ],
+  "payload": {
+    "options": [
+      "A consumer may process the same message more than once, so the processing must be idempotent for the system to be correct.",
+      "If a consumer crashes after finishing the work but before acknowledging, the message will be delivered again to some consumer.",
+      "Genuine exactly-once semantics can be obtained simply by having the broker discard any message whose id it has already delivered.",
+      "At-most-once delivery avoids duplicates by acknowledging before processing, at the cost of losing messages when a consumer crashes mid-work."
+    ]
+  }
+}

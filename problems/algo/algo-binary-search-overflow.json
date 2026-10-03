@@ -1,0 +1,35 @@
+{
+  "id": "algo-binary-search-overflow",
+  "title": "The binary search that breaks on big arrays",
+  "topic": "algo",
+  "difficulty": "intermediate",
+  "type": "locate",
+  "tags": [
+    "binary-search",
+    "overflow",
+    "integer-conversions",
+    "bugs"
+  ],
+  "estimate": 12,
+  "prereqs": [
+    {
+      "concept": "integer-conversions",
+      "why": "The bug is an arithmetic overflow, and what overflow does depends on the type."
+    },
+    {
+      "concept": "undefined-behaviour",
+      "why": "Signed overflow is undefined, which is why the symptom is unpredictable rather than simply a negative number."
+    }
+  ],
+  "statement": "A textbook binary search. It is correct for every array you are likely to test it on, and it has a bug that survived in the Java standard library for nine years and in *Programming Pearls* for twenty.\n\n**Click the line with the bug.**\n\nThe array is sorted and may be very large — up to a few billion elements.",
+  "hints": [
+    "Every line is correct for a small array. Think about what happens when the indices themselves get large, not when the array contents do.",
+    "Consider `lo` and `hi` both close to the maximum value an `int` can hold. What does the arithmetic on that line produce?",
+    "The fix keeps the same meaning and never forms the large intermediate value. It is a different way to write the same midpoint."
+  ],
+  "payload": {
+    "code": "int binary_search(const int* a, int n, int target) {\n    int lo = 0;\n    int hi = n - 1;\n\n    while (lo <= hi) {\n        int mid = (lo + hi) / 2;\n\n        if (a[mid] == target)     return mid;\n        else if (a[mid] < target) lo = mid + 1;\n        else                      hi = mid - 1;\n    }\n    return -1;\n}",
+    "lang": "cpp",
+    "prompt": "Click the line with the bug."
+  }
+}

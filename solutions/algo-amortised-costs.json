@@ -1,0 +1,23 @@
+{
+  "key": {
+    "pairs": [
+      1,
+      3,
+      0,
+      4,
+      2
+    ]
+  },
+  "explanation": "## The pairings\n\n| Operation | Cost | Kind of bound |\n| --- | --- | --- |\n| `vector::push_back` | O(1), O(n) when it grows | **amortised** |\n| `unordered_map::insert` | O(1), O(n) on rehash or full collision | **expected and amortised** |\n| `map::insert` | O(log n) | worst case |\n| `priority_queue::push` | O(log n) | worst case |\n| `list::splice` | O(1) | worst case |\n\nThe spare — *O(n log n) because the structure must be re-sorted* — describes no sane container. It is there because it is what people imagine an ordered container does, and no real one works that way: a tree or a heap maintains its invariant incrementally, which is the entire point of having one.\n\n## Why `push_back` is O(1) amortised\n\nWhen a vector is full it allocates a bigger buffer and copies everything, which is O(n) for that one call. But the capacity **doubles**, so the expensive calls get rarer exactly as fast as they get more expensive.\n\nInserting `n` elements from empty, with doubling, copies:\n\n```\n1 + 2 + 4 + 8 + ... + n/2 + n  <  2n\n```\n\nFewer than `2n` copies for `n` insertions, so **under 2 copies per element on average**. That is the amortised O(1).\n\nThe doubling is load-bearing. Growing by a *constant* amount instead — say 10 elements at a time — gives `n/10` reallocations each copying O(n), which is O(n^2) total and O(n) amortised per push. Any constant growth *factor* above 1 works; 1.5 and 2 are the common choices, and 1.5 is friendlier to the allocator because freed blocks can be reused.\n\n## Amortised, expected and average are three different claims\n\nThis is the distinction worth taking away, because the three get used interchangeably and mean quite different things:\n\n- **Amortised O(1)** — any sequence of `n` operations costs O(n) *total*. A guarantee about sequences, with no probability in it. `push_back` is this.\n- **Expected O(1)** — the average over the randomness in the algorithm or the hash function. A probabilistic claim about one call. `unordered_map` lookup is this.\n- **Average case O(1)** — the average over some assumed distribution of inputs. Usually the weakest claim, because the assumption is rarely checked.\n\n`unordered_map::insert` is both expected *and* amortised: expected because a good hash spreads keys across buckets, amortised because the table rehashes when the load factor is exceeded. And its real worst case is O(n) for a single call, when every key lands in one bucket.\n\nThat worst case is not hypothetical. **Hash-flooding** is a real denial-of-service technique: feed a server keys you have chosen to collide, and its O(1) hash map becomes an O(n) linked list, turning a cheap request into a quadratic one. The defence is a randomly seeded hash — which is why Python randomises `hash()` by default, and why `std::unordered_map` with untrusted keys is a liability.\n\n## Where amortised is not good enough\n\nAmortised bounds average over a sequence, and sometimes you cannot afford the one slow call even if the average is fine:\n\n- **Real-time systems.** A 10 ms reallocation inside a 1 ms deadline fails, however good the average is. `reserve()` up front, or use a fixed-size buffer.\n- **Audio and control loops.** Same reason: the budget is per-callback, not per-second.\n- **Latency percentiles.** A p99 or p999 figure is exactly the slow calls that amortisation hides. \"Average latency is fine\" and \"the tail is terrible\" are routinely both true, and the second is what users notice.\n\n`vector::reserve` is the fix in nearly every case, and it is free when you know the size. The habit of calling it is one of the cheapest performance wins available.\n\n## The one that is O(1) for real\n\n`list::splice` moves elements between lists by rewriting a handful of pointers. No copying, no reallocation, no rebalancing — and no amortisation, because there is no occasional expensive case. It is the only reason to reach for `std::list` at all, since on every other axis a vector beats it: a linked list costs a cache miss per step, where a vector walks contiguously.\n\nThe LRU cache in this topic is built on precisely that splice, and it is the clearest example of a problem where a linked list is the right answer.",
+  "readMore": [
+    {
+      "concept": "amortised-analysis",
+      "where": "CLRS ch. 17, then cppreference's complexity guarantees"
+    },
+    {
+      "concept": "hash-tables",
+      "where": "CLRS ch. 11, for the collision case"
+    }
+  ],
+  "id": "algo-amortised-costs"
+}
