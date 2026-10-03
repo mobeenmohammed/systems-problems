@@ -76,6 +76,20 @@ async function go(window, hash) {
   await settle(window);
 }
 
+/* Some of the UI is debounced — the search box waits 120ms so that typing does
+   not re-render per keystroke. settle() only drains the microtask queue, so it
+   cannot carry a real timer; waiting on the condition instead of on a fixed
+   delay keeps the test honest on a slow CI runner as well as on a fast
+   laptop. */
+async function waitFor(window, predicate, { timeout = 4000 } = {}) {
+  const start = Date.now();
+  for (;;) {
+    try { if (predicate()) return true; } catch { /* not ready yet */ }
+    if (Date.now() - start > timeout) return false;
+    await new Promise(r => window.setTimeout(r, 25));
+  }
+}
+
 const click = node => node.dispatchEvent(new node.ownerDocument.defaultView.MouseEvent('click', { bubbles: true, cancelable: true }));
 const change = node => node.dispatchEvent(new node.ownerDocument.defaultView.Event('change', { bubbles: true }));
 const input = node => node.dispatchEvent(new node.ownerDocument.defaultView.Event('input', { bubbles: true }));
@@ -119,15 +133,13 @@ await settle(window);
 const search = document.getElementById('fSearch');
 search.value = 'partition';
 input(search);
-await settle(window);
-await settle(window);
-ok('searching matches a title', rows().length === 1 && rows()[0].textContent.includes('partition'));
+ok('searching matches a title',
+  await waitFor(window, () => rows().length === 1 && rows()[0].textContent.includes('partition')));
 
 search.value = 'zzzznothing';
 input(search);
-await settle(window);
-await settle(window);
-ok('no matches says so', document.querySelector('#catalogList .empty') !== null);
+ok('no matches says so',
+  await waitFor(window, () => document.querySelector('#catalogList .empty') !== null));
 
 click(document.getElementById('fClear'));
 await settle(window);
