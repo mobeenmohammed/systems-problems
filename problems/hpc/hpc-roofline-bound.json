@@ -1,0 +1,34 @@
+{
+  "id": "hpc-roofline-bound",
+  "title": "Compute-bound or memory-bound?",
+  "topic": "hpc",
+  "difficulty": "beginner",
+  "type": "numeric",
+  "tags": [
+    "roofline",
+    "bandwidth",
+    "arithmetic-intensity"
+  ],
+  "estimate": 12,
+  "prereqs": [
+    {
+      "concept": "roofline",
+      "why": "The whole question is arithmetic intensity against machine balance, which is the model."
+    },
+    {
+      "concept": "memory-hierarchy",
+      "why": "The bandwidth figure is a property of the path to DRAM, and that is the path this kernel is on."
+    }
+  ],
+  "statement": "A machine can sustain **200 GFLOP/s** of double-precision arithmetic and **50 GB/s** of memory bandwidth to DRAM.\n\nYou run this kernel over arrays far larger than any cache, so every element really comes from DRAM:\n\n```c\nfor (size_t i = 0; i < n; i++)\n    y[i] = a * x[i] + y[i];      /* daxpy */\n```\n\nPer iteration it moves **24 bytes** — it reads 8 bytes of `x`, reads 8 bytes of `y`, and writes 8 bytes of `y` — and performs **2 flops**, one multiply and one add.\n\n**What is the highest GFLOP/s this kernel can possibly reach on this machine?**\n\nGive the answer in GFLOP/s.",
+  "hints": [
+    "Work out the arithmetic intensity first: flops divided by bytes moved, for one iteration.",
+    "Bandwidth times intensity gives a flop rate. Compare that with the machine's peak compute rate; the answer is whichever is smaller.",
+    "2 flops per 24 bytes is 1 flop per 12 bytes. How many bytes per second does the machine have, and how many flops does that buy?"
+  ],
+  "payload": {
+    "unit": "GFLOP/s",
+    "placeholder": "e.g. 12.5",
+    "hintFormat": "A number of GFLOP/s."
+  }
+}

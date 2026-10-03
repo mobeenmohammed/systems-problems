@@ -1,0 +1,41 @@
+{
+  "id": "dist-lamport-order",
+  "title": "Order the events by their Lamport clock",
+  "topic": "dist",
+  "difficulty": "beginner",
+  "type": "order",
+  "tags": [
+    "logical-clocks",
+    "lamport",
+    "causality",
+    "ordering"
+  ],
+  "estimate": 14,
+  "prereqs": [
+    {
+      "concept": "logical-clocks",
+      "why": "You have to run the Lamport clock rules over the diagram to get the timestamps the ordering uses."
+    }
+  ],
+  "statement": "Three processes. Each starts its Lamport clock at 0. The rules:\n\n- Before any local event, a process **increments** its own clock.\n- A **send** carries the sender's clock value with the message.\n- On **receive**, the process sets its clock to `max(own, received) + 1`.\n\nHere is what happens, with real time running left to right:\n\n```\n            time ------------------------------------------>\n\n  P1:   a .......................... f\n        |\n        +---- m1 ----+\n                     |\n  P2:                b ............. c\n                                     |\n                                     +---- m2 ----+\n                                                  |\n  P3:                                             d ....... e\n```\n\n- `a` — P1 sends `m1` to P2\n- `b` — P2 receives `m1`\n- `c` — P2 sends `m2` to P3\n- `d` — P3 receives `m2`\n- `e` — P3 does a local computation\n- `f` — P1 does a local computation, and it is P1's second event\n\nWork out each event's Lamport timestamp, then put all six events into the\nstandard **total order**: by timestamp, and where two timestamps are equal, by\nprocess number (P1 before P2 before P3).",
+  "hints": [
+    "Start with P1. Its first event is a send, so its clock goes 0 to 1 and the message carries 1. Its second event takes it to 2.",
+    "P2's receive is max(own, received) + 1 — and P2's own clock is still 0 at that point, so work out what the max is.",
+    "Two events end up with the same timestamp. That is exactly why the tie-break by process number exists, and it is the step people skip."
+  ],
+  "payload": {
+    "prompt": "Earliest in the total order at the top.",
+    "labels": [
+      "first",
+      "last"
+    ],
+    "items": [
+      "b — P2 receives m1",
+      "e — P3 does a local computation",
+      "a — P1 sends m1 to P2",
+      "c — P2 sends m2 to P3",
+      "f — P1 does a local computation",
+      "d — P3 receives m2"
+    ]
+  }
+}

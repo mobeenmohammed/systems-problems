@@ -1,0 +1,46 @@
+{
+  "id": "hpc-inclusive-scan",
+  "title": "Running totals",
+  "topic": "hpc",
+  "difficulty": "intermediate",
+  "type": "code",
+  "tags": [
+    "prefix-sum",
+    "scan",
+    "parallel-primitives"
+  ],
+  "estimate": 20,
+  "prereqs": [
+    {
+      "concept": "prefix-sum",
+      "why": "The sequential version is three lines; the reason the problem is here is what the parallel version looks like."
+    }
+  ],
+  "statement": "Read `n`, then `n` integers. Print the **inclusive prefix sums** — the running total after each element — space-separated on one line.\n\n```\ninput:   5\n         3 1 4 1 5\n\noutput:  3 4 8 9 14\n```\n\nIf `n` is 0, print nothing (an empty line is fine).\n\nValues fit in a 32-bit integer but **the sums may not**: with `n` up to 100,000 and values up to a billion, the total can reach 10^14. Use a 64-bit accumulator.\n\nThe sequential answer is three lines of code. Write it, and then read the explanation — the interesting part is that this apparently irreducibly sequential operation has a parallel form, and it is one of the most useful algorithms in the subject.",
+  "hints": [
+    "One accumulator, one pass. Add each value to it and print it as you go.",
+    "Watch the separator: the expected output has single spaces *between* numbers. Printing a space after every number works too, since trailing whitespace is forgiven.",
+    "A 32-bit accumulator will pass the small cases and silently overflow on the big one. The hidden tests include it."
+  ],
+  "payload": {
+    "langs": [
+      "cpp",
+      "python",
+      "js"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "cases": [
+      {
+        "stdin": "5\n3 1 4 1 5\n",
+        "expect": "3 4 8 9 14\n"
+      },
+      {
+        "stdin": "1\n42\n",
+        "expect": "42\n"
+      }
+    ]
+  }
+}

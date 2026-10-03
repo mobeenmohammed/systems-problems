@@ -1,0 +1,44 @@
+{
+  "id": "hpc-mpi-collectives",
+  "title": "Which collective is that?",
+  "topic": "hpc",
+  "difficulty": "intermediate",
+  "type": "match",
+  "tags": [
+    "mpi",
+    "collectives",
+    "distributed-memory"
+  ],
+  "estimate": 12,
+  "prereqs": [
+    {
+      "concept": "collectives",
+      "why": "Each pairing is a collective and the data movement that defines it."
+    }
+  ],
+  "statement": "Five MPI collectives, and the data movement each one performs. Pair them up.\n\nOne description on the right matches none of the five — it belongs to a collective famous for being the most expensive of the lot.",
+  "hints": [
+    "Two of these move data from one rank to many, and two move data from many to one. The direction and whether the data is split are what tell them apart.",
+    "The difference between a reduce and an allreduce is only where the answer ends up.",
+    "One of the five moves no data whatsoever, and is still a collective."
+  ],
+  "payload": {
+    "leftLabel": "Collective",
+    "rightLabel": "What it does",
+    "left": [
+      "MPI_Bcast",
+      "MPI_Scatter",
+      "MPI_Gather",
+      "MPI_Allreduce",
+      "MPI_Barrier"
+    ],
+    "right": [
+      "One rank's buffer is copied, whole and identical, to every rank",
+      "Every rank contributes a value, and every rank ends up holding the combined result",
+      "One rank's array is cut into pieces, and each rank receives a different piece",
+      "Every rank sends its piece to one rank, which assembles them into a whole array",
+      "No data moves at all; every rank waits until all of them have arrived",
+      "Every rank sends a distinct message to every other rank, which is why it is the most expensive of all"
+    ]
+  }
+}

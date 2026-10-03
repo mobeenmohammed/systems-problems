@@ -1,0 +1,20 @@
+{
+  "key": {
+    "order": [
+      2,
+      4,
+      0,
+      3,
+      5,
+      1
+    ]
+  },
+  "explanation": "## The timestamps\n\nRun the rules in order:\n\n| Event | Process | Rule | Clock |\n| --- | --- | --- | --- |\n| `a` | P1 | local increment, send carries 1 | **1** |\n| `b` | P2 | `max(0, 1) + 1` | **2** |\n| `c` | P2 | local increment, send carries 3 | **3** |\n| `d` | P3 | `max(0, 3) + 1` | **4** |\n| `e` | P3 | local increment | **5** |\n| `f` | P1 | local increment (P1's second event) | **2** |\n\n## The total order\n\nSort by `(timestamp, process)`:\n\n```\na  (1, P1)\nf  (2, P1)     <- same timestamp as b, lower process number\nb  (2, P2)\nc  (3, P2)\nd  (4, P3)\ne  (5, P3)\n```\n\nSo `a, f, b, c, d, e`.\n\nThe pair worth dwelling on is `f` and `b`, both at timestamp 2. They are **concurrent** — neither caused the other, and no amount of cleverness can say which \"really\" happened first, because there is no shared clock to ask. The tie-break by process id is arbitrary, and that is the point: it produces *a* consistent total order that every process will agree on, which is all a total order has to do.\n\n## What a Lamport clock does and does not promise\n\n**It gives you:** if `x` happened before `y` in the causal sense, then `C(x) < C(y)`. A message's receipt always has a larger timestamp than its send. This is exactly enough to break ties consistently, which is why Lamport clocks underpin ordered multicast, distributed mutual exclusion and a great deal of replication.\n\n**It does not give you the converse.** `C(x) < C(y)` does *not* mean `x` caused `y`. Here `C(f) = 2 < C(c) = 3`, and `f` on P1 has nothing whatever to do with `c` on P2. A single counter cannot distinguish \"before\" from \"concurrent\", because it has collapsed a partial order into a total one and thrown away the information about which pairs were unordered.\n\nThat limitation is what **vector clocks** fix: each process keeps a vector of everyone's counts, and then `V(x) < V(y)` componentwise *does* mean causality, while two vectors neither of which dominates the other mean genuine concurrency. The cost is `O(P)` space per timestamp instead of `O(1)`, which is why systems that need to detect conflicts — Dynamo-style stores, CRDTs — pay it, and systems that only need a consistent order do not.\n\n## Why not just use the wall clock\n\nBecause the wall clock lies, in ways that are specific and worth knowing:\n\n- Clocks drift, typically by tens of parts per million, so two machines diverge by milliseconds over an hour.\n- NTP corrects by **stepping**, so time can jump forwards *or backwards*. A timestamp taken after a correction can precede one taken before it.\n- A leap second can repeat a second, so two distinct events get identical timestamps.\n- VM migration and suspend/resume can move a clock arbitrarily.\n\nSo an event with an earlier wall-clock timestamp may genuinely have happened later, and last-write-wins conflict resolution based on wall clocks silently discards writes. Google's Spanner is the famous counter-example: it uses atomic clocks and GPS to bound the uncertainty, and then *waits out* the uncertainty interval before committing — which is how much work it takes to make physical time trustworthy enough to order events with.\n\nLamport's 1978 paper is four pages, predates all of this, and is still the clearest statement of the idea. It is worth reading in full.",
+  "readMore": [
+    {
+      "concept": "logical-clocks",
+      "where": "Lamport's 1978 paper, then DDIA ch. 8 on unreliable clocks"
+    }
+  ],
+  "id": "dist-lamport-order"
+}

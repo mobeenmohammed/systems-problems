@@ -147,6 +147,46 @@ for (const p of problems) {
   ok(`${p.id}: explanation teaches rather than asserts`, String(sol.explanation).length > 400);
 }
 
+/* The corruption to catch is a stray line continuation in the authoring
+   script, which joins two lines and eats the character that caused it. One
+   ASCII diagram shipped that way before this check existed.
+
+   Prose paragraphs are legitimately long — markdown does not need wrapping —
+   so the check looks only INSIDE fenced code blocks, where every line is a
+   line of code or a row of a diagram and so is short by nature. A 200-char
+   line in a code fence is not a style choice. */
+section('no code-fence line looks like two lines joined together');
+const FENCE_LIMIT = 200;
+const NEWLINE = String.fromCharCode(10);
+
+function fencedLines(text) {
+  const out = [];
+  let inside = false;
+  for (const line of String(text || '').split(NEWLINE)) {
+    if (line.trimStart().startsWith('```')) { inside = !inside; continue; }
+    if (inside) out.push(line);
+  }
+  return out;
+}
+
+for (const p of problems) {
+  const sol = solutions[p.id] || {};
+  const fields = [
+    ['statement', p.statement],
+    ['explanation', sol.explanation],
+    ['payload.code', (p.payload || {}).code],
+  ];
+  for (const [what, text] of fields) {
+    if (!text) continue;
+    /* payload.code is not fenced — it IS the code — so check it whole. */
+    const lines = what === 'payload.code' ? String(text).split(NEWLINE) : fencedLines(text);
+    const longest = lines.reduce((a, l) => Math.max(a, l.length), 0);
+    if (!ok(`${p.id}: ${what} code lines are a sane length (longest ${longest})`, longest <= FENCE_LIMIT)) {
+      console.log(`        ${lines.find(l => l.length > FENCE_LIMIT).slice(0, 160)}...`);
+    }
+  }
+}
+
 section('hints are a ramp, not a giveaway');
 for (const p of problems) {
   for (const [i, h] of (p.hints || []).entries()) {

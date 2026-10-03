@@ -740,5 +740,161 @@
         "url": "https://gcc.gnu.org/onlinedocs/gcc/Code-Gen-Options.html"
       }
     ]
+  },
+  "roofline": {
+    "name": "The roofline model",
+    "topic": "hpc",
+    "oneLine": "A kernel's arithmetic intensity — flops per byte moved — decides whether it is limited by the machine's compute throughput or by its memory bandwidth.",
+    "needs": [
+      "memory-hierarchy"
+    ],
+    "readings": [
+      {
+        "title": "Roofline: An Insightful Visual Performance Model",
+        "kind": "paper",
+        "where": "Williams, Waterman & Patterson — the original, and readable",
+        "url": "https://people.eecs.berkeley.edu/~kubitron/cs252/handouts/papers/RooflineVyNoYellow.pdf"
+      },
+      {
+        "title": "Introduction to High Performance Computing for Scientists and Engineers",
+        "kind": "book",
+        "where": "Hager & Wellein, ch. 3 on balance"
+      },
+      {
+        "title": "MIT 6.172 Performance Engineering",
+        "kind": "course",
+        "where": "Lecture 14 onward, on memory-bound code",
+        "url": "https://ocw.mit.edu/courses/6-172-performance-engineering-of-software-systems-fall-2018/"
+      }
+    ]
+  },
+  "row-major": {
+    "name": "Row-major layout and loop order",
+    "topic": "hpc",
+    "oneLine": "C stores a 2D array one row at a time, so the rightmost index is the one that walks contiguously through memory and the loop order has to match.",
+    "needs": [
+      "spatial-locality"
+    ],
+    "readings": [
+      {
+        "title": "Computer Systems: A Programmer's Perspective",
+        "kind": "book",
+        "where": "Ch. 6.6, writing cache-friendly code"
+      },
+      {
+        "title": "What Every Programmer Should Know About Memory",
+        "kind": "paper",
+        "where": "Drepper, section 6.2 on access patterns"
+      },
+      {
+        "title": "Cache Blocking Techniques",
+        "kind": "docs",
+        "where": "Intel, on tiling once the order is right",
+        "url": "https://www.intel.com/content/www/us/en/developer/articles/technical/cache-blocking-techniques.html"
+      }
+    ]
+  },
+  "prefix-sum": {
+    "name": "Prefix sum (scan)",
+    "topic": "hpc",
+    "oneLine": "A scan turns a sequence into its running totals, and despite looking irreducibly sequential it parallelises to logarithmic depth — which makes it the building block of a surprising number of parallel algorithms.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "Prefix Sums and Their Applications",
+        "kind": "paper",
+        "where": "Guy Blelloch — the canonical treatment",
+        "url": "https://www.cs.cmu.edu/~guyb/papers/Ble93.pdf"
+      },
+      {
+        "title": "Programming Massively Parallel Processors",
+        "kind": "book",
+        "where": "Kirk & Hwu, the scan chapter"
+      },
+      {
+        "title": "cppreference: std::inclusive_scan",
+        "kind": "docs",
+        "where": "including the parallel execution policy",
+        "url": "https://en.cppreference.com/w/cpp/algorithm/inclusive_scan"
+      }
+    ]
+  },
+  "collectives": {
+    "name": "Collective communication",
+    "topic": "hpc",
+    "oneLine": "A collective is an operation every rank in a group takes part in together, and each one has a characteristic communication pattern and cost.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "MPI collective communication",
+        "kind": "docs",
+        "where": "LLNL's tutorial, with the diagrams",
+        "url": "https://hpc-tutorials.llnl.gov/mpi/collective_communication_routines/"
+      },
+      {
+        "title": "Introduction to High Performance Computing for Scientists and Engineers",
+        "kind": "book",
+        "where": "Hager & Wellein, ch. 9-10"
+      },
+      {
+        "title": "Optimization of Collective Communication Operations in MPICH",
+        "kind": "paper",
+        "where": "Thakur et al., for how they are actually implemented",
+        "url": "https://www.mcs.anl.gov/~thakur/papers/ijhpca-coll.pdf"
+      }
+    ]
+  },
+  "tiling": {
+    "name": "Tiling and blocking",
+    "topic": "hpc",
+    "oneLine": "Restructuring a loop nest to work on blocks small enough to stay in cache, so that data loaded once is used many times before it is evicted.",
+    "needs": [
+      "spatial-locality",
+      "row-major"
+    ],
+    "readings": [
+      {
+        "title": "Computer Systems: A Programmer's Perspective",
+        "kind": "book",
+        "where": "Ch. 6.6, and the matmul case study"
+      },
+      {
+        "title": "Cache-Oblivious Algorithms",
+        "kind": "paper",
+        "where": "Frigo et al., for the version that needs no tile size",
+        "url": "https://people.csail.mit.edu/leiserson/papers/FOCS99.pdf"
+      },
+      {
+        "title": "MIT 6.172 Performance Engineering",
+        "kind": "course",
+        "where": "Lectures 14-15, caching and cache-efficient algorithms",
+        "url": "https://ocw.mit.edu/courses/6-172-performance-engineering-of-software-systems-fall-2018/"
+      }
+    ]
+  },
+  "logical-clocks": {
+    "name": "Logical clocks",
+    "topic": "dist",
+    "oneLine": "A Lamport clock is a counter per process, incremented on each event and advanced on receipt to exceed the sender's, which gives an ordering consistent with causality without any synchronised time.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "Time, Clocks, and the Ordering of Events in a Distributed System",
+        "kind": "paper",
+        "where": "Lamport, 1978 — short, and the foundation of everything after it",
+        "url": "https://lamport.azurewebsites.net/pubs/time-clocks.pdf"
+      },
+      {
+        "title": "Designing Data-Intensive Applications",
+        "kind": "book",
+        "where": "Ch. 8-9, unreliable clocks and ordering"
+      },
+      {
+        "title": "MIT 6.824 Distributed Systems",
+        "kind": "course",
+        "where": "the lectures on ordering and consistency",
+        "url": "https://pdos.csail.mit.edu/6.824/"
+      }
+    ]
   }
 }

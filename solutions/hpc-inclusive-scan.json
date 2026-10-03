@@ -1,0 +1,47 @@
+{
+  "key": {
+    "cases": [
+      {
+        "stdin": "0\n",
+        "expect": "\n"
+      },
+      {
+        "stdin": "3\n-1 -2 -3\n",
+        "expect": "-1 -3 -6\n"
+      },
+      {
+        "stdin": "4\n0 0 0 0\n",
+        "expect": "0 0 0 0\n"
+      },
+      {
+        "stdin": "6\n1 -1 1 -1 1 -1\n",
+        "expect": "1 0 1 0 1 0\n"
+      },
+      {
+        "stdin": "5\n1000000000 1000000000 1000000000 1000000000 1000000000\n",
+        "expect": "1000000000 2000000000 3000000000 4000000000 5000000000\n"
+      },
+      {
+        "stdin": "2\n2147483647 1\n",
+        "expect": "2147483647 2147483648\n"
+      },
+      {
+        "stdin": "7\n5 0 -5 10 -10 1 -1\n",
+        "expect": "5 5 0 10 0 1 0\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n\nint main() {\n    std::ios::sync_with_stdio(false);\n    std::cin.tie(nullptr);\n\n    long long n;\n    if (!(std::cin >> n)) return 0;\n\n    long long running = 0;\n    for (long long i = 0; i < n; ++i) {\n        long long v;\n        if (!(std::cin >> v)) break;\n        running += v;\n        if (i) std::cout << ' ';\n        std::cout << running;\n    }\n    std::cout << \"\\n\";\n    return 0;\n}\n",
+      "python": "import sys\n\ndata = sys.stdin.read().split()\nif not data:\n    sys.exit(0)\n\nn = int(data[0])\nout = []\nrunning = 0\nfor token in data[1:1 + n]:\n    running += int(token)\n    out.append(str(running))\n\nprint(\" \".join(out))\n",
+      "js": "const data = readStdin().split(/\\s+/).filter(s => s.length > 0);\nconst n = Number(data[0] || 0);\n\nlet running = 0;\nconst out = [];\nfor (let i = 0; i < n; i += 1) {\n  running += Number(data[i + 1]);\n  out.push(String(running));\n}\n\nprint(out.join(' '));\n"
+    }
+  },
+  "explanation": "## Sequentially, it is one accumulator\n\n```cpp\nlong long running = 0;\nfor (long long i = 0; i < n; ++i) {\n    running += v[i];\n    std::cout << running << (i + 1 < n ? \" \" : \"\");\n}\n```\n\nThe two things the hidden tests check are the 64-bit accumulator — five billion does not fit in an `int`, and the symptom is a wrong *negative* number rather than a crash — and `n = 0`, which should print nothing rather than crashing on a missing second line.\n\n## Why this problem is actually interesting\n\nLook at the dependency: `out[i]` needs `out[i-1]`. Every element depends on the one before it, all the way back to the start. That is the definition of a sequential chain, and the obvious conclusion is that a scan cannot be parallelised.\n\nThe obvious conclusion is wrong, and seeing why is worth more than the exercise.\n\n## The parallel scan, in two sweeps\n\nThe trick is to compute **partial sums of subtrees** first, then push the offsets back down. Blelloch's formulation, on 8 elements:\n\n```\ninput:        3   1   4   1   5   9   2   6\n\nup-sweep (reduce): pairs, then pairs of pairs\n  stride 1:   3   4   4   5   5  14   2   8\n  stride 2:   3   4   4   9   5  14   2  22\n  stride 4:   3   4   4   9   5  14   2  31     <- total is in the last slot\n\ndown-sweep: push each subtree's offset into its right child\n  ...\nresult:       3   4   8   9  14  23  25  31\n```\n\nTwo passes, each of `log n` steps. The **depth** is `O(log n)` instead of `O(n)`, so with enough processors the whole thing finishes in logarithmic time. The total work is `O(n)` in the up-sweep and `O(n)` in the down-sweep — twice the sequential work, which is the price of the parallelism and is why a parallel scan only pays off when you genuinely have the processors.\n\nA simpler version that is often what you actually want: split the array into `P` chunks, sum each chunk in parallel, scan the `P` chunk totals sequentially (tiny), then in parallel have each chunk add its offset and scan locally. Three phases, each embarrassingly parallel except a scan of `P` elements. This is what OpenMP and `std::inclusive_scan(std::execution::par, ...)` do.\n\n## Why anyone cares\n\nScan is a primitive, and an enormous number of things are a scan in disguise:\n\n- **Stream compaction.** Want all the elements matching a predicate, packed? Scan the 0/1 predicate flags, and each kept element's prefix sum *is* its destination index. One scan and one scatter, fully parallel. This is the backbone of GPU filtering.\n- **Radix sort.** Counting how many keys go in each bucket, and then where each bucket starts, is a scan. Parallel radix sort is scans all the way down.\n- **Allocation.** Each thread needs `k_i` slots from a shared array; a scan of the `k_i` gives every thread its offset with no atomics and no contention.\n- **Line numbers, running balances, cumulative distributions.** The boring ones, which are most of the uses.\n- **Quicksort partitioning, sparse matrix row offsets, polynomial evaluation, even binary addition** — carries are a scan, which is why a carry-lookahead adder is logarithmic in width rather than linear.\n\nThe general lesson is the transferable one: **an operation that looks sequential because each step depends on the last may still be parallel if the operator is associative.** `+` is associative, and that is the only property the scan uses — which is why the same algorithm works for max, min, multiply, bitwise or, matrix multiply, and string concatenation.\n\n## Floating point spoils it slightly\n\nFor `double`, addition is *not* associative — `(a+b)+c` and `a+(b+c)` can differ in the last bits. So a parallel scan gives a slightly different answer from the sequential one, and a different answer again with a different thread count. That is not a bug, but it does mean a test asserting bit-exact equality against a sequential run will fail intermittently. Compensated summation (Kahan) narrows the error; it does not make the operation associative.",
+  "readMore": [
+    {
+      "concept": "prefix-sum",
+      "where": "Blelloch's paper, then the scan chapter of Kirk & Hwu"
+    }
+  ],
+  "id": "hpc-inclusive-scan"
+}

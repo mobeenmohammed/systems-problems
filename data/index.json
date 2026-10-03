@@ -184,6 +184,23 @@
     ]
   },
   {
+    "id": "dist-lamport-order",
+    "title": "Order the events by their Lamport clock",
+    "topic": "dist",
+    "difficulty": "beginner",
+    "type": "order",
+    "tags": [
+      "logical-clocks",
+      "lamport",
+      "causality",
+      "ordering"
+    ],
+    "estimate": 14,
+    "prereqs": [
+      "logical-clocks"
+    ]
+  },
+  {
     "id": "dist-partition-choice",
     "title": "What a partition actually costs you",
     "topic": "dist",
@@ -199,6 +216,97 @@
     "prereqs": [
       "cap-theorem",
       "replication"
+    ]
+  },
+  {
+    "id": "hpc-loop-order-row-major",
+    "title": "Which loop order, and why",
+    "topic": "hpc",
+    "difficulty": "beginner",
+    "type": "mcq",
+    "tags": [
+      "locality",
+      "row-major",
+      "loops",
+      "caches"
+    ],
+    "estimate": 10,
+    "prereqs": [
+      "row-major",
+      "cache-lines"
+    ]
+  },
+  {
+    "id": "hpc-roofline-bound",
+    "title": "Compute-bound or memory-bound?",
+    "topic": "hpc",
+    "difficulty": "beginner",
+    "type": "numeric",
+    "tags": [
+      "roofline",
+      "bandwidth",
+      "arithmetic-intensity"
+    ],
+    "estimate": 12,
+    "prereqs": [
+      "roofline",
+      "memory-hierarchy"
+    ]
+  },
+  {
+    "id": "hpc-inclusive-scan",
+    "title": "Running totals",
+    "topic": "hpc",
+    "difficulty": "intermediate",
+    "type": "code",
+    "tags": [
+      "prefix-sum",
+      "scan",
+      "parallel-primitives"
+    ],
+    "estimate": 20,
+    "prereqs": [
+      "prefix-sum"
+    ],
+    "langs": [
+      "cpp",
+      "python",
+      "js"
+    ]
+  },
+  {
+    "id": "hpc-mpi-collectives",
+    "title": "Which collective is that?",
+    "topic": "hpc",
+    "difficulty": "intermediate",
+    "type": "match",
+    "tags": [
+      "mpi",
+      "collectives",
+      "distributed-memory"
+    ],
+    "estimate": 12,
+    "prereqs": [
+      "collectives"
+    ]
+  },
+  {
+    "id": "hpc-transpose-lower-bound",
+    "title": "The fewest lines a transpose can move",
+    "topic": "hpc",
+    "difficulty": "advanced",
+    "type": "numeric",
+    "tags": [
+      "tiling",
+      "caches",
+      "bandwidth",
+      "lower-bounds"
+    ],
+    "estimate": 16,
+    "prereqs": [
+      "tiling",
+      "cache-lines",
+      "row-major"
     ]
   },
   {

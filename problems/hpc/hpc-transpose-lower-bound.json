@@ -1,0 +1,39 @@
+{
+  "id": "hpc-transpose-lower-bound",
+  "title": "The fewest lines a transpose can move",
+  "topic": "hpc",
+  "difficulty": "advanced",
+  "type": "numeric",
+  "tags": [
+    "tiling",
+    "caches",
+    "bandwidth",
+    "lower-bounds"
+  ],
+  "estimate": 16,
+  "prereqs": [
+    {
+      "concept": "tiling",
+      "why": "The number asked for is the one a tiled transpose achieves and a naive one does not."
+    },
+    {
+      "concept": "cache-lines",
+      "why": "The whole count is in units of cache lines, so the line size is the unit of the answer."
+    },
+    {
+      "concept": "row-major",
+      "why": "Which of the two arrays is strided depends on the layout, and that is where the naive version loses."
+    }
+  ],
+  "statement": "Transpose a square matrix of `double`s out of place:\n\n```c\nfor (int i = 0; i < n; i++)\n    for (int j = 0; j < n; j++)\n        b[j][i] = a[i][j];\n```\n\nwith **n = 1024**, row-major layout, **64-byte cache lines**, and a cache far too small to hold any significant part of either matrix.\n\nForget the loop above for a moment. **Any correct transpose must read every element of `a` and write every element of `b`.**\n\n**What is the smallest number of 64-byte cache-line transfers that any correct transpose of this matrix could possibly perform?**\n\nGive a plain count of lines.",
+  "hints": [
+    "This is a question about how much data must move, not about the loop. How many bytes are in `a`, and how many must be written to `b`?",
+    "A 64-byte line holds eight doubles, and a line is the unit in which memory moves. How many lines does one matrix occupy?",
+    "Both matrices must be touched in full, and in the best case each of their lines is transferred exactly once."
+  ],
+  "payload": {
+    "unit": "cache lines",
+    "placeholder": "e.g. 262144",
+    "hintFormat": "A plain count."
+  }
+}

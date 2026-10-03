@@ -1,0 +1,38 @@
+{
+  "id": "hpc-loop-order-row-major",
+  "title": "Which loop order, and why",
+  "topic": "hpc",
+  "difficulty": "beginner",
+  "type": "mcq",
+  "tags": [
+    "locality",
+    "row-major",
+    "loops",
+    "caches"
+  ],
+  "estimate": 10,
+  "prereqs": [
+    {
+      "concept": "row-major",
+      "why": "The answer is which index walks contiguously in C's layout."
+    },
+    {
+      "concept": "cache-lines",
+      "why": "The cost difference is entirely about how much of each fetched line gets used."
+    }
+  ],
+  "statement": "A C array declared `double a[N][N]`, with `N = 4096`. Two loops that do exactly the same arithmetic:\n\n```c\n/* version A */\nfor (int i = 0; i < N; i++)\n    for (int j = 0; j < N; j++)\n        sum += a[i][j];\n\n/* version B */\nfor (int j = 0; j < N; j++)\n    for (int i = 0; i < N; i++)\n        sum += a[i][j];\n```\n\nVersion A runs about **eight times faster** than version B on a machine with 64-byte cache lines.\n\n**What is the reason?**",
+  "hints": [
+    "In C, `a[i][j]` and `a[i][j+1]` are next to each other in memory. What about `a[i][j]` and `a[i+1][j]`?",
+    "A 64-byte line holds eight doubles. Work out how many of those eight each version uses before moving on.",
+    "The factor of eight in the measurement and the number of doubles per line are the same number. That is not a coincidence."
+  ],
+  "payload": {
+    "options": [
+      "Version A walks memory contiguously, so each 64-byte line it fetches supplies eight consecutive additions. Version B strides by a whole row, so each fetched line supplies one addition and the other seven doubles are wasted.",
+      "Version A performs fewer additions, because the inner loop over `j` can be vectorised while the inner loop over `i` cannot.",
+      "Version B is slower because it causes more TLB misses, and the cache behaviour of the two is the same.",
+      "Version B accesses the array out of bounds on the last iteration, and the slowdown is the cost of the resulting page faults."
+    ]
+  }
+}
