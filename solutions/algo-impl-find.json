@@ -1,0 +1,62 @@
+{
+  "key": {
+    "cases": [
+      {
+        "stdin": "1\n5\n1\n5\n",
+        "expect": "5 first 0 last 0\n"
+      },
+      {
+        "stdin": "3\n1 2 3\n1\n3\n",
+        "expect": "3 first 2 last 2\n"
+      },
+      {
+        "stdin": "4\n8 8 8 8\n1\n8\n",
+        "expect": "8 first 0 last 3\n"
+      },
+      {
+        "stdin": "5\n1 2 3 4 5\n0\n",
+        "expect": ""
+      },
+      {
+        "stdin": "5\n-1 -2 -1 0 -1\n3\n-1 -2 0\n",
+        "expect": "-1 first 0 last 4\n-2 first 1 last 1\n0 first 3 last 3\n"
+      },
+      {
+        "stdin": "3\n0 0 1\n2\n0 1\n",
+        "expect": "0 first 0 last 1\n1 first 2 last 2\n"
+      },
+      {
+        "stdin": "6\n5 1 5 1 5 1\n2\n5 1\n",
+        "expect": "5 first 0 last 4\n1 first 1 last 5\n"
+      },
+      {
+        "stdin": "2\n-1 -1\n2\n-1 1\n",
+        "expect": "-1 first 0 last 1\n1 absent\n"
+      },
+      {
+        "stdin": "0\n0\n",
+        "expect": ""
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n#include <vector>\n\nint firstIndexOf(const std::vector<int>& v, int target)\n{\n    for (std::size_t i = 0; i < v.size(); ++i)\n        if (v[i] == target) return static_cast<int>(i);\n    return -1;\n}\n\nint lastIndexOf(const std::vector<int>& v, int target)\n{\n    for (std::size_t i = v.size(); i > 0; --i)\n        if (v[i - 1] == target) return static_cast<int>(i - 1);\n    return -1;\n}\n\nint main()\n{\n    int n{};\n    if (!(std::cin >> n)) return 0;\n\n    std::vector<int> v;\n    for (int i = 0; i < n; ++i)\n    {\n        int x{};\n        std::cin >> x;\n        v.push_back(x);\n    }\n\n    int q{};\n    std::cin >> q;\n    for (int i = 0; i < q; ++i)\n    {\n        int target{};\n        std::cin >> target;\n        int f{ firstIndexOf(v, target) };\n        if (f < 0) std::cout << target << \" absent\\n\";\n        else       std::cout << target << \" first \" << f\n                             << \" last \" << lastIndexOf(v, target) << \"\\n\";\n    }\n\n    return 0;\n}\n",
+      "python": "import sys\n\ndef first_index_of(v, target):\n    for i in range(len(v)):\n        if v[i] == target:\n            return i\n    return -1\n\ndef last_index_of(v, target):\n    for i in range(len(v), 0, -1):\n        if v[i - 1] == target:\n            return i - 1\n    return -1\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    pos = 0\n    n = int(data[pos]); pos += 1\n    v = [int(data[pos + i]) for i in range(n)]; pos += n\n    q = int(data[pos]); pos += 1\n    out = []\n    for _ in range(q):\n        target = int(data[pos]); pos += 1\n        f = first_index_of(v, target)\n        if f < 0:\n            out.append(\"%d absent\" % target)\n        else:\n            out.append(\"%d first %d last %d\" % (target, f, last_index_of(v, target)))\n    print(\"\\n\".join(out))\n\nmain()\n"
+    }
+  },
+  "explanation": "## Forwards\n\n```cpp\nint firstIndexOf(const std::vector<int>& v, int target)\n{\n    for (std::size_t i = 0; i < v.size(); ++i)\n        if (v[i] == target) return static_cast<int>(i);\n    return -1;\n}\n```\n\nNothing surprising: compare each element, return the index of the first match,\nreturn -1 if the loop finishes. The `static_cast<int>` is there because `i` is\n`std::size_t` and the return type is `int` - narrowing without a cast is what\n`-Wconversion` complains about, and writing the cast is a way of saying \"yes, I\nknow `n` is small enough\".\n\n## Backwards, and the loop that never ends\n\nThe natural translation of \"start at the last index and count down\" is a bug:\n\n```cpp\nfor (std::size_t i = v.size() - 1; i >= 0; --i)     // broken twice over\n    if (v[i] == target) return static_cast<int>(i);\n```\n\nTwo separate failures, both caused by `std::size_t` being **unsigned**:\n\n**`i >= 0` is always true.** An unsigned value cannot be negative, so the loop\ncondition can never become false. GCC says so with `-Wtype-limits`, part of\n`-Wextra`: *comparison of unsigned expression in '>= 0' is always true*.\n\n**`--i` at `i == 0` wraps.** Unsigned arithmetic is defined to wrap modulo 2^64,\nso `0 - 1` is 18446744073709551615. The loop then evaluates\n`v[18446744073709551615]`, which is an address roughly 147 exabytes past the\narray. In practice the program segfaults - but only *in practice*: reading out of\nbounds is undefined behaviour, so a smaller overrun may read whatever happens to\nbe in memory and keep going with plausible garbage.\n\n**And on an empty vector it is worse.** `v.size() - 1` is already the huge value\nbefore the loop body ever runs, so the very first `v[i]` is out of bounds.\n\n## Two safe ways to write it\n\n**A one-past-the-end counter**, which is what the reference does:\n\n```cpp\nfor (std::size_t i = v.size(); i > 0; --i)\n    if (v[i - 1] == target) return static_cast<int>(i - 1);\n```\n\n`i` runs from `size()` down to 1, so it never reaches 0 and never wraps. The\nelement is `v[i - 1]`, and the subtraction is safe because the condition\nguarantees `i >= 1`. On an empty vector `i` starts at 0, `i > 0` is false, and\nthe loop body never runs.\n\n**A signed index**, which is fine when the size fits:\n\n```cpp\nfor (int i = static_cast<int>(v.size()) - 1; i >= 0; --i)\n    if (v[i] == target) return i;\n```\n\nNow `i >= 0` means what it looks like, because `int` can be negative. This reads\nmore naturally and is perfectly correct for `n` up to two billion. It is why\nsome large codebases - Google's among them - prefer signed integers for indices\nand sizes, and why `std::ssize` was added in C++20 to get a signed size without\na cast.\n\nThe lesson generalises past this loop: **an unsigned type does not mean \"a number\nthat cannot be negative\", it means \"a number that silently becomes enormous\ninstead\".** Any subtraction on an unsigned value is a place to stop and check.\n\n## Two loops or one\n\nBoth answers could come from a single pass:\n\n```cpp\nint f{ -1 }, l{ -1 };\nfor (std::size_t i = 0; i < v.size(); ++i)\n    if (v[i] == target) { if (f < 0) f = static_cast<int>(i); l = static_cast<int>(i); }\n```\n\nOne traversal instead of two, and for a vector in cache that is roughly twice as\nfast. It also loses the early exit: `firstIndexOf` on a match at index 0 stops\nimmediately, where the combined loop always walks the whole array.\n\nTwo named functions were chosen here because each one is independently testable\nand the backward loop is the thing being practised. Either is defensible; the\nsingle pass is what you would write if this were on a hot path.\n\n## -1 as \"not found\", and why it is a weak habit\n\nIt works here because an *index* is never negative, so -1 cannot be mistaken for\na real answer. That is the condition the convention depends on, and it is easy to\noutgrow: the moment the function returns a *value* from the array rather than an\nindex, -1 becomes a legitimate element and the sentinel becomes a bug. The hidden\ncase with `-1` in the data is a reminder of how close that is.\n\nThe modern alternatives say \"or nothing\" in the type:\n\n```cpp\nstd::optional<std::size_t> firstIndexOf(...);   // has_value() or not\n```\n\nand the standard library's own answer is a past-the-end iterator:\n\n```cpp\nauto it = std::find(v.begin(), v.end(), target);\nif (it == v.end()) { /* absent */ }\nelse               { std::size_t idx = static_cast<std::size_t>(it - v.begin()); }\n```\n\n`v.end()` is a position that exists and cannot be dereferenced, so \"not found\" is\nrepresented without stealing a value from the result space. That is the same\nhalf-open-range idea as the loop above, used for a different purpose.\n\n## Python, for comparison\n\n```python\nfor i in range(len(v) - 1, -1, -1):\n    if v[i] == target:\n        return i\n```\n\nThis is safe, because Python integers are arbitrary-precision and signed -\n`len(v) - 1` on an empty list is `-1`, and `range(-1, -1, -1)` is simply empty.\nThe entire class of bug above does not exist. That is worth seeing side by side:\nthe C++ version is not harder because C++ is clumsy, it is harder because the\nindex is a fixed-width machine integer, which is also why the C++ version\ncompiles to a single pointer decrement.",
+  "readMore": [
+    {
+      "concept": "linear-search",
+      "where": "CLRS 2.1, then std::find on cppreference"
+    },
+    {
+      "concept": "cpp-integer-types",
+      "where": "CS:APP 2.2-2.3, which is where unsigned wraparound is made concrete"
+    },
+    {
+      "concept": "sentinel-values",
+      "where": "cppreference on std::optional"
+    }
+  ],
+  "id": "algo-impl-find"
+}

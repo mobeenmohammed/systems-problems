@@ -18,6 +18,77 @@
     ]
   },
   {
+    "id": "algo-impl-count",
+    "title": "Three counters and an invariant that checks them",
+    "topic": "algo",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "counting",
+      "linear-search",
+      "invariants",
+      "implementation"
+    ],
+    "estimate": 16,
+    "prereqs": [
+      "linear-search",
+      "loop-invariants",
+      "cpp-conditions"
+    ],
+    "langs": [
+      "cpp",
+      "python"
+    ]
+  },
+  {
+    "id": "algo-impl-find",
+    "title": "Find it, and find it again from the other end",
+    "topic": "algo",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "linear-search",
+      "indexing",
+      "implementation"
+    ],
+    "estimate": 20,
+    "prereqs": [
+      "linear-search",
+      "sentinel-values",
+      "cpp-std-vector"
+    ],
+    "langs": [
+      "cpp",
+      "python"
+    ]
+  },
+  {
+    "id": "algo-impl-int-stack",
+    "title": "A stack in a fixed array",
+    "topic": "algo",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "stack",
+      "containers",
+      "implementation",
+      "bounds"
+    ],
+    "estimate": 24,
+    "prereqs": [
+      "stack-discipline",
+      "cpp-std-vector",
+      "array-bounds"
+    ],
+    "langs": [
+      "cpp",
+      "python"
+    ]
+  },
+  {
     "id": "algo-running-max",
     "title": "Running maximum, without reading past the end",
     "topic": "algo",
@@ -58,6 +129,80 @@
     "prereqs": [
       "integer-conversions",
       "undefined-behaviour"
+    ]
+  },
+  {
+    "id": "algo-impl-circular-queue",
+    "title": "A queue that wraps around",
+    "topic": "algo",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "ring-buffer",
+      "queue",
+      "containers",
+      "modulo",
+      "implementation"
+    ],
+    "estimate": 30,
+    "prereqs": [
+      "ring-buffers",
+      "stack-discipline",
+      "array-bounds"
+    ],
+    "langs": [
+      "cpp",
+      "python"
+    ]
+  },
+  {
+    "id": "algo-impl-dynamic-array",
+    "title": "The array that grows itself",
+    "topic": "algo",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "dynamic-array",
+      "amortised",
+      "capacity",
+      "containers",
+      "implementation"
+    ],
+    "estimate": 32,
+    "prereqs": [
+      "geometric-growth",
+      "amortised-analysis",
+      "cpp-std-vector"
+    ],
+    "langs": [
+      "cpp",
+      "python"
+    ]
+  },
+  {
+    "id": "algo-impl-lower-bound",
+    "title": "Binary search that answers the right question",
+    "topic": "algo",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "binary-search",
+      "invariants",
+      "sorted-data",
+      "implementation"
+    ],
+    "estimate": 30,
+    "prereqs": [
+      "binary-search",
+      "loop-invariants",
+      "cpp-std-vector"
+    ],
+    "langs": [
+      "cpp",
+      "python"
     ]
   },
   {

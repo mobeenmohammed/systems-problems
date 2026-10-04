@@ -1,0 +1,58 @@
+{
+  "id": "algo-impl-find",
+  "title": "Find it, and find it again from the other end",
+  "topic": "algo",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "linear-search",
+    "indexing",
+    "implementation"
+  ],
+  "estimate": 20,
+  "prereqs": [
+    {
+      "concept": "linear-search",
+      "why": "This is the algorithm itself, written out rather than called."
+    },
+    {
+      "concept": "sentinel-values",
+      "why": "Not found has to be reported somehow, and -1 is the convention this problem uses and the solution criticises."
+    },
+    {
+      "concept": "cpp-std-vector",
+      "why": "The values are held in a vector and reached by index in both directions."
+    }
+  ],
+  "statement": "Implement the search yourself - do not call `std::find`, `index` or anything\nequivalent.\n\nInput is `n`, then `n` integers, then `q`, then `q` query values. For each query\nprint the **first** and **last** index at which it occurs, or that it is absent.\nIndices are 0-based.\n\n```\n<query> first <i> last <j>\n<query> absent\n```\n\n```\ninput:   6                   output:  4 first 1 last 4\n         7 4 9 4 4 1                  7 first 0 last 0\n         3                            5 absent\n         4 7 5\n```\n\n### The point of the problem\n\nTwo functions, each a loop in one direction:\n\n```cpp\nint firstIndexOf(const std::vector<int>& v, int target);\nint lastIndexOf(const std::vector<int>& v, int target);\n```\n\nWalking forwards and stopping at the first match is easy. Walking **backwards**\nover an index that is unsigned is where this problem actually lives, and it is\nthe single most common source of silent memory bugs in C and C++. The solution\nexplains the two ways to write it safely.\n\n### Boundary cases\n\nA match at index 0 and a match at the last index. A value appearing exactly\nonce, so first and last are equal. An empty array, where every query is absent.\n`q = 0`, which prints nothing. All elements identical. Negative values, which is\nwhy `-1` as the not-found marker deserves a second look.\n\n### Platform assumptions\n\nValues and queries fit in a 32-bit `int`, `n` is at most 2000 and `q` at most\n2000, so the simple O(n) per query is well inside the time limit. Indices fit in\nan `int` because `n` is small; the solution says what to do when that is not\ntrue.",
+  "hints": [
+    "Forwards: `for (std::size_t i = 0; i < v.size(); ++i)` and return `static_cast<int>(i)` on the first match. The cast is needed because `size()` is unsigned and the function returns `int`.",
+    "Backwards is the trap. `for (std::size_t i = v.size() - 1; i >= 0; --i)` never ends: `i >= 0` is always true for an unsigned type, and when `i` is 0 the `--i` wraps it to a huge number. The loop then reads far out of bounds.",
+    "Write the backward loop with a one-past-the-end counter instead: `for (std::size_t i = v.size(); i > 0; --i)` and look at `v[i - 1]`. The counter never goes below zero, and it stops cleanly on an empty vector."
+  ],
+  "payload": {
+    "langs": [
+      "cpp",
+      "python"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n#include <vector>\n\nint firstIndexOf(const std::vector<int>& v, int target)\n{\n    return -1;   // <- replace\n}\n\nint lastIndexOf(const std::vector<int>& v, int target)\n{\n    return -1;   // <- replace, walking backwards\n}\n\nint main()\n{\n    int n{};\n    std::cin >> n;\n\n    std::vector<int> v;\n    for (int i = 0; i < n; ++i)\n    {\n        int x{};\n        std::cin >> x;\n        v.push_back(x);\n    }\n\n    int q{};\n    std::cin >> q;\n    for (int i = 0; i < q; ++i)\n    {\n        int target{};\n        std::cin >> target;\n        // print \"<target> first <f> last <l>\" or \"<target> absent\"\n    }\n\n    return 0;\n}\n",
+      "python": "import sys\n\ndef first_index_of(v, target):\n    return -1   # <- replace\n\ndef last_index_of(v, target):\n    return -1   # <- replace\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    pos = 0\n    n = int(data[pos]); pos += 1\n    v = [int(data[pos + i]) for i in range(n)]; pos += n\n    q = int(data[pos]); pos += 1\n    for _ in range(q):\n        target = int(data[pos]); pos += 1\n        # print the line for this query\n\nmain()\n"
+    },
+    "cases": [
+      {
+        "stdin": "6\n7 4 9 4 4 1\n3\n4 7 5\n",
+        "expect": "4 first 1 last 4\n7 first 0 last 0\n5 absent\n"
+      },
+      {
+        "stdin": "0\n2\n1 2\n",
+        "expect": "1 absent\n2 absent\n"
+      }
+    ]
+  }
+}

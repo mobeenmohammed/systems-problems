@@ -1,0 +1,54 @@
+{
+  "key": {
+    "cases": [
+      {
+        "stdin": "0 3\npush 1\nsize\npop\n",
+        "expect": "push full\nsize 0\npop empty\n"
+      },
+      {
+        "stdin": "1 6\npush 7\npush 8\ntop\npop\npop\nsize\n",
+        "expect": "push ok\npush full\ntop 7\npop 7\npop empty\nsize 0\n"
+      },
+      {
+        "stdin": "3 11\npush 1\npush 2\npush 3\nsize\npop\npop\npop\nsize\npush 9\ntop\nsize\n",
+        "expect": "push ok\npush ok\npush ok\nsize 3\npop 3\npop 2\npop 1\nsize 0\npush ok\ntop 9\nsize 1\n"
+      },
+      {
+        "stdin": "2 8\npush -1\npush -2\npop\npop\npop\npush -3\ntop\nsize\n",
+        "expect": "push ok\npush ok\npop -2\npop -1\npop empty\npush ok\ntop -3\nsize 1\n"
+      },
+      {
+        "stdin": "3 6\npush 0\npush 0\ntop\npop\ntop\nsize\n",
+        "expect": "push ok\npush ok\ntop 0\npop 0\ntop 0\nsize 1\n"
+      },
+      {
+        "stdin": "2 5\npop\npop\npush 4\npop\npop\n",
+        "expect": "pop empty\npop empty\npush ok\npop 4\npop empty\n"
+      },
+      {
+        "stdin": "1 4\npush 2000000000\ntop\npop\npush -2000000000\n",
+        "expect": "push ok\ntop 2000000000\npop 2000000000\npush ok\n"
+      },
+      {
+        "stdin": "4 4\nsize\nsize\nsize\nsize\n",
+        "expect": "size 0\nsize 0\nsize 0\nsize 0\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n#include <string>\n#include <vector>\n\nint main()\n{\n    int cap{};\n    int m{};\n    if (!(std::cin >> cap >> m)) return 0;\n\n    std::vector<int> buf(static_cast<std::size_t>(cap < 0 ? 0 : cap), 0);\n    std::size_t count{ 0 };\n\n    for (int i = 0; i < m; ++i)\n    {\n        std::string cmd;\n        if (!(std::cin >> cmd)) break;\n\n        if (cmd == \"push\")\n        {\n            int x{};\n            std::cin >> x;\n            if (count == buf.size()) std::cout << \"push full\\n\";\n            else { buf[count] = x; ++count; std::cout << \"push ok\\n\"; }\n        }\n        else if (cmd == \"pop\")\n        {\n            if (count == 0) std::cout << \"pop empty\\n\";\n            else { --count; std::cout << \"pop \" << buf[count] << \"\\n\"; }\n        }\n        else if (cmd == \"top\")\n        {\n            if (count == 0) std::cout << \"top empty\\n\";\n            else std::cout << \"top \" << buf[count - 1] << \"\\n\";\n        }\n        else if (cmd == \"size\")\n        {\n            std::cout << \"size \" << count << \"\\n\";\n        }\n    }\n\n    return 0;\n}\n",
+      "python": "import sys\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    pos = 0\n    cap = int(data[pos]); pos += 1\n    m = int(data[pos]); pos += 1\n\n    buf = [0] * max(cap, 0)\n    count = 0\n    out = []\n\n    for _ in range(m):\n        if pos >= len(data):\n            break\n        cmd = data[pos]; pos += 1\n        if cmd == \"push\":\n            x = int(data[pos]); pos += 1\n            if count == len(buf):\n                out.append(\"push full\")\n            else:\n                buf[count] = x\n                count += 1\n                out.append(\"push ok\")\n        elif cmd == \"pop\":\n            if count == 0:\n                out.append(\"pop empty\")\n            else:\n                count -= 1\n                out.append(\"pop %d\" % buf[count])\n        elif cmd == \"top\":\n            out.append(\"top empty\" if count == 0 else \"top %d\" % buf[count - 1])\n        elif cmd == \"size\":\n            out.append(\"size %d\" % count)\n\n    print(\"\\n\".join(out))\n\nmain()\n"
+    }
+  },
+  "explanation": "## The whole structure\n\n```cpp\nstd::vector<int> buf(cap, 0);     // cap slots, allocated once\nstd::size_t count{ 0 };           // how many are in use\n```\n\nThat is the entire data structure. `buf.size()` is the capacity and never\nchanges; `count` is the only thing that moves.\n\n```cpp\n// push\nif (count == buf.size()) { full; }\nelse { buf[count] = x; ++count; }\n\n// pop\nif (count == 0) { empty; }\nelse { --count; report buf[count]; }\n\n// top\nif (count == 0) { empty; }\nelse { report buf[count - 1]; }\n```\n\n## Count, not top-index\n\nWith `count` meaning \"number of elements\":\n\n| | expression | why |\n| --- | --- | --- |\n| next free slot | `buf[count]` | indices `0..count-1` are in use |\n| the top element | `buf[count - 1]` | one below the free slot |\n| empty | `count == 0` | no subtraction involved |\n| full | `count == buf.size()` | no `- 1` involved |\n\nThe alternative convention is `int top = -1` pointing at the top element, where\npush is `buf[++top] = x` and empty is `top < 0`. It works, and note what it\ncosts: `top` must be **signed**, because -1 is a legal state. Declare it\n`std::size_t` and `top < 0` is never true, so an empty stack reports a top\nelement - which is the unsigned trap from the search problem, wearing a\ndifferent hat.\n\nBoth conventions are fine; mixing them is not. If one function treats the\nvariable as a count and another as an index, every access is off by one and the\nsymptom is garbage at the boundary rather than a crash.\n\n## Pop does two things, in one order\n\n```cpp\n--count;\nreport buf[count];\n```\n\nDecrement first, then read. After `--count`, `count` is the index of what used to\nbe the top, which is exactly the element being removed. Reading before\ndecrementing needs `buf[count - 1]` and then a separate `--count`, which is the\nsame thing written in two steps with one more chance to get the index wrong.\n\nNote that nothing is erased. `buf[count]` still holds the popped value, and the\nnext push overwrites it. The value is logically gone because `count` says so -\nthe array is just storage, and the count is the truth. That is worth internalising,\nbecause it is also why \"it still worked after I freed it\" happens in C.\n\n## Refusing, not overwriting\n\nA full stack **rejects** the push. The alternative - overwrite the top, or wrap\naround and clobber the bottom - silently destroys data the caller still believes\nis there. A container that cannot satisfy a request should say so.\n\nReporting it as a return value here, because the protocol asks for a line of\noutput. In real C++ the three choices are:\n\n- return `bool` and make the caller check - fine, and easy to ignore\n- throw an exception - what `std::vector::at` does on a bad index\n- treat it as a precondition the caller must not violate - what\n  `std::vector::operator[]` does, which is undefined behaviour if you break it\n\nThe standard library deliberately offers both of the last two, because bounds\nchecking is not free and the caller sometimes already knows the index is good.\nThat is a recurring theme in C++: the unchecked thing exists, is spelled more\nconveniently, and is your responsibility.\n\n## Why `std::stack::pop()` returns nothing\n\n```cpp\nstd::stack<int> s;\ns.push(1);\nint x = s.top();    // read it\ns.pop();            // then remove it - two calls, deliberately\n```\n\nA `pop()` that both removed the element and returned it by value would be\nimpossible to make exception-safe. Returning by value means copying the element\nout, and if that copy constructor throws, the element has already been removed\nfrom the container and the copy never arrives - the value is gone, with nowhere\nfor it to have gone to.\n\nSplitting it means `top()` can throw harmlessly (nothing has changed yet) and\n`pop()` cannot throw at all. The API is clumsier and it is the only way to make\nthe guarantee. C++11 added `std::move` semantics which soften the problem but do\nnot remove it, since a move constructor is also allowed to throw.\n\nWorth knowing because it is the clearest example of the standard library\nchoosing a contract over convenience, and because \"why is this API so awkward\"\nusually has an answer like this one.\n\n## Where the stack is in the machine\n\nThis is not an analogy - the hardware call stack is this structure. The stack\npointer is `count`, the memory below it is `buf`, a `push` is\n`sub rsp, 8; mov [rsp], x` and a `pop` is `mov x, [rsp]; add rsp, 8`.\n\nWhat the hardware does **not** have is the capacity check. Push past the end of\nthe stack region and you get a stack overflow - on Linux, the guard page\ntriggers a SIGSEGV, which is why infinite recursion crashes instead of quietly\ncorrupting memory. Same structure, same bug, and the only protection is a page\nthe kernel deliberately left unmapped.\n\n## Allocate once\n\n```cpp\nstd::vector<int> buf(cap, 0);        // cap elements, all zero\nstd::vector<int> buf; buf.reserve(cap);   // capacity cap, size 0\n```\n\nThe first creates `cap` elements you can index immediately. The second reserves\nstorage but leaves `size()` at 0, so `buf[0]` is out of range even though the\nmemory exists - and `-fsanitize=address` will catch it as a\ncontainer-overflow.\n\nThis problem wants the first, because enforcing a fixed capacity by hand is the\nexercise. Growing the storage automatically is the next problem in this\nsequence.",
+  "readMore": [
+    {
+      "concept": "stack-discipline",
+      "where": "CLRS 10.1, then cppreference on std::stack"
+    },
+    {
+      "concept": "array-bounds",
+      "where": "CS:APP 3.7 for the hardware stack and how it overflows"
+    }
+  ],
+  "id": "algo-impl-int-stack"
+}

@@ -1,0 +1,60 @@
+{
+  "id": "algo-impl-circular-queue",
+  "title": "A queue that wraps around",
+  "topic": "algo",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "ring-buffer",
+    "queue",
+    "containers",
+    "modulo",
+    "implementation"
+  ],
+  "estimate": 30,
+  "prereqs": [
+    {
+      "concept": "ring-buffers",
+      "why": "This is the structure itself, and the indices-wrap-around trick is the whole idea."
+    },
+    {
+      "concept": "stack-discipline",
+      "why": "You have just built a stack in an array; a queue in an array is the same exercise with two moving ends instead of one."
+    },
+    {
+      "concept": "array-bounds",
+      "why": "Every index is taken modulo the capacity, and getting that wrong writes outside the buffer."
+    }
+  ],
+  "statement": "Implement a **fixed-capacity FIFO queue** in an array, where the storage is\nreused by wrapping the indices around. No `std::queue`, no `std::deque`, no\n`list.pop(0)` - one allocation of `cap` slots, and both operations must be O(1).\nIn particular, **nothing may be shifted**: popping the front must not move the\nremaining elements.\n\nFirst line: `cap m`. Then `m` commands:\n\n| Command | Print | When it cannot |\n| --- | --- | --- |\n| `push <x>` | `push ok` | `push full` |\n| `pop` | `pop <value>` | `pop empty` |\n| `front` | `front <value>` | `front empty` |\n| `back` | `back <value>` | `back empty` |\n| `state` | `state head <h> size <n>` | - |\n\n`state` exposes the internals on purpose, so the wraparound is visible in the\noutput and a wrong implementation fails loudly rather than passing by accident.\n`head` is the index of the front element - and when the queue is empty it is\nwhatever index the next pop *would* read, which is where the previous pops left\nit.\n\n```\ninput:   3 10            output:  push ok\n         push 1                   push ok\n         push 2                   push ok\n         push 3                   state head 0 size 3\n         state                    pop 1\n         pop                      push ok\n         push 4                   state head 1 size 3\n         state                    front 2\n         front                    back 4\n         back\n```\n\nAfter three pushes and one pop, `head` is 1 and the next push lands at index\n`(1 + 2) % 3 = 0` - the slot the popped element used to occupy. That is the\nwraparound, and it is the only reason this structure is O(1).\n\n### The point of the problem\n\nA stack needs one index. A queue needs two ends, and the naive array version\nmakes one of them expensive: popping from the front of a plain array means\nshifting every remaining element left, which is O(n) per pop and O(n^2) to drain\nthe queue. (That is exactly what Python's `list.pop(0)` does, and why `collections.deque`\nexists.)\n\nA ring buffer fixes it by **moving the head instead of the data**. The elements\nstay exactly where they are; `head` advances, and when it passes the end of the\narray it wraps to 0.\n\n```\ncap 4, after push a,b,c then pop:\n\nindex:   0     1     2     3\n        [a]   [b]   [c]   [ ]        head=0 count=3\n         ^head\n\nafter pop:\n        [a]   [b]   [c]   [ ]        head=1 count=2     (a is still there, ignored)\n               ^head\n\nafter push d, push e:\n        [e]   [b]   [c]   [d]        head=1 count=4     (e wrapped into slot 0)\n               ^head\n```\n\n### Two indices, or one index and a count\n\nStoring `head` and `tail` is the obvious design and it has a famous flaw:\n`head == tail` means both *empty* and *completely full*, and nothing in those\ntwo indices can tell them apart. The classic fixes are to keep one slot\npermanently unused (so full is `(tail + 1) % cap == head`) or to carry an extra\nflag.\n\nStoring `head` and `count` has no such ambiguity: empty is `count == 0`, full is\n`count == cap`, and the tail is computed as `(head + count) % cap`. Use that.\nThe solution explains where the other design still shows up and why.\n\n### Boundary cases\n\nPushing until full, then one more. Popping until empty, then one more. A full\nqueue that is drained completely and refilled, so `head` has wrapped at least\nonce. `cap = 1`. `cap = 0`, where every push is `full` and every pop is `empty` -\nand note that a `% 0` anywhere in that case is a division by zero, so the\ncapacity check must come first. Interleaved pushes and pops that keep the queue\nhalf full while `head` walks all the way round.\n\n### Platform assumptions\n\n`cap` is between 0 and 1000, `m` is at most 5000, values fit in a 32-bit `int`.\nIndices are `std::size_t`, so `head + count` cannot overflow at these sizes.\nCommands are always well formed.",
+  "hints": [
+    "Keep `head` and `count`. The tail - the slot the next push should use - is `(head + count) % capacity`, computed when you need it rather than stored.",
+    "Pop reads `buf[head]`, then advances `head = (head + 1) % capacity`, then decrements `count`. The modulo is what makes `head` wrap from `capacity - 1` back to 0 instead of walking off the end.",
+    "Check `count == capacity` before computing any index on push, and `count == 0` before any index on pop. With `cap = 0` this also avoids `% 0`, which is undefined behaviour and in practice a SIGFPE."
+  ],
+  "payload": {
+    "langs": [
+      "cpp",
+      "python"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n#include <string>\n#include <vector>\n\nint main()\n{\n    int cap{};\n    int m{};\n    std::cin >> cap >> m;\n\n    const std::size_t capacity{ static_cast<std::size_t>(cap) };\n    std::vector<int> buf(capacity, 0);\n    std::size_t head{ 0 };\n    std::size_t count{ 0 };\n\n    for (int i = 0; i < m; ++i)\n    {\n        std::string cmd;\n        std::cin >> cmd;\n\n        if (cmd == \"push\")\n        {\n            int x{};\n            std::cin >> x;\n            // full? otherwise store at (head + count) % capacity\n        }\n        else if (cmd == \"pop\")\n        {\n            // empty? otherwise report buf[head], advance head, --count\n        }\n        else if (cmd == \"front\")\n        {\n        }\n        else if (cmd == \"back\")\n        {\n            // the last element is at (head + count - 1) % capacity\n        }\n        else if (cmd == \"state\")\n        {\n            std::cout << \"state head \" << head << \" size \" << count << \"\\n\";\n        }\n    }\n\n    return 0;\n}\n",
+      "python": "import sys\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    pos = 0\n    cap = int(data[pos]); pos += 1\n    m = int(data[pos]); pos += 1\n\n    buf = [0] * cap      # allocate once; never append, never pop(0)\n    head = 0\n    count = 0\n\n    for _ in range(m):\n        cmd = data[pos]; pos += 1\n        if cmd == \"push\":\n            x = int(data[pos]); pos += 1\n            # full? otherwise buf[(head + count) % cap] = x\n        elif cmd == \"pop\":\n            pass\n        elif cmd == \"front\":\n            pass\n        elif cmd == \"back\":\n            pass\n        elif cmd == \"state\":\n            print(\"state head %d size %d\" % (head, count))\n\nmain()\n"
+    },
+    "cases": [
+      {
+        "stdin": "3 10\npush 1\npush 2\npush 3\nstate\npop\npush 4\nstate\nfront\nback\n",
+        "expect": "push ok\npush ok\npush ok\nstate head 0 size 3\npop 1\npush ok\nstate head 1 size 3\nfront 2\nback 4\n"
+      },
+      {
+        "stdin": "2 4\npop\nfront\nback\nstate\n",
+        "expect": "pop empty\nfront empty\nback empty\nstate head 0 size 0\n"
+      }
+    ]
+  }
+}

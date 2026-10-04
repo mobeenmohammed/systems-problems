@@ -1819,5 +1819,176 @@
         "url": "https://en.cppreference.com/w/cpp/container/unordered_map"
       }
     ]
+  },
+  "linear-search": {
+    "name": "Linear search",
+    "topic": "algo",
+    "oneLine": "Walking a sequence from one end comparing each element: the only search that works on unsorted data, and the baseline every other search is measured against.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "CLRS",
+        "kind": "book",
+        "where": "Ch. 2.1, exercise 2.1-3 - linear search and its invariant"
+      },
+      {
+        "title": "cppreference: std::find",
+        "kind": "docs",
+        "where": "the library version, and that it returns an iterator not an index",
+        "url": "https://en.cppreference.com/w/cpp/algorithm/find"
+      },
+      {
+        "title": "Competitive Programmer's Handbook",
+        "kind": "book",
+        "where": "Ch. 3 on complexity, for why O(n) is the floor on unsorted data",
+        "url": "https://cses.fi/book/book.pdf"
+      }
+    ]
+  },
+  "sentinel-values": {
+    "name": "Sentinels and absent results",
+    "topic": "algo",
+    "oneLine": "Returning -1 for not-found works only when -1 cannot be a real answer; otherwise the absence has to be reported out of band.",
+    "needs": [
+      "linear-search"
+    ],
+    "readings": [
+      {
+        "title": "cppreference: std::optional",
+        "kind": "docs",
+        "where": "the type for a value that may not be there",
+        "url": "https://en.cppreference.com/w/cpp/utility/optional"
+      },
+      {
+        "title": "C++ Core Guidelines F.21",
+        "kind": "docs",
+        "where": "returning multiple values, and when a struct beats an out-parameter",
+        "url": "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#f21-to-return-multiple-out-values-prefer-returning-a-struct-or-tuple"
+      }
+    ]
+  },
+  "loop-invariants": {
+    "name": "Loop invariants",
+    "topic": "algo",
+    "oneLine": "A statement that is true before a loop starts and after every pass: the thing you check to convince yourself a loop is right without tracing it.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "CLRS",
+        "kind": "book",
+        "where": "Ch. 2.1 - initialisation, maintenance, termination"
+      },
+      {
+        "title": "Competitive Programmer's Handbook",
+        "kind": "book",
+        "where": "Ch. 3, for invariants applied to search",
+        "url": "https://cses.fi/book/book.pdf"
+      }
+    ]
+  },
+  "binary-search": {
+    "name": "Binary search",
+    "topic": "algo",
+    "oneLine": "Halving a sorted range until one position remains: O(log n) instead of O(n), and correct only if the loop invariant is stated before the code is written.",
+    "needs": [
+      "loop-invariants"
+    ],
+    "readings": [
+      {
+        "title": "CLRS",
+        "kind": "book",
+        "where": "Ch. 2.3-1 and exercise 2.3-6, then Ch. 12 for the tree view"
+      },
+      {
+        "title": "cppreference: std::lower_bound",
+        "kind": "docs",
+        "where": "the exact definition - first position where the element is not less than the value",
+        "url": "https://en.cppreference.com/w/cpp/algorithm/lower_bound"
+      },
+      {
+        "title": "Competitive Programmer's Handbook",
+        "kind": "book",
+        "where": "Ch. 3.3 on binary search, including the jump-doubling variant",
+        "url": "https://cses.fi/book/book.pdf"
+      }
+    ]
+  },
+  "stack-discipline": {
+    "name": "Stacks and LIFO",
+    "topic": "algo",
+    "oneLine": "A stack only grants access to its most recent element, which is exactly the discipline a call stack, an expression evaluator and a depth-first traversal all need.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "CLRS",
+        "kind": "book",
+        "where": "Ch. 10.1 - stacks and queues as arrays"
+      },
+      {
+        "title": "cppreference: std::stack",
+        "kind": "docs",
+        "where": "and note that pop() returns void - the solution explains why",
+        "url": "https://en.cppreference.com/w/cpp/container/stack"
+      },
+      {
+        "title": "CS:APP",
+        "kind": "book",
+        "where": "Ch. 3.7 - the hardware call stack, which is the same structure"
+      }
+    ]
+  },
+  "ring-buffers": {
+    "name": "Ring buffers",
+    "topic": "algo",
+    "oneLine": "A queue in a fixed array where the indices wrap around, so adding and removing are both O(1) and nothing is ever shifted.",
+    "needs": [
+      "stack-discipline"
+    ],
+    "readings": [
+      {
+        "title": "CLRS",
+        "kind": "book",
+        "where": "Ch. 10.1 - the circular queue, including the wasted-slot question"
+      },
+      {
+        "title": "cppreference: std::deque",
+        "kind": "docs",
+        "where": "the library container with the same complexity guarantees",
+        "url": "https://en.cppreference.com/w/cpp/container/deque"
+      },
+      {
+        "title": "Linux kernel: kfifo",
+        "kind": "docs",
+        "where": "a real ring buffer, and how it uses power-of-two sizing",
+        "url": "https://www.kernel.org/doc/html/latest/core-api/kernel-api.html#fifo-buffer"
+      }
+    ]
+  },
+  "geometric-growth": {
+    "name": "Geometric growth",
+    "topic": "algo",
+    "oneLine": "Growing a buffer by a constant factor makes appending O(1) amortised; growing it by a constant amount makes it O(n).",
+    "needs": [
+      "amortised-analysis"
+    ],
+    "readings": [
+      {
+        "title": "CLRS",
+        "kind": "book",
+        "where": "Ch. 17.4 - dynamic tables, which is this exact analysis"
+      },
+      {
+        "title": "cppreference: std::vector",
+        "kind": "docs",
+        "where": "capacity, reserve, shrink_to_fit, and the reallocation guarantees",
+        "url": "https://en.cppreference.com/w/cpp/container/vector"
+      },
+      {
+        "title": "C++ Core Guidelines: iterator invalidation",
+        "kind": "docs",
+        "where": "why a reallocation invalidates every pointer into the container",
+        "url": "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#slcon5-dont-use-c-style-arrays"
+      }
+    ]
   }
 }

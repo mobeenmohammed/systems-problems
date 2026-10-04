@@ -1,0 +1,60 @@
+{
+  "id": "algo-impl-dynamic-array",
+  "title": "The array that grows itself",
+  "topic": "algo",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "dynamic-array",
+    "amortised",
+    "capacity",
+    "containers",
+    "implementation"
+  ],
+  "estimate": 32,
+  "prereqs": [
+    {
+      "concept": "geometric-growth",
+      "why": "Doubling rather than incrementing is the entire reason appending is cheap, and the growth count in the output measures it."
+    },
+    {
+      "concept": "amortised-analysis",
+      "why": "Most pushes are O(1) and a few are O(n); the claim that the average is O(1) needs the analysis to be believable."
+    },
+    {
+      "concept": "cpp-std-vector",
+      "why": "You are reimplementing the part of std::vector that separates size from capacity."
+    }
+  ],
+  "statement": "Implement a simplified `std::vector<int>` - the part that separates **size**\nfrom **capacity** and reallocates when it runs out of room.\n\nThe rules are fixed, because the output reports the capacity:\n\n- the initial capacity is **0**, with no storage\n- when a push arrives and `size == capacity`, grow **first**: the new capacity\n  is `1` if the capacity was 0, otherwise **twice** the current capacity\n- growing means allocating the new block, copying the live elements across, and\n  releasing the old one - the elements move\n- popping never shrinks the capacity\n\nInput is `m`, then `m` commands:\n\n| Command | Print |\n| --- | --- |\n| `push <x>` | `push ok`, or `push ok grew <new capacity>` if it reallocated |\n| `pop` | `pop <value>`, or `pop empty` |\n| `get <i>` | `get <value>`, or `get range` if `i` is not in `[0, size)` |\n| `state` | `state size <n> cap <c> grows <g>` |\n\n```\ninput:   8               output:  push ok grew 1\n         push 1                   push ok grew 2\n         push 2                   push ok grew 4\n         push 3                   push ok\n         push 4                   state size 4 cap 4 grows 3\n         state                    push ok grew 8\n         push 5                   state size 5 cap 8 grows 4\n         state                    get 1\n         get 0\n```\n\nSo four pushes cause three reallocations (capacity 0 to 1 to 2 to 4), the fourth\npush fits, and the fifth doubles to 8. `grows` counts reallocations, not pushes.\n\n### The point of the problem\n\nTwo numbers that are easy to confuse:\n\n- **size** - how many elements the user has put in; `get 3` is in range only if\n  `size > 3`\n- **capacity** - how many the storage can hold before it must be replaced; the\n  user cannot observe it except through the cost of a push\n\n`std::vector` keeps both, and `size() <= capacity()` always. Every element from\n`size()` up to `capacity()` is memory that exists and holds nothing - reading it\nis out of range even though the bytes are there, which is precisely the bug\n`-fsanitize=address` calls a *container overflow*.\n\n### Why doubling and not adding\n\nGrowing by one slot per push makes each growth cost O(n) in copies, and every\npush grows - so pushing n elements costs 1 + 2 + ... + n = O(n^2) copies.\n\nDoubling means the growths happen at sizes 1, 2, 4, 8, ... and the copies total\n1 + 2 + 4 + ... + n which is less than 2n. So n pushes cost O(n) copies in\ntotal: O(1) **amortised** per push, even though an individual push can be O(n).\nThe solution works the sum out properly.\n\n### Boundary cases\n\n`get` on an empty array, and `get` at exactly `size` - one past the last\nelement, which is the index that must be rejected. A negative index. Pushing\nto exactly a power of two and then once more. Popping everything, then pushing\nagain - the capacity must **not** have shrunk, so no further growth happens\nuntil the old capacity is exceeded. `m` commands with no pushes at all, where\n`cap` stays 0 and `grows` stays 0.\n\n### Platform assumptions\n\nAt most 2000 commands, values fit in a 32-bit `int`, so the capacity stays well\nunder 4096 and no index arithmetic can overflow. The index given to `get` is read\nas a 64-bit value so that an out-of-range index is reported rather than wrapping -\nit may be negative, and it may be far larger than any plausible size.",
+  "hints": [
+    "Keep the storage and the count separate: a `std::vector<int> store` used purely as a block of memory, where `store.size()` is your **capacity**, plus your own `count` for the size. Never call `store.push_back` - that would be the real vector growing itself, which is the thing you are implementing.",
+    "Grow before storing, not after. On a push where `count == capacity`: work out the new capacity, allocate it, copy the first `count` elements across, replace the storage, then write the new element at index `count`.",
+    "`get` must reject an index of exactly `count`. Read the index into a `long long` and test `idx < 0 || idx >= (long long)count` - comparing a negative index against an unsigned `count` converts it to a huge positive number, so a bare `idx >= count` lets `-1` through as in range."
+  ],
+  "payload": {
+    "langs": [
+      "cpp",
+      "python"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n#include <string>\n#include <vector>\n\nint main()\n{\n    int m{};\n    std::cin >> m;\n\n    std::vector<int> store;      /* raw storage; store.size() is the CAPACITY */\n    std::size_t count{ 0 };      /* elements in use - the SIZE */\n    int grows{ 0 };\n\n    for (int i = 0; i < m; ++i)\n    {\n        std::string cmd;\n        std::cin >> cmd;\n\n        if (cmd == \"push\")\n        {\n            int x{};\n            std::cin >> x;\n            // if count == store.size(): grow (1, else double), copy, ++grows\n            // then store[count] = x; ++count;\n        }\n        else if (cmd == \"pop\")\n        {\n        }\n        else if (cmd == \"get\")\n        {\n            long long idx{};\n            std::cin >> idx;\n            // reject idx < 0 and idx >= count\n        }\n        else if (cmd == \"state\")\n        {\n            std::cout << \"state size \" << count\n                      << \" cap \" << store.size()\n                      << \" grows \" << grows << \"\\n\";\n        }\n    }\n\n    return 0;\n}\n",
+      "python": "import sys\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    pos = 0\n    m = int(data[pos]); pos += 1\n\n    store = []     # raw storage; len(store) is the CAPACITY\n    count = 0      # the SIZE\n    grows = 0\n\n    for _ in range(m):\n        cmd = data[pos]; pos += 1\n        if cmd == \"push\":\n            x = int(data[pos]); pos += 1\n            # grow if count == len(store), then store[count] = x\n        elif cmd == \"pop\":\n            pass\n        elif cmd == \"get\":\n            idx = int(data[pos]); pos += 1\n        elif cmd == \"state\":\n            print(\"state size %d cap %d grows %d\" % (count, len(store), grows))\n\nmain()\n"
+    },
+    "cases": [
+      {
+        "stdin": "8\npush 1\npush 2\npush 3\npush 4\nstate\npush 5\nstate\nget 0\n",
+        "expect": "push ok grew 1\npush ok grew 2\npush ok grew 4\npush ok\nstate size 4 cap 4 grows 3\npush ok grew 8\nstate size 5 cap 8 grows 4\nget 1\n"
+      },
+      {
+        "stdin": "3\nstate\nget 0\npop\n",
+        "expect": "state size 0 cap 0 grows 0\nget range\npop empty\n"
+      }
+    ]
+  }
+}

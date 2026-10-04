@@ -1,0 +1,54 @@
+{
+  "key": {
+    "cases": [
+      {
+        "stdin": "3\n5 5 5\n1\n5\n",
+        "expect": "5 less 0 equal 3 greater 0\n"
+      },
+      {
+        "stdin": "3\n5 5 5\n2\n4 6\n",
+        "expect": "4 less 0 equal 0 greater 3\n6 less 3 equal 0 greater 0\n"
+      },
+      {
+        "stdin": "5\n1 2 3 4 5\n0\n",
+        "expect": ""
+      },
+      {
+        "stdin": "4\n-3 -1 -3 0\n3\n-3 -1 0\n",
+        "expect": "-3 less 0 equal 2 greater 2\n-1 less 2 equal 1 greater 1\n0 less 3 equal 1 greater 0\n"
+      },
+      {
+        "stdin": "1\n0\n3\n-1 0 1\n",
+        "expect": "-1 less 0 equal 0 greater 1\n0 less 0 equal 1 greater 0\n1 less 1 equal 0 greater 0\n"
+      },
+      {
+        "stdin": "7\n2 2 1 3 2 3 1\n3\n1 2 3\n",
+        "expect": "1 less 0 equal 2 greater 5\n2 less 2 equal 3 greater 2\n3 less 5 equal 2 greater 0\n"
+      },
+      {
+        "stdin": "2\n-2000000000 2000000000\n2\n0 -2000000000\n",
+        "expect": "0 less 1 equal 0 greater 1\n-2000000000 less 0 equal 1 greater 1\n"
+      },
+      {
+        "stdin": "0\n0\n",
+        "expect": ""
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n#include <vector>\n\nint main()\n{\n    int n{};\n    if (!(std::cin >> n)) return 0;\n\n    std::vector<int> v;\n    for (int i = 0; i < n; ++i)\n    {\n        int x{};\n        std::cin >> x;\n        v.push_back(x);\n    }\n\n    int q{};\n    std::cin >> q;\n    for (int i = 0; i < q; ++i)\n    {\n        int target{};\n        std::cin >> target;\n\n        int less{};\n        int equal{};\n        int greater{};\n        for (int x : v)\n        {\n            if (x < target)      ++less;\n            else if (x == target) ++equal;\n            else                  ++greater;\n        }\n\n        std::cout << target << \" less \" << less\n                  << \" equal \" << equal\n                  << \" greater \" << greater << \"\\n\";\n    }\n\n    return 0;\n}\n",
+      "python": "import sys\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    pos = 0\n    n = int(data[pos]); pos += 1\n    v = [int(data[pos + i]) for i in range(n)]; pos += n\n    q = int(data[pos]); pos += 1\n    out = []\n    for _ in range(q):\n        target = int(data[pos]); pos += 1\n        less = equal = greater = 0\n        for x in v:\n            if x < target:\n                less += 1\n            elif x == target:\n                equal += 1\n            else:\n                greater += 1\n        out.append(\"%d less %d equal %d greater %d\" % (target, less, equal, greater))\n    print(\"\\n\".join(out))\n\nmain()\n"
+    }
+  },
+  "explanation": "## One pass, three counters\n\n```cpp\nint less{};\nint equal{};\nint greater{};\nfor (int x : v)\n{\n    if (x < target)       ++less;\n    else if (x == target) ++equal;\n    else                  ++greater;\n}\n```\n\nThe three counters are declared **inside** the per-query loop, so each query\nstarts from zero. Declaring them above that loop is the commonest bug here: the\nfirst query is right, and every one after it includes the previous totals. The\ninvariant catches it on the second line of output, where reading the numbers\nwould not.\n\n## The invariant\n\n```\nless + equal + greater == n\n```\n\nThis holds after every pass of the inner loop, with `n` replaced by \"elements\nseen so far\" - which is what makes it an invariant rather than just a fact about\nthe answer. It is true because the three conditions **partition** the integers:\n\n```\n    x < target        x == target        x > target\n  <-------------|         |         |------------->\n                      exactly one of these holds, for every x\n```\n\nExhaustive, because every integer is below, equal to or above any other. Non\noverlapping, because no integer is both below and equal.\n\nThat gives a free test. In real code it would be written down:\n\n```cpp\n#include <cassert>\nassert(less + equal + greater == static_cast<int>(v.size()));\n```\n\nAn `assert` compiled out of release builds costs nothing in production and\ncatches the mistake the moment it happens in testing - which beats discovering\nit three functions later from a wrong total.\n\n## Why the `else` chain, and where `<=` goes wrong\n\nWith an else-if chain, the second test only runs when the first was false, so\n`x == target` is reached only for values not below the target. The final `else`\nneeds no condition at all: anything neither below nor equal must be above.\n\nThree independent `if`s happen to work here, since the conditions are mutually\nexclusive on their own. But they are fragile in a way the chain is not. Write\nthis:\n\n```cpp\nif (x <= target) ++less;        // off by one case\nif (x == target) ++equal;\nif (x > target)  ++greater;\n```\n\nand every element equal to the target is counted twice - once as `less`, once as\n`equal`. The output still *looks* reasonable: the numbers are all plausible, the\nordering is plausible, and only the total gives it away. `6 less 3 equal 3\ngreater 2` sums to 8 for an array of 6, which is impossible.\n\nThe general point: when conditions are meant to be exclusive, write them in a\nform where the compiler and the structure enforce it, rather than one where\nexclusivity is a property you have to keep checking.\n\n## What the library offers\n\n```cpp\n#include <algorithm>\nauto less    = std::count_if(v.begin(), v.end(), [&](int x) { return x < target; });\nauto equal   = std::count(v.begin(), v.end(), target);\nauto greater = std::count_if(v.begin(), v.end(), [&](int x) { return x > target; });\n```\n\nThree named operations, each obviously correct, and three separate passes over\nthe data. For 2000 elements that is irrelevant; for a few million it is three\ntimes the memory traffic to answer one question.\n\n`std::count` returns `std::iterator_traits<...>::difference_type`, which is a\nsigned 64-bit type on most platforms - hence `auto` rather than `int`, and\nanother case where the library hands back a wider type than you expected.\n\n## Faster, if the data were sorted\n\nEvery one of these counts is a position in a sorted array:\n\n```\nless    = lower_bound(target) - begin()\nequal   = upper_bound(target) - lower_bound(target)\ngreater = end() - upper_bound(target)\n```\n\nwhich is two binary searches - O(log n) per query instead of O(n), after one\nO(n log n) sort. For `q` queries that turns O(n*q) into O((n + q) log n), and for\nn = q = 200000 it is the difference between forty billion operations and about\nseven million.\n\nThat is the next problem in this sequence. Here the data is deliberately\nunsorted, so that the linear version is the correct answer and the comparison is\nhonest rather than hypothetical.",
+  "readMore": [
+    {
+      "concept": "loop-invariants",
+      "where": "CLRS 2.1 - initialisation, maintenance, termination"
+    },
+    {
+      "concept": "linear-search",
+      "where": "cppreference on std::count and std::count_if"
+    }
+  ],
+  "id": "algo-impl-count"
+}

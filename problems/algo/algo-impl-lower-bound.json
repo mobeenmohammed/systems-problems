@@ -1,0 +1,59 @@
+{
+  "id": "algo-impl-lower-bound",
+  "title": "Binary search that answers the right question",
+  "topic": "algo",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "binary-search",
+    "invariants",
+    "sorted-data",
+    "implementation"
+  ],
+  "estimate": 30,
+  "prereqs": [
+    {
+      "concept": "binary-search",
+      "why": "This is the algorithm, and the two variants asked for are exactly the ones the standard library provides."
+    },
+    {
+      "concept": "loop-invariants",
+      "why": "A binary search written without stating its invariant first is a coin flip; with one it is mechanical."
+    },
+    {
+      "concept": "cpp-std-vector",
+      "why": "The range is a vector and the bounds are indices into it."
+    }
+  ],
+  "statement": "Input is `n`, then `n` integers in **non-decreasing** order, then `q`, then `q`\nquery values. Implement these two yourself - do not call `std::lower_bound`,\n`bisect` or any equivalent:\n\n- **lower bound**: the first index `i` where `v[i] >= target`, or `n` if there is\n  no such index\n- **upper bound**: the first index `i` where `v[i] > target`, or `n` if there is\n  no such index\n\nFor each query print both, and the number of occurrences, which is their\ndifference.\n\n```\n<query> lower <lb> upper <ub> count <ub - lb>\n```\n\n```\ninput:   7                     output:  4 lower 1 upper 4 count 3\n         1 4 4 4 7 9 9                  0 lower 0 upper 0 count 0\n         4                              5 lower 4 upper 4 count 0\n         4 0 5 9                        9 lower 5 upper 7 count 2\n```\n\nBoth must be O(log n) per query.\n\n### The point of the problem\n\n\"Binary search\" is usually taught as \"find whether x is present\", which is the\nleast useful version. These two answer the question that actually comes up:\n**where would it go, and how many are there?** Once you have them, `count` is a\nsubtraction, \"is it present\" is `lb < n && v[lb] == target`, and \"how many are\nbelow\" is `lb` itself.\n\nNote what happens when the target is absent: `lower` and `upper` are equal, and\nthat common value is the index where the target *would* be inserted to keep the\narray sorted. So a single function gives you search and insertion position at\nonce. That is why the standard library provides these two rather than a `find`.\n\n### Write the invariant down first\n\nKeep a **half-open range** `[lo, hi)` - `lo` included, `hi` excluded - and\nmaintain this across every pass:\n\n```\nevery index < lo   has v[index] <  target        (ruled out, too small)\nevery index >= hi  has v[index] >= target        (ruled out, too big)\nthe answer is somewhere in [lo, hi)\n```\n\nStart with `lo = 0`, `hi = n`, which makes both statements vacuously true, and\nloop while `lo < hi`. When the loop ends `lo == hi`, the range holds one\nposition, and that position is the answer. Every decision inside the loop is\nthen forced rather than guessed.\n\nUpper bound is the same loop with `<` changed to `<=`. That one character is the\nwhole difference, and the solution explains why.\n\n### Boundary cases\n\nA target below everything (`lower` 0), above everything (`lower` and `upper` both\n`n`), and in a gap between two values. A target equal to the first element and\nto the last. An array of all-identical values, where `lower` is 0 and `upper` is\n`n`. An empty array, where both are 0. `n = 1`. And duplicates, which are the\nentire reason the two functions differ.\n\n### Platform assumptions\n\nValues and queries fit in a 32-bit `int`; `n` is at most 200000 and `q` at most\n200000, so an O(n) linear scan per query would be forty billion comparisons and\nwill time out - the logarithmic version is required, not merely preferred.\nIndices are `std::size_t`. `n` is guaranteed non-negative and the input is\nguaranteed sorted, so you do not have to check either.",
+  "hints": [
+    "Half-open: `std::size_t lo = 0, hi = v.size();` and `while (lo < hi)`. Nothing is ever `size() - 1`, so an empty array needs no special case and nothing can underflow.",
+    "The midpoint is `lo + (hi - lo) / 2`, not `(lo + hi) / 2`. They agree on every input this problem will give you, and the second one overflows on a large enough range - the solution explains the famous case.",
+    "Lower bound: if `v[mid] < target` the answer is strictly right of mid, so `lo = mid + 1`; otherwise mid itself is still a candidate, so `hi = mid` (not `mid - 1`). Upper bound: the same loop with `v[mid] <= target`."
+  ],
+  "payload": {
+    "langs": [
+      "cpp",
+      "python"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n#include <vector>\n\n/* First index i such that v[i] >= target, or v.size() if none. */\nstd::size_t lowerBound(const std::vector<int>& v, int target)\n{\n    std::size_t lo{ 0 };\n    std::size_t hi{ v.size() };\n    // while (lo < hi) { ... }\n    return lo;\n}\n\n/* First index i such that v[i] > target, or v.size() if none. */\nstd::size_t upperBound(const std::vector<int>& v, int target)\n{\n    return 0;   // <- the same loop, one comparison changed\n}\n\nint main()\n{\n    int n{};\n    std::cin >> n;\n\n    std::vector<int> v;\n    for (int i = 0; i < n; ++i)\n    {\n        int x{};\n        std::cin >> x;\n        v.push_back(x);\n    }\n\n    int q{};\n    std::cin >> q;\n    for (int i = 0; i < q; ++i)\n    {\n        int target{};\n        std::cin >> target;\n        // print \"<target> lower <lb> upper <ub> count <ub-lb>\"\n    }\n\n    return 0;\n}\n",
+      "python": "import sys\n\ndef lower_bound(v, target):\n    lo, hi = 0, len(v)\n    # while lo < hi: ...\n    return lo\n\ndef upper_bound(v, target):\n    return 0   # the same loop, one comparison changed\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    pos = 0\n    n = int(data[pos]); pos += 1\n    v = [int(data[pos + i]) for i in range(n)]; pos += n\n    q = int(data[pos]); pos += 1\n    for _ in range(q):\n        target = int(data[pos]); pos += 1\n        # print the line for this query\n\nmain()\n"
+    },
+    "cases": [
+      {
+        "stdin": "7\n1 4 4 4 7 9 9\n4\n4 0 5 9\n",
+        "expect": "4 lower 1 upper 4 count 3\n0 lower 0 upper 0 count 0\n5 lower 4 upper 4 count 0\n9 lower 5 upper 7 count 2\n"
+      },
+      {
+        "stdin": "0\n1\n3\n",
+        "expect": "3 lower 0 upper 0 count 0\n"
+      }
+    ]
+  }
+}

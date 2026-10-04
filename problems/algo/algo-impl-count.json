@@ -1,0 +1,59 @@
+{
+  "id": "algo-impl-count",
+  "title": "Three counters and an invariant that checks them",
+  "topic": "algo",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "counting",
+    "linear-search",
+    "invariants",
+    "implementation"
+  ],
+  "estimate": 16,
+  "prereqs": [
+    {
+      "concept": "linear-search",
+      "why": "One pass over the data, the same traversal as a search but without stopping early."
+    },
+    {
+      "concept": "loop-invariants",
+      "why": "The three counters must always sum to the number of elements seen, which is what makes this testable without tracing it."
+    },
+    {
+      "concept": "cpp-conditions",
+      "why": "The classification is an else-if chain, and it has to be exhaustive and non-overlapping."
+    }
+  ],
+  "statement": "Input is `n`, then `n` integers, then `q`, then `q` query values. The data is\n**not** sorted. For each query print how many elements are below it, equal to it\nand above it:\n\n```\n<query> less <l> equal <e> greater <g>\n```\n\n```\ninput:   6                   output:  4 less 1 equal 3 greater 2\n         7 4 9 4 4 1                  1 less 0 equal 1 greater 5\n         3                            10 less 6 equal 0 greater 0\n         4 1 10\n```\n\n### The point of the problem\n\nThree counters in one pass, and an **invariant** that makes the result\nself-checking:\n\n```\nless + equal + greater == n        always, for every query\n```\n\nEvery element falls into exactly one of the three buckets, so if the three ever\nfail to add up to `n`, the classification has a hole or an overlap. That is worth\nnoticing: a correct partition of the data into cases gives you a cheap test for\nfree, and it is the sort of check worth writing as an `assert` in real code.\n\n### Where the hole usually is\n\n```cpp\nif (x < target)       ++less;\nif (x == target)      ++equal;      // two ifs, not else-if\nif (x > target)       ++greater;\n```\n\nThis one happens to be correct, because the three conditions are mutually\nexclusive on integers. Change `<` to `<=` anywhere and elements get counted\ntwice, and the invariant catches it immediately where eyeballing the output does\nnot.\n\n### Boundary cases\n\nA query smaller than everything, so `less` is 0 and `greater` is `n`. A query\nlarger than everything. A query equal to every element. An empty array, where\nall three counts are 0 and the invariant still holds. `q = 0`. Duplicates, which\nis the whole reason `equal` is a count rather than a flag.\n\n### Platform assumptions\n\nValues and queries fit in a 32-bit `int`; `n` and `q` are each at most 2000, so\nthe straightforward O(n) per query is well inside the limit. The counts cannot\nexceed `n`, so they fit in an `int` too.",
+  "hints": [
+    "One loop over the data per query, with three counters declared **inside** the query loop so they reset for each query. A counter declared outside accumulates across queries, which is the easiest way to get this wrong.",
+    "Use an else-if chain so each element is classified exactly once: `if (x < target) ++less; else if (x == target) ++equal; else ++greater;`. The final `else` needs no condition - anything not below and not equal must be above.",
+    "Check your own work: after each query, `less + equal + greater` must equal `n`. If it does not, two of your conditions overlap or one range is missed."
+  ],
+  "payload": {
+    "langs": [
+      "cpp",
+      "python"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n#include <vector>\n\nint main()\n{\n    int n{};\n    std::cin >> n;\n\n    std::vector<int> v;\n    for (int i = 0; i < n; ++i)\n    {\n        int x{};\n        std::cin >> x;\n        v.push_back(x);\n    }\n\n    int q{};\n    std::cin >> q;\n    for (int i = 0; i < q; ++i)\n    {\n        int target{};\n        std::cin >> target;\n\n        // Three counters, reset for each query, one pass over v.\n\n        // print \"<target> less <l> equal <e> greater <g>\"\n    }\n\n    return 0;\n}\n",
+      "python": "import sys\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    pos = 0\n    n = int(data[pos]); pos += 1\n    v = [int(data[pos + i]) for i in range(n)]; pos += n\n    q = int(data[pos]); pos += 1\n    for _ in range(q):\n        target = int(data[pos]); pos += 1\n        # three counters, one pass, then print the line\n\nmain()\n"
+    },
+    "cases": [
+      {
+        "stdin": "6\n7 4 9 4 4 1\n3\n4 1 10\n",
+        "expect": "4 less 1 equal 3 greater 2\n1 less 0 equal 1 greater 5\n10 less 6 equal 0 greater 0\n"
+      },
+      {
+        "stdin": "0\n1\n5\n",
+        "expect": "5 less 0 equal 0 greater 0\n"
+      }
+    ]
+  }
+}

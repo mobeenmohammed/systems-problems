@@ -1,0 +1,58 @@
+{
+  "key": {
+    "cases": [
+      {
+        "stdin": "1\n5\n3\n4 5 6\n",
+        "expect": "4 lower 0 upper 0 count 0\n5 lower 0 upper 1 count 1\n6 lower 1 upper 1 count 0\n"
+      },
+      {
+        "stdin": "4\n2 2 2 2\n3\n1 2 3\n",
+        "expect": "1 lower 0 upper 0 count 0\n2 lower 0 upper 4 count 4\n3 lower 4 upper 4 count 0\n"
+      },
+      {
+        "stdin": "5\n1 2 3 4 5\n5\n1 2 3 4 5\n",
+        "expect": "1 lower 0 upper 1 count 1\n2 lower 1 upper 2 count 1\n3 lower 2 upper 3 count 1\n4 lower 3 upper 4 count 1\n5 lower 4 upper 5 count 1\n"
+      },
+      {
+        "stdin": "5\n-5 -3 -3 0 2\n4\n-5 -3 -1 2\n",
+        "expect": "-5 lower 0 upper 1 count 1\n-3 lower 1 upper 3 count 2\n-1 lower 3 upper 3 count 0\n2 lower 4 upper 5 count 1\n"
+      },
+      {
+        "stdin": "3\n10 20 30\n2\n-1000000000 1000000000\n",
+        "expect": "-1000000000 lower 0 upper 0 count 0\n1000000000 lower 3 upper 3 count 0\n"
+      },
+      {
+        "stdin": "6\n1 1 1 2 2 3\n3\n1 2 3\n",
+        "expect": "1 lower 0 upper 3 count 3\n2 lower 3 upper 5 count 2\n3 lower 5 upper 6 count 1\n"
+      },
+      {
+        "stdin": "2\n0 0\n3\n-1 0 1\n",
+        "expect": "-1 lower 0 upper 0 count 0\n0 lower 0 upper 2 count 2\n1 lower 2 upper 2 count 0\n"
+      },
+      {
+        "stdin": "5\n1 2 3 4 5\n0\n",
+        "expect": ""
+      },
+      {
+        "stdin": "8\n-2000000000 -2000000000 0 0 0 1 2000000000 2000000000\n4\n-2000000000 0 1 2000000000\n",
+        "expect": "-2000000000 lower 0 upper 2 count 2\n0 lower 2 upper 5 count 3\n1 lower 5 upper 6 count 1\n2000000000 lower 6 upper 8 count 2\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n#include <vector>\n\n/* First index i such that v[i] >= target, or v.size() if none. */\nstd::size_t lowerBound(const std::vector<int>& v, int target)\n{\n    std::size_t lo{ 0 };\n    std::size_t hi{ v.size() };\n    while (lo < hi)\n    {\n        std::size_t mid{ lo + (hi - lo) / 2 };\n        if (v[mid] < target) lo = mid + 1;\n        else                 hi = mid;\n    }\n    return lo;\n}\n\n/* First index i such that v[i] > target, or v.size() if none. */\nstd::size_t upperBound(const std::vector<int>& v, int target)\n{\n    std::size_t lo{ 0 };\n    std::size_t hi{ v.size() };\n    while (lo < hi)\n    {\n        std::size_t mid{ lo + (hi - lo) / 2 };\n        if (v[mid] <= target) lo = mid + 1;\n        else                  hi = mid;\n    }\n    return lo;\n}\n\nint main()\n{\n    int n{};\n    if (!(std::cin >> n)) return 0;\n\n    std::vector<int> v;\n    for (int i = 0; i < n; ++i)\n    {\n        int x{};\n        std::cin >> x;\n        v.push_back(x);\n    }\n\n    int q{};\n    std::cin >> q;\n    for (int i = 0; i < q; ++i)\n    {\n        int target{};\n        std::cin >> target;\n        std::size_t lb{ lowerBound(v, target) };\n        std::size_t ub{ upperBound(v, target) };\n        std::cout << target << \" lower \" << lb\n                  << \" upper \" << ub\n                  << \" count \" << (ub - lb) << \"\\n\";\n    }\n\n    return 0;\n}\n",
+      "python": "import sys\n\ndef lower_bound(v, target):\n    lo, hi = 0, len(v)\n    while lo < hi:\n        mid = lo + (hi - lo) // 2\n        if v[mid] < target:\n            lo = mid + 1\n        else:\n            hi = mid\n    return lo\n\ndef upper_bound(v, target):\n    lo, hi = 0, len(v)\n    while lo < hi:\n        mid = lo + (hi - lo) // 2\n        if v[mid] <= target:\n            lo = mid + 1\n        else:\n            hi = mid\n    return lo\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    pos = 0\n    n = int(data[pos]); pos += 1\n    v = [int(data[pos + i]) for i in range(n)]; pos += n\n    q = int(data[pos]); pos += 1\n    out = []\n    for _ in range(q):\n        target = int(data[pos]); pos += 1\n        lb = lower_bound(v, target)\n        ub = upper_bound(v, target)\n        out.append(\"%d lower %d upper %d count %d\" % (target, lb, ub, ub - lb))\n    print(\"\\n\".join(out))\n\nmain()\n"
+    }
+  },
+  "explanation": "## The loop, and why every line of it is forced\n\n```cpp\nstd::size_t lowerBound(const std::vector<int>& v, int target)\n{\n    std::size_t lo{ 0 };\n    std::size_t hi{ v.size() };\n    while (lo < hi)\n    {\n        std::size_t mid{ lo + (hi - lo) / 2 };\n        if (v[mid] < target) lo = mid + 1;\n        else                 hi = mid;\n    }\n    return lo;\n}\n```\n\nHold the invariant in mind:\n\n```\nindices < lo   : known v[i] <  target\nindices >= hi  : known v[i] >= target\nthe answer is in [lo, hi)\n```\n\n**Initialisation.** `lo = 0` and `hi = n` make both statements true about empty\nsets of indices, so the invariant holds before the first pass. That is why the\nempty array needs no special case: `0 < 0` is false, the loop never runs, and\n`0` is returned - correctly, since in an empty array there is no element not less\nthan the target, so the answer is `n`, which is 0.\n\n**Maintenance.** Two cases, and each tells you exactly what to assign:\n\n- `v[mid] < target` - then `mid` is not the answer, and neither is anything left\n  of it, since the array is sorted. Everything up to and including `mid` is now\n  \"known less\", so `lo = mid + 1`.\n- `v[mid] >= target` - then `mid` **is** a candidate; it might be the first such\n  index. So it must stay inside the range: `hi = mid`, not `mid - 1`.\n\nThat asymmetry - `mid + 1` on one side, `mid` on the other - is the whole\nalgorithm, and it is a direct consequence of `hi` being exclusive while `lo` is\ninclusive. Guessing it is how people end up with searches that work on most\ninputs.\n\n**Termination.** Each pass strictly shrinks `hi - lo`, because `mid` is always in\n`[lo, hi)` so `mid + 1 > lo` and `mid < hi`. The range cannot stall, so the loop\nends with `lo == hi` - one position, which by the invariant is the answer.\n\n## Upper bound is one character\n\n```cpp\nif (v[mid] <= target) lo = mid + 1;      // <= instead of <\nelse                  hi = mid;\n```\n\nNow \"known left\" means `v[i] <= target`, so the position returned is the first\nindex whose value is **strictly greater**. Everything else about the proof is\nunchanged.\n\nAnd that is why the two functions together are more useful than either alone:\n\n```\nv:        1   4   4   4   7   9   9\nindex:    0   1   2   3   4   5   6\ntarget 4:     ^lower=1        ^upper=4      count = 4 - 1 = 3\n```\n\n`lower` is where the run of 4s begins, `upper` is just past where it ends, and\nthe difference is how many there are. For an absent target the two coincide at\nthe insertion point, which is why `count` comes out 0 with no special case.\n\n## The overflow in the midpoint\n\n```cpp\nstd::size_t mid = (lo + hi) / 2;          // the famous bug\nstd::size_t mid = lo + (hi - lo) / 2;     // correct\n```\n\nThe two forms are algebraically equal and differ when `lo + hi` does not fit in\nthe type. `hi - lo` is at most the range length and cannot overflow, so the\nsecond form is safe for any valid `lo <= hi`.\n\nThis is not a hypothetical. Java's `Arrays.binarySearch` carried exactly this\nbug for nine years, using `int` indices: it broke on arrays over 2^30 elements,\nwhere `lo + hi` exceeded `Integer.MAX_VALUE` and went negative. Joshua Bloch\nwrote it up in 2006 as \"Nearly All Binary Searches and Mergesorts are Broken\",\nand the fix was this one line.\n\nWith `std::size_t` on a 64-bit platform you would need an array of 2^63 elements\nto trigger it, so it cannot happen here. Write the safe form anyway - the same\ncode with `int` indices, or on a 32-bit build, is one array size away from being\nwrong, and the safe version is not harder to read.\n\n## Half-open, again\n\n`[lo, hi)` is the same convention as `begin()`/`end()`, the same as the\npalindrome walk, and for the same reasons:\n\n- an empty range is `lo == hi` rather than a special value\n- the length is `hi - lo` with no `+ 1`\n- nothing is ever decremented below zero, so unsigned indices are safe\n- \"not found\" is representable as `hi` itself, a position that exists but holds\n  no element\n\nHalf of the off-by-one errors in index arithmetic come from mixing an inclusive\n`hi` with code that assumes an exclusive one. Picking one convention and keeping\nit is worth more than being clever.\n\n## Why linear would fail here\n\nThe statement caps `n` and `q` at 200000 each. A linear scan is 200000 x 200000\n= 4 x 10^10 comparisons, which is minutes, not seconds. Binary search is\n`log2(200000)` which is about 18, so 200000 x 18 = 3.6 million - a few\nmilliseconds.\n\nThe hidden cases are small enough to check by hand, so the time limit is what\nenforces the complexity. That is deliberate: a correct O(n) solution would pass\nevery visible case and fail on scale, which is exactly how the mistake shows up\nin real life.\n\n## What the library gives you\n\n```cpp\n#include <algorithm>\nauto lb = std::lower_bound(v.begin(), v.end(), target);\nauto ub = std::upper_bound(v.begin(), v.end(), target);\nauto count = ub - lb;                                      // or std::equal_range\n```\n\n`std::equal_range` returns both bounds in one call and does slightly less work\nthan two separate searches. All three are O(log n) on a random-access iterator\nand **O(n) on a `std::list`** - the number of comparisons is still logarithmic,\nbut stepping to the midpoint is linear when you cannot jump. A detail worth\nknowing before you reach for binary search on a linked structure.\n\nPython's equivalents are `bisect.bisect_left` and `bisect.bisect_right`, named\nafter which side of a run of equal values they land on - a clearer name than\nlower and upper, arguably.",
+  "readMore": [
+    {
+      "concept": "binary-search",
+      "where": "CLRS 2.3-1, then cppreference on lower_bound and equal_range"
+    },
+    {
+      "concept": "loop-invariants",
+      "where": "CLRS 2.1 - the three-part structure used in this walkthrough"
+    }
+  ],
+  "id": "algo-impl-lower-bound"
+}
