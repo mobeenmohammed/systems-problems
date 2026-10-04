@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bare Metal</title>
+<title>Systems Lab</title>
 <meta name="description" content="A personal problems site for the knowledge every low-level systems developer should know.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#9638;</text></svg>">
 <link rel="stylesheet" href="css/styles.css">
@@ -14,7 +14,7 @@
    bought a different one — and on Paper that flash is blinding. */
 (function () {
   try {
-    var s = JSON.parse(localStorage.getItem('bare-metal/state/v1') || 'null');
+    var s = JSON.parse(localStorage.getItem('systems-lab/state/v1') || 'null');
     var e = (s && s.equipped) || {};
     var r = document.documentElement;
     if (e.theme)  r.setAttribute('data-theme',  e.theme);
@@ -35,7 +35,7 @@
             stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
     </svg>
     <div class="brand-text">
-      <h1><a href="#/" style="color:inherit">Bare Metal</a></h1>
+      <h1><a href="#/" style="color:inherit">Systems Lab</a></h1>
       <p>Problems for low-level systems</p>
     </div>
   </div>
@@ -251,6 +251,7 @@
 <script src="js/catalog.js"></script>
 <script src="js/runners/harness.js"></script>
 <script src="js/runners/index.js"></script>
+<script src="js/lint.js"></script>
 <script src="js/editor.js"></script>
 <script src="js/types/registry.js"></script>
 <script src="js/types/mcq.js"></script>

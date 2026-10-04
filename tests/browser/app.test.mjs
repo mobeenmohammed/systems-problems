@@ -46,7 +46,7 @@ async function boot({ state = null } = {}) {
   window.scrollTo = () => {};
   window.URL.createObjectURL = () => 'blob:stub';
   window.URL.revokeObjectURL = () => {};
-  if (state) window.localStorage.setItem('bare-metal/state/v1', JSON.stringify(state));
+  if (state) window.localStorage.setItem('systems-lab/state/v1', JSON.stringify(state));
 
   /* The scripts, and their order, are read out of index.html rather than
      listed here. jsdom will not run them itself under runScripts:
@@ -100,12 +100,13 @@ section('boot');
 let { window, document, errors } = await boot();
 
 check('no errors on the console', errors, []);
-ok('the store is initialised', !!window.BareMetal.Store.state);
-ok('the catalog loaded', window.BareMetal.Catalog.all().length >= 3);
+ok('the store is initialised', !!window.SystemsLab.Store.state);
+ok('the catalog loaded', window.SystemsLab.Catalog.all().length >= 3);
 check('the dashboard is showing', document.getElementById('view-home').hidden, false);
 check('and the others are not', document.getElementById('view-problems').hidden, true);
 ok('the rank reads Userland', document.getElementById('homeRank').textContent.includes('Userland'));
-ok('the topic grid is drawn', document.querySelectorAll('#homeTopics .topic-card').length === 9);
+ok('the topic grid is drawn, one card per topic',
+  document.querySelectorAll('#homeTopics .topic-card').length === window.SystemsLab.Store.TOPICS.length);
 ok('the activity grid is drawn', document.querySelectorAll('#homeHeat i').length === 26 * 7);
 
 /* ---------------- the catalog ---------------- */
@@ -114,22 +115,22 @@ section('the catalog');
 await go(window, '#/problems');
 check('the catalog is showing', document.getElementById('view-problems').hidden, false);
 const rows = () => [...document.querySelectorAll('#catalogList .prow')];
-ok('every problem is listed', rows().length === window.BareMetal.Catalog.all().length);
+ok('every problem is listed', rows().length === window.SystemsLab.Catalog.all().length);
 ok('a row links to its problem', rows()[0].getAttribute('href').startsWith('#/p/'));
 ok('a row shows what it is worth', rows()[0].textContent.includes('XP'));
 
 section('filtering');
 /* Counted from the catalog rather than written as a literal, so adding
    problems does not break the test — only a filter that stops working does. */
-const inTopic = t => window.BareMetal.Catalog.all().filter(p => p.topic === t).length;
+const inTopic = t => window.SystemsLab.Catalog.all().filter(p => p.topic === t).length;
 const topicSel = document.getElementById('fTopic');
 topicSel.value = 'os';
 change(topicSel);
 await settle(window);
 ok('filtering by topic narrows the list',
-  rows().length === inTopic('os') && rows().length < window.BareMetal.Catalog.all().length);
+  rows().length === inTopic('os') && rows().length < window.SystemsLab.Catalog.all().length);
 ok('and every row kept is from that topic',
-  rows().every(r => (window.BareMetal.Catalog.meta(r.getAttribute('href').replace('#/p/', '')) || {}).topic === 'os'));
+  rows().every(r => (window.SystemsLab.Catalog.meta(r.getAttribute('href').replace('#/p/', '')) || {}).topic === 'os'));
 
 topicSel.value = '';
 change(topicSel);
@@ -149,7 +150,7 @@ ok('no matches says so',
 
 click(document.getElementById('fClear'));
 await settle(window);
-ok('clearing restores the list', rows().length === window.BareMetal.Catalog.all().length);
+ok('clearing restores the list', rows().length === window.SystemsLab.Catalog.all().length);
 
 section('a filter can arrive in the url');
 await go(window, '#/problems?topic=dist');
@@ -184,7 +185,7 @@ const firstReading = document.querySelector('.prereq .reading input');
 firstReading.checked = true;
 change(firstReading);
 await settle(window);
-check('ticking a reading is recorded', window.BareMetal.Store.readingCount(), 1);
+check('ticking a reading is recorded', window.SystemsLab.Store.readingCount(), 1);
 ok('and is shown as read', document.querySelector('.prereq .reading.done') !== null);
 
 section('the hints tab');
@@ -197,7 +198,7 @@ ok('and names the cost', document.querySelector('.panel .btn').textContent.inclu
 click(document.querySelector('.panel .btn'));
 await settle(window);
 ok('the hint appears', document.querySelectorAll('.hint').length === 1);
-check('and is charged for', window.BareMetal.Store.record('dist-partition-choice').hintsUsed, 1);
+check('and is charged for', window.SystemsLab.Store.record('dist-partition-choice').hintsUsed, 1);
 
 click(document.querySelector('[data-tab="problem"]'));
 await settle(window);
@@ -210,7 +211,7 @@ check('the problem is now worth less', document.querySelector('.worth-big').text
 section('submitting nothing');
 click(document.getElementById('submitBtn'));
 await settle(window);
-check('an empty answer is not graded', window.BareMetal.Store.record('dist-partition-choice').attempts, 0);
+check('an empty answer is not graded', window.SystemsLab.Store.record('dist-partition-choice').attempts, 0);
 ok('and says so', [...document.querySelectorAll('.toast')].some(t => t.textContent.includes('Answer it first')));
 
 section('a wrong answer');
@@ -220,9 +221,9 @@ click(document.getElementById('submitBtn'));
 await settle(window);
 
 ok('the verdict says it is wrong', document.querySelector('.verdict[data-kind="wrong"]') !== null);
-check('no points were awarded', window.BareMetal.Store.state.xp, 0);
-check('the attempt is recorded', window.BareMetal.Store.record('dist-partition-choice').attempts, 1);
-check('the status is attempted', window.BareMetal.Store.record('dist-partition-choice').status, 'attempted');
+check('no points were awarded', window.SystemsLab.Store.state.xp, 0);
+check('the attempt is recorded', window.SystemsLab.Store.record('dist-partition-choice').attempts, 1);
+check('the status is attempted', window.SystemsLab.Store.record('dist-partition-choice').status, 'attempted');
 ok('the solution tab is still locked',
   document.querySelector('[data-tab="solution"]').dataset.locked === 'true');
 ok('the option chosen is marked wrong',
@@ -236,10 +237,10 @@ click(document.getElementById('submitBtn'));
 await settle(window);
 
 ok('the verdict says it is right', document.querySelector('.verdict[data-kind="right"]') !== null);
-const xpAfter = window.BareMetal.Store.state.xp;
+const xpAfter = window.SystemsLab.Store.state.xp;
 /* beginner base 10, no first-try bonus (one wrong answer), one hint at -2.5 */
 check('points reflect the hint and the lost bonus', xpAfter, 8);
-check('the status is solved', window.BareMetal.Store.record('dist-partition-choice').status, 'solved');
+check('the status is solved', window.SystemsLab.Store.record('dist-partition-choice').status, 'solved');
 ok('the purse updated', document.getElementById('purseXp').textContent === String(xpAfter));
 ok('the solution tab is unlocked now',
   document.querySelector('[data-tab="solution"]').dataset.locked !== 'true');
@@ -257,7 +258,7 @@ section('re-solving pays nothing');
 click(document.querySelector('[data-tab="problem"]'));
 await settle(window);
 ok('the widget is locked after solving',
-  document.querySelectorAll('#answerWidget input:not([disabled])').length === 0);
+  document.querySelectorAll('#answerWidget input:not([disabled]):not(.ed-input)').length === 0);
 ok('there is no submit button any more', document.getElementById('submitBtn') === null);
 
 section('the catalog reflects the solve');
@@ -271,7 +272,7 @@ statusSel.value = 'solved';
 change(statusSel);
 await settle(window);
 ok('filtering by solved finds exactly the solved ones',
-  rows().length === Object.values(window.BareMetal.Store.state.progress)
+  rows().length === Object.values(window.SystemsLab.Store.state.progress)
     .filter(r => r.status === 'solved').length);
 statusSel.value = '';
 change(statusSel);
@@ -312,7 +313,7 @@ check('the widget now reads in the right order',
 click(document.getElementById('submitBtn'));
 await settle(window);
 ok('and it is graded correct', document.querySelector('.verdict[data-kind="right"]') !== null);
-check('the order problem is solved', window.BareMetal.Store.record('os-page-fault-walk').status, 'solved');
+check('the order problem is solved', window.SystemsLab.Store.record('os-page-fault-walk').status, 'solved');
 
 /* ---------------- a numeric problem ---------------- */
 
@@ -332,15 +333,15 @@ ok('a fraction is accepted as the number it is',
    must say so clearly rather than offering a button that silently fails. */
 section('a code problem degrades clearly without the judge');
 await go(window, '#/p/algo-running-max');
-ok('the editor is rendered', document.querySelector('.editor textarea') !== null);
-ok('with a line-number gutter', document.querySelector('.editor .gutter') !== null);
-ok('the gutter is numbered', document.querySelector('.editor .gutter').textContent.startsWith('1\n'));
+ok('the editor is rendered', document.querySelector('.ed .ed-input') !== null);
+ok('with a line-number gutter', document.querySelector('.ed .ed-gutter') !== null);
+ok('the gutter is numbered', document.querySelector('.ed .ed-gutter').textContent.startsWith('1'));
 ok('a language tab per claimed language', document.querySelectorAll('.lang-tab').length === 3);
 ok('the sanitize profile is advertised',
   [...document.querySelectorAll('.editor-head .pill')].some(n => n.textContent.includes('sanitize')));
 ok('and that cleanliness is required',
   [...document.querySelectorAll('.editor-head .pill')].some(n => n.textContent.includes('clean')));
-ok('a starter template is loaded', document.querySelector('.editor textarea').value.length > 20);
+ok('a starter template is loaded', document.querySelector('.ed .ed-input').value.length > 20);
 
 await settle(window, 20);
 const judgeLine = document.getElementById('codeJudgeText');
@@ -355,7 +356,7 @@ ok('the JavaScript tab stays available, since it runs in the tab', jsTab.disable
 section('an untouched template is not an attempt');
 click(document.getElementById('submitBtn'));
 await settle(window);
-check('nothing was recorded', window.BareMetal.Store.record('algo-running-max').attempts, 0);
+check('nothing was recorded', window.SystemsLab.Store.record('algo-running-max').attempts, 0);
 ok('and it says to answer first',
   [...document.querySelectorAll('.toast')].some(t => t.textContent.includes('Answer it first')));
 
@@ -366,10 +367,10 @@ section('the editor opens on the language the problem is about');
 ok('C++ is selected', [...document.querySelectorAll('.lang-tab')]
   .find(n => n.getAttribute('aria-pressed') === 'true').dataset.lang === 'cpp');
 ok('and the C++ template is loaded',
-  document.querySelector('.editor textarea').value.includes('std::cin'));
+  document.querySelector('.ed .ed-input').value.includes('std::cin'));
 
 section('switching language keeps a draft per language');
-const area = () => document.querySelector('.editor textarea');
+const area = () => document.querySelector('.ed .ed-input');
 click(document.querySelector('[data-lang="js"]'));
 await settle(window);
 ok('the JavaScript template appears', area().value.includes('readLines'));
@@ -378,7 +379,7 @@ area().value = 'print("mine");';
 input(area());
 await settle(window);
 check('the JavaScript draft is saved',
-  window.BareMetal.Store.draft('algo-running-max', 'js'), 'print("mine");');
+  window.SystemsLab.Store.draft('algo-running-max', 'js'), 'print("mine");');
 
 click(document.querySelector('[data-lang="rust"]'));
 await settle(window);
@@ -388,34 +389,34 @@ click(document.querySelector('[data-lang="js"]'));
 await settle(window);
 check('switching back restores what you wrote', area().value, 'print("mine");');
 ok('and the C++ draft is untouched by all of that',
-  window.BareMetal.Store.draft('algo-running-max', 'cpp').includes('std::cin'));
+  window.SystemsLab.Store.draft('algo-running-max', 'cpp').includes('std::cin'));
 
 /* ---------------- the shop ---------------- */
 
 section('the shop');
-const coins = window.BareMetal.Store.state.coins;
+const coins = window.SystemsLab.Store.state.coins;
 ok('solving earned coins to spend', coins > 0);
 await go(window, '#/shop');
 ok('items are offered', document.querySelectorAll('.shop-item').length >= 8);
 ok('a theme shows a preview swatch', document.querySelector('.shop-item .swatch') !== null);
 
 /* Fund it rather than grinding, then buy the cheapest real theme. */
-window.BareMetal.Store.state.coins = 1000;
+window.SystemsLab.Store.state.coins = 1000;
 await go(window, '#/shop');
 const gruvbox = [...document.querySelectorAll('.shop-item')]
   .find(n => n.querySelector('h4').textContent.includes('Gruvbox'));
 click(gruvbox.querySelector('button'));
 await settle(window);
 
-ok('it is owned', window.BareMetal.Store.isOwned('theme-gruvbox'));
-check('coins were deducted', window.BareMetal.Store.state.coins, 800);
-check('and it was put on', window.BareMetal.Store.state.equipped.theme, 'theme-gruvbox');
+ok('it is owned', window.SystemsLab.Store.isOwned('theme-gruvbox'));
+check('coins were deducted', window.SystemsLab.Store.state.coins, 800);
+check('and it was put on', window.SystemsLab.Store.state.equipped.theme, 'theme-gruvbox');
 check('the document reflects the theme', document.documentElement.getAttribute('data-theme'), 'theme-gruvbox');
 ok('the card now reads as worn',
   [...document.querySelectorAll('.shop-item.worn h4')].some(h => h.textContent.includes('Gruvbox')));
 
 section('an unaffordable item');
-window.BareMetal.Store.state.coins = 0;
+window.SystemsLab.Store.state.coins = 0;
 /* Away and back, because setting location.hash to the hash you are already on
    fires no hashchange and so re-renders nothing. */
 await go(window, '#/profile');
@@ -431,7 +432,8 @@ ok('and is disabled', phosphor.querySelector('button').disabled === true);
 section('the profile');
 await go(window, '#/profile');
 ok('the rank is shown', document.getElementById('profRank').textContent.length > 0);
-ok('per-topic progress is drawn', document.querySelectorAll('#profTopics .bar').length === 9);
+ok('per-topic progress is drawn',
+  document.querySelectorAll('#profTopics .bar').length === window.SystemsLab.Store.TOPICS.length);
 ok('achievements are listed', document.querySelectorAll('#profBadges .badge-card').length >= 10);
 ok('the one earned is not locked',
   [...document.querySelectorAll('#profBadges .badge-card')].some(n => !n.classList.contains('locked')));
@@ -465,17 +467,17 @@ const nameBox = document.getElementById('setName');
 nameBox.value = 'Jimmy';
 input(nameBox);
 await settle(window);
-check('the name is saved', window.BareMetal.Store.state.profile.name, 'Jimmy');
+check('the name is saved', window.SystemsLab.Store.state.profile.name, 'Jimmy');
 
 /* ---------------- persistence across a reload ---------------- */
 
 section('a reload keeps everything');
-const saved = JSON.parse(window.localStorage.getItem('bare-metal/state/v1'));
+const saved = JSON.parse(window.localStorage.getItem('systems-lab/state/v1'));
 const second = await boot({ state: saved });
 check('no errors on the second boot', second.errors, []);
-check('xp survived', second.window.BareMetal.Store.state.xp, window.BareMetal.Store.state.xp);
+check('xp survived', second.window.SystemsLab.Store.state.xp, window.SystemsLab.Store.state.xp);
 check('the theme survived', second.document.documentElement.getAttribute('data-theme'), 'theme-gruvbox');
-check('the solve survived', second.window.BareMetal.Store.record('dist-partition-choice').status, 'solved');
+check('the solve survived', second.window.SystemsLab.Store.record('dist-partition-choice').status, 'solved');
 await go(second.window, '#/problems');
 ok('and the catalog shows it ticked',
   [...second.document.querySelectorAll('#catalogList .prow .tick')].filter(t => t.textContent === '✓').length === 3);

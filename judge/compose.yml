@@ -13,7 +13,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: bare-metal-judge
+    container_name: systems-lab-judge
     # 127.0.0.1 on the host side. The container side binds 0.0.0.0 because
     # that is the only address Docker's port forwarding can reach.
     ports:

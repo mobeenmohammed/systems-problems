@@ -1,6 +1,6 @@
 /* ============================================================
-   languages.mjs — how each language is compiled and run, and the
-   flag profiles a problem can ask for.
+   languages.mjs — how each language is compiled, run and
+   syntax-checked, and the flag profiles a problem can ask for.
 
    The flags are the reason this judge exists rather than Piston
    or Judge0. Both of those run a fixed compile command, which
@@ -8,7 +8,16 @@
    site for learning C++, the compiler's own diagnostics and the
    sanitizer's report are a large part of what there is to learn,
    so they are a feature here and not an afterthought.
+
+   The same reasoning produced the `syntax` commands below: the
+   editor lints with the real compiler rather than with a
+   hand-written approximation of it, so the message you get while
+   typing is the message you would get from a build.
    ============================================================ */
+
+/* A char code rather than an escape, so that nothing editing this file can
+   eat the backslash and turn it silently into a real newline. */
+const NEWLINE = String.fromCharCode(10);
 
 /* ---------------- flag profiles ---------------- */
 
@@ -44,6 +53,66 @@ export const PROFILES = {
   },
 };
 
+/* ---------------- diagnostic parsing ----------------
+
+   Every compiler here is asked for the same single-line diagnostic format,
+   `file:line:col: severity: message`, which is why one parser serves three of
+   the four languages. GCC produces it natively; rustc produces it with
+   --error-format=short. That choice is what keeps this code short rather than
+   a per-compiler scraping exercise. */
+
+/* Searched for rather than anchored at the start of the line, because the
+   filename in front of it is an absolute path and on Windows that begins
+   "C:\\" — a colon that defeats any attempt to match the path first. The
+   ":line:col:" marker is unambiguous enough to find on its own, since no path
+   component is a bare number followed by another bare number. */
+const PLAIN = /:(\d+):(\d+):\s*(fatal error|error|warning|note)(?:\[[^\]]*\])?:\s*(.*)$/;
+
+function parsePlain(stderr) {
+  const out = [];
+  for (const line of String(stderr || '').split(NEWLINE)) {
+    const m = line.match(PLAIN);
+    if (!m) continue;
+    const severity = m[3].includes('error') ? 'error' : m[3] === 'warning' ? 'warning' : 'note';
+    /* Notes are follow-ups to the diagnostic above them and are noise on their
+       own in an editor margin. */
+    if (severity === 'note') continue;
+    out.push({ line: Number(m[1]), column: Number(m[2]), severity, message: m[4].trim() });
+  }
+  return out;
+}
+
+/* Python reports a syntax error across several lines: a File/line header, the
+   offending source, a caret, and then the message. The message is the last
+   line, and it is the only one worth showing. */
+function parsePython(stderr) {
+  const text = String(stderr || '');
+  const where = text.match(/File "[^"]*", line (\d+)/);
+  const what = text.match(/^(\w*(?:Error|Warning)): (.*)$/m);
+  if (!where && !what) return [];
+  return [{
+    line: where ? Number(where[1]) : 1,
+    column: 1,
+    severity: 'error',
+    message: what ? `${what[1]}: ${what[2]}` : 'syntax error',
+  }];
+}
+
+/* node --check prints the file and line on its own line, then a caret, then
+   the error class and message. */
+function parseNode(stderr) {
+  const text = String(stderr || '');
+  const where = text.match(/^(?:file:\/\/)?\S*?:(\d+)$/m);
+  const what = text.match(/^(\w*(?:Error|Warning)): (.*)$/m);
+  if (!what) return [];
+  return [{
+    line: where ? Number(where[1]) : 1,
+    column: 1,
+    severity: 'error',
+    message: `${what[1]}: ${what[2]}`,
+  }];
+}
+
 /* ---------------- the languages ---------------- */
 
 export const LANGS = {
@@ -53,6 +122,16 @@ export const LANGS = {
     version: ['g++', ['-dumpfullversion', '-dumpversion']],
     compile: ({ src, bin, flags }) => ['g++', [...flags, src, '-o', bin]],
     run:     ({ bin }) => [bin, []],
+
+    /* -fsyntax-only parses and type-checks without generating code, which is
+       several times faster than a build and is all a linter needs. The two
+       diagnostics flags strip the colour escapes and the caret art so the
+       output is one line per problem. */
+    syntax: ({ src, flags }) => ['g++', [
+      '-fsyntax-only', '-fno-diagnostics-color', '-fno-diagnostics-show-caret',
+      ...flags, src,
+    ]],
+    diagnostics: parsePlain,
   },
 
   rust: {
@@ -61,6 +140,14 @@ export const LANGS = {
     version: ['rustc', ['--version']],
     compile: ({ src, bin, flags }) => ['rustc', [...flags, src, '-o', bin]],
     run:     ({ bin }) => [bin, []],
+
+    /* --emit=metadata type-checks without codegen; --error-format=short gives
+       the same one-line shape GCC does, so parsePlain handles both. */
+    syntax: ({ src, dir, flags }) => ['rustc', [
+      '--emit=metadata', '--error-format=short', '--out-dir', dir,
+      ...flags.filter(f => f !== '-O'), src,
+    ]],
+    diagnostics: parsePlain,
   },
 
   python: {
@@ -71,6 +158,9 @@ export const LANGS = {
        compile error rather than as every case failing identically. */
     compile: ({ src }) => ['python3', ['-m', 'py_compile', src]],
     run:     ({ src }) => ['python3', ['-I', src]],
+
+    syntax: ({ src }) => ['python3', ['-m', 'py_compile', src]],
+    diagnostics: parsePython,
   },
 
   js: {
@@ -107,6 +197,9 @@ export const LANGS = {
     }],
 
     run: ({ src, dir }) => ['node', ['-r', `${dir}/shim.cjs`, src]],
+
+    syntax: ({ src }) => ['node', ['--check', src]],
+    diagnostics: parseNode,
   },
 };
 
@@ -135,3 +228,7 @@ export const sawSanitizer = stderr => {
   const s = String(stderr || '');
   return SANITIZER.test(s) && !SANITIZER_BROKEN.test(s);
 };
+
+/* Exported for the tests, which drive the parsers on captured compiler output
+   rather than needing the compilers themselves. */
+export const PARSERS = { parsePlain, parsePython, parseNode };

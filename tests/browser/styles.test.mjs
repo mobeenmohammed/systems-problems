@@ -109,6 +109,82 @@ check('a hidden flex container is still none',       display('flexed'), 'none');
 check('a hidden grid container is still none',       display('gridded'), 'none');
 ok('and a visible one is not none',                  display('shown') !== 'none');
 
+/* ---------------- the editor's two layers ----------------
+
+   The syntax highlighting is a coloured <pre> sitting exactly behind a
+   transparent <textarea>. Anything that can move a glyph by a fraction of a
+   pixel must be identical on both, or the text sits beside its own colour —
+   and the symptom is subtle enough to ship unnoticed.
+
+   So the metrics are declared once, in a rule that targets both, and this
+   checks two things: that the shared rule really does declare all of them,
+   and that no rule targeting just one layer sets any of them afterwards. */
+
+section('the editor overlay has matched metrics');
+
+const METRICS = [
+  'font-family', 'font-size', 'line-height', 'letter-spacing', 'tab-size',
+  'padding', 'margin', 'border', 'white-space', 'text-indent', 'box-sizing',
+  'word-break', 'overflow-wrap', 'text-align',
+];
+
+/* A rule is {selector, declarations}. Good enough for a hand-written
+   stylesheet with no nested at-rules inside these sections. */
+function rules(css) {
+  const out = [];
+  for (const chunk of css.split('}')) {
+    const at = chunk.indexOf('{');
+    if (at < 0) continue;
+    const selector = chunk.slice(0, at).replace(/\/\*[\s\S]*?\*\//g, '').trim();
+    if (!selector || selector.startsWith('@')) continue;
+    out.push({ selector, body: chunk.slice(at + 1) });
+  }
+  return out;
+}
+
+const declares = (body, prop) =>
+  new RegExp('(^|;|\\n)\\s*' + prop.replace('-', '\\-') + '\\s*:', 'i').test(body);
+
+const edRules = rules(styles);
+
+const shared = edRules.find(r => {
+  const parts = r.selector.split(',').map(x => x.trim());
+  return parts.includes('.ed-highlight') && parts.includes('.ed-input');
+});
+ok('a rule targets both layers together', !!shared);
+
+if (shared) {
+  for (const prop of METRICS) {
+    ok(`the shared rule sets ${prop}`, declares(shared.body, prop));
+  }
+}
+
+/* Only rules targeting a layer element itself — not a descendant of it, and
+   not the container. `.ed-highlight code` legitimately zeroes its own padding
+   because the textarea has no equivalent child. */
+const LAYER_ONLY = /^\.ed-(input|highlight)(::?[\w-]+)?$/;
+
+for (const r of edRules) {
+  if (r === shared) continue;
+  const parts = r.selector.split(',').map(x => x.trim());
+  const targetsOneLayer = parts.some(p => LAYER_ONLY.test(p));
+  if (!targetsOneLayer) continue;
+  const sets = METRICS.filter(prop => declares(r.body, prop));
+  if (!check(`"${r.selector}" sets no shared metric`, sets, [])) {
+    console.log('        a metric set on one layer only will misalign the text');
+  }
+}
+
+section('the overlay cannot be clicked, and the input is on top');
+ok('the highlight ignores pointer events',
+  shared && /pointer-events:\s*none/.test(styles.slice(styles.indexOf('.ed-highlight {'))));
+ok('the input text is transparent so the colours show through',
+  /\.ed-input\s*\{[^}]*color:\s*transparent/.test(styles));
+ok('but the caret is not',
+  /\.ed-input\s*\{[^}]*caret-color:/.test(styles));
+ok('and a too-long document falls back to showing the textarea itself',
+  /data-plain="true"[^}]*\}/.test(styles) || styles.includes('data-plain'));
+
 /* ---------------- the views ---------------- */
 
 section('every view in index.html starts hidden');
@@ -122,7 +198,7 @@ for (const [, name, attrs] of views) {
 section('the theme bootstrap runs before the stylesheets can paint');
 /* If this inline script moved below the first paint, every load would flash
    the default dark theme — blinding for anyone wearing Paper. */
-const bootIdx = html.indexOf('bare-metal/state/v1');
+const bootIdx = html.indexOf('systems-lab/state/v1');
 const bodyIdx = html.indexOf('<body');
 ok('the inline theme script is in the head', bootIdx > 0 && bootIdx < bodyIdx);
 ok('it sets data-theme', /setAttribute\('data-theme'/.test(html));

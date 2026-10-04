@@ -39,6 +39,11 @@ const MAX_OUTPUT   = 64 * 1024;      /* per stream, per case */
 const COMPILE_MS   = 20_000;
 const RUN_MS       = 5_000;
 const HARD_RUN_MS  = 30_000;
+const LINT_MS      = 10_000;
+
+/* A char code rather than an escape: the editing that produced this file has
+   eaten a backslash before now, and a newline written as text is silent. */
+const NEWLINE = String.fromCharCode(10);   /* a syntax check runs while you type */
 
 /* Which origins may call this. The deployed site and anything on loopback,
    which covers `npm run serve` and whatever port you happen to use. */
@@ -268,6 +273,66 @@ export async function run({ lang, source, profile = 'standard', cases = [], limi
   }
 }
 
+/* ---------------- /lint ----------------
+
+   A syntax-and-type check with no code generation, for the editor. It is the
+   real compiler rather than an approximation of one, which is the whole point:
+   the message you get while typing is the message a build would give you.
+
+   -fsyntax-only is several times faster than a build, and nothing is executed,
+   so this is safe to call on every pause in typing. */
+
+export async function lint({ lang, source, profile = 'standard' }) {
+  const spec = LANGS[lang];
+  if (!spec) return { error: `unknown language "${lang}"` };
+  if (typeof source !== 'string') return { error: 'no source' };
+  if (source.length > MAX_SOURCE) return { error: `source exceeds ${MAX_SOURCE} bytes` };
+  if (!spec.syntax) return { error: `no syntax check for "${lang}"` };
+
+  /* Nothing to say about nothing, and the compilers disagree about whether an
+     empty file is an error. */
+  if (!source.trim()) return { lang, ok: true, diagnostics: [], ms: 0 };
+
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'lint-'));
+  try {
+    const src = path.join(dir, spec.file);
+    await fs.writeFile(src, source, 'utf8');
+    for (const aux of spec.aux || []) {
+      await fs.writeFile(path.join(dir, aux.name), aux.content, 'utf8');
+    }
+
+    const flags = flagsFor(lang, profile);
+    const [cmd, args] = spec.syntax({ src, dir, flags });
+    const [wc, wa] = wrap(cmd, args, { stage: 'compile', sanitized: profile === 'sanitize' });
+    const res = await exec(wc, wa, { cwd: dir, timeoutMs: LINT_MS });
+
+    if (res.timedOut) {
+      return { lang, ok: false, timedOut: true, diagnostics: [], ms: res.ms };
+    }
+
+    const diagnostics = spec.diagnostics
+      ? spec.diagnostics(res.stderr + NEWLINE + res.stdout)
+      : [];
+
+    /* A non-zero exit with nothing parsed means the compiler said something in
+       a shape the parser does not know. Returning the raw text is better than
+       silently reporting "no problems" on code that does not build. */
+    if (res.exit !== 0 && !diagnostics.length) {
+      const raw = (res.stderr || res.stdout || '').trim();
+      if (raw) diagnostics.push({ line: 1, column: 1, severity: 'error', message: raw.split(NEWLINE)[0] });
+    }
+
+    return {
+      lang,
+      ok: res.exit === 0,
+      diagnostics,
+      ms: res.ms,
+    };
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true }).catch(() => {});
+  }
+}
+
 /* ---------------- /langs ---------------- */
 
 let langCache = null;
@@ -332,6 +397,20 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === 'GET' && url.pathname === '/langs') {
       return send(res, 200, { languages: await languages() });
+    }
+
+    if (req.method === 'POST' && url.pathname === '/lint') {
+      if (!originAllowed(req.headers.origin)) {
+        return send(res, 403, { error: 'origin not allowed' });
+      }
+      let payload;
+      try {
+        payload = JSON.parse(await readBody(req));
+      } catch (err) {
+        return send(res, 400, { error: `bad request body: ${err.message}` });
+      }
+      const result = await lint(payload);
+      return send(res, result.error ? 400 : 200, result);
     }
 
     if (req.method === 'POST' && url.pathname === '/run') {

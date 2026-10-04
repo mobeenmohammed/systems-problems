@@ -1,5 +1,5 @@
 /* ============================================================
-   Bare Metal — styles.
+   Systems Lab — styles.
 
    Dark-first. Every colour flows from a token defined on :root
    here, and css/themes.css redefines that same set per purchasable
@@ -501,39 +501,156 @@ pre.code-block[data-lang]::before {
 .reading .where { color: var(--text-dim); font-size: .8rem; }
 .reading.done .title { color: var(--text-faint); text-decoration: line-through; }
 
-/* ---------------- code editor ---------------- */
+/* ---------------- code editor ----------------
 
-.editor-head { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; margin-bottom: .5rem; }
+   A coloured <pre> sits exactly behind a transparent <textarea>. Every
+   property below that can move a glyph by even a fraction of a pixel MUST be
+   identical on .ed-highlight and .ed-input, or the text sits beside its own
+   colour. tests/browser/styles.test.mjs enforces the list.
+
+   The shared metrics are declared once on .ed and inherited, which is the only
+   way to be sure the two agree: a second declaration can drift, an inherited
+   one cannot.                                                             */
+
+.editor-head { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; margin-bottom: .6rem; }
 .lang-tabs { display: flex; gap: .2rem; }
 .lang-tab {
   font: inherit; font-size: .8rem; font-family: var(--mono);
-  padding: .3em .7em; cursor: pointer;
+  padding: .32em .75em; cursor: pointer;
   background: var(--bg-elev-2); border: 1px solid var(--border);
   border-radius: var(--radius-s); color: var(--text-dim);
+  transition: color .12s, border-color .12s, background .12s;
 }
-.lang-tab[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.lang-tab:hover:not(:disabled) { color: var(--text); border-color: var(--border-strong); }
+.lang-tab[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); font-weight: 600; }
 .lang-tab:disabled { opacity: .4; cursor: not-allowed; }
 
-.editor {
-  display: grid; grid-template-columns: 3rem 1fr;
-  background: var(--bg-inset); border: 1px solid var(--border-strong);
-  border-radius: var(--radius-s); overflow: hidden;
-  font-family: var(--mono); font-size: .86rem; line-height: 1.6;
+.ed {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  background: var(--bg-inset);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-s) var(--radius-s) 0 0;
+  overflow: hidden;
+
+  /* the shared metrics, inherited by both layers */
+  font-family: var(--mono);
+  font-size: .86rem;
+  line-height: 1.6;
+  letter-spacing: 0;
+  tab-size: 2;
+  -moz-tab-size: 2;
 }
-.editor:focus-within { border-color: var(--accent); }
-.editor .gutter {
-  padding: .7rem .5rem .7rem 0; text-align: right;
-  color: var(--text-faint); background: var(--bg-elev);
+.ed:focus-within { border-color: var(--accent); }
+
+.ed-gutter {
+  padding: .75rem .55rem .75rem .7rem;
+  background: var(--bg-elev);
   border-right: 1px solid var(--border);
-  user-select: none; overflow: hidden; white-space: pre;
+  color: var(--text-faint);
+  text-align: right;
+  user-select: none;
+  overflow: hidden;
+  font: inherit;
 }
-.editor textarea {
-  border: none; background: none; border-radius: 0;
-  padding: .7rem .8rem; resize: vertical; min-height: 18rem;
-  font: inherit; line-height: inherit; tab-size: 2;
-  white-space: pre; overflow-wrap: normal; overflow-x: auto;
+.ed-ln { display: block; min-width: 1.6em; position: relative; }
+.ed-ln[data-mark="error"]   { color: var(--danger); font-weight: 700; }
+.ed-ln[data-mark="warning"] { color: var(--warn); font-weight: 700; }
+.ed-ln[data-mark]::after {
+  content: ""; position: absolute; left: -.5rem; top: .5em;
+  width: 4px; height: 4px; border-radius: 50%; background: currentColor;
 }
-.editor textarea:focus-visible { outline: none; }
+
+.ed-stack { position: relative; overflow: hidden; }
+
+/* === the matched pair: these two must stay in step === */
+.ed-highlight,
+.ed-input {
+  margin: 0;
+  padding: .75rem .85rem;
+  border: 0;
+  font: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  tab-size: inherit;
+  white-space: pre;
+  overflow-wrap: normal;
+  word-break: normal;
+  text-align: left;
+  text-indent: 0;
+  box-sizing: border-box;
+}
+
+.ed-highlight {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: none;
+  color: var(--text);
+}
+.ed-highlight code { font: inherit; background: none; border: 0; padding: 0; }
+
+.ed-input {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-height: 21rem;
+  resize: vertical;
+  background: transparent;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  caret-color: var(--text);
+  overflow: auto;
+  border-radius: 0;
+}
+.ed-input:focus,
+.ed-input:focus-visible { outline: none; }
+.ed-input::selection { background: color-mix(in srgb, var(--accent) 32%, transparent); }
+
+/* A very long paste stops being highlighted rather than stuttering, and then
+   the textarea has to show its own text. */
+.ed[data-plain="true"] .ed-input {
+  color: var(--text);
+  -webkit-text-fill-color: var(--text);
+}
+
+.ed-status {
+  font-size: .76rem;
+  padding: .35rem .7rem;
+  background: var(--bg-elev);
+  border: 1px solid var(--border-strong);
+  border-top: 0;
+  border-radius: 0 0 var(--radius-s) var(--radius-s);
+  color: var(--text-faint);
+  font-family: var(--mono);
+}
+.ed-status[data-state="clean"]   { color: var(--ok); }
+.ed-status[data-state="warning"] { color: var(--warn); }
+.ed-status[data-state="error"]   { color: var(--danger); }
+
+.ed-problems { display: flex; flex-direction: column; gap: 2px; margin-top: .5rem; }
+.ed-problem {
+  display: grid; grid-template-columns: 4.2rem 1fr auto;
+  gap: .6rem; align-items: baseline;
+  font: inherit; font-size: .8rem; text-align: left;
+  padding: .4rem .6rem; cursor: pointer;
+  background: var(--bg-elev); border: 1px solid var(--border);
+  border-left: 3px solid var(--border-strong);
+  border-radius: var(--radius-s);
+  color: var(--text-dim);
+}
+.ed-problem:hover { background: var(--bg-elev-2); color: var(--text); }
+.ed-problem[data-severity="error"]   { border-left-color: var(--danger); }
+.ed-problem[data-severity="warning"] { border-left-color: var(--warn); }
+.ed-problem-at  { font-family: var(--mono); color: var(--text-faint); }
+.ed-problem-msg { font-family: var(--mono); }
+.ed-problem-from {
+  font-size: .64rem; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--text-faint); border: 1px solid var(--border); border-radius: 3px; padding: 0 .3em;
+}
 
 .run-out { margin-top: .8rem; display: flex; flex-direction: column; gap: .5rem; }
 .compile-out {

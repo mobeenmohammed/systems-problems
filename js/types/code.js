@@ -117,6 +117,8 @@ fn main() {
 
     state.editor = Editor.create(editorHost, {
       value: sourceFor(problem, lang),
+      lang,
+      profile: pay.profile || 'standard',
       readOnly: ctx.locked,
       onChange: src => Store.saveDraft(problem, state.lang, src),
       onRun: () => doRun(false),
@@ -197,6 +199,9 @@ fn main() {
        template and back does not cost you what you had written. */
     Store.saveDraft(state.problem, state.lang, state.editor.value);
     state.lang = id;
+    /* The language drives both the highlighting and which compiler lints it,
+       so the editor has to be told before the new source goes in. */
+    state.editor.setLang(id, (state.problem.payload || {}).profile || 'standard');
     state.editor.value = sourceFor(state.problem, id);
     for (const node of state.mount.querySelectorAll('.lang-tab')) {
       node.setAttribute('aria-pressed', String(node.dataset.lang === id));

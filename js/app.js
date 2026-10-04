@@ -164,5 +164,5 @@
   }
 
   /* A handle for the tests and the console. */
-  window.BareMetal = { Store, Catalog, ProblemTypes, ProblemView, UI, route };
+  window.SystemsLab = { Store, Catalog, ProblemTypes, ProblemView, UI, route };
 })();

@@ -13,11 +13,12 @@
 
 const Store = (() => {
 
-  const LS_KEY     = 'bare-metal/state/v1';
-  const LS_JUDGE   = 'bare-metal/judge-url';
+  const LS_KEY     = 'systems-lab/state/v1';
+  const LS_JUDGE   = 'systems-lab/judge-url';
   const CONFIG_URL = 'data/config.json';
 
   const TOPICS = [
+    { id: 'cpp',       label: 'C++',                      blurb: 'The language itself: initialisation, types, scope, linkage, and what the standard does and does not promise.' },
     { id: 'arch',      label: 'Computer Architecture',    blurb: 'Caches, pipelines, alignment, and what the hardware actually does.' },
     { id: 'os',        label: 'Operating Systems',        blurb: 'Processes, virtual memory, scheduling, concurrency.' },
     { id: 'linux',     label: 'Linux & Tooling',          blurb: 'The shell, file descriptors, syscalls, and reading a failure.' },
@@ -106,6 +107,7 @@ const Store = (() => {
   const STATUSES = ['unsolved', 'attempted', 'solved', 'read'];
 
   let state  = null;
+  let migratedFrom = null;
   let config = { judgeUrl: 'http://127.0.0.1:2000', pyodideUrl: '' };
   const listeners = [];
 
@@ -227,9 +229,31 @@ const Store = (() => {
     } catch { /* opening the page off disk is allowed; the defaults stand. */ }
     loadJudgeUrl();
 
+    /* Per-init: otherwise a second load in the same page claims a migration
+       that happened once, long ago. */
+    migratedFrom = null;
+
     let raw = null;
     try { raw = JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch { raw = null; }
+
+    /* The site was called Bare Metal before it was called Systems Lab, and the
+       storage key carried that name. Anyone who had solved anything under the
+       old name would otherwise open the renamed site to an empty profile, so
+       the old key is read once and copied across. It is left in place rather
+       than deleted, which costs a few kilobytes and makes the rename
+       reversible. */
+    if (!raw) {
+      try {
+        const legacy = localStorage.getItem('bare-metal/state/v1');
+        if (legacy) {
+          raw = JSON.parse(legacy);
+          migratedFrom = 'bare-metal';
+        }
+      } catch { /* a corrupt old key is simply not migrated */ }
+    }
+
     state = normalize(raw);
+    if (migratedFrom) save();
     rollStreak();
     return state;
   }
@@ -598,6 +622,7 @@ const Store = (() => {
     on: fn => { listeners.push(fn); return () => listeners.splice(listeners.indexOf(fn), 1); },
     get state()  { return state; },
     get config() { return config; },
+    get migratedFrom() { return migratedFrom; },
     setJudgeUrl, loadJudgeUrl,
 
     TOPICS, TOPIC_BY_ID, DIFFICULTIES, DIFF_BY_ID, RANKS,

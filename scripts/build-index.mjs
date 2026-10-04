@@ -23,7 +23,7 @@ import { fileURLToPath } from 'node:url';
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 export const TOPICS = [
-  'arch', 'os', 'linux', 'compilers', 'hpc', 'dist', 'fpga', 'algo', 'sysdesign',
+  'cpp', 'arch', 'os', 'linux', 'compilers', 'hpc', 'dist', 'fpga', 'algo', 'sysdesign',
 ];
 export const DIFFICULTIES = ['beginner', 'intermediate', 'advanced'];
 export const TYPES = [

@@ -5,7 +5,7 @@
 
 import { loadScripts, section, check, ok, report } from './harness.mjs';
 
-const { grab } = loadScripts(['js/store.js']);
+const { grab, sandbox } = loadScripts(['js/store.js']);
 const Store = grab('Store');
 
 await Store.init();
@@ -299,5 +299,30 @@ check('an invented status falls back', Store.record('x').status, 'unsolved');
 section('an equipped item you no longer own falls back');
 Store.importState({ owned: [], equipped: { theme: 'theme-phosphor' } });
 check('back to the default theme', Store.state.equipped.theme, 'theme-dark');
+
+section('progress carries over from the old storage key');
+/* The site was renamed, and the storage key with it. Anyone who had solved
+   something under the old name must not open the renamed site to an empty
+   profile. */
+Store.reset();
+Store.submit(P('legacy1', 'advanced'), { correct: true, score: 1 });
+const legacySnapshot = JSON.stringify(Store.exportState());
+const legacyXp = Store.state.xp;
+
+sandbox.localStorage.clear();
+sandbox.localStorage.setItem('bare-metal/state/v1', legacySnapshot);
+await Store.init();
+check('the old key is read',                 Store.state.xp, legacyXp);
+check('and the solve came with it',          Store.record('legacy1').status, 'solved');
+check('the migration is reported',           Store.migratedFrom, 'bare-metal');
+ok('it is written under the new key',        !!sandbox.localStorage.getItem('systems-lab/state/v1'));
+ok('and the old key is left alone, so the rename is reversible',
+  !!sandbox.localStorage.getItem('bare-metal/state/v1'));
+
+section('the new key wins when both exist');
+sandbox.localStorage.setItem('systems-lab/state/v1', JSON.stringify({ xp: 42 }));
+await Store.init();
+check('the current key is preferred', Store.state.xp, 42);
+check('and no migration is claimed',  Store.migratedFrom, null);
 
 report('store');
