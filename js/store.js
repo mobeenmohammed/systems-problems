@@ -109,7 +109,7 @@ const Store = (() => {
 
   let state  = null;
   let migratedFrom = null;
-  let config = { judgeUrl: 'http://127.0.0.1:2000', judgeToken: '', pyodideUrl: '' };
+  let config = { judgeUrl: 'http://127.0.0.1:2000', judgeToken: '', pyodideUrl: '', judge0: { enabled: false } };
   const listeners = [];
 
   /* ---------------- dates ----------------

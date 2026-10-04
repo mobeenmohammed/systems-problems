@@ -304,25 +304,62 @@ const Runners = (() => {
 
   const LOCAL = new Set(['js']);
 
-  /* Which languages a problem can actually offer right now. A language the
-     editor lists but cannot run is worse than one it does not list. */
+  /* Which languages a problem can actually offer right now, and where each
+     would run. A language the editor lists but cannot run is worse than one it
+     does not list, so `ready` is strict: it means a submission will actually
+     execute, not that something plausibly exists. */
   async function available(langs = []) {
     const judge = await checkJudge();
     const judgeIds = new Set(judge.languages.map(l => l.id));
-    return langs.map(id => ({
-      id,
-      /* Installed on the runner but the token is wrong is NOT ready: a tab
-         that offers the language and then fails on submit is worse than one
-         that says why up front. */
-      ready: LOCAL.has(id) || (judge.state === 'ready' && judgeIds.has(id)),
-      installed: LOCAL.has(id) || judgeIds.has(id),
-      where: LOCAL.has(id) ? 'in this tab' : 'the runner',
-      version: (judge.languages.find(l => l.id === id) || {}).version || null,
-    }));
+
+    /* Judge0 is only probed when it is switched on, so the common case costs
+       no extra request. */
+    let j0 = { up: false, languages: [] };
+    if (typeof Judge0 !== 'undefined' && Judge0.enabled()) j0 = await Judge0.check();
+    const j0Ids = new Set(j0.languages.map(l => l.id));
+
+    return langs.map(id => {
+      const localReady = LOCAL.has(id);
+      const runnerReady = judge.state === 'ready' && judgeIds.has(id);
+      const j0Ready = j0.up && j0Ids.has(id);
+      const where = localReady ? 'in this tab'
+        : runnerReady ? 'your runner'
+        : j0Ready ? 'Judge0'
+        : 'the runner';
+      return {
+        id,
+        ready: localReady || runnerReady || j0Ready,
+        installed: localReady || judgeIds.has(id) || j0Ids.has(id),
+        where,
+        backend: localReady ? 'local' : runnerReady ? 'runner' : j0Ready ? 'judge0' : null,
+        version: (judge.languages.find(l => l.id === id) || {}).version
+          || (j0.languages.find(l => l.id === id) || {}).version
+          || null,
+      };
+    });
   }
 
-  function run(lang, source, cases, opts = {}) {
+  /* Your own runner first, always: it compiles once for every case, answers in
+     milliseconds, and your code never leaves the machine. Judge0 is the
+     fallback for a device that cannot reach it. */
+  async function run(lang, source, cases, opts = {}) {
     if (LOCAL.has(lang)) return runLocalJs(source, cases, opts);
+
+    const judge = await checkJudge();
+    if (judge.state === 'ready' && judge.languages.some(l => l.id === lang)) {
+      return runRemote(lang, source, cases, opts);
+    }
+
+    if (typeof Judge0 !== 'undefined' && Judge0.supports(lang)) {
+      const j0 = await Judge0.check();
+      if (j0.up && j0.languages.some(l => l.id === lang)) {
+        return Judge0.run(lang, source, cases, opts);
+      }
+    }
+
+    /* Neither available. Go to the local runner anyway so the reply carries
+       its diagnosis — "start the runner", or "the token is stale" — rather
+       than a generic failure. */
     return runRemote(lang, source, cases, opts);
   }
 

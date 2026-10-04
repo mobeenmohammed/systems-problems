@@ -1,4 +1,16 @@
 {
   "judgeUrl": "http://127.0.0.1:2000",
-  "pyodideUrl": "https://cdn.jsdelivr.net/pyodide/v0.28.0/full/pyodide.js"
+  "pyodideUrl": "https://cdn.jsdelivr.net/pyodide/v0.28.0/full/pyodide.js",
+  "judge0": {
+    "_note": "A second backend, for running code on a device that cannot reach your own machine. Off by default: the local runner is faster, compiles once for all cases, and keeps your code on your machine. The public endpoint needs no account and no API key, so there is no secret here to leak. If you move to a paid instance, put the key in a proxy and set proxyUrl \u2014 never in this file, which is served to the browser.",
+    "enabled": false,
+    "url": "https://ce.judge0.com",
+    "proxyUrl": "",
+    "languageIds": {
+      "cpp": 105,
+      "rust": 108,
+      "python": 109
+    },
+    "_measured": "ce.judge0.com 1.14.0 on 2026-10-04: C++ GCC 14.1.0, Rust 1.85.0, Python 3.13.2. -std=c++23, -Wall -Wextra on success, and -fsanitize=address,undefined all verified working."
+  }
 }
