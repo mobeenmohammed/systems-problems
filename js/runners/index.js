@@ -139,37 +139,115 @@ const Runners = (() => {
     return { lang: 'js', compile: { ok: true, stdout: '', stderr: '', ms: 0, timedOut: false }, cases: results };
   }
 
-  /* ---------------- the judge ---------------- */
+  /* ---------------- the runner ----------------
 
-  let judgeState = { checked: false, up: false, languages: [], url: '', error: '' };
+     Four states, not two, because "I have not looked" and "it answered and
+     refused me" need different things said about them:
+
+       unchecked  nothing asked yet
+       down       nothing listening — start it
+       unauthed   listening, but the token is missing or stale — reload
+       ready      listening and willing
+
+     /health is unauthenticated precisely so the first three can be told
+     apart. Everything else needs the token. */
+
+  let judgeState = {
+    checked: false, up: false, authed: false,
+    languages: [], missing: [], url: '', error: '', info: null,
+    state: 'unchecked',
+  };
+
+  /* The runner writes its token into data/ at startup and the page reads it
+     from there. That file is not the security boundary — anything able to read
+     it already runs as you — the Origin check on the runner is. */
+  const TOKEN_URL = 'data/judge-token.json';
+  let token = null;
+  let tokenTried = false;
+
+  async function loadToken({ force = false } = {}) {
+    if (token && !force) return token;
+    /* A token typed into Settings wins over the file, for the case where the
+       page is served from somewhere the file is not. */
+    const manual = Store.config.judgeToken;
+    if (manual) { token = manual; return token; }
+    if (tokenTried && !force) return token;
+    tokenTried = true;
+    try {
+      const res = await fetch(`${TOKEN_URL}?t=${Date.now()}`, { cache: 'no-store' });
+      if (res.ok) {
+        const body = await res.json();
+        token = body.token || null;
+      }
+    } catch { /* not served from the repo, or not started yet */ }
+    return token;
+  }
+
+  const authHeaders = () => (token ? { 'X-Judge-Token': token } : {});
 
   async function checkJudge({ force = false } = {}) {
     const url = Store.config.judgeUrl;
     if (judgeState.checked && judgeState.url === url && !force) return judgeState;
 
-    judgeState = { checked: true, up: false, languages: [], url, error: '' };
+    judgeState = {
+      checked: true, up: false, authed: false,
+      languages: [], missing: [], url, error: '', info: null, state: 'down',
+    };
+
+    /* 1. Is anything there? */
+    let health = null;
     try {
-      const res = await fetch(`${url}/langs`, { signal: AbortSignal.timeout(3000) });
+      const res = await fetch(`${url}/health`, { signal: AbortSignal.timeout(3000) });
       if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-      const body = await res.json();
-      judgeState.languages = (body.languages || []).filter(l => l.available);
-      judgeState.up = true;
+      health = await res.json();
     } catch (err) {
-      /* Being down is a normal state, not an error: Docker is simply not
-         running. The UI says so and gives the command. */
       judgeState.error = err && err.name === 'TimeoutError'
         ? 'no answer within 3 seconds'
         : String((err && err.message) || err);
+      judgeState.state = 'down';
+      return judgeState;
+    }
+
+    judgeState.up = true;
+    judgeState.info = health;
+    judgeState.missing = health.missing || [];
+
+    /* 2. Will it talk to us? */
+    await loadToken({ force });
+    try {
+      const res = await fetch(`${url}/langs`, {
+        headers: authHeaders(),
+        signal: AbortSignal.timeout(5000),
+      });
+      if (res.status === 401 || res.status === 403) {
+        const body = await res.json().catch(() => ({}));
+        judgeState.state = 'unauthed';
+        judgeState.error = body.hint || body.error || 'the runner refused the token';
+        /* Fall back to what /health said, so the editor can still show which
+           languages exist even while the token is wrong. */
+        judgeState.languages = (health.languages || []).filter(l => l.available);
+        return judgeState;
+      }
+      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+      const body = await res.json();
+      judgeState.languages = (body.languages || []).filter(l => l.available);
+      judgeState.authed = true;
+      judgeState.state = 'ready';
+    } catch (err) {
+      judgeState.state = 'unauthed';
+      judgeState.error = String((err && err.message) || err);
+      judgeState.languages = (health.languages || []).filter(l => l.available);
     }
     return judgeState;
   }
 
-  async function runRemote(lang, source, cases, { profile = 'standard', compileMs, runMs } = {}) {
+  async function runRemote(lang, source, cases, { profile = 'standard', compileMs, runMs, retried = false } = {}) {
     const url = Store.config.judgeUrl;
+    await loadToken();
     try {
       const res = await fetch(`${url}/run`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
           lang, source, profile,
           cases: cases.map(c => ({ stdin: c.stdin || '', args: c.args || [] })),
@@ -179,12 +257,34 @@ const Runners = (() => {
       });
 
       const body = await res.json().catch(() => ({}));
+
+      /* A restarted runner has a new token. Reload it once and try again
+         rather than making the reader work out why it stopped. */
+      if ((res.status === 401 || res.status === 403) && !retried) {
+        await loadToken({ force: true });
+        return runRemote(lang, source, cases, { profile, compileMs, runMs, retried: true });
+      }
+
+      if (res.status === 401 || res.status === 403) {
+        judgeState.state = 'unauthed';
+        judgeState.authed = false;
+        return {
+          lang,
+          compile: { ok: false, stdout: '', stderr: '', ms: 0, timedOut: false },
+          cases: [],
+          judgeUnauthed: true,
+          judgeError: body.hint || body.error || 'the runner refused the token',
+        };
+      }
+
       if (!res.ok || body.error) {
         return {
           lang,
-          compile: { ok: false, stdout: '', stderr: body.error || `judge returned ${res.status}`, ms: 0, timedOut: false },
+          compile: { ok: false, stdout: '', stderr: body.error || `the runner returned ${res.status}`, ms: 0, timedOut: false },
           cases: [],
           judgeError: body.error || `${res.status} ${res.statusText}`,
+          judgeMissing: body.missing || null,
+          judgeHint: body.hint || null,
         };
       }
       return body;
@@ -211,8 +311,12 @@ const Runners = (() => {
     const judgeIds = new Set(judge.languages.map(l => l.id));
     return langs.map(id => ({
       id,
-      ready: LOCAL.has(id) || judgeIds.has(id),
-      where: LOCAL.has(id) ? 'in this tab' : 'the judge',
+      /* Installed on the runner but the token is wrong is NOT ready: a tab
+         that offers the language and then fails on submit is worse than one
+         that says why up front. */
+      ready: LOCAL.has(id) || (judge.state === 'ready' && judgeIds.has(id)),
+      installed: LOCAL.has(id) || judgeIds.has(id),
+      where: LOCAL.has(id) ? 'in this tab' : 'the runner',
       version: (judge.languages.find(l => l.id === id) || {}).version || null,
     }));
   }
@@ -223,8 +327,9 @@ const Runners = (() => {
   }
 
   return {
-    run, available, checkJudge,
+    run, available, checkJudge, loadToken, authHeaders,
     get judge() { return judgeState; },
+    get token() { return token; },
     /* Exposed for tests, which drive the JS path without a browser. */
     runLocalJs,
   };

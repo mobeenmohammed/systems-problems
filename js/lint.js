@@ -151,15 +151,18 @@ const Lint = (() => {
   async function available(lang) {
     if (!['cpp', 'rust', 'python', 'js'].includes(lang)) return false;
     const judge = await Runners.checkJudge();
-    return judge.up && judge.languages.some(l => l.id === lang);
+    /* Linting needs the token like everything else, so a reachable but
+       unauthorised runner cannot lint and should not be asked to. */
+    return judge.state === 'ready' && judge.languages.some(l => l.id === lang);
   }
 
   async function remote(source, lang, { profile = 'standard', timeoutMs = 15000 } = {}) {
     const url = Store.config.judgeUrl;
     try {
+      await Runners.loadToken();
       const res = await fetch(`${url}/lint`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...Runners.authHeaders() },
         body: JSON.stringify({ lang, source, profile }),
         signal: AbortSignal.timeout(timeoutMs),
       });

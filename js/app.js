@@ -170,5 +170,5 @@
   }
 
   /* A handle for the tests and the console. */
-  window.SystemsLab = { Store, Catalog, ProblemTypes, ProblemView, UI, route };
+  window.SystemsLab = { Store, Catalog, ProblemTypes, ProblemView, UI, route, Runners, RunHarness, Lint, Editor };
 })();

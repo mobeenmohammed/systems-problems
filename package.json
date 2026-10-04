@@ -9,10 +9,14 @@
     "check:index": "node scripts/build-index.mjs --check",
     "test": "npm run test:unit && npm run test:browser",
     "test:unit": "node tests/store.test.mjs && node tests/md.test.mjs && node tests/grade.test.mjs && node tests/runner.test.mjs && node tests/lint.test.mjs && node tests/judge.test.mjs && node tests/content.test.mjs",
-    "test:browser": "node tests/browser/app.test.mjs && node tests/browser/styles.test.mjs",
+    "test:browser": "node tests/browser/app.test.mjs && node tests/browser/styles.test.mjs && node tests/browser/runner.test.mjs",
     "judge:up": "docker compose -f judge/compose.yml up -d",
     "judge:down": "docker compose -f judge/compose.yml down",
-    "serve": "python -m http.server 8000"
+    "serve": "python -m http.server 8000",
+    "runner": "wsl.exe -d Ubuntu -- bash -lc \"cd \\\"$(wslpath '%cd%')\\\" && ./judge/run-wsl.sh\"",
+    "runner:wsl": "./judge/run-wsl.sh",
+    "runner:check": "wsl.exe -d Ubuntu -- bash -lc \"cd \\\"$(wslpath '%cd%')\\\" && JUDGE_CHECK_ONLY=1 ./judge/run-wsl.sh\"",
+    "test:runner": "node tests/browser/runner.test.mjs"
   },
   "devDependencies": {
     "jsdom": "^29.1.1"

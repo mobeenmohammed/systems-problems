@@ -15,6 +15,7 @@ const Store = (() => {
 
   const LS_KEY     = 'systems-lab/state/v1';
   const LS_JUDGE   = 'systems-lab/judge-url';
+  const LS_JUDGE_TOKEN = 'systems-lab/judge-token';
   const CONFIG_URL = 'data/config.json';
 
   const TOPICS = [
@@ -108,7 +109,7 @@ const Store = (() => {
 
   let state  = null;
   let migratedFrom = null;
-  let config = { judgeUrl: 'http://127.0.0.1:2000', pyodideUrl: '' };
+  let config = { judgeUrl: 'http://127.0.0.1:2000', judgeToken: '', pyodideUrl: '' };
   const listeners = [];
 
   /* ---------------- dates ----------------
@@ -611,8 +612,22 @@ const Store = (() => {
     try {
       const u = localStorage.getItem(LS_JUDGE);
       if (u) config.judgeUrl = u;
+      const t = localStorage.getItem(LS_JUDGE_TOKEN);
+      if (t) config.judgeToken = t;
     } catch {}
     return config.judgeUrl;
+  }
+
+  /* Only needed when the page is served from somewhere that cannot see the
+     runner's token file. Kept out of state so it never travels in an export. */
+  function setJudgeToken(t) {
+    config.judgeToken = String(t || '').trim();
+    try {
+      if (config.judgeToken) localStorage.setItem(LS_JUDGE_TOKEN, config.judgeToken);
+      else localStorage.removeItem(LS_JUDGE_TOKEN);
+    } catch {}
+    emit('judge-token', config.judgeToken);
+    return config.judgeToken;
   }
 
   /* ---------------- public surface ---------------- */
@@ -623,7 +638,7 @@ const Store = (() => {
     get state()  { return state; },
     get config() { return config; },
     get migratedFrom() { return migratedFrom; },
-    setJudgeUrl, loadJudgeUrl,
+    setJudgeUrl, loadJudgeUrl, setJudgeToken,
 
     TOPICS, TOPIC_BY_ID, DIFFICULTIES, DIFF_BY_ID, RANKS,
     SHOP, SHOP_BY_ID, SLOTS, ACHIEVEMENTS, ACHIEVEMENT_BY_ID,

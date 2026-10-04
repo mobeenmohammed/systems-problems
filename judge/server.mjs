@@ -1,68 +1,131 @@
 /* ============================================================
-   server.mjs — the local judge.
+   server.mjs — the local code runner.
 
-     GET  /health   is it up
+     GET  /health   is it up, and what is missing if so
      GET  /langs    what it can compile, with versions
+     POST /lint     syntax check only, for the editor
      POST /run      compile once, run every case, answer once
 
-   One compile and N cases in a single request, because a problem
-   has one submission and several tests, and N round trips to
-   compile the same source N times would be absurd.
+   One compile and N cases per request, because a problem has one
+   submission and several tests, and N round trips to compile the
+   same source N times would be absurd.
 
-   It binds 127.0.0.1 only. Browsers exempt loopback *addresses*
-   from mixed-content blocking, so the HTTPS page on GitHub Pages
-   can call http://127.0.0.1:2000 — but Firefox does not extend
-   that exemption to the name "localhost", which is why the site
-   ships the address as the default and says so.
+   ---------------- what keeps this safe ----------------
 
-   This is NOT a hardened multi-tenant sandbox and does not need
-   to be: the only code it ever runs is code you wrote, on your
-   own machine. It must never be exposed to the internet. See
-   judge/README.md.
+   Three things, and all three have to hold:
+
+     1. It binds loopback only — not 0.0.0.0, not a LAN address,
+        and a non-loopback JUDGE_HOST is refused at startup rather
+        than quietly honoured. Nothing off this machine can reach
+        it at all.
+     2. Every request but /health must carry a shared token, in
+        an Authorization: Bearer or X-Judge-Token header. The
+        token is generated per start, printed, and written to a
+        file the page reads.
+     3. The Origin header must be one we know. A browser sets
+        Origin on a cross-origin POST and a page cannot forge it,
+        so this is what stops some other site using your runner
+        even if it had the token.
+
+   Deliberately belt-and-braces. What is being guarded is "runs
+   arbitrary code as you", so being careful is cheap by
+   comparison. It is still NOT a hardened sandbox and must never
+   be exposed to a network. See judge/README.md.
    ============================================================ */
 
 import http from 'node:http';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { LANGS, flagsFor, sawSanitizer } from './languages.mjs';
 
+const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.JUDGE_PORT || 2000);
-const HOST = process.env.JUDGE_HOST || '0.0.0.0';   /* published to 127.0.0.1 by compose */
+const HOST = process.env.JUDGE_HOST || '127.0.0.1';
+const LOOPBACK = ['127.0.0.1', '::1', 'localhost'];
 
 /* Caps. Generous enough for anything a problem here asks for, small enough
    that a runaway loop printing to stdout cannot fill the disk or the reply. */
 const MAX_SOURCE   = 256 * 1024;
-const MAX_CASES    = 40;
+const MAX_CASES    = 60;
 const MAX_OUTPUT   = 64 * 1024;      /* per stream, per case */
 const COMPILE_MS   = 20_000;
 const RUN_MS       = 5_000;
 const HARD_RUN_MS  = 30_000;
-const LINT_MS      = 10_000;
+const LINT_MS      = 10_000;         /* a syntax check runs while you type */
 
 /* A char code rather than an escape: the editing that produced this file has
    eaten a backslash before now, and a newline written as text is silent. */
-const NEWLINE = String.fromCharCode(10);   /* a syntax check runs while you type */
+const NEWLINE = String.fromCharCode(10);
 
-/* Which origins may call this. The deployed site and anything on loopback,
-   which covers `npm run serve` and whatever port you happen to use. */
-const ALLOWED = [
+/* ---------------- the token ----------------
+
+   Generated per start and written into data/ so the page can fetch it.
+   Anything able to read that file already runs as you, so the file is not the
+   security boundary — the Origin check is. The token is what stops a page on
+   another origin that has somehow got past CORS. */
+
+const TOKEN_FILE = process.env.JUDGE_TOKEN_FILE
+  || path.join(HERE, '..', 'data', 'judge-token.json');
+
+let TOKEN = process.env.JUDGE_TOKEN || '';
+
+async function ensureToken() {
+  if (TOKEN) return TOKEN;
+  TOKEN = crypto.randomBytes(24).toString('base64url');
+  try {
+    await fs.mkdir(path.dirname(TOKEN_FILE), { recursive: true });
+    await fs.writeFile(
+      TOKEN_FILE,
+      JSON.stringify({ token: TOKEN, port: PORT, startedAt: new Date().toISOString() }, null, 2) + NEWLINE,
+      'utf8',
+    );
+  } catch (err) {
+    console.error(`could not write ${TOKEN_FILE}: ${err.message}`);
+    console.error('the page will not find the token; paste it into Settings instead');
+  }
+  return TOKEN;
+}
+
+/* ---------------- origins ----------------
+
+   Loopback on any port, so `npm run serve` works whatever port it picks, and
+   the GitHub Pages site. A request with no Origin is allowed: curl and the
+   health check send none, and they are not the threat — a browser always
+   sends it on a cross-origin POST. */
+const ALLOWED_ORIGIN = [
   /^https?:\/\/127\.0\.0\.1(:\d+)?$/,
   /^https?:\/\/localhost(:\d+)?$/,
   /^https?:\/\/\[::1\](:\d+)?$/,
   /^https:\/\/[\w-]+\.github\.io$/,
 ];
 
-const originAllowed = origin => !origin || ALLOWED.some(re => re.test(origin));
+const extraOrigins = (process.env.JUDGE_ORIGINS || '')
+  .split(',').map(s => s.trim()).filter(Boolean);
+
+export function originAllowed(origin) {
+  if (!origin) return true;
+  if (extraOrigins.includes(origin)) return true;
+  return ALLOWED_ORIGIN.some(re => re.test(origin));
+}
+
+export function tokenOk(req) {
+  const given = req.headers['x-judge-token']
+    || String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+  if (!given || !TOKEN) return false;
+  const a = Buffer.from(String(given));
+  const b = Buffer.from(TOKEN);
+  /* Constant-time, so a wrong token does not leak how much of it was right. */
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
 
 /* ---------------- running a process ---------------- */
 
-/* prlimit is in util-linux, which Debian always has. It is what stops a fork
-   bomb or a 10 GB allocation from taking the container with it. If it is
-   missing the judge still works, just without those guards. */
 let prlimit = null;
-async function detectPrlimit() {
+export async function detectPrlimit() {
   try {
     const r = await exec('prlimit', ['--version'], { timeoutMs: 2000 });
     prlimit = r.exit === 0;
@@ -72,22 +135,15 @@ async function detectPrlimit() {
 
 const LIMITS = ['--nproc=512', '--fsize=67108864', '--nofile=512'];
 
-/* An address-space cap is a useful guard against one runaway allocation
-   taking the whole container down — but it is fatal to a sanitized build.
-   AddressSanitizer reserves on the order of 20 TB of *virtual* address space
-   for its shadow memory at startup, so any RLIMIT_AS at all makes every
-   instrumented binary die before main() with an allocation failure. That
-   failure even looks like a sanitizer report, which is a thoroughly
-   misleading way to find out.
+/* An address-space cap guards against one runaway allocation taking the
+   machine with it — but it is fatal to a sanitized build. AddressSanitizer
+   reserves on the order of 20 TB of *virtual* address space for shadow memory
+   at startup, so any RLIMIT_AS makes every instrumented binary die before
+   main() with an allocation failure that even looks like a sanitizer report.
 
-   So the cap applies to ordinary runs and is dropped for sanitized ones,
-   where the container's mem_limit is the backstop instead.
-
-   It is also not applied to the compiler. rustc and g++ legitimately reserve
-   large virtual arenas, and capping them makes a compile crawl or stall — a
-   trivial Rust program took longer than the 20-second compile limit under a
-   4 GB cap. The compiler is our own trusted toolchain; the thing that needs
-   guarding is the submitted program's run. */
+   It is also not applied to the compiler: rustc and g++ reserve large virtual
+   arenas, and capping them makes a compile crawl or stall. The compiler is our
+   own trusted toolchain; the thing to guard is the submitted program's run. */
 const AS_LIMIT = '--as=4294967296';
 
 function wrap(cmd, args, { stage = 'run', sanitized = false } = {}) {
@@ -97,7 +153,7 @@ function wrap(cmd, args, { stage = 'run', sanitized = false } = {}) {
   return ['prlimit', [...limits, '--', cmd, ...args]];
 }
 
-function exec(cmd, args, { cwd, stdin = '', timeoutMs = RUN_MS, env } = {}) {
+export function exec(cmd, args, { cwd, stdin = '', timeoutMs = RUN_MS, env } = {}) {
   return new Promise(resolve => {
     const started = process.hrtime.bigint();
     let child;
@@ -147,8 +203,8 @@ function exec(cmd, args, { cwd, stdin = '', timeoutMs = RUN_MS, env } = {}) {
       done = true;
       clearTimeout(timer);
       resolve({
-        stdout: outTruncated ? stdout + '\n…output truncated…' : stdout,
-        stderr: errTruncated ? stderr + '\n…output truncated…' : stderr,
+        stdout: outTruncated ? stdout + NEWLINE + '…output truncated…' : stdout,
+        stderr: errTruncated ? stderr + NEWLINE + '…output truncated…' : stderr,
         exit, signal, timedOut,
         ms: Number((process.hrtime.bigint() - started) / 1_000_000n),
       });
@@ -166,16 +222,55 @@ function exec(cmd, args, { cwd, stdin = '', timeoutMs = RUN_MS, env } = {}) {
 /* Windows refuses to spawn an extension-less file even when it is a valid PE
    image, and the two compilers disagree about whose job the suffix is: g++
    appends .exe to a bare -o name, rustc takes it literally. So the suffix is
-   asked for up front and both are given a name the platform can execute.
-   Inside the Linux container this is simply "prog", as before. */
+   asked for up front. Under WSL or Linux this is simply "prog". */
 const EXE = process.platform === 'win32' ? '.exe' : '';
 
-/* Belt and braces: whatever the compiler actually wrote is what gets run. */
 async function resolveBin(bin) {
   for (const candidate of [bin, `${bin}.exe`, bin.replace(/\.exe$/, '')]) {
-    try { await fs.access(candidate); return candidate; } catch { /* try the next */ }
+    try { await fs.access(candidate); return candidate; } catch { /* next */ }
   }
   return bin;
+}
+
+/* ---------------- /lint ---------------- */
+
+export async function lint({ lang, source, profile = 'standard' }) {
+  const spec = LANGS[lang];
+  if (!spec) return { error: `unknown language "${lang}"` };
+  if (typeof source !== 'string') return { error: 'no source' };
+  if (source.length > MAX_SOURCE) return { error: `source exceeds ${MAX_SOURCE} bytes` };
+  if (!spec.syntax) return { error: `no syntax check for "${lang}"` };
+  if (!source.trim()) return { lang, ok: true, diagnostics: [], ms: 0 };
+
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'lint-'));
+  try {
+    const src = path.join(dir, spec.file);
+    await fs.writeFile(src, source, 'utf8');
+    for (const aux of spec.aux || []) {
+      await fs.writeFile(path.join(dir, aux.name), aux.content, 'utf8');
+    }
+
+    const flags = flagsFor(lang, profile);
+    const [cmd, args] = spec.syntax({ src, dir, flags });
+    const [wc, wa] = wrap(cmd, args, { stage: 'compile', sanitized: profile === 'sanitize' });
+    const res = await exec(wc, wa, { cwd: dir, timeoutMs: LINT_MS });
+
+    if (res.timedOut) return { lang, ok: false, timedOut: true, diagnostics: [], ms: res.ms };
+
+    const diagnostics = spec.diagnostics ? spec.diagnostics(res.stderr + NEWLINE + res.stdout) : [];
+
+    /* A non-zero exit with nothing parsed means the compiler said something in
+       a shape the parser does not know. Returning the raw text beats silently
+       reporting "no problems" on code that does not build. */
+    if (res.exit !== 0 && !diagnostics.length) {
+      const raw = (res.stderr || res.stdout || '').trim();
+      if (raw) diagnostics.push({ line: 1, column: 1, severity: 'error', message: raw.split(NEWLINE)[0] });
+    }
+
+    return { lang, ok: res.exit === 0, diagnostics, ms: res.ms };
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true }).catch(() => {});
+  }
 }
 
 /* ---------------- /run ---------------- */
@@ -188,6 +283,17 @@ export async function run({ lang, source, profile = 'standard', cases = [], limi
   if (!Array.isArray(cases) || !cases.length) return { error: 'no cases' };
   if (cases.length > MAX_CASES) return { error: `more than ${MAX_CASES} cases` };
 
+  /* A language the machine cannot run is reported as missing rather than as a
+     compile failure, because the fix is to install something. */
+  const row = (await languages()).find(l => l.id === lang);
+  if (row && !row.available) {
+    return {
+      error: `${spec.label} is not installed on the runner`,
+      missing: lang,
+      hint: spec.install || null,
+    };
+  }
+
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'judge-'));
   try {
     const src = path.join(dir, spec.file);
@@ -195,8 +301,8 @@ export async function run({ lang, source, profile = 'standard', cases = [], limi
     await fs.writeFile(src, source, 'utf8');
 
     /* Some languages need a companion file next to the submission — the
-       JavaScript shim that provides the same stdin/stdout helpers the
-       in-browser Worker does, so a submission means one thing everywhere. */
+       JavaScript shim providing the same stdin/stdout helpers the in-browser
+       Worker does, so a submission means one thing in both places. */
     for (const aux of spec.aux || []) {
       await fs.writeFile(path.join(dir, aux.name), aux.content, 'utf8');
     }
@@ -204,13 +310,10 @@ export async function run({ lang, source, profile = 'standard', cases = [], limi
     const flags = flagsFor(lang, profile);
     const compileMs = Math.min(Number(limits.compileMs) || COMPILE_MS, COMPILE_MS);
     const runMs     = Math.min(Number(limits.runMs) || RUN_MS, HARD_RUN_MS);
-
-    /* --- compile --- */
-    /* The sanitizers change what resource limits are survivable, so both the
-       compile and the run need to know whether they are in play. */
     const sanitized = profile === 'sanitize';
 
-    const [ccmd, cargs] = spec.compile({ src, bin, flags });
+    /* --- compile --- */
+    const [ccmd, cargs] = spec.compile({ src, bin, dir, flags });
     const [wc, wa] = wrap(ccmd, cargs, { stage: 'compile', sanitized });
     const compiled = await exec(wc, wa, { cwd: dir, timeoutMs: compileMs });
 
@@ -223,28 +326,20 @@ export async function run({ lang, source, profile = 'standard', cases = [], limi
       timedOut: compiled.timedOut,
     };
 
-    if (!compile.ok) {
-      return { lang, profile, compile, cases: [] };
-    }
+    if (!compile.ok) return { lang, profile, compile, cases: [] };
 
-    /* --- run each case ---
-       The compiler does not always produce exactly the name it was given:
-       rustc appends the platform executable suffix on Windows, so -o prog
-       yields prog.exe. Inside the container this never matters, but the judge
-       is also runnable directly on a Windows host, where looking for the wrong
-       name makes every case fail with empty output and no explanation. */
+    /* --- run each case --- */
     const binPath = await resolveBin(bin);
     const [rcmd, rargs] = spec.run({ src, bin: binPath, dir });
     const results = [];
 
     for (const c of cases) {
-      const [wrc, wra] = wrap(rcmd, [...rargs, ...(Array.isArray(c.args) ? c.args.map(String) : [])], { stage: 'run', sanitized });
+      const extra = Array.isArray(c.args) ? c.args.map(String) : [];
+      const [wrc, wra] = wrap(rcmd, [...rargs, ...extra], { stage: 'run', sanitized });
       const out = await exec(wrc, wra, {
         cwd: dir,
         stdin: typeof c.stdin === 'string' ? c.stdin : '',
         timeoutMs: runMs,
-        /* A deterministic, quiet environment: an ASan banner on every run
-           would drown the actual report. */
         env: {
           ASAN_OPTIONS: 'detect_leaks=1:abort_on_error=0:print_stacktrace=1:log_to_stderr=1',
           UBSAN_OPTIONS: 'print_stacktrace=1',
@@ -267,68 +362,6 @@ export async function run({ lang, source, profile = 'standard', cases = [], limi
 
     return { lang, profile, compile, cases: results };
   } finally {
-    /* Never leave a binary or a core file behind; a judge that fills /tmp over
-       a week is a judge that stops working for no visible reason. */
-    await fs.rm(dir, { recursive: true, force: true }).catch(() => {});
-  }
-}
-
-/* ---------------- /lint ----------------
-
-   A syntax-and-type check with no code generation, for the editor. It is the
-   real compiler rather than an approximation of one, which is the whole point:
-   the message you get while typing is the message a build would give you.
-
-   -fsyntax-only is several times faster than a build, and nothing is executed,
-   so this is safe to call on every pause in typing. */
-
-export async function lint({ lang, source, profile = 'standard' }) {
-  const spec = LANGS[lang];
-  if (!spec) return { error: `unknown language "${lang}"` };
-  if (typeof source !== 'string') return { error: 'no source' };
-  if (source.length > MAX_SOURCE) return { error: `source exceeds ${MAX_SOURCE} bytes` };
-  if (!spec.syntax) return { error: `no syntax check for "${lang}"` };
-
-  /* Nothing to say about nothing, and the compilers disagree about whether an
-     empty file is an error. */
-  if (!source.trim()) return { lang, ok: true, diagnostics: [], ms: 0 };
-
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'lint-'));
-  try {
-    const src = path.join(dir, spec.file);
-    await fs.writeFile(src, source, 'utf8');
-    for (const aux of spec.aux || []) {
-      await fs.writeFile(path.join(dir, aux.name), aux.content, 'utf8');
-    }
-
-    const flags = flagsFor(lang, profile);
-    const [cmd, args] = spec.syntax({ src, dir, flags });
-    const [wc, wa] = wrap(cmd, args, { stage: 'compile', sanitized: profile === 'sanitize' });
-    const res = await exec(wc, wa, { cwd: dir, timeoutMs: LINT_MS });
-
-    if (res.timedOut) {
-      return { lang, ok: false, timedOut: true, diagnostics: [], ms: res.ms };
-    }
-
-    const diagnostics = spec.diagnostics
-      ? spec.diagnostics(res.stderr + NEWLINE + res.stdout)
-      : [];
-
-    /* A non-zero exit with nothing parsed means the compiler said something in
-       a shape the parser does not know. Returning the raw text is better than
-       silently reporting "no problems" on code that does not build. */
-    if (res.exit !== 0 && !diagnostics.length) {
-      const raw = (res.stderr || res.stdout || '').trim();
-      if (raw) diagnostics.push({ line: 1, column: 1, severity: 'error', message: raw.split(NEWLINE)[0] });
-    }
-
-    return {
-      lang,
-      ok: res.exit === 0,
-      diagnostics,
-      ms: res.ms,
-    };
-  } finally {
     await fs.rm(dir, { recursive: true, force: true }).catch(() => {});
   }
 }
@@ -337,14 +370,21 @@ export async function lint({ lang, source, profile = 'standard' }) {
 
 let langCache = null;
 
-async function languages() {
-  if (langCache) return langCache;
+export async function languages({ fresh = false } = {}) {
+  if (langCache && !fresh) return langCache;
   const out = [];
   for (const [id, spec] of Object.entries(LANGS)) {
     const [cmd, args] = spec.version;
-    const res = await exec(cmd, args, { timeoutMs: 4000 });
-    const version = (res.stdout || res.stderr || '').trim().split('\n')[0];
-    out.push({ id, label: spec.label, available: res.exit === 0, version: res.exit === 0 ? version : null });
+    const res = await exec(cmd, args, { timeoutMs: 5000 });
+    const version = (res.stdout || res.stderr || '').trim().split(NEWLINE)[0];
+    out.push({
+      id,
+      label: spec.label,
+      available: res.exit === 0,
+      version: res.exit === 0 ? version : null,
+      /* What to do about it, rather than only that it is missing. */
+      install: res.exit === 0 ? null : (spec.install || null),
+    });
   }
   langCache = out;
   return out;
@@ -359,13 +399,16 @@ function cors(req, res) {
     res.setHeader('Vary', 'Origin');
   }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Judge-Token');
   res.setHeader('Access-Control-Max-Age', '86400');
 }
 
 const send = (res, code, body) => {
   const text = JSON.stringify(body);
-  res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Content-Length': Buffer.byteLength(text) });
+  res.writeHead(code, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Content-Length': Buffer.byteLength(text),
+  });
   res.end(text);
 };
 
@@ -383,69 +426,126 @@ function readBody(req, max = MAX_SOURCE * 2) {
   });
 }
 
+/* Every refusal says what to do about it. A bare "403 forbidden" is the most
+   annoying thing a local tool can do to you. */
+function guard(req, res) {
+  const origin = req.headers.origin;
+  if (!originAllowed(origin)) {
+    send(res, 403, {
+      error: 'origin not allowed',
+      origin,
+      hint: 'The runner accepts loopback origins and https://<user>.github.io. '
+          + 'Set JUDGE_ORIGINS="https://example.test" to add one.',
+    });
+    return false;
+  }
+  if (!tokenOk(req)) {
+    send(res, 401, {
+      error: 'missing or wrong token',
+      hint: 'The page reads data/judge-token.json, which the runner writes at '
+          + 'startup. If the runner restarted, reload the page. Otherwise copy '
+          + 'the token from the runner log into Settings.',
+    });
+    return false;
+  }
+  return true;
+}
+
 const server = http.createServer(async (req, res) => {
   cors(req, res);
-
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
 
   const url = new URL(req.url, `http://${req.headers.host || '127.0.0.1'}`);
 
   try {
+    /* /health is deliberately unauthenticated: the page must be able to tell
+       "not running" from "running, wrong token", and it reveals nothing but
+       version strings. */
     if (req.method === 'GET' && url.pathname === '/health') {
-      return send(res, 200, { ok: true, prlimit });
+      const langs = await languages();
+      return send(res, 200, {
+        ok: true,
+        service: 'systems-lab-runner',
+        prlimit,
+        platform: `${process.platform} ${process.arch}`,
+        wsl: !!process.env.WSL_DISTRO_NAME,
+        distro: process.env.WSL_DISTRO_NAME || null,
+        needsToken: true,
+        languages: langs.map(l => ({ id: l.id, available: l.available, version: l.version })),
+        missing: langs.filter(l => !l.available).map(l => ({ id: l.id, install: l.install })),
+      });
     }
 
     if (req.method === 'GET' && url.pathname === '/langs') {
-      return send(res, 200, { languages: await languages() });
+      if (!guard(req, res)) return;
+      return send(res, 200, { languages: await languages({ fresh: url.searchParams.has('fresh') }) });
     }
 
-    if (req.method === 'POST' && url.pathname === '/lint') {
-      if (!originAllowed(req.headers.origin)) {
-        return send(res, 403, { error: 'origin not allowed' });
-      }
+    if (req.method === 'POST' && (url.pathname === '/lint' || url.pathname === '/run')) {
+      if (!guard(req, res)) return;
       let payload;
-      try {
-        payload = JSON.parse(await readBody(req));
-      } catch (err) {
-        return send(res, 400, { error: `bad request body: ${err.message}` });
-      }
-      const result = await lint(payload);
+      try { payload = JSON.parse(await readBody(req)); }
+      catch (err) { return send(res, 400, { error: `bad request body: ${err.message}` }); }
+      const result = url.pathname === '/lint' ? await lint(payload) : await run(payload);
       return send(res, result.error ? 400 : 200, result);
     }
 
-    if (req.method === 'POST' && url.pathname === '/run') {
-      if (!originAllowed(req.headers.origin)) {
-        return send(res, 403, { error: 'origin not allowed' });
-      }
-      let payload;
-      try {
-        payload = JSON.parse(await readBody(req));
-      } catch (err) {
-        return send(res, 400, { error: `bad request body: ${err.message}` });
-      }
-      const result = await run(payload);
-      return send(res, result.error ? 400 : 200, result);
-    }
-
-    return send(res, 404, { error: 'not found' });
+    return send(res, 404, { error: 'not found', hint: 'try /health, /langs, /lint or /run' });
   } catch (err) {
     console.error(err);
     return send(res, 500, { error: String(err && err.message || err) });
   }
 });
 
-/* Importable for tests without starting a listener. */
+/* ---------------- startup ---------------- */
+
 const isMain = process.argv[1] && process.argv[1].endsWith('server.mjs');
+
 if (isMain) {
+  if (!LOOPBACK.includes(HOST)) {
+    console.error(`refusing to bind ${HOST}: this runner is loopback-only.`);
+    console.error('It executes arbitrary code as you and has no sandbox worth the name.');
+    process.exit(1);
+  }
+
+  await ensureToken();
   await detectPrlimit();
   const langs = await languages();
-  server.listen(PORT, HOST, () => {
-    console.log(`judge listening on ${HOST}:${PORT}`);
-    console.log(`prlimit guards: ${prlimit ? 'on' : 'unavailable'}`);
-    for (const l of langs) {
-      console.log(`  ${l.available ? 'ok ' : '-- '} ${l.id.padEnd(7)} ${l.version || 'not installed'}`);
+
+  server.on('error', err => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`port ${PORT} is already in use — another runner is probably up.`);
+      console.error('Stop that one, or start this with JUDGE_PORT=2001.');
+    } else {
+      console.error(`could not listen: ${err.message}`);
     }
+    process.exit(1);
+  });
+
+  server.listen(PORT, HOST, () => {
+    const rule = '-'.repeat(60);
+    console.log(rule);
+    console.log(`  Systems Lab runner    http://${HOST}:${PORT}`);
+    if (process.env.WSL_DISTRO_NAME) console.log(`  WSL distro            ${process.env.WSL_DISTRO_NAME}`);
+    console.log(`  prlimit guards        ${prlimit ? 'on' : 'unavailable'}`);
+    console.log(`  token                 ${TOKEN}`);
+    console.log(`  token file            ${TOKEN_FILE}`);
+    console.log(rule);
+    for (const l of langs) {
+      console.log(`  ${l.available ? 'ok  ' : '--  '} ${l.id.padEnd(7)} ${l.version || 'NOT INSTALLED'}`);
+    }
+    const missing = langs.filter(l => !l.available && l.install);
+    if (missing.length) {
+      console.log(rule);
+      console.log('  to add what is missing:');
+      for (const l of missing) console.log(`    ${l.id.padEnd(7)} ${l.install}`);
+    }
+    console.log(rule);
+    console.log('  loopback only. never expose this to a network.');
+    console.log(rule);
   });
 }
 
-export { server, languages, detectPrlimit, exec };
+export { server };
+export const tokenFile = () => TOKEN_FILE;
+export const currentToken = () => TOKEN;

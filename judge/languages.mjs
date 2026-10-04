@@ -118,6 +118,7 @@ function parseNode(stderr) {
 export const LANGS = {
   cpp: {
     label: 'C++',
+    install: 'sudo apt install g++        (Ubuntu/WSL)',
     file: 'main.cpp',
     version: ['g++', ['-dumpfullversion', '-dumpversion']],
     compile: ({ src, bin, flags }) => ['g++', [...flags, src, '-o', bin]],
@@ -136,6 +137,7 @@ export const LANGS = {
 
   rust: {
     label: 'Rust',
+    install: "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal   (no sudo needed)",
     file: 'main.rs',
     version: ['rustc', ['--version']],
     compile: ({ src, bin, flags }) => ['rustc', [...flags, src, '-o', bin]],
@@ -152,6 +154,7 @@ export const LANGS = {
 
   python: {
     label: 'Python',
+    install: 'sudo apt install python3    (Ubuntu/WSL)',
     file: 'main.py',
     version: ['python3', ['--version']],
     /* A syntax check stands in for compilation, so a typo is reported as a
@@ -165,6 +168,7 @@ export const LANGS = {
 
   js: {
     label: 'JavaScript',
+    install: 'sudo apt install nodejs     (Ubuntu/WSL)',
     file: 'main.js',
     version: ['node', ['--version']],
     compile: ({ src }) => ['node', ['--check', src]],

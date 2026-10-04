@@ -7,3 +7,6 @@ judge/tmp/
 _batch.py
 content_helper.py
 __pycache__/
+
+# Written by the runner at startup; regenerated each start, never committed
+data/judge-token.json
