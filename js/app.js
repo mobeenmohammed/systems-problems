@@ -132,6 +132,18 @@
       case 't': go('#/tracks'); break;
       case 'u': go('#/profile'); break;
       case 's': go('#/shop'); break;
+      /* Focus mode, from anywhere - it is a view preference rather than
+         something belonging to one problem, and it persists. */
+      case 'f':
+        e.preventDefault();
+        ProblemView.toggleFocus();
+        break;
+      case 'Escape':
+        if (document.documentElement.hasAttribute('data-focus')) {
+          e.preventDefault();
+          ProblemView.toggleFocus(false);
+        }
+        break;
       default: break;
     }
   }

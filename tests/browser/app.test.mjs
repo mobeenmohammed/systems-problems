@@ -350,7 +350,9 @@ ok('a starter template is loaded', document.querySelector('.ed .ed-input').value
 await settle(window, 20);
 const judgeLine = document.getElementById('codeJudgeText');
 ok('the judge is reported as not answering', judgeLine.textContent.includes('not answering'));
-ok('and the start command is given', judgeLine.textContent.includes('docker compose'));
+/* One documented command, the same one Settings shows. Docker is still
+   supported but is no longer what the page tells you to run. */
+ok('and the start command is given', judgeLine.textContent.includes('npm run runner'));
 ok('C++ is named as needing it', /C\+\+/.test(judgeLine.textContent));
 const cppTab = [...document.querySelectorAll('.lang-tab')].find(n => n.dataset.lang === 'cpp');
 ok('the C++ tab is disabled rather than silently broken', cppTab.disabled === true);
@@ -994,5 +996,219 @@ check('ready names the compiler version',
   /13\.3\.0/.test(judgeText()), true);
 
 fresh.window.SystemsLab.Store.setJudgeUrl(realUrl);
+
+/* ---------------- the problem workspace ---------------- */
+
+section('a code problem is a workspace, not a page');
+const ws = await boot();
+await go(ws.window, '#/p/algo-running-max');
+await settle(ws.window, 20);
+
+const split = ws.document.querySelector('#problemHost .split');
+ok('the statement and the editor are two panels', split !== null);
+ok('the statement is in the left pane',
+  split.querySelector('.split-statement .statement') !== null);
+ok('the editor is in the right pane',
+  split.querySelector('.split-work .ed') !== null);
+
+section('the divider is draggable and also usable from the keyboard');
+const gut = split.querySelector('.gutter');
+ok('there is a divider', gut !== null);
+check('announced as a separator', gut.getAttribute('role'), 'separator');
+ok('it is focusable', gut.getAttribute('tabindex') === '0');
+ok('and reports its position', /^\d+$/.test(gut.getAttribute('aria-valuenow')));
+
+const widthNow = () => Number(split.style.getPropertyValue('--split'));
+const before = widthNow();
+ok('the split is applied as a custom property', before > 0 && before < 1);
+
+const arrow = (node, key, shift = false) => node.dispatchEvent(
+  new ws.window.KeyboardEvent('keydown', { key, shiftKey: shift, bubbles: true, cancelable: true }));
+
+arrow(gut, 'ArrowRight');
+await settle(ws.window);
+ok('ArrowRight widens the statement', widthNow() > before);
+arrow(gut, 'ArrowLeft');
+arrow(gut, 'ArrowLeft');
+await settle(ws.window);
+ok('ArrowLeft narrows it again', widthNow() < before);
+
+arrow(gut, 'Home');
+await settle(ws.window);
+check('Home goes to the minimum', widthNow(), 0.25);
+arrow(gut, 'End');
+await settle(ws.window);
+check('End goes to the maximum', widthNow(), 0.75);
+arrow(gut, 'ArrowRight');
+await settle(ws.window);
+check('and it cannot be pushed past that', widthNow(), 0.75);
+
+section('the split is remembered, and kept out of the progress record');
+arrow(gut, 'Enter');
+await settle(ws.window);
+check('Enter resets it to the default', widthNow(), 0.46);
+arrow(gut, 'ArrowRight');
+await settle(ws.window);
+const remembered = widthNow();
+ok('it is stored under its own key',
+  JSON.parse(ws.window.localStorage.getItem('systems-lab/ui/v1')).splitFraction === remembered);
+ok('and not in the progress state',
+  !JSON.stringify(ws.window.SystemsLab.Store.state).includes('splitFraction'));
+
+await go(ws.window, '#/problems');
+await go(ws.window, '#/p/algo-running-max');
+await settle(ws.window, 20);
+check('and it survives leaving and coming back',
+  Number(ws.document.querySelector('#problemHost .split').style.getPropertyValue('--split')),
+  remembered);
+
+section('Run samples and Submit are together');
+const bar = ws.document.querySelector('#problemHost .actions-bar');
+ok('there is one action bar', bar !== null);
+ok('Run samples is in it', bar.querySelector('#runBtn') !== null);
+ok('Submit is in it', bar.querySelector('#submitBtn') !== null);
+check('Submit is the primary one', bar.querySelector('#submitBtn').classList.contains('btn-primary'), true);
+ok('Run is not', !bar.querySelector('#runBtn').classList.contains('btn-primary'));
+ok('it says what the problem is worth right now', /Worth \d+ XP/.test(bar.textContent));
+ok('and names the keyboard shortcuts', /Ctrl\+Enter/.test(bar.textContent));
+
+section('drafts autosave, visibly');
+const wsArea = ws.document.querySelector('#problemHost .ed .ed-input');
+wsArea.value = 'print("workspace draft");';
+input(wsArea);
+await settle(ws.window);
+/* Whichever language the editor opened in - the draft is per language, and
+   this problem defaults to C++. */
+const wsLang = ws.document.querySelector('#problemHost .lang-tab[aria-pressed="true"]').dataset.lang;
+check('the draft is stored under the language being edited',
+  ws.window.SystemsLab.Store.draft('algo-running-max', wsLang), 'print("workspace draft");');
+const note = ws.document.getElementById('draftNote');
+ok('and the page says so', note !== null && note.textContent.length > 0);
+ok('waiting shows it settled',
+  await waitFor(ws.window, () => (ws.document.getElementById('draftNote') || {}).dataset?.state === 'saved'));
+
+section('hints and notes are reachable without leaving the editor');
+const asides = [...ws.document.querySelectorAll('#problemHost .aside')];
+ok('there are disclosures under the statement', asides.length >= 2);
+const hintAside = asides.find(a => a.querySelector('summary').textContent.includes('Hints'));
+ok('one is Hints', hintAside !== null);
+ok('it counts them', /0\/\d+/.test(hintAside.querySelector('.aside-count').textContent));
+ok('closed to begin with, since none has been opened', hintAside.open === false);
+
+const hintBtn = hintAside.querySelector('button');
+const worthBefore = ws.window.SystemsLab.Store.potentialXp(
+  ws.window.SystemsLab.Catalog.meta('algo-running-max'));
+click(hintBtn);
+await settle(ws.window);
+check('opening one is recorded',
+  ws.window.SystemsLab.Store.record('algo-running-max').hintsUsed, 1);
+ok('and it costs XP, as the tab version does',
+  ws.window.SystemsLab.Store.potentialXp(
+    ws.window.SystemsLab.Catalog.meta('algo-running-max')) < worthBefore);
+ok('the hint text is now shown in the workspace',
+  ws.document.querySelector('#problemHost .aside .hint') !== null);
+
+const notesAside = [...ws.document.querySelectorAll('#problemHost .aside')]
+  .find(a => a.querySelector('summary').textContent.includes('notes'));
+ok('another is the notes box', notesAside !== null);
+const notesBox = notesAside.querySelector('textarea');
+notesBox.value = 'two indices, half-open';
+input(notesBox);
+await settle(ws.window);
+check('typed notes are kept',
+  ws.window.SystemsLab.Store.record('algo-running-max').notes, 'two indices, half-open');
+
+section('focus mode');
+const focusBtn = () => ws.document.getElementById('focusBtn');
+ok('there is a focus button', focusBtn() !== null);
+check('off to begin with', focusBtn().getAttribute('aria-pressed'), 'false');
+click(focusBtn());
+await settle(ws.window);
+ok('it marks the document', ws.document.documentElement.hasAttribute('data-focus'));
+check('and the button says how to leave', focusBtn().textContent, 'Leave focus');
+
+/* F from anywhere, and Escape to leave - the keyboard path people reach for. */
+ws.document.body.dispatchEvent(new ws.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+await settle(ws.window);
+ok('Escape leaves focus mode', !ws.document.documentElement.hasAttribute('data-focus'));
+ws.document.body.dispatchEvent(new ws.window.KeyboardEvent('keydown', { key: 'f', bubbles: true, cancelable: true }));
+await settle(ws.window);
+ok('f turns it back on', ws.document.documentElement.hasAttribute('data-focus'));
+ok('and it is remembered',
+  JSON.parse(ws.window.localStorage.getItem('systems-lab/ui/v1')).focusMode === true);
+ws.document.body.dispatchEvent(new ws.window.KeyboardEvent('keydown', { key: 'f', bubbles: true, cancelable: true }));
+await settle(ws.window);
+
+section('compiler output is a list of places, not a wall of text');
+/* Rendered from a captured reply rather than from a live compile, so the
+   assertion is about the presentation and runs with no toolchain. The text is
+   real g++ output, absolute path and all. */
+const gxx = [
+  '/home/j/judge/work/main.cpp: In function ‘int main()’:',
+  '/home/j/judge/work/main.cpp:7:14: error: ‘lo’ was not declared in this scope',
+  '    7 |     while (lo < hi) {',
+  '      |            ^~',
+  '/home/j/judge/work/main.cpp:12:9: warning: unused variable ‘mid’ [-Wunused-variable]',
+  '   12 |     int mid = 0;',
+  '      |         ^~~',
+  '/home/j/judge/work/main.cpp:12:9: note: declared here',
+].join('\n');
+
+const codeType = ws.window.SystemsLab.ProblemTypes.get('code');
+const diags = codeType.parseDiagnostics(gxx);
+check('two diagnostics, not eight lines', diags.length, 2);
+check('the error is found', diags[0].severity, 'error');
+check('with its line', diags[0].line, 7);
+check('and its column', diags[0].column, 14);
+ok('and its message, without the path',
+  diags[0].message.includes('was not declared') && !diags[0].message.includes('/home/j'));
+check('the warning is found too', diags[1].severity, 'warning');
+check('with the flag that produced it', diags[1].code, '-Wunused-variable');
+check('and the note attached to it rather than counted separately', diags[1].notes.length, 1);
+
+const panel = codeType.diagnosticsNode(gxx, false);
+ok('it renders as a list', panel.querySelector('.diags-list') !== null);
+check('one row per diagnostic', panel.querySelectorAll('.diag').length, 2);
+ok('each row offers to jump to the line',
+  [...panel.querySelectorAll('.diag-where')].every(b => /^\d+:\d+$/.test(b.textContent)));
+ok('the severity is a word, not only a colour',
+  panel.querySelector('.diag[data-severity="error"] .diag-sev').textContent === 'error');
+ok('the summary counts the errors', /1 error/.test(panel.querySelector('.lbl').textContent));
+ok('and the compiler’s own words are still there',
+  panel.querySelector('.diags-full .diags-raw').textContent.includes('^~'));
+
+/* A build that succeeded with warnings must not read like a failure. */
+const warnPanel = codeType.diagnosticsNode(gxx, true);
+ok('a successful build with warnings says it built',
+  /It built/.test(warnPanel.querySelector('.lbl').textContent));
+check('and is styled as a warning, not an error', warnPanel.dataset.kind, 'warn');
+
+section('output that does not look like a diagnostic is shown verbatim');
+const linker = '/usr/bin/ld: cannot find -lfoo\\ncollect2: error: ld returned 1 exit status';
+const rawPanel = codeType.diagnosticsNode(linker, false);
+ok('a linker error is not silently dropped',
+  rawPanel.querySelector('.diags-raw').textContent.includes('cannot find -lfoo'));
+
+section('a Python traceback is parsed too');
+const pyErr = [
+  '  File "/tmp/main.py", line 4',
+  '    print("x"',
+  '             ^',
+  "SyntaxError: '(' was never closed",
+].join('\n');
+const pyRows = codeType.parseDiagnostics(pyErr);
+check('one diagnostic', pyRows.length, 1);
+check('with its line', pyRows[0].line, 4);
+ok('and the message rather than the caret', /never closed/.test(pyRows[0].message));
+
+section('a non-code problem keeps the reading layout');
+await go(ws.window, '#/p/dist-partition-choice');
+await settle(ws.window, 12);
+ok('no split', ws.document.querySelector('#problemHost .split') === null);
+ok('the side rail is back', ws.document.querySelector('#problemHost .rail') !== null);
+ok('and Submit is still in an action bar',
+  ws.document.querySelector('#problemHost .actions-bar #submitBtn') !== null);
+ok('with no Run button, since there is nothing to run',
+  ws.document.querySelector('#problemHost .actions-bar #runBtn') === null);
 
 report('browser/app');

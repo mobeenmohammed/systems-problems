@@ -1181,6 +1181,171 @@ pre.code-block[data-lang]::before {
 @keyframes toast-in { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
 
 
+
+/* ---------------- the problem workspace ----------------
+
+   A code problem is two panels with a divider between them: the statement on
+   the left, the editor and its output on the right. One custom property drives
+   both columns, so a drag moves one number and nothing can get out of step. */
+
+.pwrap .pmain { min-width: 0; }
+.pwrap.workspace { grid-template-columns: minmax(0, 1fr); }
+
+.phead-top {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: var(--s3); flex-wrap: wrap;
+}
+.phead-top h1 { margin: 0; }
+.phead-tools { display: flex; gap: var(--s2); flex: none; }
+
+.split {
+  --split: .46;
+  display: grid;
+  grid-template-columns: minmax(0, calc(var(--split) * 100%)) auto minmax(0, 1fr);
+  align-items: start;
+  gap: 0;
+}
+.split-pane { min-width: 0; }
+.split-statement { padding-right: var(--s4); }
+.split-work { padding-left: var(--s4); min-width: 0; }
+
+/* The divider. 10px of hit area around a 1px line, because a 1px target is
+   not a target. */
+.gutter {
+  position: relative; width: 10px; align-self: stretch; min-height: 12rem;
+  cursor: col-resize; border: 0; background: none; padding: 0;
+  touch-action: none;
+}
+.gutter::before {
+  content: ""; position: absolute; top: 0; bottom: 0; left: 50%;
+  width: 1px; background: var(--border); transition: background .14s, width .14s;
+}
+.gutter:hover::before,
+.split[data-dragging] .gutter::before { background: var(--accent); width: 2px; }
+.gutter:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: 3px; }
+/* While dragging, stop the pointer from selecting the statement text. */
+.split[data-dragging] { user-select: none; }
+
+/* Run and Submit, together, always in the same place. */
+.actions-bar {
+  position: sticky; bottom: 0; z-index: 5;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--s3); flex-wrap: wrap;
+  margin-top: var(--s4); padding: var(--s3) 0;
+  background: linear-gradient(to top, var(--bg) 70%, transparent);
+}
+.actions-bar-main { display: flex; gap: var(--s2); flex: none; }
+.actions-bar-note { display: flex; gap: var(--s3); flex-wrap: wrap; align-items: center; color: var(--text-faint); }
+.actions-bar-note #worthNow { color: var(--text-dim); }
+#draftNote[data-state="saved"], #draftState[data-state="saved"] { color: var(--ok); }
+#draftNote[data-state="saving"], #draftState[data-state="saving"] { color: var(--text-faint); }
+
+.editor-tools {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--s3); flex-wrap: wrap; margin-top: var(--s2);
+}
+
+/* Hints, notes and bookkeeping, under the statement rather than a tab away. */
+.asides { display: grid; gap: var(--s2); margin-top: var(--s5); }
+.aside {
+  border: 1px solid var(--border); border-radius: var(--radius-s);
+  background: var(--bg-elev);
+}
+.aside > summary {
+  cursor: pointer; padding: var(--s2) var(--s3);
+  font-size: .86rem; font-weight: 620; color: var(--text-dim);
+  list-style: none; display: flex; align-items: center; gap: .4rem;
+}
+.aside > summary::-webkit-details-marker { display: none; }
+.aside > summary::before { content: "\203A"; display: inline-block; transition: transform .15s; }
+.aside[open] > summary::before { transform: rotate(90deg); }
+.aside > summary:hover { color: var(--text); }
+.aside-count {
+  margin-left: auto; font-family: var(--mono); font-size: .72rem; color: var(--text-faint);
+}
+.aside-body { padding: 0 var(--s3) var(--s3); display: grid; gap: var(--s2); }
+.aside-body .card { background: var(--bg-elev-2); }
+
+/* ---------------- focus mode ----------------
+
+   Everything that is not the problem, gone: the header, the breadcrumbs, the
+   purse. The statement and the editor get the whole window, which on a laptop
+   is the difference between seeing the specification and scrolling for it. */
+html[data-focus] .topbar { display: none; }
+html[data-focus] .main { padding-top: var(--s4); max-width: none; }
+html[data-focus] .phead .crumbs { display: none; }
+html[data-focus] .rail { display: none; }
+
+/* ---------------- diagnostics ----------------
+
+   A list of places with a severity and a message, each clickable, with the
+   compiler's own words still available underneath - the caret diagrams are
+   sometimes the whole point. */
+.diags {
+  border: 1px solid var(--border); border-left-width: 3px;
+  border-radius: var(--radius-s); background: var(--bg-inset);
+  margin: var(--s3) 0; overflow: hidden;
+}
+.diags[data-kind="error"] { border-left-color: var(--danger); }
+.diags[data-kind="warn"]  { border-left-color: var(--warn); }
+.diags-head {
+  display: flex; align-items: baseline; gap: var(--s3); flex-wrap: wrap;
+  padding: var(--s2) var(--s3); border-bottom: 1px solid var(--border);
+  background: var(--bg-elev);
+}
+.diags-head .lbl { font-size: .8rem; font-weight: 650; }
+.diags[data-kind="error"] .lbl { color: var(--danger); }
+.diags[data-kind="warn"]  .lbl { color: var(--warn); }
+
+.diags-list { list-style: none; margin: 0; padding: 0; }
+.diag {
+  display: grid; grid-template-columns: auto auto minmax(0, 1fr);
+  gap: .5rem; align-items: baseline;
+  padding: .4rem var(--s3); border-bottom: 1px solid var(--border);
+  font-size: .82rem;
+}
+.diag:last-child { border-bottom: 0; }
+.diag-where {
+  appearance: none; border: 0; background: none; padding: 0; cursor: pointer;
+  font-family: var(--mono); font-size: .78rem; color: var(--accent);
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.diag-where:hover { color: var(--text); }
+.diag-sev {
+  font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--text-faint);
+}
+.diag[data-severity="error"] .diag-sev { color: var(--danger); }
+.diag[data-severity="warning"] .diag-sev { color: var(--warn); }
+.diag-msg { color: var(--text); overflow-wrap: anywhere; }
+.diag-code { color: var(--text-faint); font-family: var(--mono); font-size: .74rem; }
+.diag-notes {
+  grid-column: 3; margin: .25rem 0 0; padding-left: 1rem;
+  color: var(--text-dim); font-size: .78rem;
+}
+.diags-full > summary {
+  cursor: pointer; padding: var(--s2) var(--s3); font-size: .76rem;
+  color: var(--text-faint); list-style: none;
+}
+.diags-full > summary::-webkit-details-marker { display: none; }
+.diags-full > summary:hover { color: var(--text-dim); }
+.diags-raw {
+  margin: 0; padding: var(--s3); background: var(--bg-inset);
+  font-family: var(--mono); font-size: .76rem; line-height: 1.55;
+  white-space: pre-wrap; overflow-x: auto; color: var(--text-dim);
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 900px) {
+  /* Below this the two panels stop being two panels: stacked, with the
+     statement first, and the divider hidden rather than left as a control
+     that cannot do anything. */
+  .split { grid-template-columns: minmax(0, 1fr); }
+  .split-statement { padding-right: 0; }
+  .split-work { padding-left: 0; margin-top: var(--s4); }
+  .gutter { display: none; }
+}
+
 /* ---------------- theme miniatures ----------------
 
    A small, honest rendering of the real interface in a theme's own tokens.

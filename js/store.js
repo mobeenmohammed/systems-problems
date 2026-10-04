@@ -16,6 +16,11 @@ const Store = (() => {
   const LS_KEY     = 'systems-lab/state/v1';
   const LS_JUDGE   = 'systems-lab/judge-url';
   const LS_JUDGE_TOKEN = 'systems-lab/judge-token';
+  /* Interface preferences — a panel split, focus mode — live under their own
+     key rather than in the progress state. They are per-device and
+     uninteresting, and keeping them out means a malformed pref can never
+     corrupt a solve record or travel in an export. */
+  const LS_PREFS = 'systems-lab/ui/v1';
   const CONFIG_URL = 'data/config.json';
 
   const TOPICS = [
@@ -631,6 +636,40 @@ const Store = (() => {
 
   /* Only needed when the page is served from somewhere that cannot see the
      runner's token file. Kept out of state so it never travels in an export. */
+  /* ---------------- interface preferences ----------------
+
+     Separate from progress on purpose: see LS_PREFS above. Reads are tolerant
+     of a missing or corrupt value, because a browser with storage blocked is
+     a legitimate way to use the page and must not lose the whole view. */
+
+  let prefs = null;
+
+  function loadPrefs() {
+    if (prefs) return prefs;
+    prefs = {};
+    try {
+      const raw = localStorage.getItem(LS_PREFS);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') prefs = parsed;
+      }
+    } catch { /* blocked or corrupt: the defaults are fine */ }
+    return prefs;
+  }
+
+  function pref(key, fallback = null) {
+    const all = loadPrefs();
+    return Object.prototype.hasOwnProperty.call(all, key) ? all[key] : fallback;
+  }
+
+  function setPref(key, value) {
+    const all = loadPrefs();
+    if (value === null || value === undefined) delete all[key];
+    else all[key] = value;
+    try { localStorage.setItem(LS_PREFS, JSON.stringify(all)); } catch { /* ignore */ }
+    return value;
+  }
+
   function setJudgeToken(t) {
     config.judgeToken = String(t || '').trim();
     try {
@@ -649,7 +688,7 @@ const Store = (() => {
     get state()  { return state; },
     get config() { return config; },
     get migratedFrom() { return migratedFrom; },
-    setJudgeUrl, loadJudgeUrl, setJudgeToken,
+    setJudgeUrl, loadJudgeUrl, setJudgeToken, pref, setPref,
 
     TOPICS, TOPIC_BY_ID, DIFFICULTIES, DIFF_BY_ID, LANES, LANE_BY_ID, RANKS,
     SHOP, SHOP_BY_ID, SLOTS, ACHIEVEMENTS, ACHIEVEMENT_BY_ID,

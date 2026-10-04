@@ -54,6 +54,7 @@ const ProblemView = (() => {
 
     current = problem;
     Store.touch(problem);
+    syncFocus();
 
     /* Already finished with it? Then the answer is not a secret any more, and
        hiding it behind a confirm would just be in the way. */
@@ -85,7 +86,25 @@ const ProblemView = (() => {
         el('span', {}, ['/']),
         el('a', { href: `#/problems?topic=${p.topic}` }, [topic.label]),
       ]),
-      el('h1', { text: p.title }),
+      el('div', { class: 'phead-top' }, [
+        el('h1', { text: p.title }),
+        el('div', { class: 'phead-tools' }, [
+          el('button', {
+            class: 'btn btn-sm btn-ghost', type: 'button', id: 'bookmarkBtn',
+            'aria-pressed': String(!!r.flagged),
+            title: r.flagged ? 'Remove the bookmark' : 'Bookmark this for later',
+            onclick: () => { Store.toggleFlag(p); draw(); },
+          }, [r.flagged ? '\u2605 Bookmarked' : '\u2606 Bookmark']),
+          el('button', {
+            class: 'btn btn-sm btn-ghost', type: 'button', id: 'focusBtn',
+            'aria-pressed': String(focusOn()),
+            title: focusOn()
+              ? 'Leave focus mode (F)'
+              : 'Focus mode: hide everything but the problem (F)',
+            onclick: () => setFocus(!focusOn()),
+          }, [focusOn() ? 'Leave focus' : 'Focus']),
+        ]),
+      ]),
       el('div', { class: 'meta' }, [
         el('span', { class: `diff diff-${p.difficulty}`, text: diff.label }),
         el('span', { class: 'tag', text: type.label }),
@@ -124,14 +143,124 @@ const ProblemView = (() => {
       solution: drawSolution,
     }[activeTab] || drawProblem)(panel);
 
-    /* A code problem wants the whole width for the editor, so it drops the
-       side column and the rail runs along the bottom instead. */
-    const wrap = el('div', { class: p.type === 'code' ? 'pwrap code' : 'pwrap' }, [
-      el('div', {}, [head, tabs, panel]),
-      el('div', { class: 'rail' }, rail()),
+    /* A code problem is a workspace rather than a page: the statement and the
+       editor sit side by side with a divider you can drag, because reading the
+       specification while writing against it is the whole activity. Everything
+       else keeps the one-column reading layout with a side rail. */
+    const isWorkspace = p.type === 'code' && activeTab === 'problem';
+
+    const wrap = el('div', {
+      class: isWorkspace ? 'pwrap workspace' : 'pwrap',
+    }, [
+      el('div', { class: 'pmain' }, [head, tabs, panel]),
+      isWorkspace ? null : el('div', { class: 'rail' }, rail()),
     ]);
 
     host.replaceChildren(wrap);
+    if (isWorkspace) applySplit();
+  }
+
+  /* ---------------- the split, and focus mode ----------------
+
+     The divider's position and whether focus mode is on are per-device view
+     preferences, so they live under Store.pref rather than in the progress
+     state - a bad value there could never cost a solve.
+
+     The split is a CSS custom property rather than two inline widths, so one
+     number drives both columns and the gutter stays put during a drag. */
+
+  const SPLIT_MIN = 0.25;
+  const SPLIT_MAX = 0.75;
+  const splitFraction = () => {
+    const v = Number(Store.pref('splitFraction', 0.46));
+    return Number.isFinite(v) ? Math.min(SPLIT_MAX, Math.max(SPLIT_MIN, v)) : 0.46;
+  };
+
+  function applySplit() {
+    const node = host.querySelector('.split');
+    if (node) node.style.setProperty('--split', String(splitFraction()));
+  }
+
+  function setSplit(fraction) {
+    const clamped = Math.min(SPLIT_MAX, Math.max(SPLIT_MIN, fraction));
+    Store.setPref('splitFraction', Math.round(clamped * 1000) / 1000);
+    applySplit();
+  }
+
+  const focusOn = () => !!Store.pref('focusMode', false);
+
+  function setFocus(on) {
+    Store.setPref('focusMode', !!on);
+    document.documentElement.toggleAttribute('data-focus', !!on);
+    const btn = host && host.querySelector('#focusBtn');
+    if (btn) {
+      btn.setAttribute('aria-pressed', String(!!on));
+      btn.title = on ? 'Leave focus mode (F)' : 'Focus mode: hide everything but the problem (F)';
+      btn.textContent = on ? 'Leave focus' : 'Focus';
+    }
+  }
+
+  /* Applied on every draw so that arriving straight at a problem with focus
+     mode remembered does not flash the full chrome first. */
+  function syncFocus() {
+    document.documentElement.toggleAttribute('data-focus', focusOn());
+  }
+
+  /* A draggable divider that is also operable from the keyboard, because a
+     separator you can only reach with a mouse is a separator half the people
+     using the page cannot move. */
+  function gutter() {
+    const bar = el('div', {
+      class: 'gutter',
+      role: 'separator',
+      'aria-orientation': 'vertical',
+      'aria-label': 'Resize the statement and editor panels',
+      'aria-valuemin': '25',
+      'aria-valuemax': '75',
+      'aria-valuenow': String(Math.round(splitFraction() * 100)),
+      tabindex: '0',
+      onkeydown: e => {
+        const step = e.shiftKey ? 0.1 : 0.02;
+        if (e.key === 'ArrowLeft')       setSplit(splitFraction() - step);
+        else if (e.key === 'ArrowRight') setSplit(splitFraction() + step);
+        else if (e.key === 'Home')       setSplit(SPLIT_MIN);
+        else if (e.key === 'End')        setSplit(SPLIT_MAX);
+        else if (e.key === 'Enter' || e.key === ' ') setSplit(0.46);
+        else return;
+        e.preventDefault();
+        bar.setAttribute('aria-valuenow', String(Math.round(splitFraction() * 100)));
+      },
+    });
+
+    bar.addEventListener('pointerdown', e => {
+      const split = bar.closest('.split');
+      if (!split) return;
+      /* Capture the pointer so the drag survives the cursor leaving the thin
+         gutter, which it will immediately. */
+      bar.setPointerCapture(e.pointerId);
+      split.dataset.dragging = 'true';
+
+      const move = ev => {
+        const box = split.getBoundingClientRect();
+        if (box.width <= 0) return;
+        setSplit((ev.clientX - box.left) / box.width);
+        bar.setAttribute('aria-valuenow', String(Math.round(splitFraction() * 100)));
+      };
+      const up = ev => {
+        bar.releasePointerCapture(ev.pointerId);
+        delete split.dataset.dragging;
+        bar.removeEventListener('pointermove', move);
+        bar.removeEventListener('pointerup', up);
+        bar.removeEventListener('pointercancel', up);
+      };
+
+      bar.addEventListener('pointermove', move);
+      bar.addEventListener('pointerup', up);
+      bar.addEventListener('pointercancel', up);
+      e.preventDefault();
+    });
+
+    return bar;
   }
 
   function statusWord(r) {
@@ -212,41 +341,166 @@ const ProblemView = (() => {
 
   function drawProblem(panel) {
     const p = current;
-
-    panel.append(el('div', { class: 'prose', html: MD.render(p.statement || '') }));
-
     const impl = ProblemTypes.get(p.type);
+
+    const statement = el('div', { class: 'prose statement', html: MD.render(p.statement || '') });
+
     if (!impl) {
+      panel.append(statement);
       panel.append(el('div', { class: 'empty' }, [
         `This problem is of type "${p.type}", which this build does not know how to show yet.`,
       ]));
       return;
     }
 
-    const answer = el('div', { class: 'answer' }, [el('h3', { text: 'Your answer' })]);
+    const answer = el('div', { class: 'answer' });
     const widget = el('div', { class: 'widget', id: 'answerWidget' });
     answer.append(widget);
 
     impl.render(p, widget, { locked: locked() });
 
-    if (!locked()) {
-      answer.append(el('div', { class: 'row', style: 'margin-top:1rem' }, [
-        el('button', { class: 'btn btn-primary', type: 'button', id: 'submitBtn', onclick: doSubmit },
-          ['Submit']),
-        el('span', { class: 'tiny faint' }, [`Worth ${Store.potentialXp(p)} XP right now`]),
-      ]));
-    }
+    /* The two actions, together, in one place. Run is secondary and Submit is
+       primary, and the bar sticks to the bottom of the editor column so
+       neither is below the fold on a long statement. Non-code types get the
+       same bar with only Submit in it, so the button is always in the same
+       place. */
+    const actions = locked() ? null : el('div', { class: 'actions-bar' }, [
+      el('div', { class: 'actions-bar-main' }, [
+        p.type === 'code'
+          ? el('button', {
+              class: 'btn', type: 'button', id: 'runBtn',
+              onclick: () => ProblemTypes.get('code').run(false),
+            }, ['Run samples'])
+          : null,
+        el('button', {
+          class: 'btn btn-primary', type: 'button', id: 'submitBtn', onclick: doSubmit,
+        }, ['Submit']),
+      ]),
+      el('div', { class: 'actions-bar-note' }, [
+        el('span', { class: 'tiny', id: 'worthNow', text: `Worth ${Store.potentialXp(p)} XP now` }),
+        p.type === 'code'
+          ? el('span', { class: 'tiny faint', id: 'draftState' }, ['Drafts save as you type'])
+          : null,
+        p.type === 'code'
+          ? el('span', { class: 'tiny faint' }, ['Ctrl+Enter runs \u00b7 Ctrl+Shift+Enter submits'])
+          : null,
+      ]),
+    ]);
 
-    panel.append(answer);
+    const verdict = (answered && solution) ? verdictNode(answered) : null;
+
+    if (p.type === 'code') {
+      /* Statement left, workspace right, with a divider between them. */
+      panel.append(el('div', { class: 'split' }, [
+        el('div', { class: 'split-pane split-statement' }, [
+          statement,
+          workspaceAside(),
+        ]),
+        gutter(),
+        el('div', { class: 'split-pane split-work' }, [
+          answer,
+          actions,
+          verdict,
+        ]),
+      ]));
+    } else {
+      panel.append(statement);
+      panel.append(answer);
+      if (actions) panel.append(actions);
+      if (verdict) panel.append(verdict);
+    }
 
     /* Re-painting the marks after a tab switch, so going to the prerequisites
        and coming back does not lose what you just learned. */
     if (answered && solution) {
       impl.mark(widget, { response: answered.response, key: solution.key, problem: p, solution, result: answered.result });
-      panel.append(verdictNode(answered));
     } else if (locked() && solution) {
       impl.mark(widget, { response: null, key: solution.key, problem: p, solution, result: null });
     }
+  }
+
+  /* ---------------- hints and notes, without leaving the editor ----------------
+
+     Both exist as tabs, and on a code problem leaving the editor to read a
+     hint means losing sight of what you were writing. So they also appear
+     under the statement as disclosures: the same state, the same cost, the
+     same records - just reachable from where the work is happening. */
+
+  function workspaceAside() {
+    const p = current;
+    const r = Store.record(p.id);
+    const hints = p.hints || [];
+    const base = (Store.DIFF_BY_ID[p.difficulty] || {}).base || 0;
+    const cost = Math.round(base * Store.HINT_PENALTY);
+    const shown = locked() ? hints.length : r.hintsUsed;
+
+    const parts = [];
+
+    if (hints.length) {
+      const body = el('div', { class: 'aside-body' }, [
+        el('p', { class: 'tiny faint' }, [
+          locked()
+            ? 'All of them, now that you are done with the problem.'
+            : `One at a time. Each new one costs ${cost} XP off this problem; `
+              + 're-reading one you already opened is free.',
+        ]),
+        ...hints.slice(0, shown).map((h, i) => el('div', { class: 'hint' }, [
+          el('span', { class: 'hn', text: `Hint ${i + 1}` }),
+          el('div', { html: MD.render(h) }),
+        ])),
+        (!locked() && shown < hints.length)
+          ? el('button', {
+              class: 'btn btn-sm', type: 'button',
+              onclick: () => {
+                Store.openHint(p);
+                UI.toast(`Hint ${Store.record(p.id).hintsUsed} opened. Worth ${Store.potentialXp(p)} XP now.`, 'info');
+                draw();
+              },
+            }, [shown === 0
+              ? `Open the first hint (\u2212${cost} XP)`
+              : `Open hint ${shown + 1} of ${hints.length} (\u2212${cost} XP)`])
+          : null,
+        (shown >= hints.length && hints.length)
+          ? el('p', { class: 'tiny faint', text: 'That is all of them.' })
+          : null,
+      ]);
+
+      parts.push(el('details', {
+        class: 'aside', open: (shown > 0) || undefined,
+      }, [
+        el('summary', {}, [
+          'Hints',
+          el('span', { class: 'aside-count', text: `${shown}/${hints.length}` }),
+        ]),
+        body,
+      ]));
+    }
+
+    parts.push(el('details', { class: 'aside' }, [
+      el('summary', {}, [
+        'Your notes',
+        r.notes ? el('span', { class: 'aside-count', text: 'written' }) : null,
+      ]),
+      el('div', { class: 'aside-body' }, [
+        el('p', { class: 'tiny faint' }, [
+          'Kept locally, and carried to the Learning Tree with the solve.',
+        ]),
+        el('textarea', {
+          style: 'width:100%;min-height:6rem',
+          placeholder: 'The sentence worth remembering.',
+          oninput: e => Store.setNotes(p, e.target.value),
+        }, [r.notes]),
+      ]),
+    ]));
+
+    /* The rail's contents still matter on a code problem - what it is worth,
+       reveal, revisit - they just cannot sit in a third column. */
+    parts.push(el('details', { class: 'aside' }, [
+      el('summary', {}, ['Scoring and bookkeeping']),
+      el('div', { class: 'aside-body stack' }, rail()),
+    ]));
+
+    return el('div', { class: 'asides' }, parts);
   }
 
   function verdictNode({ result, award }) {
@@ -518,5 +772,13 @@ const ProblemView = (() => {
     }
   }
 
-  return { open };
+  /* Reachable from the keyboard handler as well as the button, and from any
+     view: focus mode is a preference about the window, not about a problem. */
+  function toggleFocus(force = null) {
+    const next = force === null ? !focusOn() : !!force;
+    setFocus(next);
+    if (current && host && host.isConnected) draw();
+  }
+
+  return { open, toggleFocus, setSplit, splitFraction };
 })();

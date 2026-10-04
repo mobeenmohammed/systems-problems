@@ -120,7 +120,10 @@ fn main() {
       lang,
       profile: pay.profile || 'standard',
       readOnly: ctx.locked,
-      onChange: src => Store.saveDraft(problem, state.lang, src),
+      onChange: src => {
+        Store.saveDraft(problem, state.lang, src);
+        noteSaved();
+      },
       onRun: () => doRun(false),
       onSubmit: () => {
         const btn = document.getElementById('submitBtn');
@@ -128,20 +131,21 @@ fn main() {
       },
     });
 
-    const controls = el('div', { class: 'row', style: 'margin-top:.6rem' }, [
-      ctx.locked ? null : el('button', {
-        class: 'btn', type: 'button', id: 'runBtn',
-        onclick: () => doRun(false),
-      }, ['Run the samples']),
-      ctx.locked ? null : el('span', { class: 'tiny faint' }, ['Ctrl+Enter to run · Ctrl+Shift+Enter to submit']),
+    /* Run and Submit are rendered by the problem page, together, in a bar that
+       sticks to the bottom of this column. What stays here is the editor's own
+       housekeeping. */
+    const controls = el('div', { class: 'editor-tools' }, [
       el('button', {
         class: 'btn btn-sm btn-ghost', type: 'button',
+        title: 'Put the starting template back',
         onclick: () => {
           if (!confirm('Replace what you have written with the starting template?')) return;
           state.editor.value = templateFor(problem, state.lang);
           Store.saveDraft(problem, state.lang, state.editor.value);
+          noteSaved('reset to the template');
         },
       }, ['Reset to template']),
+      el('span', { class: 'tiny faint', id: 'draftNote' }, ['']),
     ]);
     mount.append(controls);
 
@@ -173,9 +177,8 @@ fn main() {
         } else if (notReady.length) {
           text.textContent =
             `${ready.length ? `${ready.join(', ')} runs here. ` : ''}` +
-            `${notReady.join(' and ')} ${notReady.length === 1 ? 'needs' : 'need'} the judge, ` +
-            `which is not answering at ${judge.url}. Start it with: ` +
-            `docker compose -f judge/compose.yml up -d`;
+            `${notReady.join(' and ')} ${notReady.length === 1 ? 'needs' : 'need'} the runner, ` +
+            `which is not answering at ${judge.url}. Start it with: npm run runner`;
         } else {
           text.textContent = `Ready: ${ready.join(', ')}.`;
         }
@@ -207,6 +210,28 @@ fn main() {
       node.setAttribute('aria-pressed', String(node.dataset.lang === id));
     }
     state.out.replaceChildren();
+  }
+
+  /* Drafts were already saved on every keystroke; what was missing was any
+     sign of it, which is the difference between a feature and a feature
+     someone trusts. The note is debounced so it reads "Saved" rather than
+     flickering on every character. */
+  let savedTimer = null;
+
+  function noteSaved(what = '') {
+    const node = document.getElementById('draftNote')
+      || document.getElementById('draftState');
+    if (!node) return;
+    node.textContent = 'Saving\u2026';
+    node.dataset.state = 'saving';
+    clearTimeout(savedTimer);
+    savedTimer = setTimeout(() => {
+      const at = new Date();
+      const hh = String(at.getHours()).padStart(2, '0');
+      const mm = String(at.getMinutes()).padStart(2, '0');
+      node.textContent = what ? `Saved \u2014 ${what}` : `Saved at ${hh}:${mm}`;
+      node.dataset.state = 'saved';
+    }, 420);
   }
 
   /* ---------------- running ---------------- */
@@ -245,8 +270,8 @@ fn main() {
     if (reply.judgeDown) {
       host.append(el('div', { class: 'compile-out', 'data-kind': 'error' }, [
         el('span', { class: 'lbl', text: 'the judge is not answering' }),
-        `${reply.judgeError || 'no connection'}\n\nStart it with:\n  docker compose -f judge/compose.yml up -d\n\n` +
-        `Then press Check in Settings. The address it is trying is ${Store.config.judgeUrl}.`,
+        `${reply.judgeError || 'no connection'}\n\nStart it with:\n  npm run runner\n\n` +
+        `Then press Check connection in Settings. The address it is trying is ${Store.config.judgeUrl}.`,
       ]));
       return;
     }
@@ -255,15 +280,7 @@ fn main() {
        that succeeded. A warning you never read is a warning that taught you
        nothing, and -Wall -Wextra is on every profile for that reason. */
     const cstderr = (reply.compile && reply.compile.stderr || '').trim();
-    if (cstderr) {
-      host.append(el('div', {
-        class: 'compile-out',
-        'data-kind': verdict.built ? 'warn' : 'error',
-      }, [
-        el('span', { class: 'lbl', text: verdict.built ? 'compiler warnings' : 'it did not build' }),
-        cstderr,
-      ]));
-    }
+    if (cstderr) host.append(diagnosticsNode(cstderr, verdict.built));
 
     if (!verdict.built) return;
 
@@ -306,9 +323,168 @@ fn main() {
     });
   }
 
+  /* ---------------- readable diagnostics ----------------
+
+     A compiler's answer arrives as one blob with absolute paths, notes
+     attached to errors, and a caret diagram in the middle. Read as a wall of
+     text it teaches nothing; the useful shape is a list of places with a
+     severity and a message, each one clickable.
+
+     So the blob is parsed into rows and rendered as a list, with the original
+     text still available underneath - because the caret diagrams and the
+     template backtraces are sometimes exactly what you need, and a parser
+     that throws them away is worse than no parser. */
+
+  /* The path is not anchored on, because it can be a Windows drive letter,
+     a WSL path, or "<source>" depending on who compiled. What is reliable is
+     ":line:col: severity:". */
+  const DIAG_LINE = /^(.*?):(\d+):(\d+):\s*(fatal error|error|warning|note|help)(?:\[([^\]]*)\])?:\s*(.*)$/;
+  /* GCC and Clang name the flag at the END of the message - "unused variable
+     'mid' [-Wunused-variable]" - while rustc puts a code right after the
+     severity. Both are worth showing, and in the same place. */
+  const TRAILING_FLAG = /\s*\[(-W[\w=+-]+|[A-Z]\d{3,})\]\s*$/;
+  /* Python has no column and says it differently. */
+  const PY_LINE = /^\s*File "([^"]*)", line (\d+)/;
+  /* The line of a traceback that actually says what is wrong. */
+  const PY_MESSAGE = /^[A-Za-z_][\w.]*(Error|Warning|Exception|Interrupt)\b/;
+
+  function parseDiagnostics(text) {
+    const rows = [];
+    const lines = String(text).split(/\r?\n/);
+
+    for (let i = 0; i < lines.length; i += 1) {
+      const line = lines[i];
+
+      const m = DIAG_LINE.exec(line);
+      if (m) {
+        const severity = m[4] === 'fatal error' ? 'error' : m[4];
+        /* note/help lines belong to the diagnostic above them: they are the
+           explanation, not a separate problem. */
+        if ((severity === 'note' || severity === 'help') && rows.length) {
+          rows[rows.length - 1].notes.push({
+            line: Number(m[2]), message: m[6],
+          });
+          continue;
+        }
+        let message = m[6];
+        let code = m[5] || '';
+        const trailing = TRAILING_FLAG.exec(message);
+        if (trailing) {
+          code = code || trailing[1];
+          message = message.slice(0, trailing.index);
+        }
+        rows.push({
+          line: Number(m[2]),
+          column: Number(m[3]),
+          severity,
+          code,
+          message,
+          notes: [],
+        });
+        continue;
+      }
+
+      const py = PY_LINE.exec(line);
+      if (py) {
+        /* A traceback frame is three or four lines: the location, the source
+           echoed back, a caret, and then the exception. The echo looks like
+           ordinary text, so the exception is found by its shape - a name
+           ending in Error or Exception followed by a colon - rather than by
+           counting lines, which differs between versions. */
+        let message = '';
+        for (let j = i + 1; j < lines.length; j += 1) {
+          const candidate = lines[j].trim();
+          if (!candidate) continue;
+          if (PY_MESSAGE.test(candidate)) { message = candidate; break; }
+          /* Another frame: this one has no exception of its own. */
+          if (PY_LINE.test(lines[j])) break;
+        }
+        rows.push({
+          line: Number(py[2]), column: 1, severity: 'error', code: '',
+          message: message || 'syntax error', notes: [],
+        });
+      }
+    }
+
+    return rows;
+  }
+
+  const SEVERITY_WORD = { error: 'error', warning: 'warning', note: 'note', help: 'help' };
+
+  function diagnosticsNode(text, built) {
+    const rows = parseDiagnostics(text);
+    const errors = rows.filter(r => r.severity === 'error').length;
+    const warnings = rows.filter(r => r.severity === 'warning').length;
+
+    const summary = built
+      ? (warnings
+          ? `It built, with ${warnings} ${warnings === 1 ? 'warning' : 'warnings'}`
+          : 'It built')
+      : (errors
+          ? `It did not build \u2014 ${errors} ${errors === 1 ? 'error' : 'errors'}`
+          : 'It did not build');
+
+    const node = el('div', { class: 'diags', 'data-kind': built ? 'warn' : 'error' }, [
+      el('div', { class: 'diags-head' }, [
+        el('span', { class: 'lbl', text: summary }),
+        warnings && built
+          ? el('span', { class: 'tiny faint', text: 'warnings are on deliberately \u2014 they are usually the lesson' })
+          : null,
+      ]),
+    ]);
+
+    if (!rows.length) {
+      /* Nothing matched the shape - a linker error, or a toolchain speaking
+         for itself. Show it verbatim rather than claiming there is nothing. */
+      node.append(el('pre', { class: 'diags-raw', text: text }));
+      return node;
+    }
+
+    const list = el('ol', { class: 'diags-list' });
+    for (const r of rows) {
+      list.append(el('li', { class: 'diag', 'data-severity': r.severity }, [
+        el('button', {
+          class: 'diag-where', type: 'button',
+          title: `Go to line ${r.line}`,
+          onclick: () => {
+            if (state && state.editor && state.editor.goToLine) {
+              state.editor.goToLine(r.line, r.column);
+              state.editor.focus();
+            }
+          },
+        }, [`${r.line}:${r.column}`]),
+        el('span', { class: 'diag-sev', text: SEVERITY_WORD[r.severity] || r.severity }),
+        el('span', { class: 'diag-msg' }, [
+          r.message,
+          r.code ? el('span', { class: 'diag-code', text: ` [${r.code}]` }) : null,
+        ]),
+        r.notes.length
+          ? el('ul', { class: 'diag-notes' }, r.notes.map(n =>
+              el('li', { text: `line ${n.line}: ${n.message}` })))
+          : null,
+      ]));
+    }
+    node.append(list);
+
+    node.append(el('details', { class: 'diags-full' }, [
+      el('summary', { text: 'The compiler\u2019s own words' }),
+      el('pre', { class: 'diags-raw', text: text }),
+    ]));
+
+    return node;
+  }
+
   /* ---------------- the registry contract ---------------- */
 
   register('code', {
+    /* The Run button now lives in the problem page's action bar, beside
+       Submit, so the two are in one place rather than one being buried under
+       the editor. The type module still owns running. */
+    run: doRun,
+    /* Exposed so the presentation can be tested without a toolchain: the
+       parser's job is turning one blob into rows, and that is checkable
+       against captured compiler output. */
+    parseDiagnostics, diagnosticsNode,
     render,
 
     collect(mount, problem) {
