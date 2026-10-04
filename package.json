@@ -9,7 +9,7 @@
     "check:index": "node scripts/build-index.mjs --check",
     "test": "npm run test:unit && npm run test:browser",
     "test:unit": "node tests/store.test.mjs && node tests/md.test.mjs && node tests/contrast.test.mjs && node tests/grade.test.mjs && node tests/runner.test.mjs && node tests/lint.test.mjs && node tests/judge.test.mjs && node tests/judge0.test.mjs && node tests/content.test.mjs",
-    "test:browser": "node tests/browser/app.test.mjs && node tests/browser/styles.test.mjs && node tests/browser/runner.test.mjs",
+    "test:browser": "node tests/browser/app.test.mjs && node tests/browser/styles.test.mjs && node tests/browser/states.test.mjs && node tests/browser/runner.test.mjs",
     "judge:up": "docker compose -f judge/compose.yml up -d",
     "judge:down": "docker compose -f judge/compose.yml down",
     "serve": "python -m http.server 8000",
