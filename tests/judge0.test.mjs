@@ -75,7 +75,6 @@ if (!process.env.JUDGE0) {
   console.log('  --    skipped. Set JUDGE0=1 to probe https://ce.judge0.com.');
   console.log('  --    It needs no account and no key, but it is a third party and rate limited.');
   report('judge0');
-  process.exit(0);
 }
 
 section('ce.judge0.com answers');
@@ -84,7 +83,6 @@ if (!state.up) {
   console.log(`  --    unreachable: ${state.error}`);
   ok('unreachable is reported rather than thrown', typeof state.error === 'string');
   report('judge0');
-  process.exit(0);
 }
 check('up', state.up, true);
 ok('and reports the languages we asked about', state.languages.length >= 2);

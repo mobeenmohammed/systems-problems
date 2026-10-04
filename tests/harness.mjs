@@ -60,6 +60,11 @@ export function throws(label, fn) {
   return check(label, 'did not throw', 'threw');
 }
 
+/* Ends the suite. On failures it exits 1; on success it exits 0 rather than
+   returning, because a suite that reports and then keeps running is a suite
+   whose skip path falls straight into the checks it just skipped.
+   tests/browser/runner.test.mjs did exactly that, and the only place it showed
+   was CI — where the local runner is, correctly, never up. */
 export function report(suite) {
   console.log(`\n  ${suite}: ${pass} passed, ${fail} failed`);
   if (fail) {
@@ -67,6 +72,7 @@ export function report(suite) {
     for (const f of failures) console.log(`    - ${f}`);
     process.exit(1);
   }
+  process.exit(0);
 }
 
 /* ---------------- loading browser modules ---------------- */
