@@ -289,6 +289,16 @@
 
 </main>
 
+<!-- Previewing a theme changes the whole page without saving anything, so
+     there has to be a way back that is always on screen. -->
+<div class="preview-bar" id="previewBar" role="status" hidden>
+  <span id="previewText"></span>
+  <span class="row">
+    <button class="btn btn-sm btn-primary" id="previewKeep" type="button">Keep it</button>
+    <button class="btn btn-sm" id="previewRevert" type="button">Revert</button>
+  </span>
+</div>
+
 <div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
 
 <script src="js/store.js"></script>

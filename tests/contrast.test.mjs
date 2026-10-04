@@ -52,6 +52,8 @@ function ratio(fg, bg) {
 /* Only the plain `:root { ... }` block in styles.css, not the accent or
    media-query overrides, and one block per html[data-theme="..."]. */
 function tokensFrom(css, selector) {
+  /* The selector may now be part of a group — ":root, [data-theme-preview=…]"
+     — so the block is located by its first selector and the next brace. */
   const at = css.indexOf(selector);
   if (at < 0) return null;
   const open = css.indexOf('{', at);
@@ -69,16 +71,16 @@ function tokensFrom(css, selector) {
   return out;
 }
 
-const defaults = tokensFrom(base, ':root {');
+const defaults = tokensFrom(base, ':root,');
 ok('the default token block parsed', defaults && Object.keys(defaults).length > 20);
 
-const themeNames = [...themes.matchAll(/html\[data-theme="([\w-]+)"\]\s*\{/g)].map(m => m[1]);
+const themeNames = [...themes.matchAll(/html\[data-theme="([\w-]+)"\]\s*,/g)].map(m => m[1]);
 ok('every shop theme has a token block', themeNames.length >= 7);
 
 /* A theme only overrides what it changes, so fall back to the defaults. */
 const themeTokens = {};
 for (const name of themeNames) {
-  themeTokens[name] = { ...defaults, ...tokensFrom(themes, `html[data-theme="${name}"] {`) };
+  themeTokens[name] = { ...defaults, ...tokensFrom(themes, `html[data-theme="${name}"],`) };
 }
 /* The default look is itself a theme on the page, under theme-dark. */
 if (!themeTokens['theme-dark']) themeTokens['theme-dark'] = { ...defaults };

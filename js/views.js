@@ -960,18 +960,107 @@ const UI = (() => {
   /* ---------------- shop ---------------- */
 
   const SLOT_LABELS = { theme: 'Themes', accent: 'Accents', avatar: 'Avatars', frame: 'Frames' };
-  /* Shown on a theme's card so you can see what you are buying without
-     wearing it first. */
-  const THEME_SWATCH = {
-    'theme-dark':      ['#0b0f14', '#4f9dff', '#34d399', '#e4ecf4'],
-    'theme-paper':     ['#f6f7f4', '#0a66c2', '#0f7a4d', '#1c2024'],
-    'theme-gruvbox':   ['#282828', '#fabd2f', '#b8bb26', '#ebdbb2'],
-    'theme-nord':      ['#2e3440', '#88c0d0', '#a3be8c', '#eceff4'],
-    'theme-tokyo':     ['#1a1b26', '#7aa2f7', '#9ece6a', '#c0caf5'],
-    'theme-solarized': ['#002b36', '#268bd2', '#859900', '#eee8d5'],
-    'theme-dracula':   ['#282a36', '#bd93f9', '#50fa7b', '#f8f8f2'],
-    'theme-phosphor':  ['#040a05', '#33ff66', '#8cff9e', '#4fc967'],
-  };
+
+  /* ---------------- theme previews ----------------
+
+     A row of four colour chips tells you a theme is blue. It does not tell you
+     whether the body text is readable on it, what a code comment looks like,
+     or whether the accent is loud. So each theme card renders a miniature of
+     the actual interface — topbar, card, difficulty chip, syntax-coloured
+     code, buttons — in that theme's own tokens.
+
+     The palette is not duplicated to do this: every block in themes.css also
+     matches [data-theme-preview="<id>"], so the miniature is painted from the
+     same values the page uses. A theme that changes gets a preview that
+     changes with it. */
+
+  function themeMiniature(themeId) {
+    const code = el('pre', { class: 'tp-code' });
+    code.innerHTML =
+      '<span class="hl-keyword">while</span> (lo &lt; hi) {\n'
+      + '  <span class="hl-type">size_t</span> mid = lo + (hi - lo) / <span class="hl-num">2</span>;\n'
+      + '  <span class="hl-comment">// the half-open invariant</span>\n'
+      + '}';
+
+    return el('div', {
+      class: 'tpreview', 'data-theme-preview': themeId, 'aria-hidden': 'true',
+    }, [
+      el('div', { class: 'tp-bar' }, [
+        el('span', { class: 'tp-mark' }),
+        el('span', { class: 'tp-brand', text: 'Systems Lab' }),
+        el('span', { class: 'tp-xp', text: '1,240 xp' }),
+      ]),
+      el('div', { class: 'tp-body' }, [
+        el('div', { class: 'tp-card' }, [
+          el('div', { class: 'tp-title', text: 'Binary search, from its invariant' }),
+          el('div', { class: 'tp-meta' }, [
+            el('span', { class: 'tp-chip tp-diff', text: 'Intermediate' }),
+            el('span', { class: 'tp-chip', text: 'Write code' }),
+            el('span', { class: 'tp-faint', text: '~30 min' }),
+          ]),
+          el('div', { class: 'tp-track' }, [el('i', { style: 'width:62%' })]),
+        ]),
+        code,
+        el('div', { class: 'tp-btns' }, [
+          el('span', { class: 'tp-btn tp-primary', text: 'Submit' }),
+          el('span', { class: 'tp-btn', text: 'Run samples' }),
+        ]),
+      ]),
+    ]);
+  }
+
+  /* ---------------- previewing for real ----------------
+
+     A miniature is honest about colour and still too small to judge reading a
+     statement in. So Preview puts the theme on the whole page without buying
+     or equipping it, and a bar offers to keep it or put things back. Nothing
+     is written to the store until Keep is pressed, so navigating away or
+     reloading reverts — which is the behaviour someone trying five themes in a
+     row actually wants. */
+
+  let previewing = null;   /* { themeId, wasTheme } while a preview is live */
+
+  function endPreview({ keep = false } = {}) {
+    if (!previewing) return;
+    const { themeId, wasTheme } = previewing;
+    previewing = null;
+
+    const bar = $('#previewBar');
+    if (bar) bar.hidden = true;
+
+    if (keep) {
+      /* Keeping is only possible for a theme already owned; the shop offers
+         Buy rather than Keep otherwise. */
+      Store.equip('theme', themeId);
+      applyCosmetics();
+      toast(`Wearing **${(Store.SHOP_BY_ID[themeId] || {}).label || themeId}**.`, 'good');
+    } else {
+      document.documentElement.setAttribute('data-theme', wasTheme);
+    }
+    if (!$('#view-shop').hidden) renderShop();
+  }
+
+  function startPreview(themeId) {
+    const wasTheme = previewing ? previewing.wasTheme
+      : (Store.state.equipped.theme || 'theme-dark');
+    previewing = { themeId, wasTheme };
+    document.documentElement.setAttribute('data-theme', themeId);
+
+    const item = Store.SHOP_BY_ID[themeId] || {};
+    const owned = Store.isOwned(themeId);
+    const bar = $('#previewBar');
+    const text = $('#previewText');
+    const keep = $('#previewKeep');
+    if (!bar) return;
+
+    text.textContent = owned
+      ? `Previewing ${item.label || themeId}. Nothing is saved until you keep it.`
+      : `Previewing ${item.label || themeId} — you do not own it yet, so this is a look only.`;
+    keep.hidden = !owned;
+    keep.textContent = 'Keep it';
+    bar.hidden = false;
+    renderShop();
+  }
 
   function renderShop() {
     const s = Store.state;
@@ -982,47 +1071,83 @@ const UI = (() => {
       const items = Store.SHOP.filter(i => i.slot === slot);
       sections.push(el('div', { style: 'margin-bottom:1.8rem' }, [
         el('h2', { text: SLOT_LABELS[slot] }),
-        el('div', { class: 'shop-grid' }, items.map(item => {
+        el('div', { class: `shop-grid${slot === 'theme' ? ' shop-grid-themes' : ''}` }, items.map(item => {
           const owned = Store.isOwned(item.id);
           const worn  = s.equipped[slot] === item.id;
-          const swatch = THEME_SWATCH[item.id];
+          const isTheme = slot === 'theme';
+          const previewed = previewing && previewing.themeId === item.id;
 
-          return el('div', { class: `shop-item${owned ? ' owned' : ''}${worn ? ' worn' : ''}` }, [
-            swatch ? el('div', { class: 'swatch' }, swatch.map(c =>
-              el('i', { style: `background:${c}` }))) : null,
+          /* Three states, and only one of them is a button: Applied is a fact
+             about the page, not something to press. */
+          const act = worn
+            ? el('span', { class: 'pill pill-applied', 'data-act': 'applied', text: 'Applied' })
+            : owned
+              ? el('button', {
+                  class: 'btn btn-sm btn-primary', type: 'button', 'data-act': 'apply',
+                  onclick: () => {
+                    previewing = null;
+                    const bar = $('#previewBar');
+                    if (bar) bar.hidden = true;
+                    Store.equip(slot, item.id);
+                    applyCosmetics();
+                    renderShop();
+                  },
+                }, ['Apply'])
+              : el('button', {
+                  class: 'btn btn-sm btn-primary', type: 'button', 'data-act': 'buy',
+                  disabled: s.coins < item.price || undefined,
+                  onclick: () => {
+                    const res = Store.buy(item.id);
+                    if (!res.ok) {
+                      toast(res.reason === 'poor'
+                        ? `Not enough coins — ${res.short} short.`
+                        : 'Could not buy that.', 'bad');
+                      return;
+                    }
+                    previewing = null;
+                    const bar = $('#previewBar');
+                    if (bar) bar.hidden = true;
+                    applyCosmetics(); refreshPurse(); renderShop();
+                    toast(`Bought **${item.label}** and put it on.`, 'good');
+                  },
+                }, [s.coins < item.price ? `${item.price - s.coins} more coins` : `Buy · ${item.price} ◉`]);
+
+          return el('div', {
+            class: `shop-item${owned ? ' owned' : ''}${worn ? ' worn' : ''}${previewed ? ' previewing' : ''}`,
+            'data-slot': slot, 'data-item': item.id,
+          }, [
+            isTheme ? themeMiniature(item.id) : null,
             el('div', { class: 'spread' }, [
               el('h4', {}, [item.glyph ? `${item.glyph}  ` : '', item.label]),
-              owned ? null : el('span', { class: 'price', text: `${item.price} ◉` }),
+              owned || worn ? null : el('span', { class: 'price', text: `${item.price} ◉` }),
             ]),
             item.note ? el('p', { class: 'note', text: item.note }) : el('p', { class: 'note' }),
-            worn
-              ? el('span', { class: 'pill', style: 'align-self:flex-start', text: 'Worn' })
-              : owned
+            el('div', { class: 'shop-actions' }, [
+              /* Previewing the theme you are already wearing is a no-op, so
+                 it is not offered. */
+              isTheme && !worn
                 ? el('button', {
-                    class: 'btn btn-sm', type: 'button',
-                    onclick: () => { Store.equip(slot, item.id); applyCosmetics(); renderShop(); },
-                  }, ['Wear it'])
-                : el('button', {
-                    class: 'btn btn-sm btn-primary', type: 'button',
-                    disabled: s.coins < item.price || undefined,
-                    onclick: () => {
-                      const res = Store.buy(item.id);
-                      if (!res.ok) {
-                        toast(res.reason === 'poor'
-                          ? `Not enough coins — ${res.short} short.`
-                          : 'Could not buy that.', 'bad');
-                        return;
-                      }
-                      applyCosmetics(); refreshPurse(); renderShop();
-                      toast(`Bought **${item.label}** and put it on.`, 'good');
-                    },
-                  }, [s.coins < item.price ? `${item.price - s.coins} more coins` : 'Buy']),
+                    class: `btn btn-sm btn-ghost${previewed ? ' on' : ''}`,
+                    type: 'button', 'data-act': 'preview',
+                    'aria-pressed': String(!!previewed),
+                    onclick: () => (previewed ? endPreview() : startPreview(item.id)),
+                  }, [previewed ? 'Stop preview' : 'Preview'])
+                : null,
+              act,
+            ]),
           ]);
         })),
       ]));
     }
 
     host.replaceChildren(...sections);
+  }
+
+  function wireShop() {
+    const keep = $('#previewKeep');
+    const revert = $('#previewRevert');
+    if (keep) keep.addEventListener('click', () => endPreview({ keep: true }));
+    if (revert) revert.addEventListener('click', () => endPreview());
   }
 
   /* ---------------- settings ---------------- */
@@ -1118,11 +1243,12 @@ const UI = (() => {
   function wire() {
     wireCatalog();
     wireConcepts();
+    wireShop();
     wireSettings();
   }
 
   return {
-    toast, refreshPurse, applyCosmetics, wire,
+    toast, refreshPurse, applyCosmetics, wire, endPreview,
     renderHome, renderCatalog, renderConcepts, renderProfile, renderShop, renderSettings,
     renderTracks, renderResources, problemList,
     setFilter, checkJudge,

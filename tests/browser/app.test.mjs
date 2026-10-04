@@ -402,22 +402,110 @@ const coins = window.SystemsLab.Store.state.coins;
 ok('solving earned coins to spend', coins > 0);
 await go(window, '#/shop');
 ok('items are offered', document.querySelectorAll('.shop-item').length >= 8);
-ok('a theme shows a preview swatch', document.querySelector('.shop-item .swatch') !== null);
 
+const card = name => [...document.querySelectorAll('.shop-item')]
+  .find(n => n.querySelector('h4').textContent.includes(name));
+
+/* Read the stylesheets so the miniature cannot silently show the wrong
+   palette: a card keyed to a theme with no block would inherit the page. */
+const themeCssNames = await (async () => {
+  const names = new Set();
+  for (const file of ['css/styles.css', 'css/themes.css']) {
+    const res = await window.fetch(file);
+    const css = await res.text();
+    for (const m of css.matchAll(/\[data-theme-preview="([\w-]+)"\]/g)) names.add(m[1]);
+  }
+  return names;
+})();
+const actOn = (name, act) => card(name).querySelector(`[data-act="${act}"]`);
+
+section('a theme shows what the interface looks like, not four colour chips');
+const themeCards = [...document.querySelectorAll('.shop-item[data-slot="theme"]')];
+ok('every theme card has a miniature',
+  themeCards.every(n => n.querySelector('.tpreview') !== null));
+ok('each miniature is keyed to its own theme, not to the page',
+  themeCards.every(n => n.querySelector('.tpreview').dataset.themePreview === n.dataset.item));
+ok('and every theme in the shop has a token block that matches it',
+  themeCards.every(n => themeCssNames.has(n.dataset.item)));
+const mini = themeCards[0].querySelector('.tpreview');
+ok('it shows real chrome, not a swatch', mini.querySelector('.tp-bar') !== null);
+ok('with a card', mini.querySelector('.tp-card') !== null);
+ok('a difficulty chip', mini.querySelector('.tp-diff') !== null);
+ok('syntax-coloured code', mini.querySelector('.tp-code .hl-comment') !== null);
+ok('and buttons', mini.querySelector('.tp-btn.tp-primary') !== null);
+ok('it is hidden from assistive tech, being decorative',
+  mini.getAttribute('aria-hidden') === 'true');
+
+section('Preview, Apply, Applied');
 /* Fund it rather than grinding, then buy the cheapest real theme. */
 window.SystemsLab.Store.state.coins = 1000;
+await go(window, '#/profile');
 await go(window, '#/shop');
-const gruvbox = [...document.querySelectorAll('.shop-item')]
-  .find(n => n.querySelector('h4').textContent.includes('Gruvbox'));
-click(gruvbox.querySelector('button'));
-await settle(window);
 
+ok('an unowned theme offers Preview', actOn('Gruvbox', 'preview') !== null);
+ok('and Buy with its price', /Buy/.test(actOn('Gruvbox', 'buy').textContent));
+
+click(actOn('Gruvbox', 'preview'));
+await settle(window);
+check('previewing puts the theme on the page',
+  document.documentElement.getAttribute('data-theme'), 'theme-gruvbox');
+ok('without buying it', !window.SystemsLab.Store.isOwned('theme-gruvbox'));
+ok('or equipping it', window.SystemsLab.Store.state.equipped.theme !== 'theme-gruvbox');
+ok('a bar says what is happening', document.getElementById('previewBar').hidden === false);
+ok('it says the theme is not owned', /do not own it/.test(document.getElementById('previewText').textContent));
+ok('so Keep is not offered', document.getElementById('previewKeep').hidden === true);
+check('the button becomes Stop preview', actOn('Gruvbox', 'preview').textContent, 'Stop preview');
+
+click(document.getElementById('previewRevert'));
+await settle(window);
+check('reverting restores the real theme',
+  document.documentElement.getAttribute('data-theme'),
+  window.SystemsLab.Store.state.equipped.theme || 'theme-dark');
+ok('and the bar goes away', document.getElementById('previewBar').hidden === true);
+
+/* A preview must not survive leaving the shop. */
+click(actOn('Gruvbox', 'preview'));
+await settle(window);
+await go(window, '#/profile');
+check('navigating away reverts it',
+  document.documentElement.getAttribute('data-theme'),
+  window.SystemsLab.Store.state.equipped.theme || 'theme-dark');
+await go(window, '#/shop');
+
+click(actOn('Gruvbox', 'buy'));
+await settle(window);
 ok('it is owned', window.SystemsLab.Store.isOwned('theme-gruvbox'));
 check('coins were deducted', window.SystemsLab.Store.state.coins, 800);
 check('and it was put on', window.SystemsLab.Store.state.equipped.theme, 'theme-gruvbox');
 check('the document reflects the theme', document.documentElement.getAttribute('data-theme'), 'theme-gruvbox');
-ok('the card now reads as worn',
-  [...document.querySelectorAll('.shop-item.worn h4')].some(h => h.textContent.includes('Gruvbox')));
+check('the card now reads Applied', actOn('Gruvbox', 'applied').textContent, 'Applied');
+ok('Applied is a state, not a button', actOn('Gruvbox', 'applied').tagName !== 'BUTTON');
+ok('and the worn theme is not offered for preview', actOn('Gruvbox', 'preview') === null);
+
+section('an owned theme applies, and can be kept from a preview');
+/* Buy a second one so there is an owned-but-not-worn card. */
+window.SystemsLab.Store.state.coins = 1000;
+await go(window, '#/profile');
+await go(window, '#/shop');
+click(actOn('Nord', 'buy'));
+await settle(window);
+click(actOn('Gruvbox', 'apply'));
+await settle(window);
+check('Apply equips it', window.SystemsLab.Store.state.equipped.theme, 'theme-gruvbox');
+ok('an owned theme offers Apply, not Buy', actOn('Nord', 'apply') !== null);
+
+click(actOn('Nord', 'preview'));
+await settle(window);
+ok('an owned theme being previewed offers Keep',
+  document.getElementById('previewKeep').hidden === false);
+click(document.getElementById('previewKeep'));
+await settle(window);
+check('keeping equips it', window.SystemsLab.Store.state.equipped.theme, 'theme-nord');
+ok('and the bar closes', document.getElementById('previewBar').hidden === true);
+
+/* Back to Gruvbox, which the rest of the suite expects. */
+window.SystemsLab.Store.equip('theme', 'theme-gruvbox');
+window.SystemsLab.UI.applyCosmetics();
 
 section('an unaffordable item');
 window.SystemsLab.Store.state.coins = 0;
@@ -425,11 +513,10 @@ window.SystemsLab.Store.state.coins = 0;
    fires no hashchange and so re-renders nothing. */
 await go(window, '#/profile');
 await go(window, '#/shop');
-const phosphor = [...document.querySelectorAll('.shop-item')]
-  .find(n => n.querySelector('h4').textContent.includes('Phosphor'));
 ok('its button says how far short you are',
-  phosphor.querySelector('button').textContent.includes('more coins'));
-ok('and is disabled', phosphor.querySelector('button').disabled === true);
+  actOn('Phosphor', 'buy').textContent.includes('more coins'));
+ok('and is disabled', actOn('Phosphor', 'buy').disabled === true);
+ok('but it can still be previewed before saving up', actOn('Phosphor', 'preview') !== null);
 
 /* ---------------- profile ---------------- */
 

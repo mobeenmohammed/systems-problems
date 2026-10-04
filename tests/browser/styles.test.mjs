@@ -40,8 +40,14 @@ const sold = [...read('js/store.js').matchAll(/id:\s*'(theme-[\w-]+)'/g)].map(m 
 /* ---------------- the token set ---------------- */
 
 section('the default theme');
-const rootBlock = styles.match(/:root\s*\{([\s\S]*?)\n\}/);
+/* The default palette is declared on a selector group — ":root" together with
+   the theme-dark preview container — so a preview swatch paints from the same
+   values as the page rather than from a second copy of them. Match the group,
+   not a bare ":root {". */
+const rootBlock = styles.match(/:root[^{]*\{([\s\S]*?)\n\}/);
 ok(':root exists in styles.css', !!rootBlock);
+ok('and the same block serves a theme-dark preview',
+  /:root,\s*\[data-theme-preview="theme-dark"\]\s*\{/.test(styles.replace(/\s+/g, ' ')));
 for (const token of REQUIRED) {
   ok(`:root defines --${token}`, new RegExp(`--${token}\\s*:`).test(rootBlock[1]));
 }
@@ -55,13 +61,24 @@ for (const id of sold) {
     continue;
   }
   ok(`${id} has a block in themes.css`,
-    new RegExp(`html\\[data-theme="${id}"\\]\\s*\\{`).test(themes));
+    new RegExp(`html\\[data-theme="${id}"\\]\\s*,`).test(themes));
+}
+
+/* Every theme on sale is also shown as a miniature in the shop, which paints
+   from the same block via [data-theme-preview]. A theme without that selector
+   would render its card in whatever theme the reader is wearing - a preview
+   that lies. */
+section('every theme can be previewed from its own tokens');
+for (const id of sold) {
+  const where = id === 'theme-dark' ? styles : themes;
+  ok(`${id} has a preview selector`,
+    where.includes(`[data-theme-preview="${id}"]`));
 }
 
 section('every theme block defines the whole token set');
 for (const id of sold) {
   if (id === 'theme-dark') continue;
-  const block = themes.match(new RegExp(`html\\[data-theme="${id}"\\]\\s*\\{([\\s\\S]*?)\\n\\}`));
+  const block = themes.match(new RegExp(`html\\[data-theme="${id}"\\][^{]*\\{([\\s\\S]*?)\\n\\}`));
   if (!ok(`${id}: block is readable`, !!block)) continue;
   const missing = REQUIRED.filter(t => !new RegExp(`--${t}\\s*:`).test(block[1]));
   check(`${id}: no missing tokens`, missing, []);

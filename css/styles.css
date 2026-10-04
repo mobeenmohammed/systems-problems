@@ -12,7 +12,13 @@
    problems are the content; the chrome should not compete.
    ============================================================ */
 
-:root {
+/* The default palette, which is also what a theme preview keyed to
+   "theme-dark" has to show. Declaring both selectors on one block means the
+   preview can never drift from the real thing — there is only one list of
+   values. Without the second selector a dark-theme preview would inherit
+   whatever theme the reader is currently wearing. */
+:root,
+[data-theme-preview="theme-dark"] {
   /* surfaces and text */
   --bg:            #0b0e13;
   --bg-elev:       #11161f;
@@ -1147,6 +1153,93 @@ pre.code-block[data-lang]::before {
 .toast[data-kind="info"] { border-left: 3px solid var(--accent); }
 .toast b { color: var(--accent); }
 @keyframes toast-in { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+
+
+/* ---------------- theme miniatures ----------------
+
+   A small, honest rendering of the real interface in a theme's own tokens.
+   Everything here reads from var(--…), and the container carries
+   data-theme-preview, which every palette block also matches — so there is one
+   set of values and the miniature cannot drift from the page.
+
+   Font sizes are tiny on purpose: this is a picture of a layout, not text to
+   read, which is why it is aria-hidden and why Preview exists for judging
+   readability properly. */
+
+.tpreview {
+  background: var(--bg); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius-s);
+  overflow: hidden; margin-bottom: var(--s3);
+  font-size: 7px; line-height: 1.5;
+  user-select: none;
+}
+.tp-bar {
+  display: flex; align-items: center; gap: 4px;
+  padding: 4px 6px; background: var(--bg-elev);
+  border-bottom: 1px solid var(--border);
+}
+.tp-mark { width: 6px; height: 6px; border-radius: 1px; background: var(--accent); flex: none; }
+.tp-brand { font-weight: 700; letter-spacing: -.01em; }
+.tp-xp { margin-left: auto; color: var(--text-faint); font-family: var(--mono); }
+.tp-body { padding: 6px; display: grid; gap: 5px; }
+.tp-card {
+  background: var(--bg-elev); border: 1px solid var(--border);
+  border-radius: 3px; padding: 5px 6px; display: grid; gap: 4px;
+}
+.tp-title { font-weight: 600; color: var(--text); }
+.tp-meta { display: flex; align-items: center; gap: 3px; }
+.tp-chip {
+  border: 1px solid var(--border-strong); border-radius: 2px;
+  padding: 0 3px; color: var(--text-dim);
+}
+.tp-diff { color: var(--diff-intermediate); border-color: color-mix(in srgb, var(--diff-intermediate) 45%, var(--border)); }
+.tp-faint { color: var(--text-faint); font-family: var(--mono); }
+.tp-track { height: 3px; border-radius: 2px; background: var(--bg-inset); overflow: hidden; }
+.tp-track i { display: block; height: 100%; background: var(--accent); }
+.tp-code {
+  margin: 0; padding: 5px 6px; border-radius: 3px;
+  background: var(--bg-inset); border: 1px solid var(--border);
+  font-family: var(--mono); font-size: 6.5px; line-height: 1.6;
+  white-space: pre; overflow: hidden; color: var(--text);
+}
+.tp-btns { display: flex; gap: 4px; }
+.tp-btn {
+  border: 1px solid var(--border-strong); border-radius: 2px;
+  padding: 1px 5px; color: var(--text-dim);
+}
+.tp-primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 650; }
+
+/* The shop card, now that it holds a picture and two controls. */
+.shop-grid-themes { grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); }
+.shop-actions { display: flex; gap: var(--s2); align-items: center; margin-top: auto; flex-wrap: wrap; }
+.shop-actions .btn { flex: 0 0 auto; }
+.shop-item.previewing {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent) inset;
+}
+/* Applied is a fact about the page, so it is not a button. */
+.pill-applied {
+  color: var(--st-solved);
+  border-color: color-mix(in srgb, var(--st-solved) 45%, var(--border));
+}
+.btn-ghost.on { border-color: var(--accent); color: var(--accent); }
+
+/* The preview bar. Fixed, because a preview changes the whole page and the way
+   out has to be reachable without scrolling back to the card. */
+.preview-bar {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: var(--s4); z-index: 60;
+  display: flex; align-items: center; gap: var(--s4);
+  max-width: min(92vw, 46rem);
+  padding: var(--s3) var(--s4);
+  background: var(--bg-elev-2); color: var(--text);
+  border: 1px solid var(--accent); border-radius: var(--radius-l);
+  box-shadow: var(--shadow-3);
+  font-size: .86rem;
+}
+@media (max-width: 680px) {
+  .preview-bar { flex-direction: column; align-items: stretch; gap: var(--s2); text-align: center; }
+}
 
 /* ---------------- responsive ---------------- */
 

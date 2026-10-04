@@ -27,7 +27,8 @@
    ============================================================ */
 
 /* ---------------- Paper — light, for daylight ---------------- */
-html[data-theme="theme-paper"] {
+html[data-theme="theme-paper"],
+[data-theme-preview="theme-paper"] {
   --bg:            #f6f7f4;
   --bg-elev:       #ffffff;
   --bg-elev-2:     #eceee8;
@@ -68,7 +69,8 @@ html[data-theme="theme-paper"] {
 }
 
 /* ---------------- Gruvbox — warm and retro ---------------- */
-html[data-theme="theme-gruvbox"] {
+html[data-theme="theme-gruvbox"],
+[data-theme-preview="theme-gruvbox"] {
   --bg:            #1d2021;
   --bg-elev:       #282828;
   --bg-elev-2:     #3c3836;
@@ -107,7 +109,8 @@ html[data-theme="theme-gruvbox"] {
 }
 
 /* ---------------- Nord — cold and quiet ---------------- */
-html[data-theme="theme-nord"] {
+html[data-theme="theme-nord"],
+[data-theme-preview="theme-nord"] {
   --bg:            #2e3440;
   --bg-elev:       #3b4252;
   --bg-elev-2:     #434c5e;
@@ -146,7 +149,8 @@ html[data-theme="theme-nord"] {
 }
 
 /* ---------------- Tokyo Night — neon on deep blue ---------------- */
-html[data-theme="theme-tokyo"] {
+html[data-theme="theme-tokyo"],
+[data-theme-preview="theme-tokyo"] {
   --bg:            #1a1b26;
   --bg-elev:       #1f2335;
   --bg-elev-2:     #292e42;
@@ -185,7 +189,8 @@ html[data-theme="theme-tokyo"] {
 }
 
 /* ---------------- Solarized Dark — the old standard ---------------- */
-html[data-theme="theme-solarized"] {
+html[data-theme="theme-solarized"],
+[data-theme-preview="theme-solarized"] {
   --bg:            #002b36;
   --bg-elev:       #073642;
   --bg-elev-2:     #0b4350;
@@ -224,7 +229,8 @@ html[data-theme="theme-solarized"] {
 }
 
 /* ---------------- Dracula — purple and loud ---------------- */
-html[data-theme="theme-dracula"] {
+html[data-theme="theme-dracula"],
+[data-theme-preview="theme-dracula"] {
   --bg:            #282a36;
   --bg-elev:       #343746;
   --bg-elev-2:     #44475a;
@@ -267,7 +273,8 @@ html[data-theme="theme-dracula"] {
    phosphor tube had one colour and brightness did the rest. The
    status and difficulty tokens are the one concession, kept as
    brightness steps rather than hues so the look survives. */
-html[data-theme="theme-phosphor"] {
+html[data-theme="theme-phosphor"],
+[data-theme-preview="theme-phosphor"] {
   --bg:            #040a05;
   --bg-elev:       #0a140b;
   --bg-elev-2:     #112017;

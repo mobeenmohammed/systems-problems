@@ -39,6 +39,11 @@
     const { path, query } = parseHash();
     const head = path[0] || '';
 
+    /* A theme preview is deliberately unsaved, so leaving the shop puts the
+       real theme back rather than stranding the reader in a look they never
+       chose. */
+    if (head !== 'shop') UI.endPreview();
+
     switch (head) {
       case '':
         show('home');
