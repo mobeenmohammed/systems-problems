@@ -399,6 +399,9 @@ const Store = (() => {
   function setNotes(problem, text)  { const r = touch(problem); r.notes = String(text); save(); }
   function setPerceived(problem, n) { const r = touch(problem); r.perceived = n >= 1 && n <= 5 ? Math.round(n) : null; save(); }
   function setFlag(problem, on)     { const r = touch(problem); r.flagged = !!on; save(); emit('flag', r); }
+  /* The catalogue bookmarks from a row, where there is no "on" to pass -
+     only the problem and the fact that it was clicked. */
+  function toggleFlag(problem)      { const now = !record(problem.id).flagged; setFlag(problem, now); return now; }
   function setReview(problem, days) {
     const r = touch(problem);
     r.reviewOn = days > 0 ? addDays(todayISO(), days) : '';
@@ -655,7 +658,7 @@ const Store = (() => {
     todayISO, addDays, daysBetween,
     record, isSolved, potentialXp, touch,
     openHint, reveal, submit,
-    setNotes, setPerceived, setFlag, setReview, saveDraft, draft, dueForReview,
+    setNotes, setPerceived, setFlag, toggleFlag, setReview, saveDraft, draft, dueForReview,
     markReading, hasRead, readingCount,
     rankFor, rankProgress,
     buy, equip, isOwned, earnedTitles,

@@ -82,26 +82,62 @@ const UI = (() => {
      dozen rows, which is why this is a table in all but name. */
 
   const TICK = { solved: '✓', attempted: '◔', read: '◎', unsolved: '' };
+  const STATUS_LABEL = {
+    unsolved: 'Not started',
+    attempted: 'Attempted',
+    solved: 'Solved',
+    read: 'Read the answer',
+  };
 
-  function problemRow(p, { index = null } = {}) {
+  /* Which weekly problem is current, so the row can be badged. Looked up once
+     per list rather than once per row. */
+  function weeklyId() {
+    const w = Catalog.thisWeek();
+    return w ? w.problem : null;
+  }
+
+  /* The row is a div with a stretched link rather than an anchor, because the
+     bookmark is a button and a button inside an anchor is not valid markup —
+     and nesting them makes the toggle unreachable by keyboard. The link still
+     covers the row for a mouse, and both controls are separately focusable. */
+  function problemRow(p, { index = null, weekly = null, onChange = null } = {}) {
     const r = Store.record(p.id);
     const type = Catalog.TYPE_BY_ID[p.type] || {};
     const due = r.reviewOn && r.reviewOn <= Store.todayISO();
     const mark = TICK[r.status] || '';
+    const isWeekly = weekly === p.id;
+    const optional = (p.lane || 'core') !== 'core';
 
-    return el('a', {
-      class: 'prow', href: `#/p/${p.id}`, 'data-status': r.status,
+    const bookmark = el('button', {
+      type: 'button',
+      class: `bookmark${r.flagged ? ' on' : ''}`,
+      'aria-pressed': String(!!r.flagged),
+      'aria-label': r.flagged ? `Remove the bookmark on ${p.title}` : `Bookmark ${p.title}`,
+      title: r.flagged ? 'Bookmarked — click to remove' : 'Bookmark this for later',
+      onclick: e => {
+        e.preventDefault();
+        e.stopPropagation();
+        /* The meta, not the id: the record is created on first touch and
+           needs the topic and difficulty to score against later. */
+        Store.toggleFlag(p);
+        if (onChange) onChange();
+      },
+    }, [r.flagged ? '★' : '☆']);
+
+    return el('div', {
+      class: 'prow', 'data-status': r.status, 'data-lane': p.lane || 'core',
     }, [
       el('span', {
         class: `tick status-${r.status}`,
-        title: r.status,
+        'aria-hidden': 'true',
         text: mark || (index != null ? String(index) : ''),
       }),
-      el('span', {}, [
+      el('span', { class: 'prow-main' }, [
         el('div', { class: 'title' }, [
-          p.title,
-          r.flagged ? el('span', { class: 'faint', text: ' ★' }) : null,
-          due ? el('span', { class: 'faint', text: ' ◷' }) : null,
+          el('a', { class: 'prow-link', href: `#/p/${p.id}`, text: p.title }),
+          isWeekly ? el('span', { class: 'badge badge-weekly', text: 'Weekly' }) : null,
+          optional ? el('span', { class: 'badge badge-optional', text: 'Optional' }) : null,
+          due ? el('span', { class: 'badge badge-due', title: `Due for revisit on ${r.reviewOn}`, text: 'Revisit' }) : null,
         ]),
         el('div', { class: 'meta' }, [
           el('span', { text: (Store.TOPIC_BY_ID[p.topic] || {}).label || p.topic }),
@@ -109,24 +145,35 @@ const UI = (() => {
           ...(p.tags || []).slice(0, 2).map(t => el('span', { text: `#${t}` })),
         ]),
       ]),
+      el('span', { class: `status-word status-${r.status}`, text: STATUS_LABEL[r.status] || r.status }),
       diffTag(p.difficulty),
+      el('span', {
+        class: 'est',
+        title: p.estimate ? `About ${p.estimate} minutes` : '',
+        text: p.estimate ? `~${p.estimate} min` : '—',
+      }),
       el('span', {
         class: 'worth',
         text: r.status === 'solved' ? `${r.xpEarned} XP` : `${Store.potentialXp(p)} XP`,
       }),
+      bookmark,
     ]);
   }
 
-  function problemList(metas, { numbered = false } = {}) {
+  function problemList(metas, { numbered = false, onChange = null } = {}) {
     const list = el('div', { class: 'plist' });
+    const weekly = weeklyId();
     list.append(el('div', { class: 'plist-head' }, [
       el('span', { text: numbered ? '#' : '' }),
       el('span', { text: 'Problem' }),
+      el('span', { text: 'Status' }),
       el('span', { text: 'Difficulty' }),
+      el('span', { text: 'Time' }),
       el('span', { style: 'text-align:right', text: 'XP' }),
+      el('span', { class: 'sr-only', text: 'Bookmark' }),
     ]));
     metas.filter(Boolean).forEach((p, i) => {
-      list.append(problemRow(p, { index: numbered ? i + 1 : null }));
+      list.append(problemRow(p, { index: numbered ? i + 1 : null, weekly, onChange }));
     });
     return list;
   }
@@ -502,7 +549,7 @@ const UI = (() => {
 
   /* ---------------- catalog ---------------- */
 
-  let filter = { q: '', topic: '', difficulty: '', type: '', status: '' };
+  let filter = { q: '', topic: '', difficulty: '', type: '', status: '', lane: '' };
 
   function fillFilterOptions() {
     const topic = $('#fTopic');
@@ -510,6 +557,7 @@ const UI = (() => {
       for (const t of Store.TOPICS) topic.append(el('option', { value: t.id, text: t.label }));
       for (const d of Store.DIFFICULTIES) $('#fDiff').append(el('option', { value: d.id, text: d.label }));
       for (const t of Catalog.TYPES) $('#fType').append(el('option', { value: t.id, text: t.label }));
+      for (const l of Store.LANES) $('#fLane').append(el('option', { value: l.id, text: l.label }));
     }
   }
 
@@ -520,6 +568,7 @@ const UI = (() => {
     $('#fDiff').value   = filter.difficulty;
     $('#fType').value   = filter.type;
     $('#fStatus').value = filter.status;
+    $('#fLane').value   = filter.lane;
     if (!silent) renderCatalog();
   }
 
@@ -547,11 +596,20 @@ const UI = (() => {
     }
 
     if (!rows.length) {
-      list.replaceChildren(el('div', { class: 'empty' }, ['Nothing matches that. Try clearing a filter.']));
+      list.replaceChildren(el('div', { class: 'empty' }, [
+        el('h2', { text: 'Nothing matches that' }),
+        el('p', { class: 'muted', text: 'Try clearing a filter, or widen the search.' }),
+        el('button', {
+          class: 'btn btn-sm', type: 'button',
+          onclick: () => setFilter({ q: '', topic: '', difficulty: '', type: '', status: '', lane: '' }),
+        }, ['Clear all filters']),
+      ]));
       return;
     }
 
-    list.replaceChildren(problemList(rows));
+    /* Bookmarking from a row re-renders the list, because the Bookmarked
+       filter and the row's own star both have to follow it. */
+    list.replaceChildren(problemList(rows, { onChange: renderCatalog }));
   }
 
   function wireCatalog() {
@@ -565,8 +623,9 @@ const UI = (() => {
     $('#fDiff').addEventListener('change',   e => setFilter({ difficulty: e.target.value }));
     $('#fType').addEventListener('change',   e => setFilter({ type: e.target.value }));
     $('#fStatus').addEventListener('change', e => setFilter({ status: e.target.value }));
+    $('#fLane').addEventListener('change',   e => setFilter({ lane: e.target.value }));
     $('#fClear').addEventListener('click', () =>
-      setFilter({ q: '', topic: '', difficulty: '', type: '', status: '' }));
+      setFilter({ q: '', topic: '', difficulty: '', type: '', status: '', lane: '' }));
   }
 
   /* ---------------- reading map ---------------- */

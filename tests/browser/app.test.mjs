@@ -116,7 +116,10 @@ await go(window, '#/problems');
 check('the catalog is showing', document.getElementById('view-problems').hidden, false);
 const rows = () => [...document.querySelectorAll('#catalogList .prow')];
 ok('every problem is listed', rows().length === window.SystemsLab.Catalog.all().length);
-ok('a row links to its problem', rows()[0].getAttribute('href').startsWith('#/p/'));
+/* The row is a div with a stretched link inside, so the bookmark button can
+   be a real button. href lives on .prow-link. */
+const rowHref = r => (r.querySelector('.prow-link') || r).getAttribute('href');
+ok('a row links to its problem', rowHref(rows()[0]).startsWith('#/p/'));
 ok('a row shows what it is worth', rows()[0].textContent.includes('XP'));
 
 section('filtering');
@@ -130,7 +133,7 @@ await settle(window);
 ok('filtering by topic narrows the list',
   rows().length === inTopic('os') && rows().length < window.SystemsLab.Catalog.all().length);
 ok('and every row kept is from that topic',
-  rows().every(r => (window.SystemsLab.Catalog.meta(r.getAttribute('href').replace('#/p/', '')) || {}).topic === 'os'));
+  rows().every(r => (window.SystemsLab.Catalog.meta(rowHref(r).replace('#/p/', '')) || {}).topic === 'os'));
 
 topicSel.value = '';
 change(topicSel);
@@ -264,7 +267,7 @@ ok('there is no submit button any more', document.getElementById('submitBtn') ==
 
 section('the catalog reflects the solve');
 await go(window, '#/problems');
-const solvedRow = rows().find(r => r.getAttribute('href') === '#/p/dist-partition-choice');
+const solvedRow = rows().find(r => rowHref(r) === '#/p/dist-partition-choice');
 ok('the row is ticked', solvedRow.querySelector('.tick').textContent === '✓');
 ok('and shows what it earned', solvedRow.textContent.includes('8 XP'));
 
@@ -570,12 +573,87 @@ ok('and it offers the next unsolved one',
   document.querySelector('#trackList .btn-primary') !== null ||
   document.querySelector('#trackList .pill') !== null);
 
+/* ---------------- the catalogue row ---------------- */
+
+section('a row carries status, time and its lane');
+await go(window, '#/problems');
+const firstRow = rows()[0];
+ok('status is a word, not only a tick', (firstRow.querySelector('.status-word') || {}).textContent);
+ok('and the word matches the record',
+  firstRow.querySelector('.status-word').textContent ===
+    { unsolved: 'Not started', attempted: 'Attempted', solved: 'Solved', read: 'Read the answer' }[
+      window.SystemsLab.Store.record(rowHref(firstRow).replace('#/p/', '')).status]);
+ok('an estimate is shown', /~\d+ min|—/.test(firstRow.querySelector('.est').textContent));
+ok('every row declares its lane', rows().every(r => ['core', 'optional'].includes(r.dataset.lane)));
+
+section('Weekly and Optional are badges, not difficulties');
+const weeklyProblem = window.SystemsLab.Catalog.thisWeek().problem;
+const weeklyRow = rows().find(r => rowHref(r) === `#/p/${weeklyProblem}`);
+ok('the weekly problem is badged in the list', weeklyRow.querySelector('.badge-weekly') !== null);
+ok('and that badge is not a difficulty chip',
+  weeklyRow.querySelector('.badge-weekly').classList.contains('diff') === false);
+ok('the difficulty column still shows the difficulty',
+  ['Beginner', 'Intermediate', 'Advanced'].includes(weeklyRow.querySelector('.diff').textContent));
+
+section('bookmarking from a row');
+const bmRow = rows()[0];
+const bmId = rowHref(bmRow).replace('#/p/', '');
+const bmButton = bmRow.querySelector('button.bookmark');
+ok('there is a bookmark button', bmButton !== null);
+check('not pressed to begin with', bmButton.getAttribute('aria-pressed'), 'false');
+bmButton.click();
+await settle(window);
+ok('the record is flagged', window.SystemsLab.Store.record(bmId).flagged === true);
+/* The record is created on first touch, so it has to carry enough to be
+   scored later - this was passing the id instead of the problem. */
+check('and the record knows its topic', window.SystemsLab.Store.record(bmId).topic,
+  window.SystemsLab.Catalog.meta(bmId).topic);
+const bmAgain = rows().find(r => rowHref(r) === `#/p/${bmId}`);
+check('the row shows it', bmAgain.querySelector('button.bookmark').getAttribute('aria-pressed'), 'true');
+
+const bmStatusSel = document.getElementById('fStatus');
+bmStatusSel.value = 'flagged';
+change(bmStatusSel);
+await settle(window);
+ok('the bookmarked filter finds it',
+  rows().some(r => rowHref(r) === `#/p/${bmId}`));
+bmStatusSel.value = '';
+change(bmStatusSel);
+await settle(window);
+
+rows().find(r => rowHref(r) === `#/p/${bmId}`).querySelector('button.bookmark').click();
+await settle(window);
+ok('clicking again removes it', window.SystemsLab.Store.record(bmId).flagged === false);
+
+section('filtering by lane');
+const laneSel = document.getElementById('fLane');
+ok('the lane filter exists', laneSel !== null);
+laneSel.value = 'core';
+change(laneSel);
+await settle(window);
+ok('only core problems are listed', rows().every(r => r.dataset.lane === 'core'));
+laneSel.value = '';
+change(laneSel);
+await settle(window);
+
+section('an empty result says so and offers a way out');
+const emptySearch = document.getElementById('fSearch');
+emptySearch.value = 'zzzzzzz-no-such-thing';
+input(emptySearch);
+await waitFor(window, () => document.querySelector('#catalogList .empty') !== null);
+ok('it explains', document.querySelector('#catalogList .empty').textContent.includes('Nothing matches'));
+const clearBtn = document.querySelector('#catalogList .empty button');
+ok('and offers to clear the filters', clearBtn !== null);
+clearBtn.click();
+await settle(window);
+ok('which brings every problem back', rows().length === window.SystemsLab.Catalog.all().length);
+
 section('a track naming a problem that does not exist drops it');
 /* The file may list an id that has not been written yet; a dead row would be
    worse than a shorter list. */
 ok('no row links to a missing problem',
   [...document.querySelectorAll('#trackList .prow')].every(r =>
-    window.SystemsLab.Catalog.meta(r.getAttribute('href').replace('#/p/', '')) !== null));
+    window.SystemsLab.Catalog.meta((r.querySelector('.prow-link') || r).getAttribute('href').replace('#/p/', '')) !== null));
 
 section('a track that does not exist');
 await go(window, '#/tracks/no-such-track');
