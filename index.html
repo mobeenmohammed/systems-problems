@@ -237,22 +237,66 @@
     </div>
 
     <div class="card" style="margin-bottom:1rem">
-      <h3>The judge</h3>
-      <p class="small muted">C++ and Rust compile and run on a small judge you start locally
-         under Docker. JavaScript and Python run in the browser and need nothing.</p>
-      <div class="judge-state" id="judgeState" data-up="false">
-        <span class="dot"></span><span id="judgeStateText">Not checked yet</span>
+      <h3>Code execution</h3>
+      <p class="small muted prose" id="execSummary"></p>
+
+      <!-- Four states, not two: never checked, nothing listening, listening
+           but refusing us, and ready. Treating the first as a failure is how a
+           page tells you something is broken before it has looked. -->
+      <div class="judge-state" id="judgeState" data-state="unchecked">
+        <span class="dot"></span>
+        <span id="judgeStateText">Not checked yet</span>
       </div>
+      <p class="small" id="judgeAdvice" style="margin:.55rem 0 0"></p>
+
       <div class="row" style="margin-top:.7rem">
-        <input id="setJudge" style="flex:1 1 18rem" placeholder="http://127.0.0.1:2000" spellcheck="false">
-        <button class="btn btn-sm" id="judgeCheck">Check</button>
+        <button class="btn btn-sm btn-primary" id="judgeCheck">Check connection</button>
+        <button class="btn btn-sm" id="judgeCopy">Copy the start command</button>
       </div>
-      <p class="tiny faint" style="margin:.5rem 0 0">
-        Use the address <code>127.0.0.1</code> rather than the name <code>localhost</code>:
-        browsers exempt loopback <em>addresses</em> from mixed-content blocking so this page can
-        reach them over plain HTTP, but Firefox does not extend that to the name.
+
+      <pre class="code-block" style="margin-top:.7rem"><code id="judgeCmd">npm run runner</code></pre>
+      <p class="tiny faint prose" style="margin:.4rem 0 0">
+        One command, from the repository folder. It checks the toolchain, prints what is
+        missing, and then listens on <code>127.0.0.1</code> only.
       </p>
-      <pre class="code-block" style="margin-top:.7rem"><code>docker compose -f judge/compose.yml up -d</code></pre>
+
+      <!-- Everything below is for the day something does not work, so it
+           starts closed rather than making the common case read like setup
+           documentation. -->
+      <details class="advanced">
+        <summary>Advanced setup</summary>
+
+        <label class="small muted">Runner address<br>
+          <input id="setJudge" style="margin-top:.2rem;width:min(100%,22rem)"
+                 placeholder="http://127.0.0.1:2000" spellcheck="false">
+        </label>
+        <p class="tiny faint prose" style="margin:.45rem 0 .9rem">
+          Use the address <code>127.0.0.1</code> rather than the name <code>localhost</code>:
+          browsers exempt loopback <em>addresses</em> from mixed-content blocking so this page
+          can reach them over plain HTTP, but Firefox does not extend that to the name.
+        </p>
+
+        <label class="small muted">Token, if the page cannot read <code>data/judge-token.json</code><br>
+          <input id="setJudgeToken" style="margin-top:.2rem;width:min(100%,22rem)"
+                 placeholder="read automatically when served from the repo" spellcheck="false">
+        </label>
+        <p class="tiny faint prose" style="margin:.45rem 0 .9rem">
+          The runner writes a fresh token on every start and the page picks it up from the
+          repository folder. Paste it here only when the site is served from somewhere that
+          file is not — the published page, for instance.
+        </p>
+
+        <p class="tiny faint prose" style="margin:0 0 .4rem">
+          Under Docker instead, if you would rather not use WSL:
+        </p>
+        <pre class="code-block"><code>docker compose -f judge/compose.yml up -d</code></pre>
+
+        <p class="tiny faint prose" style="margin:.6rem 0 0">
+          To run C++ and Rust from a device that cannot reach this machine at all, enable the
+          hosted Judge0 backend in <code>data/config.json</code>. It needs no account and no key;
+          it is slower, and your submission goes to a third party. See the README.
+        </p>
+      </details>
     </div>
 
     <div class="card" style="margin-bottom:1rem">

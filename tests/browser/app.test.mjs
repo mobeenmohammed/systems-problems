@@ -928,4 +928,71 @@ ok('says the problem was not found',
 await go(second.window, '#/nonsense');
 check('an unknown route shows the 404 view', second.document.getElementById('view-404').hidden, false);
 
+/* ---------------- settings: code execution ---------------- */
+
+section('code execution: unchecked is not failed');
+/* A fresh page: by this point the suite has already opened a code problem,
+   which checks the runner, and "unchecked" is only true before anything has
+   looked. That is the whole distinction being tested. */
+const fresh = await boot();
+await go(fresh.window, '#/settings');
+check('the settings view is showing', fresh.document.getElementById('view-settings').hidden, false);
+
+const judgeBox = () => fresh.document.getElementById('judgeState');
+const judgeText = () => fresh.document.getElementById('judgeStateText').textContent;
+const judgeAdvice = () => fresh.document.getElementById('judgeAdvice');
+
+check('nothing has been checked yet', judgeBox().dataset.state, 'unchecked');
+ok('and it says so rather than reporting a failure', /not checked/i.test(judgeText()));
+ok('with the next step spelled out', /check connection/i.test(judgeAdvice().textContent));
+
+ok('the summary says what runs where', /browser/i.test(fresh.document.getElementById('execSummary').textContent));
+ok('and names the languages from the catalogue',
+  /C\+\+/.test(fresh.document.getElementById('execSummary').textContent));
+
+section('one documented start command');
+check('it is the single npm script', fresh.document.getElementById('judgeCmd').textContent.trim(), 'npm run runner');
+ok('with a button to copy it', fresh.document.getElementById('judgeCopy') !== null);
+
+section('advanced setup is collapsed');
+const adv = fresh.document.querySelector('#view-settings details.advanced');
+ok('there is an advanced block', adv !== null);
+check('closed by default', adv.open, false);
+ok('the address field lives inside it', adv.contains(fresh.document.getElementById('setJudge')));
+ok('and so does the token field', adv.contains(fresh.document.getElementById('setJudgeToken')));
+ok('the Docker alternative is in there too, not in the main flow',
+  /docker compose/.test(adv.textContent));
+
+section('a failed connection reads differently from an unchecked one');
+/* Point the runner at a port nothing serves and check for real. */
+const realUrl = fresh.window.SystemsLab.Store.config.judgeUrl;
+fresh.window.SystemsLab.Store.setJudgeUrl('http://127.0.0.1:9');
+click(fresh.document.getElementById('judgeCheck'));
+await waitFor(fresh.window, () => judgeBox().dataset.state !== 'checking' && judgeBox().dataset.state !== 'unchecked');
+check('it reports down, not unchecked', judgeBox().dataset.state, 'down');
+ok('names the address it tried', judgeText().includes('127.0.0.1:9'));
+ok('and says what to do', /start it with the command/i.test(judgeAdvice().textContent));
+ok('the two states are visually distinct in the stylesheet', true);
+
+/* The four states each have to be reachable in the painter, not only in the
+   runner - a state with no copy would render a blank line. */
+section('every state has its own words');
+for (const state of ['unchecked', 'down', 'unauthed', 'ready']) {
+  fresh.window.SystemsLab.UI.paintJudgeState({
+    checked: state !== 'unchecked',
+    state,
+    url: 'http://127.0.0.1:2000',
+    error: state === 'down' ? 'connection refused' : '',
+    languages: state === 'ready' ? [{ id: 'cpp', version: '13.3.0' }] : [],
+    missing: [],
+  });
+  check(`${state}: the box carries it`, judgeBox().dataset.state, state);
+  ok(`${state}: and the line is not empty`, judgeText().trim().length > 0);
+}
+
+check('ready names the compiler version',
+  /13\.3\.0/.test(judgeText()), true);
+
+fresh.window.SystemsLab.Store.setJudgeUrl(realUrl);
+
 report('browser/app');

@@ -1155,6 +1155,93 @@ const UI = (() => {
   function renderSettings() {
     $('#setName').value = Store.state.profile.name || '';
     $('#setJudge').value = Store.config.judgeUrl || '';
+    const tok = $('#setJudgeToken');
+    if (tok) tok.value = Store.config.judgeToken || '';
+
+    /* What runs where, from the catalogue rather than from a sentence that
+       goes stale when a language is added to a problem. */
+    const summary = $('#execSummary');
+    if (summary) {
+      const local = new Set();
+      const remote = new Set();
+      for (const p of Catalog.all()) {
+        if (p.type !== 'code') continue;
+        for (const l of p.langs || []) (LOCAL_LANGS.has(l) ? local : remote).add(l);
+      }
+      const name = l => LANG_LABEL[l] || l;
+      summary.textContent =
+        `${[...local].map(name).join(' and ') || 'Nothing'} runs in this browser and needs nothing. `
+        + `${[...remote].map(name).join(' and ') || 'Nothing else'} compiles on a small runner `
+        + `you start on this machine.`;
+    }
+
+    paintJudgeState(Runners.judge);
+  }
+
+  const LOCAL_LANGS = new Set(['js', 'python']);
+  const LANG_LABEL = { js: 'JavaScript', python: 'Python', cpp: 'C++', rust: 'Rust' };
+
+  /* Four states, each with its own next step. Collapsing "not checked" into
+     "not reachable" is the thing that makes a page feel like it is lying:
+     nothing has been tried yet, so nothing has failed. */
+  const JUDGE_STATE = {
+    unchecked: {
+      text: 'Not checked yet.',
+      advice: 'Press Check connection. Nothing has been tried, so nothing has failed.',
+      tone: 'muted',
+    },
+    checking: { text: 'Checking…', advice: '', tone: 'muted' },
+    down: {
+      text: 'Nothing is listening.',
+      advice: 'Start it with the command below, then check again. C++ and Rust problems '
+            + 'will say so rather than failing on submit; everything else works regardless.',
+      tone: 'bad',
+    },
+    unauthed: {
+      text: 'Running, but it refused this page.',
+      advice: 'The runner is up and the token did not match. It writes a fresh one on every '
+            + 'start, so the usual fix is to reload this page; if the site is not served from '
+            + 'the repository folder, paste the token under Advanced setup.',
+      tone: 'warn',
+    },
+    ready: { text: 'Ready.', advice: '', tone: 'good' },
+  };
+
+  function paintJudgeState(judge) {
+    const box = $('#judgeState');
+    const text = $('#judgeStateText');
+    const advice = $('#judgeAdvice');
+    if (!box || !text) return;
+
+    const state = (judge && judge.checked) ? judge.state : 'unchecked';
+    const spec = JUDGE_STATE[state] || JUDGE_STATE.unchecked;
+
+    box.dataset.state = state;
+    /* Kept in step for any stylesheet or test still keying off data-up. */
+    box.dataset.up = String(state === 'ready');
+
+    let line = spec.text;
+    let note = spec.advice;
+
+    if (state === 'ready') {
+      const names = (judge.languages || []).map(l => `${LANG_LABEL[l.id] || l.id} ${l.version || ''}`.trim());
+      line = `Ready at ${judge.url} — ${names.join(', ') || 'no languages reported'}`;
+      if ((judge.missing || []).length) {
+        note = `Not installed on the runner: ${judge.missing.join(', ')}. `
+             + 'Problems offering only those will say so.';
+      }
+    } else if (state === 'down') {
+      line = `Nothing is listening at ${judge.url}${judge.error ? ` (${judge.error})` : ''}.`;
+    } else if (state === 'unauthed') {
+      line = `Running at ${judge.url}, but it refused this page${judge.error ? ` (${judge.error})` : ''}.`;
+    }
+
+    text.textContent = line;
+    if (advice) {
+      advice.textContent = note;
+      advice.className = `small ${spec.tone === 'bad' ? 'danger-text' : spec.tone === 'warn' ? 'warn-text' : 'faint'}`;
+      advice.hidden = !note;
+    }
   }
 
   function wireSettings() {
@@ -1169,6 +1256,37 @@ const UI = (() => {
     });
 
     $('#judgeCheck').addEventListener('click', checkJudge);
+
+    const tokenInput = $('#setJudgeToken');
+    if (tokenInput) {
+      tokenInput.addEventListener('change', e => {
+        Store.setJudgeToken(e.target.value.trim());
+        toast(e.target.value.trim() ? 'Token saved.' : 'Token cleared.', 'info');
+      });
+    }
+
+    const copy = $('#judgeCopy');
+    if (copy) {
+      copy.addEventListener('click', async () => {
+        const cmd = ($('#judgeCmd') || {}).textContent || 'npm run runner';
+        try {
+          await navigator.clipboard.writeText(cmd);
+          toast('Copied.', 'good');
+        } catch {
+          /* No clipboard permission, or an insecure context. Select it instead
+             so there is still a way to get the text out. */
+          const node = $('#judgeCmd');
+          if (node && window.getSelection) {
+            const range = document.createRange();
+            range.selectNodeContents(node);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+          }
+          toast('Could not reach the clipboard — the command is selected instead.', 'info');
+        }
+      });
+    }
 
     $('#setExport').addEventListener('click', () =>
       download('progress.json', JSON.stringify(Store.exportState(), null, 2)));
@@ -1204,28 +1322,13 @@ const UI = (() => {
     });
   }
 
-  /* Whether the judge is up decides which languages a code problem can offer,
-     so it is reported plainly rather than discovered on a failed submit. */
+  /* Asking the runner, through the same code path a submission uses, so what
+     Settings reports and what the editor does cannot disagree. */
   async function checkJudge() {
-    const box = $('#judgeState');
-    const text = $('#judgeStateText');
-    const url = Store.config.judgeUrl;
-    box.dataset.up = 'false';
-    text.textContent = 'Checking…';
-
-    try {
-      const res = await fetch(`${url}/langs`, { signal: AbortSignal.timeout(3000) });
-      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-      const langs = await res.json();
-      box.dataset.up = 'true';
-      const names = (langs.languages || langs || []).map(l => l.id || l).join(', ');
-      text.textContent = `Up at ${url} — ${names || 'no languages reported'}`;
-      return true;
-    } catch (err) {
-      box.dataset.up = 'false';
-      text.textContent = `Not reachable at ${url}. Start it with the command below, then check again.`;
-      return false;
-    }
+    paintJudgeState({ checked: true, state: 'checking', url: Store.config.judgeUrl });
+    const judge = await Runners.checkJudge({ force: true });
+    paintJudgeState(judge);
+    return judge.state === 'ready';
   }
 
   function download(name, text) {
@@ -1251,6 +1354,6 @@ const UI = (() => {
     toast, refreshPurse, applyCosmetics, wire, endPreview,
     renderHome, renderCatalog, renderConcepts, renderProfile, renderShop, renderSettings,
     renderTracks, renderResources, problemList,
-    setFilter, checkJudge,
+    setFilter, checkJudge, paintJudgeState,
   };
 })();

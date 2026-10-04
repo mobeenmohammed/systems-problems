@@ -1098,9 +1098,35 @@ pre.code-block[data-lang]::before {
   background: var(--bg-elev-2); border: 1px solid var(--border);
 }
 .judge-state .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-faint); flex: none; }
-.judge-state[data-up="true"]  .dot { background: var(--ok); }
-.judge-state[data-up="false"] .dot { background: var(--danger); }
 .judge-state code { font-size: .76rem; }
+
+/* Four states, four colours, and grey for "not checked" - because a red dot
+   before anything has been tried reads as a failure that has not happened. */
+.judge-state[data-state="unchecked"] .dot { background: var(--text-faint); }
+.judge-state[data-state="checking"]  .dot { background: var(--accent); }
+.judge-state[data-state="down"]      .dot { background: var(--danger); }
+.judge-state[data-state="unauthed"]  .dot { background: var(--warn); }
+.judge-state[data-state="ready"]     .dot { background: var(--ok); }
+.judge-state[data-state="unchecked"] { color: var(--text-dim); }
+.judge-state[data-state="down"]      { border-color: color-mix(in srgb, var(--danger) 35%, var(--border)); }
+.judge-state[data-state="unauthed"]  { border-color: color-mix(in srgb, var(--warn) 35%, var(--border)); }
+.judge-state[data-state="ready"]     { border-color: color-mix(in srgb, var(--ok) 35%, var(--border)); }
+
+.danger-text { color: var(--danger); }
+.warn-text   { color: var(--warn); }
+
+/* Setup detail that only matters when something is wrong. Closed by default,
+   so the common case does not read like documentation. */
+.advanced { margin-top: var(--s4); border-top: 1px solid var(--border); padding-top: var(--s3); }
+.advanced > summary {
+  cursor: pointer; font-size: .84rem; font-weight: 620; color: var(--text-dim);
+  list-style: none; display: flex; align-items: center; gap: .4rem;
+}
+.advanced > summary::-webkit-details-marker { display: none; }
+.advanced > summary::before { content: "A"; display: inline-block; transition: transform .15s; }
+.advanced[open] > summary::before { transform: rotate(90deg); }
+.advanced > summary:hover { color: var(--text); }
+.advanced > *:not(summary) { margin-top: var(--s3); }
 
 /* ---------------- profile and shop ---------------- */
 
