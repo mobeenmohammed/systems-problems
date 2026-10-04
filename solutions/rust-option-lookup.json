@@ -1,0 +1,57 @@
+{
+  "key": {
+    "cases": [
+      {
+        "stdin": "1\nsolo\n1\nsolo\n",
+        "expect": "prefix solo solo\nexact solo 0\nlen solo 4\n"
+      },
+      {
+        "stdin": "2\nab ab\n1\nab\n",
+        "expect": "prefix ab ab\nexact ab 0\nlen ab 2\n"
+      },
+      {
+        "stdin": "3\nzeta alpha beta\n1\n_\n",
+        "expect": "prefix  zeta\nexact  none\nlen  4\n"
+      },
+      {
+        "stdin": "3\ncat cattle category\n1\ncat\n",
+        "expect": "prefix cat cat\nexact cat 0\nlen cat 3\n"
+      },
+      {
+        "stdin": "3\ncattle category cat\n1\ncat\n",
+        "expect": "prefix cat cattle\nexact cat 2\nlen cat 6\n"
+      },
+      {
+        "stdin": "2\nring ringing\n2\nringi nope\n",
+        "expect": "prefix ringi ringing\nexact ringi none\nlen ringi 7\nprefix nope none\nexact nope none\nlen nope 0\n"
+      },
+      {
+        "stdin": "4\na ab abc abcd\n2\nabc abcde\n",
+        "expect": "prefix abc abc\nexact abc 2\nlen abc 3\nprefix abcde none\nexact abcde none\nlen abcde 0\n"
+      },
+      {
+        "stdin": "1\nx\n3\nx y _\n",
+        "expect": "prefix x x\nexact x 0\nlen x 1\nprefix y none\nexact y none\nlen y 0\nprefix  x\nexact  none\nlen  1\n"
+      },
+      {
+        "stdin": "2\nUP up\n2\nUP up\n",
+        "expect": "prefix UP UP\nexact UP 0\nlen UP 2\nprefix up up\nexact up 1\nlen up 2\n"
+      }
+    ],
+    "reference": {
+      "rust": "use std::io::{self, Read, Write};\n\n/// Returns a borrowed view of the matching name, if there is one.\nfn find_name<'a>(names: &'a [String], prefix: &str) -> Option<&'a String> {\n    for n in names {\n        if n.starts_with(prefix) {\n            return Some(n);\n        }\n    }\n    None\n}\n\nfn position_of(names: &[String], wanted: &str) -> Option<usize> {\n    for (i, n) in names.iter().enumerate() {\n        if n == wanted {\n            return Some(i);\n        }\n    }\n    None\n}\n\nfn main() {\n    let mut input = String::new();\n    io::stdin().read_to_string(&mut input).unwrap();\n    let mut it = input.split_whitespace();\n\n    let n: usize = match it.next() {\n        Some(t) => t.parse().unwrap(),\n        None => return,\n    };\n\n    let mut names: Vec<String> = Vec::new();\n    for _ in 0..n {\n        names.push(it.next().unwrap().to_string());\n    }\n\n    let q: usize = it.next().unwrap().parse().unwrap();\n\n    let stdout = io::stdout();\n    let mut out = io::BufWriter::new(stdout.lock());\n\n    for _ in 0..q {\n        let token = it.next().unwrap();\n        let query = if token == \"_\" { \"\" } else { token };\n\n        match find_name(&names, query) {\n            Some(found) => writeln!(out, \"prefix {} {}\", query, found).unwrap(),\n            None => writeln!(out, \"prefix {} none\", query).unwrap(),\n        }\n\n        // if let, for when only one arm is interesting\n        if let Some(i) = position_of(&names, query) {\n            writeln!(out, \"exact {} {}\", query, i).unwrap();\n        } else {\n            writeln!(out, \"exact {} none\", query).unwrap();\n        }\n\n        // map turns Option<&String> into Option<usize> without unwrapping\n        let len = find_name(&names, query).map(|s| s.len()).unwrap_or(0);\n        writeln!(out, \"len {} {}\", query, len).unwrap();\n    }\n\n    io::stdout().flush().ok();\n}\n"
+    }
+  },
+  "explanation": "## The two searches\n\n```rust\nfn find_name<'a>(names: &'a [String], prefix: &str) -> Option<&'a String> {\n    for n in names {\n        if n.starts_with(prefix) {\n            return Some(n);\n        }\n    }\n    None\n}\n```\n\nThe bare `None` at the end is the function's value when the loop completes - no\nflag, no sentinel. And `Some(n)` wraps a **borrow** of the element, so nothing is\ncopied and the caller gets a view into the list.\n\n## What `Option` buys over `-1`\n\nThe C++ version of `position_of` returned `-1`, and that worked because an index\ncannot be negative. Three things change here:\n\n**The type is different.** `Option<usize>` is not a `usize`. Try to use it as\none and the program does not compile, so \"I forgot to check\" is not a failure\nmode that exists.\n\n**No value is stolen.** `Option<i64>` represents every `i64` plus nothing, so\nthe trick survives being applied to a function that returns a *value* from the\ndata rather than an index - which is exactly where the `-1` convention breaks.\n\n**The check is not optional.** A `match` must cover every variant:\n\n```rust\nmatch find_name(&names, query) {\n    Some(found) => ...,\n    // forgetting None here:\n}\n```\n\n```\nerror[E0004]: non-exhaustive patterns: `None` not covered\n```\n\nThat is the difference from `std::optional` in C++, which has all of the first\ntwo properties and none of the third - `*opt` on an empty optional is undefined\nbehaviour, and nothing makes you call `has_value()` first.\n\nAnd `Option` costs nothing. `Option<&T>` is a single pointer, with `None`\nrepresented as the null pointer, because the compiler knows a reference is never\nnull. So the safe version compiles to the same code as the C pointer-returning\nversion, with the check enforced.\n\n## Three ways in, and when each is right\n\n**`match`** - both outcomes do real work:\n\n```rust\nmatch find_name(&names, query) {\n    Some(found) => writeln!(out, \"prefix {} {}\", query, found),\n    None => writeln!(out, \"prefix {} none\", query),\n}\n```\n\nExhaustive, so the compiler is checking you handled everything. This is the\ndefault; reach for the others when `match` is heavier than the situation.\n\n**`if let`** - one arm is interesting and the other is a fallback. It is\n`match` with one pattern and an optional `else`, and it reads as a conditional\nrather than as a dispatch.\n\n**`map` and `unwrap_or`** - you want to transform the value if it is there and\nsubstitute a default if not, with no branch written at all:\n\n```rust\nlet len = find_name(&names, query).map(|s| s.len()).unwrap_or(0);\n```\n\n`map` applies the closure inside a `Some` and passes `None` through untouched.\nThis chaining style is where Rust's error handling stops feeling like checking\nand starts feeling like a pipeline. The ones worth learning early:\n\n| Method | Does |\n| --- | --- |\n| `map(f)` | `Some(x)` to `Some(f(x))`, `None` stays `None` |\n| `and_then(f)` | like `map` but `f` itself returns an `Option` - flattens |\n| `unwrap_or(d)` | the value, or `d` |\n| `unwrap_or_else(f)` | the value, or `f()` - when the default is expensive |\n| `ok_or(e)` | turn an `Option` into a `Result`, supplying the error |\n| `filter(p)` | `Some(x)` only if `p(x)`, else `None` |\n\n`unwrap()` is also there and panics on `None`. It is right in a test, in a\nprototype, and where you can prove the value exists - and in production code\neach one is a potential crash, which is why `expect(\"why this cannot fail\")` is\npreferred: it makes the claim visible and puts it in the panic message.\n\n## The lifetime, and why one function needs it\n\n```rust\nfn find_name<'a>(names: &'a [String], prefix: &str) -> Option<&'a String>\n```\n\nThe returned reference points into `names`, so it must not outlive it. With one\nreference parameter the compiler assumes the output borrows from it and you write\nnothing - that is lifetime elision. With **two** reference parameters it cannot\nguess which one the return value came from, so it asks:\n\n```\nerror[E0106]: missing lifetime specifier\n  |\n  = help: this function's return type contains a borrowed value, but the\n          signature does not say whether it is borrowed from `names` or `prefix`\n```\n\n`'a` answers exactly that question, and it names a constraint rather than a\nduration: *the returned reference is valid for as long as `names` is.* Having\nsaid it, the compiler will reject a caller that drops the list and keeps the\nresult.\n\n`position_of` needs none of this, because `usize` is a plain value that borrows\nnothing. That contrast is the whole of what lifetimes are for: they appear only\nwhere a reference escapes a function, and they describe a relationship between\nborrows that already exist.\n\n## `starts_with(\"\")` is true\n\nEvery string starts with the empty string, so an empty query matches the first\nname in the list - which is why one hidden case exists and why the statement\nspells it out. The vacuous answer is the mathematically right one, the same way\nan empty sum is 0 and an empty string is a palindrome.\n\nThe `_` placeholder is a format workaround: input is whitespace-separated, so an\nempty token cannot be written. Worth noticing as a general point about\nstdin-based protocols - \"no value\" needs an encoding, and picking one that cannot\ncollide with real data is part of designing the format. A length-prefixed or\nquoted format would not need the hack.\n\n## Comparing a `&String` with a `&str`\n\n```rust\nif n == wanted        // n: &String, wanted: &str\n```\n\nThis works because `String` implements `PartialEq<str>`, so the comparison\ncompares contents rather than requiring the types to match. It is one of a small\nnumber of cross-type impls the standard library provides specifically because\n`String`/`&str` is such a common pair.\n\nWhich is also why `starts_with` takes `&str` and the function signature does\ntoo. Taking `&String` there would have forced callers to allocate - and the\nwhole point of `&str` is that it works on a literal, a slice, or a borrowed\n`String`, with no copy in any of the three cases.",
+  "readMore": [
+    {
+      "concept": "rust-option",
+      "where": "The Rust Book ch. 6, then the std::option method list"
+    },
+    {
+      "concept": "rust-borrowing",
+      "where": "ch. 10.3 on lifetimes, once Option is comfortable"
+    }
+  ],
+  "id": "rust-option-lookup"
+}

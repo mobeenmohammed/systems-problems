@@ -1,0 +1,58 @@
+{
+  "id": "rust-question-mark-records",
+  "title": "Propagating failure without writing a match",
+  "topic": "rust",
+  "difficulty": "advanced",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "result",
+    "option",
+    "question-mark",
+    "error-handling",
+    "enums"
+  ],
+  "estimate": 40,
+  "prereqs": [
+    {
+      "concept": "rust-question-mark",
+      "why": "The whole problem is written so that every failure leaves the function through a ?, which is what makes the happy path a straight line."
+    },
+    {
+      "concept": "rust-result",
+      "why": "You need to have written the explicit match version before the shorthand means anything."
+    },
+    {
+      "concept": "rust-option",
+      "why": "Two of the failures start as a None from a slice lookup, and ? works on Option too."
+    }
+  ],
+  "statement": "Each line of input is a record: a `name`, then a `qty`. Parse each one, and\nreport what went wrong when it does not parse. Define your own error type:\n\n```rust\nenum RecordError {\n    Missing(&'static str),    // a field was absent\n    NotANumber(String),       // the qty was not an integer\n    Negative(i64),            // the qty parsed but was below zero\n}\n```\n\nwith a `Display` impl printing, respectively, `missing <what>`,\n`notanumber <token>` and `negative <value>`. Then write:\n\n```rust\nfn parse_record(fields: &[&str]) -> Result<(String, i64), RecordError>\nfn second_word(line: &str) -> Option<&str>\n```\n\nSkip blank lines. For each non-blank line print two lines, then the totals:\n\n```\nok <name> <qty>        or  err <the Display text of the error>\nsecond <the second whitespace-separated word of the line, or none>\nrecords <how many parsed>\nerrors <how many did not>\ntotal <sum of the parsed quantities>\n```\n\n```\ninput:   bolt 5              output:  ok bolt 5\n         nut                          second 5\n         screw -2                     err missing qty\n         washer x                     second none\n                                      err negative -2\n                                      second -2\n                                      err notanumber x\n                                      second x\n                                      records 1\n                                      errors 3\n                                      total 5\n```\n\nExtra fields past the second are ignored - `bolt 5 spare` is a valid record.\n\n### The point of the problem\n\n`parse_record` can fail three ways, and the version you have already written in\nthe previous problem would be a staircase of `match`:\n\n```rust\nlet name = match fields.first() {\n    Some(n) => n,\n    None => return Err(RecordError::Missing(\"name\")),\n};\nlet qty_tok = match fields.get(1) {\n    Some(t) => t,\n    None => return Err(RecordError::Missing(\"qty\")),\n};\nlet qty = match qty_tok.parse::<i64>() {\n    Ok(v) => v,\n    Err(_) => return Err(RecordError::NotANumber(qty_tok.to_string())),\n};\n```\n\nFifteen lines, of which three carry the logic. With `?` it becomes:\n\n```rust\nlet name = fields.first().ok_or(RecordError::Missing(\"name\"))?;\nlet qty_tok = fields.get(1).ok_or(RecordError::Missing(\"qty\"))?;\nlet qty: i64 = qty_tok.parse().map_err(|_| RecordError::NotANumber((*qty_tok).to_string()))?;\n```\n\n`?` means: if this is an `Err` (or a `None`), return it from the enclosing\nfunction now; otherwise give me the value inside. The failures are still\nhandled, still in the type, and still impossible to ignore - they are just no\nlonger the shape of the code.\n\n`ok_or` turns an `Option` into a `Result` by supplying the error for the `None`\ncase, and `map_err` replaces one error type with another. Both exist because `?`\nneeds a `Result` whose error type matches the function's.\n\n### `?` on an Option\n\n`second_word` returns an `Option`, so `?` there propagates `None`:\n\n```rust\nfn second_word(line: &str) -> Option<&str> {\n    let mut it = line.split_whitespace();\n    it.next()?;        // no first word at all -> return None\n    it.next()          // the second, which may also be None\n}\n```\n\n`?` works in any function returning `Option` or `Result`, and the two cannot be\nmixed - a `?` on an `Option` inside a function returning `Result` is a compile\nerror, which is what `ok_or` is for.\n\n### Boundary cases\n\nA line with no fields at all, which is skipped. A line with one field, giving\n`missing qty` and `second none`. A qty of exactly 0, which is **not** negative\nand so is valid. A negative qty, which parses and then fails the range check -\nso the order of the two checks is observable. A qty that is not a number at all.\nExtra fields, which are ignored. A line whose second word is not the qty of a\nvalid record - note `second` is computed from the raw line regardless of whether\nthe record parsed, so it prints something even for a failed line.\n\n### Platform assumptions\n\nLines are at most 200 bytes, at most 200 of them, ASCII. Quantities that parse\nfit in an `i64` and the valid ones sum to well inside 64 bits. A token too large\nfor an `i64` is reported as `notanumber`, because `parse` fails for it - the\nerror cause is collapsed deliberately, and the solution says what you would do\ninstead if the distinction mattered.",
+  "hints": [
+    "`fields.first()` and `fields.get(1)` both return `Option<&&str>` - a reference to the element, which is itself a `&str`. That double reference is why the solution writes `(*name).to_string()`: dereference once to get the `&str`, then copy it into an owned `String`.",
+    "`ok_or(e)` turns `Some(v)` into `Ok(v)` and `None` into `Err(e)`, which is exactly the adapter `?` needs. Its sibling `ok_or_else(|| e)` only builds the error when it is actually needed - preferable when constructing it allocates.",
+    "Check `qty < 0` after the parse, with an explicit `return Err(...)`. Not every failure has to leave through a `?` - `?` is for propagating an error you were handed, and this one you are originating."
+  ],
+  "payload": {
+    "langs": [
+      "rust"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "rust": "use std::io::{self, Read, Write};\n\n#[derive(Debug)]\nenum RecordError {\n    Missing(&'static str),\n    NotANumber(String),\n    Negative(i64),\n}\n\nimpl std::fmt::Display for RecordError {\n    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n        match self {\n            RecordError::Missing(what) => write!(f, \"missing {}\", what),\n            RecordError::NotANumber(t) => write!(f, \"notanumber {}\", t),\n            RecordError::Negative(v) => write!(f, \"negative {}\", v),\n        }\n    }\n}\n\nfn parse_record(fields: &[&str]) -> Result<(String, i64), RecordError> {\n    let _ = fields;\n    Err(RecordError::Missing(\"name\")) // <- replace, using ?\n}\n\nfn second_word(line: &str) -> Option<&str> {\n    let _ = line;\n    None // <- replace, using ? on an Option\n}\n\nfn main() {\n    let mut input = String::new();\n    io::stdin().read_to_string(&mut input).unwrap();\n\n    let stdout = io::stdout();\n    let mut out = io::BufWriter::new(stdout.lock());\n\n    for line in input.lines() {\n        let fields: Vec<&str> = line.split_whitespace().collect();\n        if fields.is_empty() {\n            continue;\n        }\n        // parse_record, then second_word\n        let _ = (&mut out, &fields, line);\n    }\n\n    // records / errors / total\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "bolt 5\nnut\nscrew -2\nwasher x\n",
+        "expect": "ok bolt 5\nsecond 5\nerr missing qty\nsecond none\nerr negative -2\nsecond -2\nerr notanumber x\nsecond x\nrecords 1\nerrors 3\ntotal 5\n"
+      },
+      {
+        "stdin": "\n   \n",
+        "expect": "records 0\nerrors 0\ntotal 0\n"
+      }
+    ]
+  }
+}

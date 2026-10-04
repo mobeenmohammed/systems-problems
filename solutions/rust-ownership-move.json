@@ -1,0 +1,57 @@
+{
+  "key": {
+    "cases": [
+      {
+        "stdin": "",
+        "expect": ""
+      },
+      {
+        "stdin": "\n\n\n",
+        "expect": ""
+      },
+      {
+        "stdin": "ALREADY\n",
+        "expect": "measured 7 7\nshout ALREADY\nconsumed 7\n"
+      },
+      {
+        "stdin": "two words\n",
+        "expect": "measured 9 9\nshout TWO WORDS\nconsumed 9\n"
+      },
+      {
+        "stdin": "  padded  \n",
+        "expect": "measured 6 6\nshout PADDED\nconsumed 6\n"
+      },
+      {
+        "stdin": "a1b2-c\n",
+        "expect": "measured 6 6\nshout A1B2-C\nconsumed 6\n"
+      },
+      {
+        "stdin": "one\ntwo\nthree\n",
+        "expect": "measured 3 3\nshout ONE\nconsumed 3\nmeasured 3 3\nshout TWO\nconsumed 3\nmeasured 5 5\nshout THREE\nconsumed 5\n"
+      },
+      {
+        "stdin": "mIxEd\n",
+        "expect": "measured 5 5\nshout MIXED\nconsumed 5\n"
+      },
+      {
+        "stdin": "no trailing newline",
+        "expect": "measured 19 19\nshout NO TRAILING NEWLINE\nconsumed 19\n"
+      }
+    ],
+    "reference": {
+      "rust": "use std::io::{self, Read, Write};\n\n/// Takes ownership. The caller cannot use its String afterwards.\nfn consume(s: String) -> usize {\n    s.len()\n}\n\n/// Takes ownership and gives it back, changed.\nfn shout(mut s: String) -> String {\n    s.make_ascii_uppercase();\n    s\n}\n\n/// Borrows. The caller keeps ownership and can use it again.\nfn measure(s: &String) -> usize {\n    s.len()\n}\n\nfn main() {\n    let mut input = String::new();\n    io::stdin().read_to_string(&mut input).unwrap();\n\n    let stdout = io::stdout();\n    let mut out = io::BufWriter::new(stdout.lock());\n\n    for line in input.lines() {\n        let word = line.trim().to_string();\n        if word.is_empty() {\n            continue;\n        }\n\n        // Borrow twice: both of these leave `word` usable.\n        let n = measure(&word);\n        let m = measure(&word);\n        writeln!(out, \"measured {} {}\", n, m).unwrap();\n\n        // Move out and back: `word` is dead, `loud` owns the data now.\n        let loud = shout(word);\n        writeln!(out, \"shout {}\", loud).unwrap();\n\n        // Move in for good. `loud` is dead after this line.\n        let len = consume(loud);\n        writeln!(out, \"consumed {}\", len).unwrap();\n    }\n}\n"
+    }
+  },
+  "explanation": "## The three signatures say everything\n\n```rust\nfn measure(s: &String) -> usize { s.len() }        // borrows\nfn shout(mut s: String) -> String { ...; s }       // takes and returns\nfn consume(s: String) -> usize { s.len() }         // takes\n```\n\nIn Rust the signature is a contract about **ownership**, not just about types,\nand the compiler enforces it at every call site. Read `&String` as \"I will look\nat yours\" and `String` as \"give me yours\".\n\n## What a move actually is\n\n```rust\nlet loud = shout(word);\n```\n\nAt runtime this copies three machine words - a pointer to the heap buffer, a\nlength and a capacity - from `word` into the parameter. The heap buffer is not\ncopied. That is the same thing a C++ move does.\n\nThe difference is what happens next. Rust marks `word` as moved-from at **compile\ntime** and refuses to let you read it:\n\n```\nerror[E0382]: borrow of moved value: `word`\n```\n\nNot a warning, not a runtime check - the program does not build. And because\n`word` can never be read again, Rust also knows not to run its destructor, so\nthe buffer is freed exactly once, by whoever owns it at the end.\n\nCompare the C++ equivalent:\n\n```cpp\nstd::string word = \"cache\";\nstd::string loud = std::move(word);\nstd::cout << word;            // legal, compiles, prints... something\n```\n\nAfter a `std::move`, the source is in a *valid but unspecified* state. Reading it\nis well defined behaviour that gives you an unspecified value - in practice an\nempty string with every major implementation, which is exactly why the bug\nsurvives code review. Rust makes the same operation a compile error.\n\n## Why `shout` has to give it back\n\n```rust\nfn shout(mut s: String) -> String {\n    s.make_ascii_uppercase();\n    s\n}\n```\n\n`shout` takes ownership, so when it returns, `s` would be dropped and the\nbuffer freed - unless it hands ownership on. Returning `s` does exactly that:\nthe three words are moved into the caller's `loud`, and no destructor runs.\n\nThat `mut` in `mut s: String` is worth a second look. It is **not** part of the\nparameter's type - the caller does not need a mutable `word`, and the type is\nstill `String`. It says the binding inside the function body is mutable. You own\nthe value now, so whether you mutate it is your business.\n\nThis take-and-return shape is common in Rust for exactly this reason. The\nalternative is to borrow mutably:\n\n```rust\nfn shout_in_place(s: &mut String) { s.make_ascii_uppercase(); }\nlet mut word = ...;\nshout_in_place(&mut word);          // word still belongs to the caller\n```\n\nwhich is what you would usually write, and what the next problem is about.\n\n## Two borrows at once are fine\n\n```rust\nlet n = measure(&word);\nlet m = measure(&word);\n```\n\nAny number of shared references can exist simultaneously, because none of them\ncan modify anything. The restriction is on `&mut`, which must be the only\nreference alive - that is the next problem.\n\nNote that `&word` is a `&String` here, which is slightly unidiomatic. Most Rust\ncode would write:\n\n```rust\nfn measure(s: &str) -> usize { s.len() }\n```\n\nbecause `&str` accepts both a borrowed `String` (through deref coercion) and a\nstring literal, so the function is usable in more places for free. This problem\nasks for `&String` so that the borrow is explicit in the type while you are\nlearning what it means.\n\n## `len()` counts bytes\n\n```rust\n\"cache\".len()      // 5\n\"café\".len()       // 5 - four characters, five bytes\n```\n\nA Rust `String` is guaranteed-valid UTF-8, and `len()` is the length of its byte\nrepresentation. For ASCII the two coincide, which is why the statement pins\ninput to ASCII. For anything else you want:\n\n```rust\nword.chars().count()          // Unicode scalar values - O(n), not O(1)\n```\n\nand `chars().count()` is still not \"characters as a person would count them\",\nbecause an emoji with a skin-tone modifier is several scalar values. Rust makes\nthis visible by refusing to let you index a string with `word[0]` at all - there\nis no cheap, correct answer to \"the first character\", so the language declines\nto pretend otherwise.\n\n`make_ascii_uppercase` is named the way it is for the same honesty: it changes\n`a-z` and nothing else, in place, without reallocating - because a general\nUnicode uppercase can change the byte length (German `ß` becomes `SS`) and so\ncannot be done in place at all.\n\n## Why ownership instead of a garbage collector\n\nRust frees a value when its owner goes out of scope, which the compiler knows\nstatically. So there is no runtime tracking, no reference counting on every\nassignment, no collector pauses - and no way to free twice, use after free, or\nleak through a dangling pointer. The cost is paid entirely at compile time, in\nthe form of this problem's error messages.\n\nThat is the trade C++ cannot make, because its moves are a library convention\nrather than a language rule: `std::move` is just a cast, the source object stays\nusable, and the compiler has no basis on which to object.",
+  "readMore": [
+    {
+      "concept": "rust-ownership",
+      "where": "The Rust Book ch. 4.1, which this problem is a direct exercise of"
+    },
+    {
+      "concept": "rust-borrowing",
+      "where": "then ch. 4.2, for what &String means"
+    }
+  ],
+  "id": "rust-ownership-move"
+}

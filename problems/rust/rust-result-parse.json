@@ -1,0 +1,57 @@
+{
+  "id": "rust-result-parse",
+  "title": "Failure as a value",
+  "topic": "rust",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "result",
+    "error-handling",
+    "parsing",
+    "match"
+  ],
+  "estimate": 32,
+  "prereqs": [
+    {
+      "concept": "rust-result",
+      "why": "Both functions return a Result and the caller has to take each one apart, which is the exercise."
+    },
+    {
+      "concept": "rust-option",
+      "why": "Result is Option with a reason attached, and the ways of handling it are the same shapes."
+    },
+    {
+      "concept": "rust-ownership",
+      "why": "The error type here is an owned String, built on the failing path only."
+    }
+  ],
+  "statement": "Read `lo` and `hi`, then every remaining whitespace-separated token until the\ninput runs out. Each token is supposed to be an integer in `[lo, hi]`. Write:\n\n```rust\nfn parse_one(tok: &str) -> Result<i64, ParseIntError>\nfn parse_in_range(tok: &str, lo: i64, hi: i64) -> Result<i64, String>\n```\n\n`parse_one` just forwards `str::parse`. `parse_in_range` uses it and adds the\nrange check, turning **both** kinds of failure into one error type:\n\n- a token that is not an integer gives `Err(\"bad \" + the library's message)`\n- an integer outside `[lo, hi]` gives `Err(\"range \" + the value)`\n\nPrint one line per token, then the totals, then one more line showing recovery\nfrom a failure without crashing:\n\n```\nok <value>                     for each token that parsed and was in range\nerr <token> <the error text>    for each that did not\ngood <how many were ok>\nbad <how many were not>\ntotal <sum of the ok values>\nfallback <parse_in_range(\"not-a-number\", lo, hi).unwrap_or_else(|_| -1)>\n```\n\n```\ninput:   0 100              output:  ok 42\n         42 abc 999 7                err abc bad invalid digit found in string\n                                     err 999 range 999\n                                     ok 7\n                                     good 2\n                                     bad 2\n                                     total 49\n                                     fallback -1\n```\n\nThe exact wording of the library's parse error matters, because it is in the\noutput. On the Rust version this judge uses, the message for a non-numeric token\nis `invalid digit found in string`, and for an empty one it is\n`cannot parse integer from empty string`. Forward it with `format!(\"bad {}\", e)`\nrather than writing your own text.\n\n### The point of the problem\n\n`Option` says a value might be missing. `Result` says an operation might fail\n**and why**:\n\n```rust\nenum Result<T, E> { Ok(T), Err(E) }\n```\n\n`str::parse` returns one, so the failure is part of its type and cannot be\nignored. Two things follow that are worth feeling the weight of:\n\n**There are no exceptions to forget to catch.** The error is in the return\nvalue, visible in the signature, and the compiler warns if you discard it.\n\n**`unwrap()` is where a program crashes.** Every `unwrap` on a `Result` is a\ndecision to turn a handled error into a panic. Fine in a test; a liability in\nanything that has to keep running. This problem has you write the handled\nversion.\n\n### Boundary cases\n\nA token that is not a number at all. A token that is a number but out of range,\nat both ends - and note that `lo` and `hi` themselves are **in** range. A\nnegative range. No tokens after `lo` and `hi`, where all three totals are 0. A\ntoken that overflows an `i64`, which `parse` reports as its own distinct message\nrather than wrapping. A token like `+5`, which `parse::<i64>` accepts, and `5.0`,\nwhich it does not.\n\n### Platform assumptions\n\n`lo <= hi`, both fit in an `i64`, and there are at most 200 tokens whose values\nsum to well inside 64 bits. The error strings come from\n`std::num::ParseIntError`'s `Display` implementation, whose exact wording is a\nproperty of the standard library version - this judge compiles with **Rust\n1.98.0**, where the messages are as quoted above. That is stated rather than\nassumed because the expected output depends on it.",
+  "hints": [
+    "`tok.parse::<i64>()` already returns `Result<i64, ParseIntError>`, so `parse_one` is one line. The turbofish `::<i64>` tells it which type to parse into when the context does not.",
+    "In `parse_in_range`, convert the error rather than propagating it: `match parse_one(tok) { Ok(v) => v, Err(e) => return Err(format!(\"bad {}\", e)) }`. The `{}` formats the error through its Display impl, which is what gives you the library's wording.",
+    "`for tok in it` consumes the rest of the iterator, which is exactly what 'every remaining token' means - no count is read from the input. Keep three counters outside that loop."
+  ],
+  "payload": {
+    "langs": [
+      "rust"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "rust": "use std::io::{self, Read, Write};\nuse std::num::ParseIntError;\n\nfn parse_one(tok: &str) -> Result<i64, ParseIntError> {\n    tok.parse::<i64>()\n}\n\nfn parse_in_range(tok: &str, lo: i64, hi: i64) -> Result<i64, String> {\n    let _ = (tok, lo, hi);\n    Err(String::from(\"replace me\"))\n}\n\nfn main() {\n    let mut input = String::new();\n    io::stdin().read_to_string(&mut input).unwrap();\n    let mut it = input.split_whitespace();\n\n    let lo: i64 = match it.next() {\n        Some(t) => t.parse().unwrap(),\n        None => return,\n    };\n    let hi: i64 = it.next().unwrap().parse().unwrap();\n\n    let stdout = io::stdout();\n    let mut out = io::BufWriter::new(stdout.lock());\n\n    // one line per remaining token, then good / bad / total / fallback\n    let _ = (&mut out, lo, hi, it);\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "0 100\n42 abc 999 7\n",
+        "expect": "ok 42\nerr abc bad invalid digit found in string\nerr 999 range 999\nok 7\ngood 2\nbad 2\ntotal 49\nfallback -1\n"
+      },
+      {
+        "stdin": "0 10\n",
+        "expect": "good 0\nbad 0\ntotal 0\nfallback -1\n"
+      }
+    ]
+  }
+}

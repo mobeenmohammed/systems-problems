@@ -1515,6 +1515,145 @@
     ]
   },
   {
+    "id": "rust-borrow-shared-exclusive",
+    "title": "Many readers, or one writer",
+    "topic": "rust",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "borrowing",
+      "references",
+      "mutability",
+      "vec"
+    ],
+    "estimate": 30,
+    "prereqs": [
+      "rust-borrowing",
+      "rust-ownership",
+      "cpp-references"
+    ],
+    "langs": [
+      "rust"
+    ]
+  },
+  {
+    "id": "rust-option-lookup",
+    "title": "A value that might not be there",
+    "topic": "rust",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "option",
+      "match",
+      "if-let",
+      "borrowing",
+      "lifetimes"
+    ],
+    "estimate": 30,
+    "prereqs": [
+      "rust-option",
+      "rust-borrowing",
+      "sentinel-values"
+    ],
+    "langs": [
+      "rust"
+    ]
+  },
+  {
+    "id": "rust-ownership-move",
+    "title": "Who owns this String",
+    "topic": "rust",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "ownership",
+      "move",
+      "borrow",
+      "string"
+    ],
+    "estimate": 28,
+    "prereqs": [
+      "rust-ownership",
+      "cpp-functions"
+    ],
+    "langs": [
+      "rust"
+    ]
+  },
+  {
+    "id": "rust-result-parse",
+    "title": "Failure as a value",
+    "topic": "rust",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "result",
+      "error-handling",
+      "parsing",
+      "match"
+    ],
+    "estimate": 32,
+    "prereqs": [
+      "rust-result",
+      "rust-option",
+      "rust-ownership"
+    ],
+    "langs": [
+      "rust"
+    ]
+  },
+  {
+    "id": "rust-slices-views",
+    "title": "Part of a collection, without copying it",
+    "topic": "rust",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "slices",
+      "borrowing",
+      "windows",
+      "vec"
+    ],
+    "estimate": 32,
+    "prereqs": [
+      "rust-slices",
+      "rust-borrowing",
+      "cpp-std-vector"
+    ],
+    "langs": [
+      "rust"
+    ]
+  },
+  {
+    "id": "rust-question-mark-records",
+    "title": "Propagating failure without writing a match",
+    "topic": "rust",
+    "difficulty": "advanced",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "result",
+      "option",
+      "question-mark",
+      "error-handling",
+      "enums"
+    ],
+    "estimate": 40,
+    "prereqs": [
+      "rust-question-mark",
+      "rust-result",
+      "rust-option"
+    ],
+    "langs": [
+      "rust"
+    ]
+  },
+  {
     "id": "sysdesign-latency-ladder",
     "title": "Put these in order of how long they take",
     "topic": "sysdesign",

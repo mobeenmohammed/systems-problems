@@ -1,0 +1,57 @@
+{
+  "id": "rust-slices-views",
+  "title": "Part of a collection, without copying it",
+  "topic": "rust",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "slices",
+    "borrowing",
+    "windows",
+    "vec"
+  ],
+  "estimate": 32,
+  "prereqs": [
+    {
+      "concept": "rust-slices",
+      "why": "Every function here takes &[i64] rather than &Vec<i64>, and the halves and windows are slices of the same buffer."
+    },
+    {
+      "concept": "rust-borrowing",
+      "why": "A slice is a borrow, so everything about shared and exclusive access still applies to it."
+    },
+    {
+      "concept": "cpp-std-vector",
+      "why": "You have built the growable array by hand, so you know what buffer a slice is pointing into."
+    }
+  ],
+  "statement": "Read `n` and `k`, then `n` integers. Write these two functions and use them:\n\n```rust\nfn sum(xs: &[i64]) -> i64\nfn best_window(xs: &[i64], k: usize) -> Option<(usize, i64)>\n```\n\n`sum` takes a **slice**, not a `&Vec`, so the same function works on the whole\nthing and on any part of it. `best_window` returns the starting index and sum of\nthe best run of `k` consecutive elements, or `None` if `k` is 0 or larger than\nthe data.\n\nPrint:\n\n```\nwhole <sum of everything>\nhalves <sum of the first half> <sum of the second half>\nleft <the first half>\nright <the second half>\nwindow <start index> <sum>        or  window none\n```\n\nSplit at `n / 2` using integer division, so an odd length puts the extra element\nin the **right** half. On a tie for the best window, report the **earliest**\nstarting index.\n\n```\ninput:   5 2            output:  whole 15\n         1 2 3 4 5               halves 3 12\n                                 left 1 2\n                                 right 3 4 5\n                                 window 3 9\n```\n\nFive elements split 2 and 3; the best pair is `4 5` starting at index 3.\n\n### What a slice is\n\n```\nv: Vec<i64>        [ 1 ][ 2 ][ 3 ][ 4 ][ 5 ]      owns the heap buffer\n                     ^\n&v[1..4]           ptr --------+  len 3           borrows part of it\n```\n\nA `&[i64]` is two machine words: a pointer and a length. Making one copies\nnothing, and the borrow checker guarantees the slice cannot outlive the buffer\nit points into - so there is no way to hold a slice of a vector that has been\ndropped or reallocated.\n\nThat is why **`&[T]` is the right parameter type** for a function that reads a\nsequence. `&Vec<i64>` says \"specifically a heap-allocated growable vector\";\n`&[i64]` says \"any contiguous run of i64\", which also accepts arrays, other\nslices, and part of anything. A `&Vec<T>` converts to `&[T]` automatically, so\ntaking the slice costs the caller nothing.\n\n### Boundary cases\n\n`k = 0` and `k > n`, both of which give `window none`. `k = n`, where there is\nexactly one window. `n = 0`, where both halves are empty, `sum` of an empty\nslice is 0, and the `left`/`right` lines have nothing after the label. `n = 1`,\nwhere the left half is empty. All-negative values, so the best window is the\nleast bad one and starting at 0 is not automatically right. A tie, which must\nresolve to the earliest index.\n\n### Platform assumptions\n\n`n` is between 0 and 2000, `k` between 0 and 2000, and each value satisfies\n`|value| <= 10^9`, so every sum fits in an `i64` with room to spare. `usize` is\n64-bit on the platforms these problems run on, and the index arithmetic in a\nsliding window is written so that nothing is subtracted below zero - which\nmatters because `usize` is unsigned and Rust panics on underflow in debug\nbuilds.",
+  "hints": [
+    "`v.split_at(mid)` returns a tuple of two slices in one call, and it panics if `mid > len` - which cannot happen for `len / 2`. You could also write `&v[..mid]` and `&v[mid..]`, which is the same thing.",
+    "For the window, compute the first sum directly with `sum(&xs[0..k])`, then slide: each step subtracts the element leaving the window and adds the one entering. That makes it O(n) instead of O(n*k).",
+    "Guard `k == 0 || k > xs.len()` first and return `None`. Without that guard, `xs.len() - k` underflows `usize` to an enormous number - which panics in a debug build and loops forever in a release one."
+  ],
+  "payload": {
+    "langs": [
+      "rust"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "rust": "use std::io::{self, Read, Write};\n\nfn sum(xs: &[i64]) -> i64 {\n    0 // <- replace\n}\n\nfn best_window(xs: &[i64], k: usize) -> Option<(usize, i64)> {\n    let _ = (xs, k);\n    None // <- replace\n}\n\nfn show(out: &mut dyn Write, label: &str, xs: &[i64]) {\n    write!(out, \"{}\", label).unwrap();\n    for x in xs {\n        write!(out, \" {}\", x).unwrap();\n    }\n    writeln!(out).unwrap();\n}\n\nfn main() {\n    let mut input = String::new();\n    io::stdin().read_to_string(&mut input).unwrap();\n    let mut it = input.split_whitespace();\n\n    let n: usize = match it.next() {\n        Some(t) => t.parse().unwrap(),\n        None => return,\n    };\n    let k: usize = it.next().unwrap().parse().unwrap();\n\n    let mut v: Vec<i64> = Vec::new();\n    for _ in 0..n {\n        v.push(it.next().unwrap().parse().unwrap());\n    }\n\n    let stdout = io::stdout();\n    let mut out = io::BufWriter::new(stdout.lock());\n\n    // whole, halves, left, right, window\n    let _ = (&mut out, &v, k);\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "5 2\n1 2 3 4 5\n",
+        "expect": "whole 15\nhalves 3 12\nleft 1 2\nright 3 4 5\nwindow 3 9\n"
+      },
+      {
+        "stdin": "3 0\n1 2 3\n",
+        "expect": "whole 6\nhalves 1 5\nleft 1\nright 2 3\nwindow none\n"
+      }
+    ]
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "key": {
+    "cases": [
+      {
+        "stdin": "0 1\n",
+        "expect": "whole 0\nhalves 0 0\nleft\nright\nwindow none\n"
+      },
+      {
+        "stdin": "1 1\n9\n",
+        "expect": "whole 9\nhalves 0 9\nleft\nright 9\nwindow 0 9\n"
+      },
+      {
+        "stdin": "4 5\n1 2 3 4\n",
+        "expect": "whole 10\nhalves 3 7\nleft 1 2\nright 3 4\nwindow none\n"
+      },
+      {
+        "stdin": "4 4\n1 2 3 4\n",
+        "expect": "whole 10\nhalves 3 7\nleft 1 2\nright 3 4\nwindow 0 10\n"
+      },
+      {
+        "stdin": "5 2\n-1 -2 -3 -4 -5\n",
+        "expect": "whole -15\nhalves -3 -12\nleft -1 -2\nright -3 -4 -5\nwindow 0 -3\n"
+      },
+      {
+        "stdin": "4 2\n1 1 1 1\n",
+        "expect": "whole 4\nhalves 2 2\nleft 1 1\nright 1 1\nwindow 0 2\n"
+      },
+      {
+        "stdin": "6 3\n2 0 1 1 0 2\n",
+        "expect": "whole 6\nhalves 3 3\nleft 2 0 1\nright 1 0 2\nwindow 0 3\n"
+      },
+      {
+        "stdin": "6 1\n-5 3 -1 3 -2 0\n",
+        "expect": "whole -2\nhalves -3 1\nleft -5 3 -1\nright 3 -2 0\nwindow 1 3\n"
+      },
+      {
+        "stdin": "2 2\n1000000000 1000000000\n",
+        "expect": "whole 2000000000\nhalves 1000000000 1000000000\nleft 1000000000\nright 1000000000\nwindow 0 2000000000\n"
+      },
+      {
+        "stdin": "7 3\n1 2 3 4 5 6 7\n",
+        "expect": "whole 28\nhalves 6 22\nleft 1 2 3\nright 4 5 6 7\nwindow 4 18\n"
+      }
+    ],
+    "reference": {
+      "rust": "use std::io::{self, Read, Write};\n\n/// Takes a slice, so it works on a Vec, an array, or part of either.\nfn sum(xs: &[i64]) -> i64 {\n    let mut s = 0;\n    for x in xs {\n        s += *x;\n    }\n    s\n}\n\n/// The best sum of any `k` consecutive elements, and where it starts.\nfn best_window(xs: &[i64], k: usize) -> Option<(usize, i64)> {\n    if k == 0 || k > xs.len() {\n        return None;\n    }\n    let mut best = sum(&xs[0..k]);\n    let mut at = 0usize;\n    let mut running = best;\n    for i in 1..=(xs.len() - k) {\n        running = running - xs[i - 1] + xs[i + k - 1];\n        if running > best {\n            best = running;\n            at = i;\n        }\n    }\n    Some((at, best))\n}\n\nfn show(out: &mut dyn Write, label: &str, xs: &[i64]) {\n    write!(out, \"{}\", label).unwrap();\n    for x in xs {\n        write!(out, \" {}\", x).unwrap();\n    }\n    writeln!(out).unwrap();\n}\n\nfn main() {\n    let mut input = String::new();\n    io::stdin().read_to_string(&mut input).unwrap();\n    let mut it = input.split_whitespace();\n\n    let n: usize = match it.next() {\n        Some(t) => t.parse().unwrap(),\n        None => return,\n    };\n    let k: usize = it.next().unwrap().parse().unwrap();\n\n    let mut v: Vec<i64> = Vec::new();\n    for _ in 0..n {\n        v.push(it.next().unwrap().parse().unwrap());\n    }\n\n    let stdout = io::stdout();\n    let mut out = io::BufWriter::new(stdout.lock());\n\n    writeln!(out, \"whole {}\", sum(&v)).unwrap();\n\n    let mid = v.len() / 2;\n    let (left, right) = v.split_at(mid);\n    writeln!(out, \"halves {} {}\", sum(left), sum(right)).unwrap();\n    show(&mut out, \"left\", left);\n    show(&mut out, \"right\", right);\n\n    match best_window(&v, k) {\n        Some((at, s)) => writeln!(out, \"window {} {}\", at, s).unwrap(),\n        None => writeln!(out, \"window none\").unwrap(),\n    }\n\n    io::stdout().flush().ok();\n}\n"
+    }
+  },
+  "explanation": "## `&[T]` rather than `&Vec<T>`\n\n```rust\nfn sum(xs: &[i64]) -> i64\n```\n\nThis one function is called four times in the solution - on the whole vector, on\neach half, and on the first window - because all four are slices of the same\nbuffer. Had it been declared `&Vec<i64>`, only the first call would compile.\n\nA `&Vec<T>` coerces to `&[T]` automatically through `Deref`, so writing the\nslice type costs callers nothing and gains the function every array, every\nslice, and every sub-range. The rule of thumb:\n\n| Take | When |\n| --- | --- |\n| `&[T]` | you read a sequence |\n| `&mut [T]` | you modify elements in place but never resize |\n| `&Vec<T>` | almost never - only if you genuinely need `Vec`'s own methods |\n| `Vec<T>` | you need to own it, resize it, or keep it |\n\nThe same applies to strings: `&str` reads, `String` owns. Taking `&String` is\nthe same mistake as taking `&Vec<T>`.\n\n## A slice is a pointer and a length\n\n```\nv: Vec<i64>      ptr -> [ 1 ][ 2 ][ 3 ][ 4 ][ 5 ]   len 5   cap 8\n&v[1..4]         ptr ------^                        len 3\n```\n\nSixteen bytes on a 64-bit platform, and making one copies no elements. `split_at`\nproduces two of them pointing into the same buffer, which is sound precisely\nbecause they are **non-overlapping** - and that matters when the mutable version\nis involved:\n\n```rust\nlet (a, b) = v.split_at_mut(mid);     // two &mut slices at once\n```\n\nThis is the one sanctioned way to hold two exclusive references into one\ncollection. It is allowed because the function's signature guarantees the two\nranges are disjoint, so neither can observe the other's writes. There is no way\nto express that with plain indexing, which is why `split_at_mut` is in the\nstandard library rather than something you write.\n\n## The sliding window\n\n```rust\nlet mut running = sum(&xs[0..k]);\nfor i in 1..=(xs.len() - k) {\n    running = running - xs[i - 1] + xs[i + k - 1];\n    ...\n}\n```\n\nEach step removes the element that just left the window and adds the one that\njust entered, so the whole scan is O(n) rather than O(n*k). For n = 2000 and\nk = 1000 that is 2000 operations instead of two million.\n\nThe index arithmetic is the part to be careful about. In the body, `i >= 1` is\nguaranteed by the loop's start, so `i - 1` cannot underflow; and\n`i + k - 1 <= len - 1` because `i <= len - k`. Both are safe **because of the\nguard above**:\n\n```rust\nif k == 0 || k > xs.len() { return None; }\n```\n\nWithout it, `xs.len() - k` is a `usize` subtraction that goes negative - which\nin Rust means:\n\n```\nthread 'main' panicked at 'attempt to subtract with overflow'\n```\n\nin a debug build, and wraps to roughly 1.8 x 10^19 in a release build, producing\na loop that runs effectively forever and indexes out of bounds on its first\niteration.\n\nThat difference is worth internalising. Rust's unsigned underflow is *checked* in\ndebug and *wrapping* in release - both defined, neither silent in the way C++'s\nis, and still a bug either way. The guard is the fix; `checked_sub` is the\nalternative when the subtraction is genuinely conditional:\n\n```rust\nlet last_start = xs.len().checked_sub(k)?;      // None if k > len\n```\n\n## Ties resolve by the loop, not by a comparison\n\n```rust\nif running > best { best = running; at = i; }\n```\n\nStrictly greater, scanning left to right, so the first window achieving the\nmaximum is kept. That is the same trick as the word-count tie-break: the\nrequired ordering came from the direction of the loop rather than from extra\nlogic. `>=` would report the last tied window instead, and the hidden case\n`1 1 1 1` with `k = 2` is there to catch it.\n\n## `Option<(usize, i64)>` instead of sentinels\n\n```rust\nfn best_window(xs: &[i64], k: usize) -> Option<(usize, i64)>\n```\n\nTwo problems solved at once. There is no \"no answer\" index to invent - no `-1`,\nno `usize::MAX` - and the index and the sum travel together so they cannot be\nread in the wrong order or used independently.\n\nThe caller has to deal with it:\n\n```rust\nmatch best_window(&v, k) {\n    Some((at, s)) => writeln!(out, \"window {} {}\", at, s),\n    None          => writeln!(out, \"window none\"),\n}\n```\n\nand that is the point. The `None` arm is not optional - leave it out and the\nmatch is not exhaustive and the program does not compile. Compare the C++\nversion of the same function, which would return `-1` and rely on every caller\nremembering to check.\n\nThe hidden case with all-negative values is there because a sentinel-shaped\nimplementation often initialises `best` to 0 and then reports no window at all\nfor data whose best sum is negative. `Option` forces the empty case to be\nhandled as a separate shape rather than as a suspicious value.\n\n## The empty slice\n\n`sum(&[])` is 0, with no special case, because the loop runs zero times. So\n`n = 0` gives `whole 0`, `halves 0 0`, and two label-only lines - all of which\nfall out of the code rather than needing a branch. An `n = 1` input gives an\nempty left half for the same reason, since `1 / 2` is 0.\n\nEmpty is almost always the case that reveals whether a function was written in\nterms of the data or in terms of assumptions about it.\n\n## C++20's `std::span` is the same idea\n\n```cpp\nlong long sum(std::span<const long long> xs);\n```\n\nPointer plus length, no copy, accepts `std::vector`, `std::array` and C arrays.\nWhat it does not have is the lifetime check: a `span` into a vector that is then\n`push_back`ed is dangling, and nothing in the type system notices. It is the\nright tool in modern C++ and it gives you the convenience without the\nguarantee - which, by now, is a familiar shape of answer.",
+  "readMore": [
+    {
+      "concept": "rust-slices",
+      "where": "The Rust Book ch. 4.3, then the std::slice method list"
+    },
+    {
+      "concept": "rust-borrowing",
+      "where": "ch. 4.2, for why split_at_mut has to exist"
+    }
+  ],
+  "id": "rust-slices-views"
+}

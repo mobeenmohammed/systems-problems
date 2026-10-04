@@ -20,6 +20,7 @@ const Store = (() => {
 
   const TOPICS = [
     { id: 'cpp',       label: 'C++',                      blurb: 'The language itself: initialisation, types, scope, linkage, and what the standard does and does not promise.' },
+    { id: 'rust',      label: 'Rust',                     blurb: 'Ownership, borrowing, slices, and errors that have to be handled rather than ignored.' },
     { id: 'arch',      label: 'Computer Architecture',    blurb: 'Caches, pipelines, alignment, and what the hardware actually does.' },
     { id: 'os',        label: 'Operating Systems',        blurb: 'Processes, virtual memory, scheduling, concurrency.' },
     { id: 'linux',     label: 'Linux & Tooling',          blurb: 'The shell, file descriptors, syscalls, and reading a failure.' },

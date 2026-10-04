@@ -2174,5 +2174,172 @@
         "url": "https://docs.amd.com/v/u/en-US/xapp052"
       }
     ]
+  },
+  "rust-ownership": {
+    "name": "Ownership and moves",
+    "topic": "rust",
+    "oneLine": "Every value has exactly one owner; assigning or passing a non-Copy value moves it, and the old name becomes unusable so nothing can be freed twice.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "The Rust Book, ch. 4.1",
+        "kind": "course",
+        "where": "What is Ownership - stack, heap, move, drop",
+        "url": "https://doc.rust-lang.org/book/ch04-01-what-is-ownership.html"
+      },
+      {
+        "title": "Rust by Example: Move semantics",
+        "kind": "course",
+        "where": "short runnable examples of the same rules",
+        "url": "https://doc.rust-lang.org/rust-by-example/scope/move.html"
+      },
+      {
+        "title": "The Rustonomicon, ch. 3",
+        "kind": "book",
+        "where": "only once the basics are comfortable - why the rules are what they are",
+        "url": "https://doc.rust-lang.org/nomicon/ownership.html"
+      }
+    ]
+  },
+  "rust-borrowing": {
+    "name": "Borrowing",
+    "topic": "rust",
+    "oneLine": "A reference lends access without transferring ownership: any number of shared &T at once, or exactly one exclusive &mut T, never both.",
+    "needs": [
+      "rust-ownership"
+    ],
+    "readings": [
+      {
+        "title": "The Rust Book, ch. 4.2",
+        "kind": "course",
+        "where": "References and Borrowing, including the mutable-reference rule",
+        "url": "https://doc.rust-lang.org/book/ch04-02-references-and-borrowing.html"
+      },
+      {
+        "title": "The Rust Book, ch. 4.3",
+        "kind": "course",
+        "where": "The Slice Type, which is a borrow of part of a thing",
+        "url": "https://doc.rust-lang.org/book/ch04-03-slices.html"
+      },
+      {
+        "title": "Rust Reference: lifetimes",
+        "kind": "docs",
+        "where": "for when the compiler starts asking for annotations",
+        "url": "https://doc.rust-lang.org/reference/lifetime-elision.html"
+      }
+    ]
+  },
+  "rust-slices": {
+    "name": "Slices",
+    "topic": "rust",
+    "oneLine": "A slice is a borrowed view of a contiguous run of elements - a pointer and a length - so passing part of a collection costs nothing and cannot outlive it.",
+    "needs": [
+      "rust-borrowing"
+    ],
+    "readings": [
+      {
+        "title": "The Rust Book, ch. 4.3",
+        "kind": "course",
+        "where": "The Slice Type, including string slices",
+        "url": "https://doc.rust-lang.org/book/ch04-03-slices.html"
+      },
+      {
+        "title": "std::slice documentation",
+        "kind": "docs",
+        "where": "windows, chunks, split_at, iter - the methods that make slices worth having",
+        "url": "https://doc.rust-lang.org/std/primitive.slice.html"
+      },
+      {
+        "title": "cppreference: std::span",
+        "kind": "docs",
+        "where": "the C++20 equivalent, for the comparison",
+        "url": "https://en.cppreference.com/w/cpp/container/span"
+      }
+    ]
+  },
+  "rust-option": {
+    "name": "Option",
+    "topic": "rust",
+    "oneLine": "Option<T> is either Some(value) or None, so a value that might be missing says so in its type and the compiler makes you handle both.",
+    "needs": [
+      "rust-borrowing"
+    ],
+    "readings": [
+      {
+        "title": "The Rust Book, ch. 6",
+        "kind": "course",
+        "where": "Enums and Pattern Matching - Option, match, and if let",
+        "url": "https://doc.rust-lang.org/book/ch06-00-enums.html"
+      },
+      {
+        "title": "std::option documentation",
+        "kind": "docs",
+        "where": "map, and_then, unwrap_or, ok_or - the combinators worth knowing",
+        "url": "https://doc.rust-lang.org/std/option/enum.Option.html"
+      },
+      {
+        "title": "cppreference: std::optional",
+        "kind": "docs",
+        "where": "the C++17 equivalent, and what it does not enforce",
+        "url": "https://en.cppreference.com/w/cpp/utility/optional"
+      }
+    ]
+  },
+  "rust-result": {
+    "name": "Result",
+    "topic": "rust",
+    "oneLine": "Result<T, E> is either Ok(value) or Err(error), so a fallible operation returns its failure as a value the caller has to deal with rather than as something that might be ignored.",
+    "needs": [
+      "rust-option"
+    ],
+    "readings": [
+      {
+        "title": "The Rust Book, ch. 9.2",
+        "kind": "course",
+        "where": "Recoverable Errors with Result, then 9.3 on when to panic instead",
+        "url": "https://doc.rust-lang.org/book/ch09-02-recoverable-errors-with-result.html"
+      },
+      {
+        "title": "std::result documentation",
+        "kind": "docs",
+        "where": "ok, err, map_err, unwrap_or_else, and the ? operator",
+        "where_else": "",
+        "url": "https://doc.rust-lang.org/std/result/enum.Result.html"
+      },
+      {
+        "title": "Rust by Example: error handling",
+        "kind": "course",
+        "where": "the progression from unwrap to ? to custom error types",
+        "url": "https://doc.rust-lang.org/rust-by-example/error.html"
+      }
+    ]
+  },
+  "rust-question-mark": {
+    "name": "The ? operator",
+    "topic": "rust",
+    "oneLine": "Writing ? after a Result or Option returns the failure from the enclosing function immediately, converting the error type on the way, so the happy path reads as a straight line.",
+    "needs": [
+      "rust-result"
+    ],
+    "readings": [
+      {
+        "title": "The Rust Book, ch. 9.2",
+        "kind": "course",
+        "where": "A Shortcut for Propagating Errors - the ? operator and where it may be used",
+        "url": "https://doc.rust-lang.org/book/ch09-02-recoverable-errors-with-result.html"
+      },
+      {
+        "title": "std::convert::From",
+        "kind": "docs",
+        "where": "the conversion ? performs on the error type",
+        "url": "https://doc.rust-lang.org/std/convert/trait.From.html"
+      },
+      {
+        "title": "Rust by Example: multiple error types",
+        "kind": "course",
+        "where": "boxing errors, and defining one error type for a module",
+        "url": "https://doc.rust-lang.org/rust-by-example/error/multiple_error_types.html"
+      }
+    ]
   }
 }

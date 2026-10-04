@@ -18,6 +18,68 @@
     ]
   },
   {
+    "id": "cpp-first-programs",
+    "title": "Writing C++, a step at a time",
+    "blurb": "Twelve programs in prerequisite order: a condition, then a loop, then a function, then a container. Each one needs only what the one before it introduced.",
+    "goal": "Finish this and you can read input, decide, repeat, split work into functions, and hold data in a vector, a string and a map - which is most of what small C++ programs are made of.",
+    "problems": [
+      "cpp-grade-bands",
+      "cpp-loop-multiples",
+      "cpp-sum-until-zero",
+      "cpp-count-digits",
+      "cpp-function-min-of-three",
+      "cpp-function-prime-count",
+      "cpp-vector-stats",
+      "cpp-string-scan",
+      "cpp-string-palindrome",
+      "cpp-reference-clamp",
+      "cpp-reference-vector-fns",
+      "cpp-map-word-count"
+    ]
+  },
+  {
+    "id": "containers-by-hand",
+    "title": "Building what the library gives you",
+    "blurb": "The standard library's simplest tools, written out: a search, a count, a binary search, a stack, a ring buffer and a growable array. Available in C++ and Python.",
+    "goal": "Finish this and std::find, std::lower_bound, std::stack and std::vector stop being magic - you will know what each one costs and why its interface is shaped the way it is.",
+    "problems": [
+      "algo-impl-find",
+      "algo-impl-count",
+      "algo-impl-lower-bound",
+      "algo-impl-int-stack",
+      "algo-impl-circular-queue",
+      "algo-impl-dynamic-array"
+    ]
+  },
+  {
+    "id": "systems-simulations",
+    "title": "Simulating the machine",
+    "blurb": "Six small programs that each stand in for a piece of real hardware or a real kernel: byte order, cache lookup, page replacement, CPU scheduling, a state machine and a shift register.",
+    "goal": "Finish this and the diagrams in a computer architecture or operating systems chapter become things you have already built, so the numbers in them mean something.",
+    "problems": [
+      "arch-sim-byte-decode",
+      "arch-sim-cache-fields",
+      "os-sim-page-replacement",
+      "os-sim-scheduling",
+      "fpga-sim-moore-fsm",
+      "fpga-sim-lfsr"
+    ]
+  },
+  {
+    "id": "rust-foundations",
+    "title": "Rust foundations",
+    "blurb": "Ownership, borrowing, slices, Option, Result and the ? operator - in that order, because each one is the answer to a question the previous one raises.",
+    "goal": "Finish this and you will know what the borrow checker is actually checking, and why a Rust function signature tells you more than a C++ one does.",
+    "problems": [
+      "rust-ownership-move",
+      "rust-borrow-shared-exclusive",
+      "rust-slices-views",
+      "rust-option-lookup",
+      "rust-result-parse",
+      "rust-question-mark-records"
+    ]
+  },
+  {
     "id": "first-steps",
     "title": "First steps",
     "blurb": "Ten problems across the whole site, chosen so that each one needs only what the one before it taught. A reasonable first week.",

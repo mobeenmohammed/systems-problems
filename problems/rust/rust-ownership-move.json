@@ -1,0 +1,53 @@
+{
+  "id": "rust-ownership-move",
+  "title": "Who owns this String",
+  "topic": "rust",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "ownership",
+    "move",
+    "borrow",
+    "string"
+  ],
+  "estimate": 28,
+  "prereqs": [
+    {
+      "concept": "rust-ownership",
+      "why": "The exercise is written entirely around which function takes ownership and which only borrows, and what the caller may do afterwards."
+    },
+    {
+      "concept": "cpp-functions",
+      "why": "You already know what a function with parameters and a return value is; what changes in Rust is what passing one means."
+    }
+  ],
+  "statement": "Read lines of input until it runs out. Skip blank lines. For each non-blank\nline, trim the surrounding whitespace to get a `word`, and then use three\nfunctions on it in this order:\n\n```rust\nfn measure(s: &String) -> usize   // borrows: caller keeps the String\nfn shout(mut s: String) -> String // takes it, uppercases it, gives it back\nfn consume(s: String) -> usize    // takes it for good\n```\n\nPrint, per line of input:\n\n```\nmeasured <len> <len>        measure called twice on the same String\nshout <THE UPPERCASED WORD>\nconsumed <len>\n```\n\n```\ninput:   cache               output:  measured 5 5\n         Ring                         shout CACHE\n                                      consumed 5\n                                      measured 4 4\n                                      shout RING\n                                      consumed 4\n```\n\n### The point of the problem\n\nIn Rust, a `String` has exactly **one owner**, and the owner is responsible for\nfreeing it. So these two lines mean different things:\n\n```rust\nlet n = measure(&word);      // borrow: word is still yours afterwards\nlet len = consume(word);     // move:  word is gone, you cannot touch it again\n```\n\nAfter the move, using `word` is a **compile error**, not a crash:\n\n```\nerror[E0382]: borrow of moved value: `word`\n  |\n  |     let len = consume(word);\n  |                       ---- value moved here\n  |     println!(\"{}\", word);\n  |                    ^^^^ value borrowed here after move\n```\n\nThat error is the entire feature. In C++ the same program compiles and runs, and\nwhether it works depends on whether anything freed the buffer yet.\n\n### The order matters, so write it in this order\n\n`measure` twice, then `shout`, then `consume`. Each step is only possible\nbecause of what the previous one did or did not take:\n\n- `measure` borrows, so calling it twice is fine and `word` survives\n- `shout` **takes** `word` and returns a new owner - so the result has to be\n  bound to a name, and `word` is unusable from then on\n- `consume` takes that, and nothing is usable afterwards\n\nIf you try to call `measure(&word)` after `shout(word)`, the compiler will stop\nyou. Do it once deliberately, read the error, then put it back.\n\n### Boundary cases\n\nBlank lines and lines of only spaces, which are skipped. A line that is already\nuppercase, which `shout` leaves unchanged. Lines with inner spaces - only the\n*surrounding* whitespace is trimmed, so `two words` stays one `word` of 9\ncharacters. Empty input, which prints nothing. A line with digits and\npunctuation, which uppercasing leaves alone.\n\n### Platform assumptions\n\nInput is ASCII, and `make_ascii_uppercase` only changes `a-z`. `len()` on a\n`String` is the length in **bytes**, not characters - for ASCII they are the\nsame, and the solution says what happens when they are not. Lines are at most\n200 bytes and there are at most 200 of them.",
+  "hints": [
+    "`input.lines()` yields `&str` borrowed from the input buffer. `line.trim().to_string()` makes an owned `String` from it - `trim` returns a borrowed sub-slice, and `to_string` copies it into a new allocation you own.",
+    "`shout` needs `mut s: String` in its signature. That `mut` is not part of the type - it says the parameter binding is mutable inside the function, which is what lets you call `make_ascii_uppercase` on it. The caller does not need `word` to be `mut`.",
+    "Bind the result: `let loud = shout(word);`. Writing just `shout(word);` and then using `word` is the error worth reading - the value moved into the function and came back out as a return value you discarded."
+  ],
+  "payload": {
+    "langs": [
+      "rust"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "rust": "use std::io::{self, Read, Write};\n\nfn consume(s: String) -> usize {\n    0 // <- replace\n}\n\nfn shout(mut s: String) -> String {\n    s // <- uppercase it first\n}\n\nfn measure(s: &String) -> usize {\n    0 // <- replace\n}\n\nfn main() {\n    let mut input = String::new();\n    io::stdin().read_to_string(&mut input).unwrap();\n\n    let stdout = io::stdout();\n    let mut out = io::BufWriter::new(stdout.lock());\n\n    for line in input.lines() {\n        let word = line.trim().to_string();\n        if word.is_empty() {\n            continue;\n        }\n\n        // measure twice, then shout, then consume.\n        let _ = &word;\n        let _ = &mut out;\n    }\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "cache\nRing\n",
+        "expect": "measured 5 5\nshout CACHE\nconsumed 5\nmeasured 4 4\nshout RING\nconsumed 4\n"
+      },
+      {
+        "stdin": "\n   \nx\n",
+        "expect": "measured 1 1\nshout X\nconsumed 1\n"
+      }
+    ]
+  }
+}

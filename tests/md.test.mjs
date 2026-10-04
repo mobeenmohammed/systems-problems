@@ -73,6 +73,13 @@ ok('a table can scroll on its own', table.includes('table-wrap'));
 ok('pipes without a separator row are just text',
   !r('a | b\nc | d').includes('<table>'));
 
+/* A cell whose subject is a shell pipeline has to be able to contain a pipe.
+   Escaped as \| it must survive as one character and not split the row. */
+const piped = r('| cmd | where |\n| --- | --- |\n| `a 2>&1 \\| less` | piped |');
+ok('an escaped pipe does not split a cell', piped.match(/<td/g).length === 2);
+ok('and renders as a bare pipe',            piped.includes('2&gt;&amp;1 | less'));
+ok('with no stray backslash',               !piped.includes('\\|'));
+
 section('awkward input');
 check('empty string',        r(''), '');
 check('null',                r(null), '');

@@ -40,6 +40,106 @@
       "from": "2026-11-16",
       "problem": "arch-struct-padding",
       "why": "Your data-alignment note, applied to a struct you have to lay out by hand. The first problem here that is about the machine rather than the language."
+    },
+    {
+      "from": "2026-11-23",
+      "problem": "cpp-grade-bands",
+      "note": "One else-if chain. Every boundary is a different answer, which is the whole exercise."
+    },
+    {
+      "from": "2026-11-30",
+      "problem": "cpp-loop-multiples",
+      "note": "Your first loop, with the same ordering trap as last week one level up."
+    },
+    {
+      "from": "2026-12-07",
+      "problem": "cpp-sum-until-zero",
+      "note": "A while loop over std::cin, which is how you read input of unknown length."
+    },
+    {
+      "from": "2026-12-14",
+      "problem": "cpp-count-digits",
+      "note": "Peeling digits with % and /. The loop you will write a hundred times."
+    },
+    {
+      "from": "2026-12-21",
+      "problem": "cpp-function-min-of-three",
+      "note": "One small function, called twice. The point is that the logic appears once."
+    },
+    {
+      "from": "2026-12-28",
+      "problem": "cpp-string-scan",
+      "note": "A whole line with getline, then a char at a time. A char is a small integer."
+    },
+    {
+      "from": "2027-01-04",
+      "problem": "cpp-vector-stats",
+      "note": "The first problem whose answer needs all the data at once, which is what a vector is for."
+    },
+    {
+      "from": "2027-01-11",
+      "problem": "cpp-function-prime-count",
+      "note": "A predicate function plus a loop, and a time limit that insists on the square-root bound."
+    },
+    {
+      "from": "2027-01-18",
+      "problem": "cpp-reference-clamp",
+      "note": "A function that changes its caller's variable. Drop the & once, deliberately, and watch nothing happen."
+    },
+    {
+      "from": "2027-01-25",
+      "problem": "cpp-string-palindrome",
+      "note": "Two indices walking inwards, and the unsigned underflow that waits for you there."
+    },
+    {
+      "from": "2027-02-01",
+      "problem": "cpp-reference-vector-fns",
+      "note": "const& to read, & to write - three signatures, three different contracts."
+    },
+    {
+      "from": "2027-02-08",
+      "problem": "cpp-map-word-count",
+      "note": "++count[word] does the whole job, and a sorted container gives you the output order free."
+    },
+    {
+      "from": "2027-02-15",
+      "problem": "algo-impl-find",
+      "note": "Write std::find yourself, forwards and backwards. The backward loop is the lesson."
+    },
+    {
+      "from": "2027-02-22",
+      "problem": "algo-impl-count",
+      "note": "Three counters and an invariant that checks your own work."
+    },
+    {
+      "from": "2027-03-01",
+      "problem": "arch-sim-byte-decode",
+      "note": "The same four bytes read two ways, and the same 32 bits read signed and unsigned."
+    },
+    {
+      "from": "2027-03-08",
+      "problem": "rust-ownership-move",
+      "note": "A first look at Rust: who owns this String, and what the compiler says when you use it twice."
+    },
+    {
+      "from": "2027-03-15",
+      "problem": "algo-impl-int-stack",
+      "note": "A stack in a fixed array. Count, not top-index, and refuse rather than overwrite."
+    },
+    {
+      "from": "2027-03-22",
+      "problem": "algo-impl-lower-bound",
+      "note": "Binary search written from its invariant, which is the only way it comes out right."
+    },
+    {
+      "from": "2027-03-29",
+      "problem": "rust-borrow-shared-exclusive",
+      "note": "Many readers or one writer, and why that one rule removes a whole class of bug."
+    },
+    {
+      "from": "2027-04-05",
+      "problem": "os-sim-page-replacement",
+      "note": "FIFO, LRU and optimal on the same reference string, including Belady's anomaly."
     }
   ]
 }

@@ -1,0 +1,57 @@
+{
+  "key": {
+    "cases": [
+      {
+        "stdin": "5 5\n5 4 6\n",
+        "expect": "ok 5\nerr 4 range 4\nerr 6 range 6\ngood 1\nbad 2\ntotal 5\nfallback -1\n"
+      },
+      {
+        "stdin": "-10 -1\n-10 -1 0 -11\n",
+        "expect": "ok -10\nok -1\nerr 0 range 0\nerr -11 range -11\ngood 2\nbad 2\ntotal -11\nfallback -1\n"
+      },
+      {
+        "stdin": "0 100\n+5 5.0 -0\n",
+        "expect": "ok 5\nerr 5.0 bad invalid digit found in string\nok 0\ngood 2\nbad 1\ntotal 5\nfallback -1\n"
+      },
+      {
+        "stdin": "0 1000000000000\n99999999999999999999999\n",
+        "expect": "err 99999999999999999999999 bad number too large to fit in target type\ngood 0\nbad 1\ntotal 0\nfallback -1\n"
+      },
+      {
+        "stdin": "0 9\n0 9 10 -1\n",
+        "expect": "ok 0\nok 9\nerr 10 range 10\nerr -1 range -1\ngood 2\nbad 2\ntotal 9\nfallback -1\n"
+      },
+      {
+        "stdin": "1 3\n1 2 3 1 2 3\n",
+        "expect": "ok 1\nok 2\nok 3\nok 1\nok 2\nok 3\ngood 6\nbad 0\ntotal 12\nfallback -1\n"
+      },
+      {
+        "stdin": "0 5\nx y z\n",
+        "expect": "err x bad invalid digit found in string\nerr y bad invalid digit found in string\nerr z bad invalid digit found in string\ngood 0\nbad 3\ntotal 0\nfallback -1\n"
+      },
+      {
+        "stdin": "-1000000000 1000000000\n1000000000 -1000000000\n",
+        "expect": "ok 1000000000\nok -1000000000\ngood 2\nbad 0\ntotal 0\nfallback -1\n"
+      },
+      {
+        "stdin": "0 100\n1_000 12a 0x10\n",
+        "expect": "err 1_000 bad invalid digit found in string\nerr 12a bad invalid digit found in string\nerr 0x10 bad invalid digit found in string\ngood 0\nbad 3\ntotal 0\nfallback -1\n"
+      }
+    ],
+    "reference": {
+      "rust": "use std::io::{self, Read, Write};\nuse std::num::ParseIntError;\n\n/// Parse one token. The error is the library's, passed straight through.\nfn parse_one(tok: &str) -> Result<i64, ParseIntError> {\n    tok.parse::<i64>()\n}\n\n/// Parse and then check a range. Two different failures, one error type.\nfn parse_in_range(tok: &str, lo: i64, hi: i64) -> Result<i64, String> {\n    let v = match parse_one(tok) {\n        Ok(v) => v,\n        Err(e) => return Err(format!(\"bad {}\", e)),\n    };\n    if v < lo || v > hi {\n        return Err(format!(\"range {}\", v));\n    }\n    Ok(v)\n}\n\nfn main() {\n    let mut input = String::new();\n    io::stdin().read_to_string(&mut input).unwrap();\n    let mut it = input.split_whitespace();\n\n    let lo: i64 = match it.next() {\n        Some(t) => t.parse().unwrap(),\n        None => return,\n    };\n    let hi: i64 = it.next().unwrap().parse().unwrap();\n\n    let stdout = io::stdout();\n    let mut out = io::BufWriter::new(stdout.lock());\n\n    let mut good = 0i64;\n    let mut bad = 0i64;\n    let mut total = 0i64;\n\n    for tok in it {\n        match parse_in_range(tok, lo, hi) {\n            Ok(v) => {\n                good += 1;\n                total += v;\n                writeln!(out, \"ok {}\", v).unwrap();\n            }\n            Err(msg) => {\n                bad += 1;\n                writeln!(out, \"err {} {}\", tok, msg).unwrap();\n            }\n        }\n    }\n\n    writeln!(out, \"good {}\", good).unwrap();\n    writeln!(out, \"bad {}\", bad).unwrap();\n    writeln!(out, \"total {}\", total).unwrap();\n\n    // unwrap_or_else: recover with a computed default instead of crashing\n    let fallback = parse_in_range(\"not-a-number\", lo, hi).unwrap_or_else(|_| -1);\n    writeln!(out, \"fallback {}\", fallback).unwrap();\n\n    io::stdout().flush().ok();\n}\n"
+    }
+  },
+  "explanation": "## Two signatures, two error types\n\n```rust\nfn parse_one(tok: &str) -> Result<i64, ParseIntError>\nfn parse_in_range(tok: &str, lo: i64, hi: i64) -> Result<i64, String>\n```\n\n`parse_one` forwards the library's own error type, unchanged. `parse_in_range`\nhas **two** different ways to fail - a malformed token and an out-of-range value -\nso it needs one type that can represent both, and here that is a `String`.\n\n```rust\nlet v = match parse_one(tok) {\n    Ok(v) => v,\n    Err(e) => return Err(format!(\"bad {}\", e)),\n};\nif v < lo || v > hi {\n    return Err(format!(\"range {}\", v));\n}\nOk(v)\n```\n\nThe `match` that unwraps the inner result and converts its error is the pattern\nyou will write constantly. `format!(\"bad {}\", e)` formats the error through its\n`Display` impl, which is where the text `invalid digit found in string` comes\nfrom - the library wrote that message, not this program.\n\n## `Result` is `Option` with a reason\n\n| | says | variants |\n| --- | --- | --- |\n| `Option<T>` | a value may be absent | `Some(T)` / `None` |\n| `Result<T, E>` | an operation may fail, and why | `Ok(T)` / `Err(E)` |\n\nThe methods line up too: `map`, `and_then`, `unwrap_or`, `unwrap_or_else`,\n`unwrap` on both; plus `map_err` to transform the error, and `ok()` to throw the\nreason away and get an `Option`.\n\nChoosing between them is a question about the caller. \"I looked and there was\nnothing there\" is an `Option` - absence is not a failure. \"I tried and could not\"\nis a `Result` - the caller needs to know what went wrong to decide what to do.\nA hash-map lookup returns `Option`; reading a file returns `Result`.\n\n## What this replaces\n\nIn C the same job is a return code and an out-parameter, with the convention\nwritten in a comment:\n\n```c\nlong value;\nif (parse_int(tok, &value) != 0) { /* handle */ }\n```\n\nNothing stops you reading `value` when the call failed, and nothing stops you\nignoring the return entirely. The C++ version is an exception, which cannot be\nignored but also does not appear in the signature - so whether a function can\nthrow is something you learn from documentation, or by reading its whole body,\nor in production.\n\nRust's version is in the type, cannot be read without being unwrapped, and the\ncompiler warns when a `Result` is discarded:\n\n```\nwarning: unused `Result` that must be used\n  = note: this `Result` may be an `Err` variant, which should be handled\n```\n\nUnder this problem's `-D warnings`, that is a build failure rather than a\nwarning.\n\n## `unwrap`, `expect`, and `unwrap_or_else`\n\n```rust\nlet x = r.unwrap();                       // panics on Err, with the error printed\nlet x = r.expect(\"config must be valid\"); // panics, with YOUR message\nlet x = r.unwrap_or_else(|_| -1);         // recovers, no panic\n```\n\n`unwrap()` turns a handled error back into a crash. It is right where failure is\ngenuinely impossible or genuinely fatal - and `expect` is better there anyway,\nbecause the message documents the claim and shows up in the panic.\n\n`unwrap_or_else` takes a closure, so the default can be computed and can look at\nthe error. Compare `unwrap_or(-1)`, which takes a value computed eagerly whether\nit is needed or not - worth knowing when the default is expensive or allocates.\nThe `|_|` in `unwrap_or_else(|_| -1)` ignores the error deliberately, which is\nvisible at a glance.\n\nThat is the point of the `fallback` line in the output: it is a failure handled\nwithout the program ending.\n\n## The `?` operator, which this problem deliberately does not use\n\n```rust\nfn parse_in_range(tok: &str, lo: i64, hi: i64) -> Result<i64, String> {\n    let v: i64 = tok.parse().map_err(|e| format!(\"bad {}\", e))?;\n    if v < lo || v > hi { return Err(format!(\"range {}\", v)); }\n    Ok(v)\n}\n```\n\n`?` on an `Err` returns it from the enclosing function immediately, converting\nthe error type through `From` on the way. It turns five lines into one, and it\nis how real Rust is written.\n\nThe explicit `match` is here first because `?` hides exactly the step worth\nunderstanding - that an early return is happening and the error type is being\nconverted. Write the `match` once, then use `?` forever.\n\n## The error messages are a library property\n\n```\n\"abc\"       -> invalid digit found in string\n\"\"          -> cannot parse integer from empty string\n\"999...9\"   -> number too large to fit in target type\n\"-999...9\"  -> number too small to fit in target type\n```\n\nThese strings come from `ParseIntError`'s `Display`, so they belong to the\nstandard library version, not to your program. This judge runs **Rust 1.98.0**,\nwhere they are as above - the statement says so because the expected output\ndepends on it, and a different toolchain could in principle word them\ndifferently. Note the last two: the sign is part of the diagnosis, so overflow\nand underflow are told apart.\n\nThe lesson generalises: **do not assert on another library's message text**\nunless you control the version. Match on the error's *kind* instead -\n`ParseIntError::kind()` gives you `InvalidDigit`, `PosOverflow`, `Empty` and so\non, which are stable in a way the prose is not. This problem prints the text\nbecause seeing it is instructive; a real test would match the kind.\n\n## What `parse::<i64>` does and does not accept\n\n| Token | Result |\n| --- | --- |\n| `42` | 42 |\n| `+5` | 5 - a leading plus is allowed |\n| `-0` | 0 |\n| `5.0` | error - this is an integer parse |\n| `1_000` | error - underscores are a *literal* syntax, not a parse syntax |\n| `0x10` | error - use `i64::from_str_radix(s, 16)` |\n| ` 42 ` | error - `parse` does not trim; `split_whitespace` already did here |\n| `99999999999999999999999` | error - too large, reported rather than wrapped |\n\nThe overflow case is the interesting one. `parse` detects it and returns an\nerror, where C's `atoi` has undefined behaviour and `strtol` needs you to check\n`errno`. The failure is reported through the same mechanism as every other\nfailure, which is the whole argument for having one.\n\nThe `1_000` row catches people: `1_000` is valid in Rust *source code* as a\nliteral, and the digit separator is a lexer feature. A string arriving at\nruntime goes through `parse`, which implements the grammar for a number, not the\ngrammar for Rust.",
+  "readMore": [
+    {
+      "concept": "rust-result",
+      "where": "The Rust Book ch. 9.2, then 9.3 on when panicking is correct"
+    },
+    {
+      "concept": "rust-option",
+      "where": "ch. 6, for the shared shape of the two types"
+    }
+  ],
+  "id": "rust-result-parse"
+}

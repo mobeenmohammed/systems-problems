@@ -1,0 +1,57 @@
+{
+  "id": "rust-borrow-shared-exclusive",
+  "title": "Many readers, or one writer",
+  "topic": "rust",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "borrowing",
+    "references",
+    "mutability",
+    "vec"
+  ],
+  "estimate": 30,
+  "prereqs": [
+    {
+      "concept": "rust-borrowing",
+      "why": "The whole problem is written around the difference between &T and &mut T and the rule that governs when each is allowed."
+    },
+    {
+      "concept": "rust-ownership",
+      "why": "A borrow only makes sense once you know what owning the value means."
+    },
+    {
+      "concept": "cpp-references",
+      "why": "You have met C++ references, which borrow without the rule - the comparison is most of the lesson."
+    }
+  ],
+  "statement": "Read `n` and `d`, then `n` integers into a `Vec<i64>`. Write four functions with\nthese exact signatures and use them in this order:\n\n```rust\nfn total(v: &Vec<i64>) -> i64          // shared borrow\nfn largest(v: &Vec<i64>) -> i64        // shared borrow\nfn add_to_all(v: &mut Vec<i64>, d: i64)  // exclusive borrow, modifies in place\nfn push_total(v: &mut Vec<i64>)        // exclusive borrow, appends the total\n```\n\nPrint:\n\n```\ntotal <sum of the original values>\nlargest <largest original value>\nadded <the values after adding d to each>\npushed <the values after appending their own total>\ntotal <the sum now, which has changed twice>\n```\n\nIf `n` is 0, print just `empty`.\n\n```\ninput:   4 10          output:  total 10\n         1 2 3 4                largest 4\n                                added 11 12 13 14\n                                pushed 11 12 13 14 50\n                                total 100\n```\n\n### The rule\n\nAt any moment, for any value, Rust allows **either**:\n\n- any number of shared references `&T` - all of which can read, none can write\n- exactly one exclusive reference `&mut T` - which can write\n\nand never both at once. The compiler checks it; there is no runtime cost.\n\nThe reason is not tidiness. It is that a value nobody else can see cannot change\nunder you, and a value that cannot change can be read by anyone safely. One rule\neliminates data races *and* iterator invalidation *and* aliasing bugs, all of\nwhich are the same mistake wearing different clothes.\n\n### The error worth provoking on purpose\n\n```rust\nlet first = &v[0];        // shared borrow of v starts here\nv.push(99);               // needs &mut v -- rejected\nprintln!(\"{}\", first);    // ...because the shared borrow is still used here\n```\n\n```\nerror[E0502]: cannot borrow `v` as mutable because it is also borrowed as immutable\n```\n\n`push` may reallocate, which would leave `first` pointing at freed memory. That\nis the dangling-iterator bug from the C++ dynamic-array problem, and Rust makes\nit a build failure rather than a sanitizer finding. Write it once, read the\nerror, then take it out.\n\n### Boundary cases\n\n`n = 0`, which prints `empty` and nothing else. `n = 1`. `d = 0`, so `added`\nmatches the input. Negative values and a negative `d`. All values equal. Note\nthat the final `total` is affected twice - once by `add_to_all` and once by the\nvalue `push_total` appended - so it is not simply the original sum plus\nsomething.\n\n### Platform assumptions\n\n`n` is between 0 and 1000, each value and `d` fit in an `i64` with\n`|value| <= 10^9`, so the sum cannot overflow 64 bits. Rust panics on integer\noverflow in debug builds and wraps in release builds, so this problem keeps the\nvalues far from the edge rather than relying on either - the solution explains\nwhy that distinction exists.",
+  "hints": [
+    "Iterating a shared borrow gives you shared references to the elements: `for x in v` where `v: &Vec<i64>` makes `x` an `&i64`, so you need `*x` to get the number. `for x in v.iter()` is the same thing written out.",
+    "To modify in place you need `v.iter_mut()`, which yields `&mut i64`, and then `*x += d` writes through it. `for x in v` on a `&mut Vec` also works - the compiler picks `iter_mut` - but writing it explicitly makes the intent obvious.",
+    "`push_total` needs to read the vector and then modify it. Do the read first and store the result in a local: `let t = total(v); v.push(t);`. Writing `v.push(total(v))` tries to hold a shared borrow and an exclusive one at the same time, which is the error the problem is about."
+  ],
+  "payload": {
+    "langs": [
+      "rust"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "rust": "use std::io::{self, Read, Write};\n\nfn total(v: &Vec<i64>) -> i64 {\n    0 // <- replace\n}\n\nfn largest(v: &Vec<i64>) -> i64 {\n    0 // <- replace\n}\n\nfn add_to_all(v: &mut Vec<i64>, d: i64) {\n    // <- modify each element in place\n    let _ = (v, d);\n}\n\nfn push_total(v: &mut Vec<i64>) {\n    // <- read the total, then push it\n    let _ = v;\n}\n\nfn show(out: &mut dyn Write, label: &str, v: &Vec<i64>) {\n    write!(out, \"{}\", label).unwrap();\n    for x in v {\n        write!(out, \" {}\", x).unwrap();\n    }\n    writeln!(out).unwrap();\n}\n\nfn main() {\n    let mut input = String::new();\n    io::stdin().read_to_string(&mut input).unwrap();\n    let mut it = input.split_whitespace();\n\n    let n: usize = match it.next() {\n        Some(t) => t.parse().unwrap(),\n        None => return,\n    };\n    let d: i64 = it.next().unwrap().parse().unwrap();\n\n    let mut v: Vec<i64> = Vec::new();\n    for _ in 0..n {\n        v.push(it.next().unwrap().parse().unwrap());\n    }\n\n    let stdout = io::stdout();\n    let mut out = io::BufWriter::new(stdout.lock());\n\n    if v.is_empty() {\n        writeln!(out, \"empty\").unwrap();\n        return;\n    }\n\n    // total, largest, add_to_all, show, push_total, show, total\n    let _ = (&mut out, &mut v);\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "4 10\n1 2 3 4\n",
+        "expect": "total 10\nlargest 4\nadded 11 12 13 14\npushed 11 12 13 14 50\ntotal 100\n"
+      },
+      {
+        "stdin": "0 5\n",
+        "expect": "empty\n"
+      }
+    ]
+  }
+}

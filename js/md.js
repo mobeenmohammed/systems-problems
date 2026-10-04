@@ -103,7 +103,11 @@ const MD = (() => {
       /* Tables: a header row, a separator of dashes, then body rows. The
          separator is what tells a table apart from a line containing pipes. */
       if (line.includes('|') && /^\s*\|?[\s:|-]*-[\s:|-]*$/.test(lines[i + 1] || '')) {
-        const cells = row => row.replace(/^\s*\|/, '').replace(/\|\s*$/, '').split('|').map(c => c.trim());
+        /* A cell may contain a pipe if it is escaped as \|, which matters for
+           any table whose subject is shell pipelines or Rust closures. So the
+           split ignores escaped pipes, and each cell unescapes its own. */
+        const cells = row => row.replace(/^\s*\|/, '').replace(/(?<!\\)\|\s*$/, '')
+          .split(/(?<!\\)\|/).map(c => c.trim().replace(/\\\|/g, '|'));
         const head = cells(line);
         const align = cells(lines[i + 1]).map(c =>
           /^:-+:$/.test(c) ? 'center' : /-+:$/.test(c) ? 'right' : 'left');

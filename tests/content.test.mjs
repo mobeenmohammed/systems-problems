@@ -43,6 +43,41 @@ if (errors.length) {
 }
 check('no content errors', errors.length, 0);
 
+/* Catalog.allTracks() silently drops ids it cannot resolve, so that a track may
+   name a problem that has not been written yet. The cost of that kindness is
+   that a typo disappears instead of failing, which is what this checks. */
+section('tracks name problems that exist');
+{
+  const fs = await import('node:fs');
+  const read = name => JSON.parse(fs.readFileSync(new URL(`../data/${name}`, import.meta.url), 'utf8'));
+  const tracks = read('tracks.json');
+  const known = new Set(problems.map(p => p.id));
+  const seenIds = new Set();
+
+  ok('there are tracks at all', Array.isArray(tracks) && tracks.length > 0);
+  for (const t of tracks) {
+    ok(`${t.id}: has a title, a blurb and a goal`,
+      !!(t.title && t.blurb && t.goal));
+    ok(`${t.id}: id is unique`, !seenIds.has(t.id));
+    seenIds.add(t.id);
+    ok(`${t.id}: lists problems`, Array.isArray(t.problems) && t.problems.length > 0);
+    const absent = (t.problems || []).filter(id => !known.has(id));
+    ok(`${t.id}: every problem exists${absent.length ? ` (missing ${absent.join(', ')})` : ''}`,
+      absent.length === 0);
+    const dupes = (t.problems || []).filter((id, i, a) => a.indexOf(id) !== i);
+    ok(`${t.id}: no problem is listed twice${dupes.length ? ` (${dupes.join(', ')})` : ''}`,
+      dupes.length === 0);
+  }
+
+  /* A weekly entry pointing at nothing would leave the dashboard's main action
+     dead, which is worse than having no weekly problem at all. */
+  const weekly = read('weekly.json');
+  const weeks = Array.isArray(weekly) ? weekly : (weekly.weeks || []);
+  for (const w of weeks) {
+    ok(`weekly ${w.from}: names a problem that exists`, known.has(w.problem));
+  }
+}
+
 section('the index is current');
 const fresh = JSON.stringify(buildIndex(problems), null, 2) + '\n';
 let committed = '';

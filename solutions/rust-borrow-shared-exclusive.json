@@ -1,0 +1,57 @@
+{
+  "key": {
+    "cases": [
+      {
+        "stdin": "1 0\n7\n",
+        "expect": "total 7\nlargest 7\nadded 7\npushed 7 7\ntotal 14\n"
+      },
+      {
+        "stdin": "3 0\n1 2 3\n",
+        "expect": "total 6\nlargest 3\nadded 1 2 3\npushed 1 2 3 6\ntotal 12\n"
+      },
+      {
+        "stdin": "3 -1\n1 2 3\n",
+        "expect": "total 6\nlargest 3\nadded 0 1 2\npushed 0 1 2 3\ntotal 6\n"
+      },
+      {
+        "stdin": "4 5\n-1 -2 -3 -4\n",
+        "expect": "total -10\nlargest -1\nadded 4 3 2 1\npushed 4 3 2 1 10\ntotal 20\n"
+      },
+      {
+        "stdin": "3 2\n5 5 5\n",
+        "expect": "total 15\nlargest 5\nadded 7 7 7\npushed 7 7 7 21\ntotal 42\n"
+      },
+      {
+        "stdin": "2 0\n-1000000000 -1000000000\n",
+        "expect": "total -2000000000\nlargest -1000000000\nadded -1000000000 -1000000000\npushed -1000000000 -1000000000 -2000000000\ntotal -4000000000\n"
+      },
+      {
+        "stdin": "2 1000000000\n1000000000 1000000000\n",
+        "expect": "total 2000000000\nlargest 1000000000\nadded 2000000000 2000000000\npushed 2000000000 2000000000 4000000000\ntotal 8000000000\n"
+      },
+      {
+        "stdin": "5 1\n0 0 0 0 0\n",
+        "expect": "total 0\nlargest 0\nadded 1 1 1 1 1\npushed 1 1 1 1 1 5\ntotal 10\n"
+      },
+      {
+        "stdin": "1 -7\n0\n",
+        "expect": "total 0\nlargest 0\nadded -7\npushed -7 -7\ntotal -14\n"
+      }
+    ],
+    "reference": {
+      "rust": "use std::io::{self, Read, Write};\n\n/// Shared borrow: reads, cannot modify, and any number may exist at once.\nfn total(v: &Vec<i64>) -> i64 {\n    let mut s = 0;\n    for x in v {\n        s += *x;\n    }\n    s\n}\n\nfn largest(v: &Vec<i64>) -> i64 {\n    let mut best = i64::MIN;\n    for x in v {\n        if *x > best {\n            best = *x;\n        }\n    }\n    best\n}\n\n/// Exclusive borrow: may modify, and must be the only live reference.\nfn add_to_all(v: &mut Vec<i64>, d: i64) {\n    for x in v.iter_mut() {\n        *x += d;\n    }\n}\n\nfn push_total(v: &mut Vec<i64>) {\n    let t = total(v);          // a shared borrow, ended before the push\n    v.push(t);\n}\n\nfn show(out: &mut dyn Write, label: &str, v: &Vec<i64>) {\n    write!(out, \"{}\", label).unwrap();\n    for x in v {\n        write!(out, \" {}\", x).unwrap();\n    }\n    writeln!(out).unwrap();\n}\n\nfn main() {\n    let mut input = String::new();\n    io::stdin().read_to_string(&mut input).unwrap();\n    let mut it = input.split_whitespace();\n\n    let n: usize = match it.next() {\n        Some(t) => t.parse().unwrap(),\n        None => return,\n    };\n    let d: i64 = it.next().unwrap().parse().unwrap();\n\n    let mut v: Vec<i64> = Vec::new();\n    for _ in 0..n {\n        v.push(it.next().unwrap().parse().unwrap());\n    }\n\n    let stdout = io::stdout();\n    let mut out = io::BufWriter::new(stdout.lock());\n\n    if v.is_empty() {\n        writeln!(out, \"empty\").unwrap();\n        return;\n    }\n\n    writeln!(out, \"total {}\", total(&v)).unwrap();\n    writeln!(out, \"largest {}\", largest(&v)).unwrap();\n\n    add_to_all(&mut v, d);\n    show(&mut out, \"added\", &v);\n\n    push_total(&mut v);\n    show(&mut out, \"pushed\", &v);\n\n    writeln!(out, \"total {}\", total(&v)).unwrap();\n\n    io::stdout().flush().ok();\n}\n"
+    }
+  },
+  "explanation": "## Two kinds of borrow, and the rule between them\n\n```rust\nfn total(v: &Vec<i64>) -> i64            // shared:    read only, many allowed\nfn add_to_all(v: &mut Vec<i64>, d: i64)  // exclusive: may write, one allowed\n```\n\nThe compiler tracks, for every value, which references to it are alive. The rule\nit enforces:\n\n```\n      &T  &T  &T      any number of shared borrows, simultaneously\n  or  &mut T          exactly one exclusive borrow, and nothing else\n```\n\n`&mut` is often read as \"mutable reference\", and \"exclusive reference\" is the\nbetter name: the thing that makes it special is not that it can write, it is\nthat nothing else may exist while it does.\n\n## Why that one rule is worth so much\n\n**It is iterator invalidation, solved.**\n\n```rust\nlet first = &v[0];\nv.push(99);                 // error: cannot borrow `v` as mutable\nprintln!(\"{}\", first);\n```\n\n`push` may reallocate the vector's buffer, which would leave `first` dangling.\nThis is exactly the C++ bug from the dynamic-array problem:\n\n```cpp\nint* p = &v[0];\nv.push_back(4);             // may reallocate\n*p = 99;                    // use-after-free, if it did\n```\n\nIn C++ that compiles, and whether it breaks depends on whether the capacity\nhappened to be sufficient. AddressSanitizer catches it at runtime if you are\nrunning under it and if the test exercises that path. Rust rejects it at compile\ntime, always, with no runtime cost.\n\n**It is the data race, solved.** A data race needs two threads, one of them\nwriting, no synchronisation. The rule makes \"someone else can see this while I\nwrite\" unrepresentable, so the race cannot be expressed. That is why Rust can\noffer threads without a garbage collector and without a convention about who\nowns what - the same borrow rules that stop the single-threaded aliasing bug\nstop the concurrent one.\n\n## The error in `push_total`, and why it is not pedantry\n\n```rust\nfn push_total(v: &mut Vec<i64>) {\n    v.push(total(v));        // error[E0502]\n}\n```\n\n```\nerror[E0502]: cannot borrow `*v` as immutable because it is also borrowed as mutable\n  |\n  |     v.push(total(v));\n  |     -------------^--\n  |     |      |     |\n  |     |      |     immutable borrow occurs here\n  |     |      mutable borrow later used by call\n  |     mutable borrow occurs here\n```\n\n`push` needs the exclusive borrow; `total(v)` needs a shared one; the arguments\nare evaluated while `push`'s receiver borrow is already live. The fix is to\nfinish one before starting the other:\n\n```rust\nlet t = total(v);        // shared borrow starts and ends on this line\nv.push(t);               // now the exclusive borrow is alone\n```\n\nThis is not the compiler being awkward about a harmless case. `push` can\nreallocate, and `total` is walking the buffer - a hypothetical implementation\nthat evaluated the argument lazily, or a future version of `push` that touched\nthe data, would genuinely be unsafe. Rust rejects based on the *signatures*, not\non what the bodies happen to do today, which is what makes the guarantee hold\nwhen the bodies change.\n\n## Borrows end when they are last used, not at the end of the block\n\n```rust\nlet first = &v[0];\nprintln!(\"{}\", first);      // last use of `first`\nv.push(99);                 // fine - the shared borrow is already over\n```\n\nThis compiles. The borrow checker uses **non-lexical lifetimes**: a borrow lasts\nfrom its creation to its last use, not to the closing brace. Before Rust 2018 it\nwas lexical and this exact code was rejected, which was the single most common\ncomplaint about the language.\n\nWorth knowing because it changes how you write code. You rarely need to\nintroduce a block scope to end a borrow early; just use the reference and stop.\n\n## Iterating, three ways\n\n```rust\nfor x in &v          { s += *x; }      // x: &i64     - read\nfor x in v.iter_mut() { *x += d; }     // x: &mut i64 - write\nfor x in v           { s += x; }       // x: i64      - CONSUMES v\n```\n\nThe third one moves the vector into the loop and destroys it - after it, `v` is\ngone. That is occasionally what you want and is a surprise the first time it\nhappens by accident. `&v` and `&mut v` are the forms you want when the container\nshould survive.\n\nIn both of the first two, `x` is a reference, so `*x` is the number. Rust often\nauto-dereferences for method calls but not for arithmetic, which is why `s += *x`\nneeds the star and `x.abs()` would not.\n\n## Why C++ references are not the same thing\n\n```cpp\nvoid add_to_all(std::vector<long long>& v, long long d);   // looks identical\n```\n\nA C++ `&` borrows in the same mechanical sense - no copy, writes reach the\noriginal - and carries **no rule at all**. Nothing stops you holding a reference\nto an element while another reference reallocates the container, or sharing a\nnon-const reference across threads. The `const` in `const std::vector<T>&` is\ngenuinely useful and only covers half of it: it stops *this* code from writing,\nnot other code from writing while this code reads.\n\nThat difference is why `const&` is a convention in C++ and `&` versus `&mut` is\na checked property in Rust. The C++ version is more flexible and the mistakes are\nyours to find.\n\n## Overflow, debug and release\n\nRust's integer arithmetic **panics on overflow in debug builds** and **wraps in\nrelease builds**. Both are defined - neither is undefined behaviour the way\nsigned overflow is in C++ - but they differ, which means a test suite run in\ndebug can catch an overflow that production would silently wrap.\n\nThat is why this problem keeps values well inside range rather than testing the\nboundary: assigning a fixed expected output to an overflowing case would make the\nanswer depend on which profile compiled it. The explicit, profile-independent\ntools are `checked_add` (returns `Option`), `saturating_add` (clamps) and\n`wrapping_add` (always wraps) - and reaching for one of those is how you say\nwhich behaviour you actually meant.",
+  "readMore": [
+    {
+      "concept": "rust-borrowing",
+      "where": "The Rust Book ch. 4.2, then the NLL section of the edition guide"
+    },
+    {
+      "concept": "cpp-references",
+      "where": "compare with Core Guidelines F.16/F.17 and note what is missing"
+    }
+  ],
+  "id": "rust-borrow-shared-exclusive"
+}

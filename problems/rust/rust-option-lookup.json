@@ -1,0 +1,58 @@
+{
+  "id": "rust-option-lookup",
+  "title": "A value that might not be there",
+  "topic": "rust",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "option",
+    "match",
+    "if-let",
+    "borrowing",
+    "lifetimes"
+  ],
+  "estimate": 30,
+  "prereqs": [
+    {
+      "concept": "rust-option",
+      "why": "Both functions return an Option, and the three ways of taking one apart are what the problem exercises."
+    },
+    {
+      "concept": "rust-borrowing",
+      "why": "One function returns Option<&String> - a borrow that may not exist - which is where the lifetime annotation comes from."
+    },
+    {
+      "concept": "sentinel-values",
+      "why": "You have already written the -1 version of this in C++; Option is what replaces it."
+    }
+  ],
+  "statement": "Read `n`, then `n` whitespace-separated names, then `q`, then `q` query strings.\nWrite these two functions:\n\n```rust\nfn find_name<'a>(names: &'a [String], prefix: &str) -> Option<&'a String>\nfn position_of(names: &[String], wanted: &str) -> Option<usize>\n```\n\n`find_name` returns the **first** name that starts with `prefix`, borrowed from\nthe list. `position_of` returns the index of the first name **exactly equal** to\n`wanted`.\n\nFor each query print three lines, using a `match` for the first, an `if let` for\nthe second, and `map` with `unwrap_or` for the third:\n\n```\nprefix <query> <the first name starting with it, or none>\nexact <query> <its index, or none>\nlen <query> <the length of the prefix match, or 0 if there was none>\n```\n\n```\ninput:   3                 output:  prefix ca cache\n         cache ring cat              exact ca none\n         2                           len ca 5\n         ca ring                     prefix ring ring\n                                     exact ring 1\n                                     len ring 4\n```\n\n`ca` is a prefix of `cache` (which comes first) but is not any name exactly, so\nits index is `none` and its prefix-match length is 5. Every name is a prefix of\nitself, so `ring` matches both ways.\n\n### The point of the problem\n\nIn C++ you wrote the same search returning `-1` for \"not found\", and the\nsolution noted that this only works because an index cannot be negative. Rust's\nanswer is to put the absence **in the type**:\n\n```rust\nenum Option<T> { Some(T), None }\n```\n\n`Option<usize>` is a different type from `usize`. You cannot accidentally use it\nas a number, you cannot forget to check it, and there is no value stolen from\nthe result space - `Option<i64>` can represent every `i64` *and* nothing.\n\n### Three ways to take one apart, and when each fits\n\n```rust\n// match: both arms matter\nmatch find_name(&names, query) {\n    Some(found) => ...,\n    None => ...,\n}\n\n// if let: only one arm is interesting\nif let Some(i) = position_of(&names, query) { ... } else { ... }\n\n// map + unwrap_or: transform the value if present, substitute a default if not\nlet len = find_name(&names, query).map(|s| s.len()).unwrap_or(0);\n```\n\nUse all three, one per output line, because the shapes are what is being\npractised rather than the searching.\n\n### The lifetime annotation, and why only one function needs it\n\n`find_name` returns a reference **into** the list, so the compiler has to know\nthat the returned borrow is tied to `names` and not to `prefix`. With two\nreference parameters it cannot guess, so you say it:\n\n```rust\nfn find_name<'a>(names: &'a [String], prefix: &str) -> Option<&'a String>\n```\n\n`position_of` returns a `usize`, which borrows nothing, so no annotation is\nneeded - the elision rules handle it. That contrast is the clearest way to see\nwhat lifetimes are actually for.\n\n### Boundary cases\n\nAn empty name list, so every query is `none` and every length 0. A query that\nmatches nothing. The empty prefix - note that `\"\".starts_with(\"\")` is true and\nevery string starts with the empty string, so an empty query matches the first\nname. A query matching several names, where only the first counts. Duplicate\nnames, where `position_of` gives the first index. A query that is a prefix match\nbut not an exact one, and the reverse is impossible since every name is a prefix\nof itself.\n\n### Platform assumptions\n\nNames and queries are non-empty ASCII tokens of at most 40 bytes, except that a\nquery may be the single character `_`, which the input uses to mean the **empty**\nquery - the stdin format is whitespace-separated, so an empty token cannot be\nwritten directly. Translate `_` to `\"\"` before searching. `len()` is a byte\nlength, which equals the character count for ASCII. `n` and `q` are each at most\n200.",
+  "hints": [
+    "Return early from the loop: `for n in names { if n.starts_with(prefix) { return Some(n); } } None`. The bare `None` at the end is the value of the function when the loop finishes, so no flag is needed.",
+    "`names.iter().enumerate()` gives `(index, &String)` pairs, which is what `position_of` wants. Comparing a `&String` to a `&str` works directly with `==`.",
+    "`map` applies a closure to the value inside a `Some` and leaves `None` alone, so `opt.map(|s| s.len())` turns an `Option<&String>` into an `Option<usize>`. `unwrap_or(0)` then supplies the default for the `None` case."
+  ],
+  "payload": {
+    "langs": [
+      "rust"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "rust": "use std::io::{self, Read, Write};\n\nfn find_name<'a>(names: &'a [String], prefix: &str) -> Option<&'a String> {\n    let _ = (names, prefix);\n    None // <- replace\n}\n\nfn position_of(names: &[String], wanted: &str) -> Option<usize> {\n    let _ = (names, wanted);\n    None // <- replace\n}\n\nfn main() {\n    let mut input = String::new();\n    io::stdin().read_to_string(&mut input).unwrap();\n    let mut it = input.split_whitespace();\n\n    let n: usize = match it.next() {\n        Some(t) => t.parse().unwrap(),\n        None => return,\n    };\n\n    let mut names: Vec<String> = Vec::new();\n    for _ in 0..n {\n        names.push(it.next().unwrap().to_string());\n    }\n\n    let q: usize = it.next().unwrap().parse().unwrap();\n\n    let stdout = io::stdout();\n    let mut out = io::BufWriter::new(stdout.lock());\n\n    for _ in 0..q {\n        let token = it.next().unwrap();\n        let query = if token == \"_\" { \"\" } else { token };\n\n        // match, then if let, then map + unwrap_or\n        let _ = (&mut out, &names, query);\n    }\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "3\ncache ring cat\n2\nca ring\n",
+        "expect": "prefix ca cache\nexact ca none\nlen ca 5\nprefix ring ring\nexact ring 1\nlen ring 4\n"
+      },
+      {
+        "stdin": "0\n2\nx y\n",
+        "expect": "prefix x none\nexact x none\nlen x 0\nprefix y none\nexact y none\nlen y 0\n"
+      }
+    ]
+  }
+}
