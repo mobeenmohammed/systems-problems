@@ -456,15 +456,34 @@ ok('filtering by topic works', document.querySelectorAll('#conceptList h2').leng
 
 /* ---------------- the week's problem ---------------- */
 
-section("the week's problem");
+section("the dashboard's two main actions");
 await go(window, '#/');
-const weekly = document.querySelector('.weekly');
-ok('a weekly card is shown', weekly !== null);
+const actions = [...document.querySelectorAll('#homeActions .action')];
+check('there are two of them', actions.length, 2);
+
+const continueCard = actions[0];
+ok('the first is Continue learning', /continue learning/i.test(continueCard.querySelector('.eyebrow').textContent));
+ok('it is the one styled as primary', continueCard.classList.contains('action-primary'));
+ok('it names a real problem',
+  window.SystemsLab.Catalog.meta(continueCard.querySelector('h2 a').getAttribute('href').replace('#/p/', '')) !== null);
+ok('and offers a way in', continueCard.querySelector('.action-side a.btn') !== null);
+
+const weekly = actions[1];
+ok('the second is this week', /this week/i.test(weekly.querySelector('.eyebrow').textContent));
 ok('it names a real problem',
   window.SystemsLab.Catalog.meta(weekly.querySelector('h2 a').getAttribute('href').replace('#/p/', '')) !== null);
 ok('it says why this one', weekly.querySelector('p') !== null);
 ok('it shows the difficulty', weekly.querySelector('.diff') !== null);
-ok('and offers a way in', weekly.querySelector('.weekly-side a.btn') !== null);
+ok('and offers a way in', weekly.querySelector('.action-side a.btn') !== null);
+
+/* The hero sentence used to say "Nine topics" in the markup. */
+section('counts come from the catalogue');
+const blurb = document.getElementById('homeBlurb').textContent;
+const n = window.SystemsLab.Catalog.counts();
+ok(`the hero names ${n.problems} problems`, blurb.includes(String(n.problems)));
+ok(`and ${n.topics} topics`, blurb.includes(String(n.topics)));
+ok('no view hard-codes a count in the markup',
+  !/Nine topics|forty-five|nine topics/i.test(document.body.innerHTML));
 
 /* The schedule can run ahead of today; entries dated in the future must not
    appear, or the card gives away what is coming. */
@@ -495,6 +514,49 @@ check('the tracks view is showing', document.getElementById('view-tracks').hidde
 const trackCards = () => [...document.querySelectorAll('#trackList .track-card')];
 ok('every track is listed', trackCards().length === window.SystemsLab.Catalog.allTracks().length);
 ok('each has a progress bar', trackCards().every(c => c.querySelector('.bar i') !== null));
+
+/* The old card said "in progress" for every track with anything left, which
+   meant a track nobody had opened looked half-done. */
+section('a track is not called started until it has been');
+ok('every card carries one of the three states',
+  trackCards().every(c => ['not-started', 'attempted', 'completed'].includes(c.dataset.state)));
+ok('and shows that state as a word, not only a colour',
+  trackCards().every(c => (c.querySelector('.state') || {}).textContent));
+
+const untouched = trackCards().filter(c => c.dataset.state === 'not-started');
+ok('with no progress at all, some track is untouched', untouched.length > 0);
+ok('an untouched track is labelled Not started',
+  untouched.every(c => c.querySelector('.state').textContent === 'Not started'));
+ok('and is never described as in progress',
+  !/in progress/i.test(document.getElementById('trackList').textContent));
+ok('its bar is empty',
+  untouched.every(c => /^(0%|0px)?$/.test(c.querySelector('.bar i').style.width || '0%')));
+
+/* Solve the first problem of the first track and the label has to move. */
+const sampleTrack = window.SystemsLab.Catalog.allTracks().find(t => t.problems.length > 1);
+window.SystemsLab.Store.state.progress[sampleTrack.problems[0]] = {
+  ...window.SystemsLab.Store.record(sampleTrack.problems[0]), status: 'attempted', attempts: 1,
+};
+window.SystemsLab.Store.save();
+/* Already on #/tracks, and the router does not re-render an unchanged hash,
+   so leave and come back. */
+await go(window, '#/');
+await go(window, '#/tracks');
+const sampleCard = trackCards().find(c => c.getAttribute('href') === `#/tracks/${sampleTrack.id}`);
+check('one attempt moves it to Attempted', sampleCard.querySelector('.state').textContent, 'Attempted');
+
+/* And the dashboard should now offer to resume that one rather than start
+   something else. */
+await go(window, '#/');
+const resumeEyebrow = document.querySelector('#homeActions .action .eyebrow').textContent;
+ok('the dashboard offers to pick it up', /pick up where you left off/i.test(resumeEyebrow));
+check('and points at the attempted problem',
+  document.querySelector('#homeActions .action h2 a').getAttribute('href'),
+  `#/p/${sampleTrack.problems[0]}`);
+
+delete window.SystemsLab.Store.state.progress[sampleTrack.problems[0]];
+window.SystemsLab.Store.save();
+await go(window, '#/tracks');
 
 section('opening a track');
 const firstTrack = window.SystemsLab.Catalog.allTracks()[0];

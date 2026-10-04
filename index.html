@@ -68,8 +68,9 @@
     <div class="hero">
       <div>
         <h1>Every low-level thing, one problem at a time</h1>
-        <p class="muted">Nine topics, three difficulties, and a reading list attached to each
-           problem so a thing you cannot do yet comes with the chapter that fixes that.</p>
+        <!-- Filled from the catalogue: a sentence with a number in it is a
+             sentence that goes stale the next time a topic is added. -->
+        <p class="muted" id="homeBlurb"></p>
       </div>
       <div class="card rank-card">
         <div class="rank-head">
@@ -81,7 +82,8 @@
       </div>
     </div>
 
-    <div id="homeWeekly"></div>
+    <!-- The two things the dashboard is for: carry on, or do this week's. -->
+    <div class="actions" id="homeActions"></div>
 
     <div class="stat-row" id="homeStats"></div>
 
@@ -97,8 +99,17 @@
 
     <div class="section-head"><h2>Activity</h2></div>
     <div class="card">
-      <div class="heat" id="homeHeat" aria-label="Problems solved per day over the last 26 weeks"></div>
-      <p class="tiny faint" style="margin:.6rem 0 0">Last 26 weeks. A square is a day you solved something.</p>
+      <div class="heat-wrap">
+        <div class="heat-months" id="homeHeatMonths" aria-hidden="true"></div>
+        <div class="heat-days" aria-hidden="true"><span>Mon</span><span>Wed</span><span>Fri</span></div>
+        <div class="heat" id="homeHeat" role="img" aria-labelledby="homeHeatCaption"></div>
+      </div>
+      <div class="heat-foot">
+        <p class="tiny faint" id="homeHeatCaption"></p>
+        <div class="heat-key tiny faint" aria-hidden="true">
+          <span>less</span><i data-n="0"></i><i data-n="1"></i><i data-n="2"></i><i data-n="3"></i><i data-n="4"></i><span>more</span>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -140,8 +151,7 @@
   <!-- ---------------- tracks ---------------- -->
   <section id="view-tracks" class="view" hidden>
     <h1>Tracks</h1>
-    <p class="muted">Ordered sets of problems that build on each other, so there is
-       always an obvious next one rather than forty-five to choose between.</p>
+    <p class="muted" id="tracksBlurb"></p>
     <div id="trackList"></div>
   </section>
 

@@ -378,27 +378,47 @@ pre.code-block[data-lang]::before {
 .stat .n { font-family: var(--mono); font-size: 1.5rem; font-weight: 650; line-height: 1.15; letter-spacing: -.02em; }
 .stat .k { font-size: .72rem; color: var(--text-faint); text-transform: uppercase; letter-spacing: .05em; margin-top: .15rem; }
 
-/* the featured problem of the week */
-.weekly {
+/* the dashboard's two main actions: carry on, or do this week's.
+
+   Equal columns rather than content-sized, so the two cards are the same
+   width whatever is in them, and each one puts its button on the right at a
+   fixed position. The eye should find "Continue" in the same place every
+   visit. */
+.actions {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
+  gap: var(--s3); margin-bottom: var(--s5);
+}
+.action {
   display: grid; grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--s5); align-items: center;
+  gap: var(--s4); align-items: start;
   padding: var(--s4) var(--s5);
-  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
-  border-radius: var(--radius-l);
+  border: 1px solid var(--border); border-radius: var(--radius-l);
+  background: var(--bg-elev);
+}
+/* The one the page wants you to press gets the accent wash. */
+.action-primary {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
   background:
     radial-gradient(120% 140% at 0% 0%, var(--accent-soft) 0%, transparent 60%),
     var(--bg-elev);
-  margin-bottom: var(--s5);
 }
-.weekly .eyebrow {
+.action-body { min-width: 0; }
+.action .eyebrow {
   font-size: .68rem; text-transform: uppercase; letter-spacing: .09em;
   color: var(--accent); font-weight: 700; margin-bottom: .35rem;
 }
-.weekly h2 { margin: 0 0 .35rem; font-size: 1.3rem; letter-spacing: -.015em; }
-.weekly h2 a { color: inherit; }
-.weekly p { margin: 0 0 var(--s3); color: var(--text-dim); max-width: 58ch; font-size: .92rem; }
-.weekly .meta { display: flex; gap: var(--s2); align-items: center; flex-wrap: wrap; }
-.weekly-side { display: flex; flex-direction: column; align-items: flex-end; gap: var(--s2); }
+.action h2 { margin: 0 0 .35rem; font-size: 1.22rem; letter-spacing: -.015em; overflow-wrap: anywhere; }
+.action h2 a { color: inherit; }
+.action p { margin: 0 0 var(--s3); color: var(--text-dim); font-size: .92rem; }
+.action .meta { display: flex; gap: var(--s2); align-items: center; flex-wrap: wrap; }
+/* A link that should not shout — a track name inside a sentence. */
+.action p a.quiet { color: var(--text); text-decoration: underline; text-decoration-color: var(--border-strong); text-underline-offset: 2px; }
+.action p a.quiet:hover { text-decoration-color: var(--accent); }
+.action-side {
+  display: flex; flex-direction: column; align-items: stretch;
+  gap: var(--s2); text-align: center; white-space: nowrap;
+}
+.action-side .btn { justify-content: center; }
 
 /* topic cards */
 .topic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(15.5rem, 1fr)); gap: var(--s3); }
@@ -417,10 +437,17 @@ pre.code-block[data-lang]::before {
 .topic-card p  { margin: 0; font-size: .78rem; color: var(--text-faint); line-height: 1.45; }
 .topic-card .count { font-family: var(--mono); font-size: .72rem; color: var(--text-dim); margin-top: .4rem; }
 
-/* tracks — ordered sets of problems */
-.tracks { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: var(--s3); }
+/* tracks — ordered sets of problems
+
+   Every card is a three-row grid: head, blurb, foot. The middle row takes the
+   slack and the blurb is clamped to two lines, so the progress bar and the
+   counts land on the same baseline across a row of cards however long each
+   description is. Aligning those is the whole reason a row of cards is easier
+   to read than a list. */
+.tracks { display: grid; grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr)); gap: var(--s3); }
 .track-card {
-  display: block; padding: var(--s4);
+  display: grid; grid-template-rows: auto 1fr auto; gap: var(--s2);
+  padding: var(--s4);
   background: var(--bg-elev); border: 1px solid var(--border);
   border-radius: var(--radius); color: inherit; text-decoration: none;
   transition: border-color .14s, transform .1s, box-shadow .14s;
@@ -429,17 +456,96 @@ pre.code-block[data-lang]::before {
   border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
   text-decoration: none; transform: translateY(-1px); box-shadow: var(--shadow-2);
 }
-.track-card h3 { margin: 0 0 .25rem; font-size: 1rem; }
-.track-card p { margin: 0 0 var(--s3); font-size: .82rem; color: var(--text-faint); line-height: 1.5; }
-.track-card .spread { font-size: .74rem; color: var(--text-dim); font-family: var(--mono); margin-top: var(--s2); }
+.track-top { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s2); }
+.track-card h3 { margin: 0; font-size: 1rem; letter-spacing: -.01em; }
+.track-blurb {
+  margin: 0; font-size: .84rem; color: var(--text-dim); line-height: 1.5;
+  /* Two lines, with the rest still in the DOM for a screen reader. */
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.track-foot { display: grid; gap: var(--s1); }
+.track-foot .spread { color: var(--text-dim); }
+.track-card[data-state="completed"] .bar i { background: var(--ok); }
 
-/* the 26-week activity grid */
-.heat { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, 10px); gap: 3px; overflow-x: auto; padding-bottom: .3rem; }
-.heat i { width: 10px; height: 10px; border-radius: 2px; background: var(--bg-inset); display: block; }
+/* Not started / Attempted / Completed. The middle one has to be earned, so an
+   untouched track is never labelled as under way. */
+.state {
+  font-size: .66rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  padding: .14rem .45rem; border-radius: 999px; white-space: nowrap;
+  border: 1px solid var(--border-strong); color: var(--text-faint); background: var(--bg-inset);
+}
+.state-attempted { color: var(--st-attempted); border-color: color-mix(in srgb, var(--st-attempted) 45%, var(--border)); }
+.state-completed { color: var(--st-solved);    border-color: color-mix(in srgb, var(--st-solved) 45%, var(--border)); }
+
+.track-summary { display: grid; gap: var(--s3); margin-bottom: var(--s4); }
+
+/* the activity grid
+
+   Compact, with one gap value doing all the spacing so the month labels line
+   up with the columns instead of being evenly spaced and drifting apart from
+   them. --heat-cell is read by the JS that lays the labels out. */
+.heat-wrap {
+  --heat-cell: 11px;
+  --heat-gap: 3px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  gap: var(--s1) var(--s2);
+  align-items: start;
+}
+.heat-months {
+  grid-column: 2; grid-row: 1;
+  display: grid; gap: var(--heat-gap);
+  font-size: .66rem; color: var(--text-faint);
+  min-width: 0; overflow: hidden;
+}
+.heat-months span { grid-row: 1; white-space: nowrap; }
+.heat-days {
+  grid-column: 1; grid-row: 2;
+  display: grid; grid-template-rows: repeat(7, var(--heat-cell)); gap: var(--heat-gap);
+  font-size: .62rem; color: var(--text-faint); text-align: right;
+  line-height: var(--heat-cell);
+}
+/* Mon, Wed, Fri on rows 2, 4 and 6 of a Sunday-first week. */
+.heat-days span:nth-child(1) { grid-row: 2; }
+.heat-days span:nth-child(2) { grid-row: 4; }
+.heat-days span:nth-child(3) { grid-row: 6; }
+.heat {
+  grid-column: 2; grid-row: 2;
+  display: grid; grid-auto-flow: column;
+  grid-template-rows: repeat(7, var(--heat-cell));
+  grid-auto-columns: var(--heat-cell);
+  gap: var(--heat-gap);
+  overflow-x: auto; padding-bottom: .2rem;
+}
+.heat i {
+  width: var(--heat-cell); height: var(--heat-cell);
+  border-radius: 2px; background: var(--bg-inset); display: block;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--border) 60%, transparent);
+}
 .heat i[data-n="1"] { background: color-mix(in srgb, var(--ok) 32%, var(--bg-inset)); }
 .heat i[data-n="2"] { background: color-mix(in srgb, var(--ok) 58%, var(--bg-inset)); }
 .heat i[data-n="3"] { background: color-mix(in srgb, var(--ok) 80%, var(--bg-inset)); }
 .heat i[data-n="4"] { background: var(--ok); }
+.heat i[data-future="true"] { opacity: .3; box-shadow: none; }
+
+.heat-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--s3); flex-wrap: wrap; margin-top: var(--s2);
+}
+.heat-foot p { margin: 0; }
+.heat-key { display: flex; align-items: center; gap: 3px; }
+.heat-key i {
+  width: 11px; height: 11px; border-radius: 2px; background: var(--bg-inset); display: block;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--border) 60%, transparent);
+}
+.heat-key i[data-n="1"] { background: color-mix(in srgb, var(--ok) 32%, var(--bg-inset)); }
+.heat-key i[data-n="2"] { background: color-mix(in srgb, var(--ok) 58%, var(--bg-inset)); }
+.heat-key i[data-n="3"] { background: color-mix(in srgb, var(--ok) 80%, var(--bg-inset)); }
+.heat-key i[data-n="4"] { background: var(--ok); }
+.heat-key span:first-child { margin-right: .15rem; }
+.heat-key span:last-child  { margin-left: .15rem; }
 
 /* ---------------- catalog ---------------- */
 

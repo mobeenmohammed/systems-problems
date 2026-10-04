@@ -135,6 +135,13 @@ const UI = (() => {
 
   function renderHome() {
     const st = Store.stats(Catalog.all());
+    const n = Catalog.counts();
+
+    $('#homeBlurb').textContent = n.problems
+      ? `${n.problems} problems across ${n.topics} topics and ${n.difficulties} difficulties, `
+        + `with ${n.readings} readings attached to them — so a thing you cannot do yet `
+        + `comes with the chapter that fixes that.`
+      : 'No problems are loaded yet.';
 
     $('#homeRank').textContent = st.rank.current.label;
     $('#homeRankNext').textContent = st.rank.next
@@ -153,7 +160,7 @@ const UI = (() => {
       statPill(st.readings, 'readings read'),
     );
 
-    renderWeekly();
+    renderActions();
     renderTracksStrip();
 
     /* Anything flagged or due — the dashboard is the only place this would
@@ -187,39 +194,157 @@ const UI = (() => {
     renderHeat($('#homeHeat'), st.days);
   }
 
-  /* The week's problem, chosen from data/weekly.json. Deliberately the most
-     prominent thing on the page: with forty-five problems the hardest part is
-     deciding which one to do, and this answers that. */
-  function renderWeekly() {
-    const host = $('#homeWeekly');
+  /* ---------------- the dashboard's two main actions ----------------
+
+     Of eighty-five problems the hard part is choosing one, so the page answers
+     that twice and in the same shape: carry on where you were, or do the one
+     chosen for this week. Everything below them is reference. */
+
+  /* The meta line shared by both cards, and by the problem page header. */
+  function metaRow(meta, extra = []) {
+    const type = Catalog.TYPE_BY_ID[meta.type] || {};
+    return el('div', { class: 'meta' }, [
+      diffTag(meta.difficulty),
+      el('span', { class: 'tag', text: (Store.TOPIC_BY_ID[meta.topic] || {}).label || meta.topic }),
+      el('span', { class: 'tag', text: type.label || meta.type }),
+      meta.estimate ? el('span', { class: 'tag', text: `~${meta.estimate} min` }) : null,
+      (meta.lane && meta.lane !== 'core')
+        ? el('span', { class: 'tag tag-lane', text: 'Optional' }) : null,
+      ...extra,
+    ]);
+  }
+
+  function actionCard({ eyebrow, title, href, body, meta, button, foot, tone = '' }) {
+    return el('div', { class: `action${tone ? ' action-' + tone : ''}` }, [
+      el('div', { class: 'action-body' }, [
+        el('div', { class: 'eyebrow', text: eyebrow }),
+        el('h2', {}, [href ? el('a', { href, text: title }) : title]),
+        body || null,
+        meta || null,
+      ]),
+      el('div', { class: 'action-side' }, [
+        button || null,
+        foot ? el('span', { class: 'tiny faint', text: foot }) : null,
+      ]),
+    ]);
+  }
+
+  const RESUME_WORDS = {
+    resume:          ['Pick up where you left off', 'Resume'],
+    'next-in-track': ['Next in this track', 'Continue'],
+    'new-track':     ['Start a new track', 'Start'],
+    loose:           ['Not in a track, but unsolved', 'Open'],
+  };
+
+  function continueCard() {
+    const up = Catalog.nextUp();
+
+    if (!up) {
+      const total = Catalog.counts().problems;
+      return actionCard({
+        eyebrow: 'Continue learning',
+        title: total ? 'Everything is solved' : 'Nothing loaded',
+        body: el('p', {
+          text: total
+            ? 'Every problem in the catalogue is done. Flag a few for revisit, or wait for next week.'
+            : 'Run npm run build:index, then serve the folder over HTTP.',
+        }),
+        button: total ? el('a', { class: 'btn', href: '#/problems' }, ['Browse anyway']) : null,
+      });
+    }
+
+    const [eyebrow, verb] = RESUME_WORDS[up.reason] || RESUME_WORDS.loose;
+    const r = Store.record(up.meta.id);
+
+    return actionCard({
+      tone: 'primary',
+      eyebrow: `Continue learning · ${eyebrow}`,
+      title: up.meta.title,
+      href: `#/p/${up.meta.id}`,
+      body: up.track
+        ? el('p', {}, [
+            el('a', { class: 'quiet', href: `#/tracks/${up.track.id}`, text: up.track.title }),
+            ` · ${up.progress.done} of ${up.progress.total} solved`,
+          ])
+        : null,
+      meta: metaRow(up.meta),
+      button: el('a', { class: 'btn btn-primary', href: `#/p/${up.meta.id}` }, [verb]),
+      foot: r.attempts
+        ? `${r.attempts} attempt${r.attempts === 1 ? '' : 's'} so far`
+        : `${Store.potentialXp(up.meta)} XP`,
+    });
+  }
+
+  function weeklyCard() {
     const week = Catalog.thisWeek();
-    if (!week) { host.replaceChildren(); return; }
+    if (!week) return null;
 
     const r = Store.record(week.problem);
     const done = r.status === 'solved';
-    const diff = Store.DIFF_BY_ID[week.meta.difficulty] || {};
-    const type = Catalog.TYPE_BY_ID[week.meta.type] || {};
 
-    host.replaceChildren(el('div', { class: 'weekly' }, [
-      el('div', {}, [
-        el('div', { class: 'eyebrow', text: done ? 'This week · done' : 'This week' }),
-        el('h2', {}, [el('a', { href: `#/p/${week.problem}`, text: week.meta.title })]),
-        week.why ? el('p', { html: MD.renderInline(week.why) }) : null,
-        el('div', { class: 'meta' }, [
-          diffTag(week.meta.difficulty),
-          el('span', { class: 'tag', text: (Store.TOPIC_BY_ID[week.meta.topic] || {}).label || week.meta.topic }),
-          el('span', { class: 'tag', text: type.label || week.meta.type }),
-          week.meta.estimate ? el('span', { class: 'tag', text: `~${week.meta.estimate} min` }) : null,
+    return actionCard({
+      eyebrow: done ? 'This week · solved' : 'This week',
+      title: week.meta.title,
+      href: `#/p/${week.problem}`,
+      body: (week.why || week.note)
+        ? el('p', { html: MD.renderInline(week.why || week.note) })
+        : null,
+      meta: metaRow(week.meta),
+      button: el('a', {
+        class: done ? 'btn' : 'btn btn-primary',
+        href: `#/p/${week.problem}`,
+      }, [done ? 'Look again' : 'Start it']),
+      foot: done ? `Solved ${r.solvedAt}` : `${Store.potentialXp(week.meta)} XP`,
+    });
+  }
+
+  function renderActions() {
+    $('#homeActions').replaceChildren(...[continueCard(), weeklyCard()].filter(Boolean));
+  }
+
+  /* ---------------- track cards ----------------
+
+     One renderer for the dashboard strip and the tracks view, so the two
+     cannot drift apart. Every card is the same height with its progress bar,
+     count and button on the same lines, which is what makes a row of them
+     scannable: the eye compares positions, not whatever each description
+     happened to push downwards.
+
+     Blurbs are clamped to two lines in CSS rather than cut here, so the full
+     text is still there for a screen reader and the track page shows all of
+     it. */
+
+  /* A sentence's worth, for a card that has room for two lines. */
+  function firstSentence(text, limit = 112) {
+    const s = String(text || '').trim();
+    if (s.length <= limit) return s;
+    const stop = s.slice(0, limit).lastIndexOf('. ');
+    if (stop > 40) return s.slice(0, stop + 1);
+    const space = s.slice(0, limit).lastIndexOf(' ');
+    return s.slice(0, space > 40 ? space : limit).trimEnd() + '…';
+  }
+
+  const stateChip = state => el('span', {
+    class: `state state-${state}`,
+    text: Catalog.TRACK_STATE_LABEL[state] || state,
+  });
+
+  function trackCard(t, p) {
+    const pct = Math.round(p.fraction * 100);
+    return el('a', { class: 'track-card', href: `#/tracks/${t.id}`, 'data-state': p.state }, [
+      el('div', { class: 'track-top' }, [
+        el('h3', { text: t.title }),
+        stateChip(p.state),
+      ]),
+      el('p', { class: 'track-blurb', text: firstSentence(t.blurb) }),
+      el('div', { class: 'track-foot' }, [
+        el('div', { class: 'bar', title: `${pct}%` }, [el('i', { style: `width:${pct}%` })]),
+        el('div', { class: 'spread tiny' }, [
+          el('span', { text: `${p.done} of ${p.total} solved` }),
+          el('span', { class: 'faint', text: `${p.total - p.done} left` }),
         ]),
       ]),
-      el('div', { class: 'weekly-side' }, [
-        el('a', {
-          class: done ? 'btn' : 'btn btn-primary',
-          href: `#/p/${week.problem}`,
-        }, [done ? 'Look again' : 'Start it']),
-        el('span', { class: 'tiny faint', text: done ? `Solved ${r.solvedAt}` : `${Store.potentialXp(week.meta)} XP` }),
-      ]),
-    ]));
+    ]);
   }
 
   /* A short strip of tracks on the dashboard; the full list is its own view. */
@@ -228,11 +353,12 @@ const UI = (() => {
     const tracks = Catalog.allTracks();
     if (!tracks.length) { host.replaceChildren(); return; }
 
-    /* The ones with something left to do first, so the strip is useful rather
-       than a list of things already finished. */
+    /* Started but unfinished first, then untouched, then complete — which is
+       the order they are worth looking at. */
+    const RANK = { attempted: 0, 'not-started': 1, completed: 2, empty: 3 };
     const ranked = tracks
       .map(t => ({ t, p: Catalog.trackProgress(t) }))
-      .sort((a, b) => (a.p.fraction === 1 ? 1 : 0) - (b.p.fraction === 1 ? 1 : 0)
+      .sort((a, b) => (RANK[a.p.state] ?? 9) - (RANK[b.p.state] ?? 9)
                    || b.p.fraction - a.p.fraction)
       .slice(0, 3);
 
@@ -241,16 +367,7 @@ const UI = (() => {
         el('h2', { text: 'Tracks' }),
         el('a', { class: 'more', href: '#/tracks', text: 'All tracks →' }),
       ]),
-      el('div', { class: 'tracks' }, ranked.map(({ t, p }) =>
-        el('a', { class: 'track-card', href: `#/tracks/${t.id}` }, [
-          el('h3', { text: t.title }),
-          el('p', { text: t.blurb }),
-          el('div', { class: 'bar' }, [el('i', { style: `width:${Math.round(p.fraction * 100)}%` })]),
-          el('div', { class: 'spread' }, [
-            el('span', { text: `${p.done} / ${p.total}` }),
-            el('span', { text: p.next ? 'next: ' + (p.next.meta.title.length > 26 ? p.next.meta.title.slice(0, 26) + '…' : p.next.meta.title) : 'done' }),
-          ]),
-        ]))),
+      el('div', { class: 'tracks' }, ranked.map(({ t, p }) => trackCard(t, p))),
       el('div', { style: 'height:var(--s2)' }),
     );
   }
@@ -260,6 +377,15 @@ const UI = (() => {
   function renderTracks(trackId) {
     const host = $('#trackList');
     const tracks = Catalog.allTracks();
+
+    const blurb = $('#tracksBlurb');
+    if (blurb) {
+      const n = Catalog.counts();
+      blurb.textContent = n.problems
+        ? `${n.tracks} ordered sets of problems that build on each other, so there is `
+          + `always an obvious next one rather than ${n.problems} to choose between.`
+        : 'Ordered sets of problems that build on each other.';
+    }
 
     if (!tracks.length) {
       host.replaceChildren(el('div', { class: 'empty' }, ['No tracks are defined yet.']));
@@ -286,10 +412,16 @@ const UI = (() => {
           el('p', { class: 'muted', style: 'max-width:62ch', text: t.blurb }),
           t.goal ? el('p', { class: 'small faint', style: 'max-width:62ch', text: t.goal }) : null,
         ]),
-        el('div', { class: 'card', style: 'margin-bottom:var(--s4)' }, [
-          el('div', { class: 'spread', style: 'margin-bottom:var(--s2)' }, [
-            el('span', { class: 'small', text: `${p.done} of ${p.total} solved` }),
-            p.next ? el('a', { class: 'btn btn-sm btn-primary', href: `#/p/${p.next.id}` }, ['Next problem']) : el('span', { class: 'pill', style: 'color:var(--ok)', text: 'Complete' }),
+        el('div', { class: 'card track-summary', 'data-state': p.state }, [
+          el('div', { class: 'spread' }, [
+            el('div', { class: 'row' }, [
+              stateChip(p.state),
+              el('span', { class: 'small', text: `${p.done} of ${p.total} solved` }),
+            ]),
+            p.resume
+              ? el('a', { class: 'btn btn-sm btn-primary', href: `#/p/${p.resume.id}` },
+                  [p.state === 'not-started' ? 'Start the first one' : 'Continue'])
+              : el('span', { class: 'pill', style: 'color:var(--ok)', text: 'Complete' }),
           ]),
           el('div', { class: 'bar' }, [el('i', { style: `width:${Math.round(p.fraction * 100)}%` })]),
         ]),
@@ -299,42 +431,73 @@ const UI = (() => {
     }
 
     /* All tracks */
-    host.replaceChildren(el('div', { class: 'tracks' }, tracks.map(t => {
-      const p = Catalog.trackProgress(t);
-      return el('a', { class: 'track-card', href: `#/tracks/${t.id}` }, [
-        el('h3', { text: t.title }),
-        el('p', { text: t.blurb }),
-        el('div', { class: 'bar' }, [el('i', { style: `width:${Math.round(p.fraction * 100)}%` })]),
-        el('div', { class: 'spread' }, [
-          el('span', { text: `${p.done} / ${p.total} solved` }),
-          el('span', { text: p.next ? 'in progress' : 'complete' }),
-        ]),
-      ]);
-    })));
+    host.replaceChildren(el('div', { class: 'tracks' },
+      tracks.map(t => trackCard(t, Catalog.trackProgress(t)))));
   }
 
-  /* 26 weeks, ending today, laid out in columns of seven so it reads like a
-     calendar. The grid starts on the Sunday of the oldest week, otherwise the
-     rows stop meaning weekdays. */
+  /* A calendar of the last WEEKS weeks, in columns of seven. The grid starts
+     on the Sunday of the oldest week so the rows keep meaning weekdays, and
+     the month labels are placed by column so they line up with the squares
+     rather than being spaced evenly and drifting. */
+  const HEAT_WEEKS = 26;
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
   function renderHeat(mount, days) {
-    const today = new Date(Store.todayISO() + 'T00:00:00Z');
-    const end = new Date(today);
+    const todayISO = Store.todayISO();
+    const end = new Date(todayISO + 'T00:00:00Z');
     end.setUTCDate(end.getUTCDate() + (6 - end.getUTCDay()));
     const start = new Date(end);
-    start.setUTCDate(start.getUTCDate() - (26 * 7 - 1));
+    start.setUTCDate(start.getUTCDate() - (HEAT_WEEKS * 7 - 1));
 
     const cells = [];
+    const labels = [];
+    let solved = 0;
+    let activeDays = 0;
+    let lastMonth = -1;
+
     for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
       const iso = d.toISOString().slice(0, 10);
       const n = days[iso] || 0;
-      const future = iso > Store.todayISO();
+      const future = iso > todayISO;
+      if (!future) {
+        solved += n;
+        if (n) activeDays += 1;
+      }
+
+      /* One label per month, at the column holding that month's first Sunday,
+         which is where a reader expects the name to sit. */
+      if (d.getUTCDay() === 0) {
+        const month = d.getUTCMonth();
+        const column = Math.floor((d - start) / (7 * 86400000)) + 1;
+        if (month !== lastMonth) {
+          lastMonth = month;
+          labels.push(el('span', { style: `grid-column:${column}`, text: MONTHS[month] }));
+        }
+      }
+
       cells.push(el('i', {
         'data-n': future ? undefined : String(Math.min(4, n)),
-        title: future ? '' : `${iso} — ${n} solved`,
-        style: future ? 'opacity:.25' : undefined,
+        'data-future': future ? 'true' : undefined,
+        title: future ? '' : `${iso} — ${n === 1 ? '1 problem' : `${n} problems`}`,
       }));
     }
+
     mount.replaceChildren(...cells);
+
+    const months = $('#homeHeatMonths');
+    if (months) {
+      months.style.gridTemplateColumns = `repeat(${HEAT_WEEKS}, var(--heat-cell))`;
+      months.replaceChildren(...labels);
+    }
+
+    const caption = $('#homeHeatCaption');
+    if (caption) {
+      caption.textContent = solved
+        ? `${solved} solved over ${HEAT_WEEKS} weeks, on ${activeDays} `
+          + `${activeDays === 1 ? 'day' : 'different days'}.`
+        : `Nothing solved in the last ${HEAT_WEEKS} weeks. A square is a day you solved something.`;
+    }
   }
 
   /* ---------------- catalog ---------------- */

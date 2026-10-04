@@ -226,9 +226,35 @@ const Catalog = (() => {
   function trackProgress(t) {
     const rows = (t.problems || []).map(id => ({ id, meta: byId[id], record: Store.record(id) }));
     const done = rows.filter(r => r.record.status === 'solved').length;
+    const touched = rows.filter(r => r.record.status !== 'unsolved').length;
     const next = rows.find(r => r.record.status !== 'solved') || null;
-    return { done, total: rows.length, rows, next, fraction: rows.length ? done / rows.length : 0 };
+
+    /* Three states, and the middle one has to be earned. A track nobody has
+       opened was being labelled "in progress", which made every track look
+       half-done and the label worth nothing. */
+    const state = !rows.length ? 'empty'
+      : done === rows.length ? 'completed'
+      : touched > 0 ? 'attempted'
+      : 'not-started';
+
+    /* Resuming beats starting: a problem opened and not finished is where the
+       reader actually left off, so it outranks the next untouched one. */
+    const resume = rows.find(r => r.record.status === 'attempted')
+      || rows.find(r => r.record.status === 'read')
+      || next;
+
+    return {
+      done, touched, total: rows.length, rows, next, resume, state,
+      fraction: rows.length ? done / rows.length : 0,
+    };
   }
+
+  const TRACK_STATE_LABEL = {
+    'not-started': 'Not started',
+    attempted: 'Attempted',
+    completed: 'Completed',
+    empty: 'Empty',
+  };
 
   /* ---------------- the week's problem ----------------
 
@@ -249,11 +275,103 @@ const Catalog = (() => {
   const topicResources = topicId => (resources.topics || {})[topicId] || null;
   const allResources = () => Object.entries(resources.topics || {}).map(([id, r]) => ({ id, ...r }));
 
+  /* ---------------- what to do next ----------------
+
+     The dashboard's main action, and the one question worth answering well:
+     of eighty-five problems, which one now. In order of preference:
+
+       1. something already started, in the track furthest along
+       2. the next problem in that track
+       3. the first problem of the first track not yet begun
+       4. anything unsolved at all, easiest first
+       5. nothing - everything is solved
+
+     Returning the reason as well as the problem, because "picking up where you
+     left off" and "starting a new track" deserve different wording. */
+  function nextUp() {
+    const open = allTracks()
+      .map(t => ({ t, p: trackProgress(t) }))
+      .filter(x => x.p.total && x.p.state !== 'completed');
+
+    const started = open
+      .filter(x => x.p.state === 'attempted')
+      .sort((a, b) => b.p.fraction - a.p.fraction)[0];
+
+    if (started) {
+      const row = started.p.resume;
+      if (row && row.meta) {
+        return {
+          meta: row.meta,
+          track: started.t,
+          progress: started.p,
+          reason: row.record.status === 'unsolved' ? 'next-in-track' : 'resume',
+        };
+      }
+    }
+
+    const fresh = open.find(x => x.p.state === 'not-started');
+    if (fresh && fresh.p.next && fresh.p.next.meta) {
+      return { meta: fresh.p.next.meta, track: fresh.t, progress: fresh.p, reason: 'new-track' };
+    }
+
+    /* No track has anything left, but the catalogue might - tracks do not
+       have to cover every problem. */
+    const loose = sorted(index.filter(p => Store.record(p.id).status !== 'solved'))[0];
+    if (loose) return { meta: loose, track: null, progress: null, reason: 'loose' };
+
+    return null;
+  }
+
+  /* ---------------- counts ----------------
+
+     Everything the copy on the page wants to say about how much is here. A
+     sentence that says "nine topics" is a sentence that is wrong the next time
+     a topic is added, so no view spells a number out. Counted over the index
+     rather than over Store.TOPICS, so a topic with nothing in it yet is not
+     advertised. */
+  function counts() {
+    const topics = new Set();
+    const difficulties = new Set();
+    const types = new Set();
+    const langs = new Set();
+    let code = 0;
+    let minutes = 0;
+
+    for (const p of index) {
+      topics.add(p.topic);
+      difficulties.add(p.difficulty);
+      types.add(p.type);
+      minutes += Number(p.estimate) || 0;
+      if (p.type === 'code') {
+        code += 1;
+        for (const l of p.langs || []) langs.add(l);
+      }
+    }
+
+    let readings = 0;
+    for (const c of Object.values(concepts)) readings += (c.readings || []).length;
+    for (const r of Object.values(resources.topics || {})) readings += (r.resources || []).length;
+
+    return {
+      problems: index.length,
+      topics: topics.size,
+      difficulties: difficulties.size,
+      types: types.size,
+      code,
+      languages: langs.size,
+      concepts: Object.keys(concepts).length,
+      readings,
+      tracks: tracks.length,
+      minutes,
+    };
+  }
+
   return {
     init, all, meta, list, sorted, get, solution,
     concept, allConcepts, chain, prereqsFor, readProgress,
     allTracks, track, trackProgress, thisWeek, topicResources, allResources,
-    TYPES, TYPE_BY_ID,
+    counts, nextUp,
+    TYPES, TYPE_BY_ID, TRACK_STATE_LABEL,
     get loadError() { return loadError; },
   };
 })();
