@@ -1,0 +1,57 @@
+{
+  "id": "cpp-reference-vector-fns",
+  "title": "Passing a whole container, both ways",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "references",
+    "const-reference",
+    "vector",
+    "functions"
+  ],
+  "estimate": 22,
+  "prereqs": [
+    {
+      "concept": "cpp-references",
+      "why": "One function takes the vector read-only by const reference, the other modifies it through a plain reference."
+    },
+    {
+      "concept": "cpp-std-vector",
+      "why": "The container being passed around is a vector, and the functions use size() and indexing."
+    },
+    {
+      "concept": "cpp-functions",
+      "why": "Three small functions, each with a signature that says what it is allowed to do."
+    }
+  ],
+  "statement": "Read `n` then `n` integers. Then write and use three functions:\n\n```cpp\nlong long total(const std::vector<int>& v);   // reads, cannot modify\nvoid addToAll(std::vector<int>& v, int d);    // modifies in place\nvoid reverseIt(std::vector<int>& v);          // modifies in place\n```\n\nPrint, in order:\n\n```\ntotal <sum of the original values>\nafter-add <the values with 7 added to each, space separated>\nreversed <those values reversed, space separated>\ntotal <sum again, which has changed>\n```\n\n```\ninput:   4\n         1 2 3 4\n\noutput:  total 10\n         after-add 8 9 10 11\n         reversed 11 10 9 8\n         total 38\n```\n\nThe operations are applied in that order and each one builds on the last, so the\nsecond `total` reflects both earlier changes.\n\n### The point of the problem\n\nThree signatures, three different contracts, and the contract is in the type:\n\n| Signature | What the caller learns |\n| --- | --- |\n| `const std::vector<int>& v` | it will be read, not changed, and not copied |\n| `std::vector<int>& v` | it will be changed in place |\n| `std::vector<int> v` | a full copy is made, and changes are discarded |\n\nThe third is the one to avoid by accident. Passing a vector by value copies\nevery element, which for a large vector is real work done for nothing - and if\nthe function was supposed to modify it, nothing happens.\n\n`const&` is the default for anything bigger than a machine word. It is cheap\nlike by-value for small types and free of copying for large ones, and the `const`\nis a promise the compiler enforces: try to assign to `v` inside `total` and the\nbuild fails.\n\n### Boundary cases\n\n`n = 0`: `total 0`, two empty lines, and `total 0` again. `n = 1`, where\nreversing is a no-op. Negative values. Values whose sum does not fit in an\n`int`, which is why `total` returns `long long`.\n\n### Output format\n\nSpace separated, **no trailing space**; an empty vector prints the label and\nnothing after it, so `after-add` on its own line.\n\n### Platform assumptions\n\nEach value fits in a 32-bit `int` and `n` is at most 1000, so the sum fits\ncomfortably in a 64-bit `long long` even at the extremes. `int` is assumed to be\nat least 32 bits and `long long` at least 64, which the standard guarantees.",
+  "hints": [
+    "`total` should accumulate into a `long long`, not an `int`: `long long s{}; for (int x : v) s += x;`. The addition widens because `s` is the wider type, so no intermediate overflow.",
+    "`addToAll` needs a by-reference range-for: `for (int& x : v) x += d;`. With `int x` it adds to a copy and the vector is untouched.",
+    "To reverse in place, swap from both ends: two indices walking inwards with `std::swap(v[i], v[j - 1])`. Or just call `std::reverse(v.begin(), v.end())` from `<algorithm>`, which is what you would write in real code."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n#include <vector>\n\nlong long total(const std::vector<int>& v)\n{\n    return 0;   // <- replace\n}\n\nvoid addToAll(std::vector<int>& v, int d)\n{\n    // <- modify v in place\n}\n\nvoid reverseIt(std::vector<int>& v)\n{\n    // <- modify v in place\n}\n\nvoid printAll(const char* label, const std::vector<int>& v)\n{\n    std::cout << label;\n    for (std::size_t i = 0; i < v.size(); ++i)\n        std::cout << ' ' << v[i];\n    std::cout << \"\\n\";\n}\n\nint main()\n{\n    int n{};\n    std::cin >> n;\n\n    std::vector<int> v;\n    for (int i = 0; i < n; ++i)\n    {\n        int x{};\n        std::cin >> x;\n        v.push_back(x);\n    }\n\n    std::cout << \"total \" << total(v) << \"\\n\";\n    // addToAll, print, reverseIt, print, total again\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "4\n1 2 3 4\n",
+        "expect": "total 10\nafter-add 8 9 10 11\nreversed 11 10 9 8\ntotal 38\n"
+      },
+      {
+        "stdin": "1\n-7\n",
+        "expect": "total -7\nafter-add 0\nreversed 0\ntotal 0\n"
+      }
+    ]
+  }
+}

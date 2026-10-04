@@ -1,0 +1,57 @@
+{
+  "key": {
+    "cases": [
+      {
+        "stdin": "24 28\n",
+        "expect": "count 0\nlargest none\n"
+      },
+      {
+        "stdin": "2 2\n",
+        "expect": "count 1\nlargest 2\n"
+      },
+      {
+        "stdin": "-10 1\n",
+        "expect": "count 0\nlargest none\n"
+      },
+      {
+        "stdin": "-5 3\n",
+        "expect": "count 2\nlargest 3\n"
+      },
+      {
+        "stdin": "0 2\n",
+        "expect": "count 1\nlargest 2\n"
+      },
+      {
+        "stdin": "1 100\n",
+        "expect": "count 25\nlargest 97\n"
+      },
+      {
+        "stdin": "97 97\n",
+        "expect": "count 1\nlargest 97\n"
+      },
+      {
+        "stdin": "90 97\n",
+        "expect": "count 1\nlargest 97\n"
+      },
+      {
+        "stdin": "2 100000\n",
+        "expect": "count 9592\nlargest 99991\n"
+      },
+      {
+        "stdin": "8 9\n",
+        "expect": "count 0\nlargest none\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n\nbool isPrime(int n)\n{\n    if (n < 2) return false;\n    for (int i = 2; i * i <= n; ++i)\n        if (n % i == 0) return false;\n    return true;\n}\n\nint main()\n{\n    int a{}, b{};\n    if (!(std::cin >> a >> b)) return 0;\n\n    int count{};\n    int largest{};\n    bool found{ false };\n\n    for (int n = a; n <= b; ++n)\n    {\n        if (isPrime(n))\n        {\n            ++count;\n            largest = n;\n            found = true;\n        }\n    }\n\n    std::cout << \"count \" << count << \"\\n\";\n    if (found) std::cout << \"largest \" << largest << \"\\n\";\n    else       std::cout << \"largest none\\n\";\n\n    return 0;\n}\n"
+    }
+  },
+  "explanation": "## The predicate\n\n```cpp\nbool isPrime(int n)\n{\n    if (n < 2) return false;\n    for (int i = 2; i * i <= n; ++i)\n        if (n % i == 0) return false;\n    return true;\n}\n```\n\nThree lines, and each one is a decision worth naming.\n\n**`if (n < 2) return false;`** handles 1, 0 and every negative in one test. It\nhas to come first: without it, `1` falls into the loop, `2 * 2 <= 1` is false\nimmediately, the loop body never runs, and the function returns `true` - so `1`\nis reported prime. That single missing line is the commonest bug in this\nfunction, and it is why `1 1` is a visible case rather than a hidden one.\n\n**`return false` the moment a divisor is found.** The alternative is a flag:\n\n```cpp\nbool prime = true;\nfor (int i = 2; i * i <= n; ++i)\n    if (n % i == 0) prime = false;     // keeps looking, pointlessly\nreturn prime;\n```\n\nThat works and does more work than it needs to. An early return out of a\npredicate is clearer *and* faster, because the answer cannot change once a\ndivisor exists. The habit generalises: a function that has found its answer\nshould say so.\n\n**`return true` at the end** is reachable only when no divisor was found, which\nis the definition.\n\n## Why `i * i <= n`\n\nDivisors come in pairs. If `d` divides `n` then so does `n / d`, and one of\nthose two is always at or below the square root. So any composite number has a\ndivisor at or below its square root, and once `i` passes that point there is\nnothing left to find.\n\n```\nn = 36:   1x36   2x18   3x12   4x9   6x6   |   9x4   12x3   18x2   36x1\n                                      ^ sqrt(36)\n                                      everything right of here is a mirror\n```\n\nFor `n` = 100000 that is 316 divisions instead of 99998 - a factor of 300, from\none changed loop condition.\n\n`i * i <= n` rather than `i <= std::sqrt(n)` avoids floating point entirely. The\nsquare root of a perfect square can land a hair below the integer in `double`,\nand then the last divisor is never tested: `sqrt(49)` coming back as 6.9999999\nwould make 49 look prime. Integer multiplication has no such failure mode. The\ncost is that `i * i` must not overflow, which is why the statement caps `b`.\n\n## The main loop\n\n```cpp\nfor (int n = a; n <= b; ++n)\n{\n    if (isPrime(n))\n    {\n        ++count;\n        largest = n;\n        found = true;\n    }\n}\n```\n\n`largest` is simply overwritten each time, because the loop counts upward and\nthe last prime seen is the largest. No comparison is needed - the loop order\nprovides it. Worth noticing when it applies, and worth not assuming when it\ndoes not.\n\n## Why `found` instead of checking `largest`\n\n```cpp\nif (largest != 0) std::cout << \"largest \" << largest << \"\\n\";   // fragile\n```\n\nIt reads `largest == 0` as \"there were none\", which only works because 0 is not\nprime. The reasoning is correct here and breaks the moment the values change -\nthe classic in-band sentinel problem, where a legitimate value and \"no value\"\nshare a representation.\n\n`bool found` keeps the two separate, and `count != 0` would do just as well\nsince it is already being maintained. In modern C++ the type for this is\n`std::optional<int>`, which makes \"a value or nothing\" unmistakable in the\nsignature rather than in a comment.\n\n## The cases, and what each one breaks\n\n| Input | Answer | What it catches |\n| --- | --- | --- |\n| `1 1` | none | the missing `n < 2` guard |\n| `2 2` | 2 | treating all even numbers as composite |\n| `-10 1` | none | negatives, and a range entirely below 2 |\n| `-5 3` | 2, 3 | a range *crossing* 2 |\n| `8 9` | none | two composites, one even, one odd square |\n| `1 100` | 25 primes | the standard sanity check |\n| `2 100000` | 9592 | that the loop bound really is the square root |\n\nThe last one is a performance test disguised as a correctness test. With\n`i < n` instead of `i * i <= n` the answer is still right, and on this range it\ndoes roughly five billion divisions - enough to hit the three-second limit and\nreport a timeout instead of a wrong answer.",
+  "readMore": [
+    {
+      "concept": "cpp-functions",
+      "where": "learncpp 2.1-2.5, then 8.x for early returns"
+    }
+  ],
+  "id": "cpp-function-prime-count"
+}

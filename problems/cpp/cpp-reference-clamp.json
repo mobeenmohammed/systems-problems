@@ -1,0 +1,57 @@
+{
+  "id": "cpp-reference-clamp",
+  "title": "A function that changes its caller's variable",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "references",
+    "functions",
+    "vector",
+    "pass-by-reference"
+  ],
+  "estimate": 20,
+  "prereqs": [
+    {
+      "concept": "cpp-references",
+      "why": "The whole problem is a function that modifies the caller's object, which is what a non-const reference parameter is for."
+    },
+    {
+      "concept": "cpp-functions",
+      "why": "You write the function and call it in a loop."
+    },
+    {
+      "concept": "cpp-std-vector",
+      "why": "The values live in a vector so the function can be applied to each in turn."
+    }
+  ],
+  "statement": "Read `lo`, `hi`, then `n`, then `n` integers. **Clamp** each value into the\nrange `lo` to `hi` inclusive - anything below `lo` becomes `lo`, anything above\n`hi` becomes `hi` - and print the clamped values on one line separated by single\nspaces, then how many were actually changed.\n\n```\ninput:   0 10\n         5\n         -3 4 20 0 10\n\noutput:  0 4 10 0 10\n         changed 2\n```\n\n`-3` became `0` and `20` became `10`; the other three were already in range.\n\n### The point of the problem\n\nWrite the clamp as a function that **modifies its argument**:\n\n```cpp\nbool clampTo(int& v, int lo, int hi);\n```\n\nThe `&` makes `v` a **reference**: another name for the caller's variable rather\nthan a copy of it. Assigning to `v` inside the function changes the object the\ncaller passed. The return value says whether anything changed, so the counting\nhappens at the call site where it belongs.\n\nDrop the `&` and the function compiles, runs, reports the right count - and\nleaves every value untouched, because it only ever modified its own local copy.\nThat failure is the thing to see once, deliberately, so you recognise it later.\n\n### Boundary cases\n\nA value exactly equal to `lo` or to `hi` is **not** changed, since it is already\nin range - so the comparison is `<` and `>`, not `<=` and `>=`. `lo == hi`, which\ncollapses the range to one value. Negative ranges. `n = 0`, which prints an empty\nfirst line and `changed 0`. Every value out of range, and none.\n\n### Output format\n\nThe values are separated by single spaces with **no trailing space**, so the\nusual trick is to print the separator *before* every element except the first.\nAn empty list prints an empty line.\n\n### Platform assumptions\n\nAll values and bounds fit in a 32-bit `int`, and `lo <= hi` is guaranteed. `n`\nis at most 1000.",
+  "hints": [
+    "`bool clampTo(int& v, int lo, int hi)` - the `&` is the entire difference. Inside, `if (v < lo) { v = lo; return true; }`, the same for `hi`, then `return false`.",
+    "Call it in a range-for that also binds by reference: `for (int& x : v)`. Without the `&` there you get a copy of each element and the vector is never modified, which is the same mistake one level up.",
+    "For the no-trailing-space output, track whether you are on the first element: print a space before each value except that one. Or print `v[0]` then loop from index 1 printing a space and then the value."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n#include <vector>\n\nbool clampTo(int& v, int lo, int hi)\n{\n    return false;   // <- replace; modify v through the reference\n}\n\nint main()\n{\n    int lo{}, hi{}, n{};\n    std::cin >> lo >> hi >> n;\n\n    std::vector<int> v;\n    for (int i = 0; i < n; ++i)\n    {\n        int x{};\n        std::cin >> x;\n        v.push_back(x);\n    }\n\n    int changed{};\n    // for (int& x : v) if (clampTo(x, lo, hi)) ++changed;\n\n    // One line, single spaces, no trailing space.\n\n    std::cout << \"changed \" << changed << \"\\n\";\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "0 10\n5\n-3 4 20 0 10\n",
+        "expect": "0 4 10 0 10\nchanged 2\n"
+      },
+      {
+        "stdin": "3 3\n3\n1 3 5\n",
+        "expect": "3 3 3\nchanged 2\n"
+      }
+    ]
+  }
+}

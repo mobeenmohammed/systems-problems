@@ -1,0 +1,53 @@
+{
+  "id": "cpp-loop-multiples",
+  "title": "Your first loop",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "loops",
+    "for",
+    "modulo",
+    "conditions"
+  ],
+  "estimate": 16,
+  "prereqs": [
+    {
+      "concept": "cpp-loops",
+      "why": "This is a counted loop, which is what a for statement is for."
+    },
+    {
+      "concept": "cpp-conditions",
+      "why": "The body is an else-if chain, and the order of its tests matters again."
+    }
+  ],
+  "statement": "Read one integer `n`, then print one line for each number from **1 to n\ninclusive**:\n\n- `both` if it divides by both 3 and 5\n- `three` if it divides by 3 only\n- `five` if it divides by 5 only\n- otherwise the number itself\n\n```\ninput:   7\n\noutput:  1\n         2\n         three\n         4\n         five\n         three\n         7\n```\n\n### The point of the problem\n\nA `for` loop when you know how many times: the count is in the loop header, not\nscattered through the body.\n\n```cpp\nfor (int i = 1; i <= n; ++i)\n{\n    // ...\n}\n```\n\nThree parts — where `i` starts, how long to keep going, and what happens each\ntime round. Declaring `i` **inside** the `for` keeps it out of the rest of the\nfunction, which is the habit to form.\n\n`i % 3 == 0` asks \"does 3 divide i\". `%` is the remainder operator, and a\nremainder of zero means it divides exactly.\n\n### Boundary cases\n\n`n = 1` prints one line. `n = 15` is the first number that is `both` — and\ngetting `both` right means testing it **before** the single-divisor cases, for\nthe same reason the bands needed ordering. If `n` is 0 or negative, print\nnothing at all: the loop body should simply never run, which a correctly\nwritten `for` does on its own without a special case.",
+  "hints": [
+    "`for (int i = 1; i <= n; ++i)` — note `<=`, because the range includes n itself.",
+    "Work out the two divisibility tests once into named `bool` variables before the chain. It reads better than repeating `i % 3 == 0` twice, and it makes the `both` case obvious.",
+    "Test `both` first. If you test `three` first, 15 prints `three` and the `both` branch can never run — the same ordering trap as the bands problem."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n\nint main()\n{\n    int n{};\n    std::cin >> n;\n\n    // for (int i = 1; i <= n; ++i) { ... }\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "7\n",
+        "expect": "1\n2\nthree\n4\nfive\nthree\n7\n"
+      },
+      {
+        "stdin": "1\n",
+        "expect": "1\n"
+      }
+    ]
+  }
+}

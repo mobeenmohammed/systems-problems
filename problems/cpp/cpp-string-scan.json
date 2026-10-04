@@ -1,0 +1,58 @@
+{
+  "id": "cpp-string-scan",
+  "title": "A line of text, character by character",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "strings",
+    "char",
+    "getline",
+    "loops",
+    "ascii"
+  ],
+  "estimate": 20,
+  "prereqs": [
+    {
+      "concept": "cpp-strings",
+      "why": "The whole problem is reading a line into a std::string and walking its characters."
+    },
+    {
+      "concept": "cpp-loops",
+      "why": "A range-for over the string is the loop that removes every chance of running off the end."
+    },
+    {
+      "concept": "cpp-conditions",
+      "why": "Each character is classified by a small chain of comparisons."
+    }
+  ],
+  "statement": "Read **one whole line** of input, spaces included, and print:\n\n```\nletters <how many ASCII letters>\ndigits <how many ASCII digits 0-9>\nother <everything else, spaces included>\nupper [<the line with lowercase letters turned uppercase>]\n```\n\nThe square brackets are literal, so an empty line is unambiguous.\n\n```\ninput:   Cache line 64!\n\noutput:  letters 9\n         digits 2\n         other 3\n         upper [CACHE LINE 64!]\n```\n\nNine letters, two digits, and three others: two spaces and the `!`.\n\n### The point of the problem\n\n`std::cin >> word` stops at the first space, so it cannot read a line. The tool\nfor that is `std::getline`:\n\n```cpp\nstd::string line;\nstd::getline(std::cin, line);\n```\n\nAnd a `std::string` is walkable like an array:\n\n```cpp\nfor (char c : line) { /* ... */ }\n```\n\nA `char` is a **small integer** holding a character code, which is why `c >= 'a'\n&& c <= 'z'` is a legal comparison and why `'7' - '0'` gives the number 7.\n\n### A detail that matters more than it looks\n\nThe standard library has `std::isupper`, `std::isdigit` and `std::toupper` in\n`<cctype>`, and all of them take an `int` whose value must be a valid\n`unsigned char` or `EOF`. On most platforms `char` is **signed**, so a byte\nabove 127 arrives as a negative number and passing it straight in is undefined\nbehaviour. The fix is a cast:\n\n```cpp\nstd::toupper(static_cast<unsigned char>(c))\n```\n\nEither approach is accepted here - explicit comparisons, or `<cctype>` with the\ncast. The tests include a byte above 127 so that an uncast version is at least\nvisibly on thin ice.\n\n### Boundary cases\n\nAn empty line: all three counts 0 and `upper []`. A line of only spaces. A line\nwith no letters. Characters already uppercase, which must stay as they are and\nstill count as letters. A line containing a non-ASCII byte, which counts as\n`other` and is passed through unchanged.\n\n### Platform assumptions\n\nInput is bytes, and \"letter\" and \"digit\" mean the ASCII ranges `A-Z`, `a-z` and\n`0-9` only. The runner uses the C locale, so no locale-dependent classification\nis in play. A byte above 127 is counted as `other` and copied through\nuntouched - this problem does not decode UTF-8, so a multi-byte character\ncounts as several `other`s, which is stated here rather than left for you to\ndiscover.",
+  "hints": [
+    "`std::getline(std::cin, line)` reads up to and including the newline, and stores everything before it. Unlike `>>` it keeps the spaces, and it does not skip a leading one.",
+    "A range-for is the loop you want: `for (char c : line)`. Build the uppercased result into a second `std::string` with `push_back`, or copy the line first and modify it in place.",
+    "To uppercase by hand: if `c >= 'a' && c <= 'z'` then `c = static_cast<char>(c - 'a' + 'A')`. That works because the ASCII lowercase letters are contiguous and so are the uppercase ones."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n#include <string>\n\nint main()\n{\n    std::string line;\n    std::getline(std::cin, line);\n\n    int letters{};\n    int digits{};\n    int other{};\n    std::string up;\n\n    // for (char c : line) { classify, and append to up }\n\n    std::cout << \"letters \" << letters << \"\\n\";\n    std::cout << \"digits \" << digits << \"\\n\";\n    std::cout << \"other \" << other << \"\\n\";\n    std::cout << \"upper [\" << up << \"]\\n\";\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "Cache line 64!\n",
+        "expect": "letters 9\ndigits 2\nother 3\nupper [CACHE LINE 64!]\n"
+      },
+      {
+        "stdin": "\n",
+        "expect": "letters 0\ndigits 0\nother 0\nupper []\n"
+      }
+    ]
+  }
+}

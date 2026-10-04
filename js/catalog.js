@@ -96,6 +96,7 @@ const Catalog = (() => {
       if (filter.topic      && p.topic      !== filter.topic)      return false;
       if (filter.difficulty && p.difficulty !== filter.difficulty) return false;
       if (filter.type       && p.type       !== filter.type)       return false;
+      if (filter.lane       && (p.lane || 'core') !== filter.lane)  return false;
 
       if (filter.status) {
         const r = Store.record(p.id);

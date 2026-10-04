@@ -1,0 +1,53 @@
+{
+  "id": "cpp-function-min-of-three",
+  "title": "A function with a job",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "functions",
+    "parameters",
+    "return-values",
+    "reuse"
+  ],
+  "estimate": 14,
+  "prereqs": [
+    {
+      "concept": "cpp-functions",
+      "why": "The exercise is to write a function with parameters and a return value and then use it twice."
+    },
+    {
+      "concept": "cpp-conditions",
+      "why": "The body is a comparison, however you choose to write it."
+    }
+  ],
+  "statement": "Read **six** integers: three on the first line, three on the second. For each\nline print the smallest of its three numbers, then print the smaller of those\ntwo results.\n\n```\ninput:   4 9 2         output:  2\n         7 1 8                  1\n                                1\n```\n\n### The point of the problem\n\nWrite **one** function:\n\n```cpp\nint min3(int a, int b, int c);\n```\n\nand call it twice. Then reuse a smaller piece — `min2` — inside it if you like.\n\nThe exercise is not the comparison. It is that the answer appears three times\nin the output and the logic appears **once** in the source. A version that\ninlines the comparisons for both lines is twice as long, and when the rule\nchanges you have to find both copies.\n\n### Boundary cases\n\nAll three equal. Two equal and one smaller. Negatives. Zero mixed with\nnegatives. The smallest in each of the three positions, since a comparison\nchain that forgets one position passes two tests out of three.\n\n### Platform assumptions\n\nValues fit in a 32-bit `int`; the tests stay well inside that range.",
+  "hints": [
+    "Start with the two-argument case: `int min2(int a, int b) { return a < b ? a : b; }` — or an if, if the conditional operator is unfamiliar. Then `min3` is `min2(a, min2(b, c))`.",
+    "Write the function **above** main, or forward-declare it above and define it below. Either works; the compiler needs to have seen a declaration before the call.",
+    "Call it twice and keep both results, because the third line of output is the smaller of the two — which is another call to min2."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n\nint min2(int a, int b)\n{\n    return 0;   // <- replace\n}\n\nint min3(int a, int b, int c)\n{\n    return 0;   // <- replace, using min2\n}\n\nint main()\n{\n    int a{}, b{}, c{}, d{}, e{}, f{};\n    std::cin >> a >> b >> c >> d >> e >> f;\n\n    // Print the three lines.\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "4 9 2\n7 1 8\n",
+        "expect": "2\n1\n1\n"
+      },
+      {
+        "stdin": "5 5 5\n9 9 9\n",
+        "expect": "5\n9\n5\n"
+      }
+    ]
+  }
+}

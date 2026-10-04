@@ -1,0 +1,49 @@
+{
+  "key": {
+    "cases": [
+      {
+        "stdin": "-312\n",
+        "expect": "digits 3\nsum 6\n"
+      },
+      {
+        "stdin": "7\n",
+        "expect": "digits 1\nsum 7\n"
+      },
+      {
+        "stdin": "-9\n",
+        "expect": "digits 1\nsum 9\n"
+      },
+      {
+        "stdin": "1000\n",
+        "expect": "digits 4\nsum 1\n"
+      },
+      {
+        "stdin": "999999999\n",
+        "expect": "digits 9\nsum 81\n"
+      },
+      {
+        "stdin": "2147483647\n",
+        "expect": "digits 10\nsum 46\n"
+      },
+      {
+        "stdin": "-1000000\n",
+        "expect": "digits 7\nsum 1\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n\nint main()\n{\n    int n{};\n    if (!(std::cin >> n)) return 0;\n\n    if (n < 0) n = -n;\n\n    int digits{};\n    int sum{};\n\n    do\n    {\n        sum += n % 10;\n        ++digits;\n        n /= 10;\n    } while (n != 0);\n\n    std::cout << \"digits \" << digits << \"\\n\";\n    std::cout << \"sum \" << sum << \"\\n\";\n\n    return 0;\n}\n"
+    }
+  },
+  "explanation": "## Peel the digits off\n\n```cpp\nif (n < 0) n = -n;\n\nint digits{};\nint sum{};\n\ndo\n{\n    sum += n % 10;   // the last digit\n    ++digits;\n    n /= 10;         // drop it\n} while (n != 0);\n```\n\n`n % 10` is the last decimal digit. `n / 10` is `n` with that digit gone,\nbecause **integer division truncates towards zero** — `4705 / 10` is `470`, not\n`470.5`. Repeat and the number shrinks a digit at a time until it reaches 0.\n\n## Why a do-while\n\nA plain `while (n != 0)` tests before the first pass, so an input of `0` runs\nthe body zero times and reports **0 digits**. But 0 is written with one digit,\nso the answer is wrong for exactly one input — the kind of bug that passes every\ntest you thought to write.\n\n`do { ... } while (n != 0)` tests *after* the body, so it always runs at least\nonce. That is the only situation where `do-while` is clearly the right loop, and\nthis is the canonical example of it.\n\nThe alternative is explicit and equally fine:\n\n```cpp\nif (n == 0) { std::cout << \"digits 1\\nsum 0\\n\"; return 0; }\nwhile (n != 0) { ... }\n```\n\nThree lines instead of changing one keyword. Both are correct; the `do-while`\nsays \"there is always at least one digit\", which is the actual fact.\n\n## Negative remainders are real\n\n```cpp\n-312 % 10   // -2 in C++, not 8\n-312 / 10   // -31, truncated towards zero\n```\n\nC++ (since C++11) rounds integer division towards zero and gives the remainder\nthe sign of the **left** operand. Python does the opposite — `-312 % 10` is `8`\nthere — so a method ported from Python without thinking gives a negative digit\nsum.\n\nTaking the absolute value first sidesteps it entirely, which is why that is the\nfirst line.\n\n## The value the tests deliberately avoid\n\n`INT_MIN`, which is -2,147,483,648 on a 32-bit `int`. Its absolute value is\n2,147,483,648, which does **not fit in an int** — the positive range stops one\nshort. So `n = -n` overflows, and signed overflow is undefined behaviour: the\nstandard does not say you get a negative number back, it says the program has no\ndefined meaning, and the optimiser may assume it cannot happen.\n\nThis is not a flaw in the method; it is the asymmetry of two's complement, where\nthere is one more negative value than positive. Handling it properly means doing\nthe arithmetic in a wider type:\n\n```cpp\nlong long m{ n };\nif (m < 0) m = -m;      // 64 bits has room for 2147483648\n```\n\nThe tests stop at `2147483647` rather than assigning a \"correct\" output to\nsomething undefined.\n\n## Why this loop keeps coming back\n\nThe same three lines convert a number to a string, compute a checksum, implement\na digital root, validate a card number with Luhn's algorithm, or print a number\nin another base — change `10` to `2` and you are peeling bits. It is worth being\nable to write without thinking.",
+  "readMore": [
+    {
+      "concept": "cpp-loops",
+      "where": "learncpp on while and do-while, and when each is right"
+    },
+    {
+      "concept": "cpp-integer-types",
+      "where": "CS:APP ch. 2.3 for the two's-complement asymmetry"
+    }
+  ],
+  "id": "cpp-count-digits"
+}

@@ -1,0 +1,57 @@
+{
+  "key": {
+    "cases": [
+      {
+        "stdin": "   \n",
+        "expect": "letters 0\ndigits 0\nother 3\nupper [   ]\n"
+      },
+      {
+        "stdin": "ALREADY UP\n",
+        "expect": "letters 9\ndigits 0\nother 1\nupper [ALREADY UP]\n"
+      },
+      {
+        "stdin": "0123456789\n",
+        "expect": "letters 0\ndigits 10\nother 0\nupper [0123456789]\n"
+      },
+      {
+        "stdin": "-_-\n",
+        "expect": "letters 0\ndigits 0\nother 3\nupper [-_-]\n"
+      },
+      {
+        "stdin": "mIxEd CaSe 42\n",
+        "expect": "letters 9\ndigits 2\nother 2\nupper [MIXED CASE 42]\n"
+      },
+      {
+        "stdin": "z\n",
+        "expect": "letters 1\ndigits 0\nother 0\nupper [Z]\n"
+      },
+      {
+        "stdin": "café\n",
+        "expect": "letters 3\ndigits 0\nother 2\nupper [CAFé]\n"
+      },
+      {
+        "stdin": "tab\there\n",
+        "expect": "letters 7\ndigits 0\nother 1\nupper [TAB\tHERE]\n"
+      },
+      {
+        "stdin": "x1y2z3\n",
+        "expect": "letters 3\ndigits 3\nother 0\nupper [X1Y2Z3]\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n#include <string>\n\nint main()\n{\n    std::string line;\n    std::getline(std::cin, line);\n\n    int letters{};\n    int digits{};\n    int other{};\n    std::string up;\n\n    for (char c : line)\n    {\n        if (c >= 'a' && c <= 'z')\n        {\n            ++letters;\n            up.push_back(static_cast<char>(c - 'a' + 'A'));\n        }\n        else if (c >= 'A' && c <= 'Z')\n        {\n            ++letters;\n            up.push_back(c);\n        }\n        else\n        {\n            if (c >= '0' && c <= '9') ++digits;\n            else                      ++other;\n            up.push_back(c);\n        }\n    }\n\n    std::cout << \"letters \" << letters << \"\\n\";\n    std::cout << \"digits \" << digits << \"\\n\";\n    std::cout << \"other \" << other << \"\\n\";\n    std::cout << \"upper [\" << up << \"]\\n\";\n\n    return 0;\n}\n"
+    }
+  },
+  "explanation": "## Reading the line\n\n```cpp\nstd::string line;\nstd::getline(std::cin, line);\n```\n\n`std::getline` reads characters up to and including the next newline, stores\neverything before it in `line`, and discards the newline itself. That is the\ndifference that matters: `std::cin >> line` skips leading whitespace and stops\nat the first space, so `Cache line 64!` would give you `Cache` and leave the\nrest in the stream.\n\nAn empty line is a successful read of zero characters - not a failure - so the\nempty case needs no special handling at all.\n\n## Walking it\n\n```cpp\nfor (char c : line)\n```\n\nA range-for visits every character with no index, so there is no `<` to get\nwrong and no chance of reading `line[line.size()]`. The indexed version is\nequivalent when written correctly:\n\n```cpp\nfor (std::size_t i = 0; i < line.size(); ++i) { char c = line[i]; ... }\n```\n\nNote `std::size_t`, not `int`. `size()` returns an unsigned type, and comparing\na signed `int` against it is exactly what `-Wsign-compare` warns about - one of\nthe warnings `-Wall -Wextra` turns on for these problems. The range-for sidesteps\nthe question.\n\n## A char is a number\n\n```cpp\nif (c >= 'a' && c <= 'z')\n```\n\nThis reads as a comparison of characters and *is* a comparison of integers. In\nASCII, `'a'` is 97 and `'z'` is 122, and the 26 lowercase letters occupy those\ncodes with nothing in between - which is the only reason a range check works.\nThe uppercase letters sit contiguously at 65 to 90.\n\nSo the conversion is arithmetic:\n\n```cpp\nc - 'a' + 'A'\n```\n\n\"how far into the lowercase alphabet, then that far into the uppercase one\".\nThe classic `c - 32` gives the same answer and hides the reason behind a\nmagic number. Prefer the version that says what it means.\n\nThe `static_cast<char>` on the result is not decoration. `c - 'a' + 'A'` is\ncomputed as an `int` - integral promotion applies to every arithmetic\nexpression on small types - and narrowing it back to `char` without a cast is\nwhat `-Wconversion` exists to complain about.\n\n## Why the cast on the `<cctype>` functions\n\n```cpp\nstd::toupper(static_cast<unsigned char>(c))      // correct\nstd::toupper(c)                                  // undefined for c > 127\n```\n\nThose functions take an `int`, and the standard requires its value to be\nrepresentable as `unsigned char` or to equal `EOF`. On x86 Linux and Windows\nplain `char` is **signed**, so the byte `0xC3` arrives as `-61`. That is neither\na valid `unsigned char` value nor `EOF`, and the implementation is typically a\ntable lookup indexed by the argument - so a negative index reads outside the\ntable. In practice it usually returns something harmless, which is the worst\noutcome, because it means the bug survives testing.\n\nWhether `char` is signed is **implementation-defined**: it is signed on x86 and\nunsigned on most ARM builds, so the same code is fine on a Raspberry Pi and\nundefined on a laptop. The cast costs nothing and removes the question. The\nhidden case with a byte above 127 is there to make the issue concrete.\n\n## The non-ASCII case\n\n`caf` followed by the two bytes `0xC3 0xA9` is `café` in UTF-8. This program\ncounts bytes, so it sees five characters: three letters and two `other`s. It\ncopies those bytes through unchanged, so the output is still valid UTF-8 and\nstill displays as `café` - with the `é` not uppercased, because nothing here\nknows it is a letter.\n\nThat is the honest behaviour for a byte-oriented program, and it is why the\nstatement says so rather than leaving you to discover it. Real text handling\nneeds to decode UTF-8 first, and then \"uppercase\" stops being a per-character\noperation at all - German `ß` uppercases to `SS`, two characters, and Turkish\ndotless `i` uppercases differently from English `i`. Which is the short version\nof why `std::toupper` is not enough for real text, and why this problem is\nspecified in terms of ASCII.\n\n## Counting and transforming in one pass\n\nBoth jobs happen in the same loop, and every branch does a `push_back` so no\ncharacter is dropped. The alternative - count in one loop, uppercase in another\n- is correct and reads fine; a single pass is chosen here because the two\noperations classify the character identically and splitting them means writing\nthe classification twice.",
+  "readMore": [
+    {
+      "concept": "cpp-strings",
+      "where": "learncpp on std::string and std::getline"
+    },
+    {
+      "concept": "cpp-integer-types",
+      "where": "CS:APP 2.2 for why char signedness is a real question"
+    }
+  ],
+  "id": "cpp-string-scan"
+}

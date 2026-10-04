@@ -26,6 +26,14 @@ export const TOPICS = [
   'cpp', 'arch', 'os', 'linux', 'compilers', 'hpc', 'dist', 'fpga', 'algo', 'sysdesign',
 ];
 export const DIFFICULTIES = ['beginner', 'intermediate', 'advanced'];
+
+/* A lane is orthogonal to difficulty. Difficulty says how hard a problem is;
+   a lane says what it is FOR. "core" is the curriculum — the problems a track
+   walks you through. "optional" is enrichment you can skip without leaving a
+   hole. Weekly is neither: it is a schedule in data/weekly.json that points at
+   a problem in one of these lanes, so a problem is never "a weekly problem"
+   instead of being Beginner. */
+export const LANES = ['core', 'optional'];
 export const TYPES = [
   'mcq', 'multi', 'numeric', 'short', 'order', 'match', 'predict', 'locate', 'code',
 ];
@@ -34,7 +42,7 @@ export const PROFILES = ['standard', 'sanitize', 'strict', 'parallel'];
 
 /* The fields the catalog needs to list, search and filter. Everything else
    stays in the problem file. */
-const INDEX_FIELDS = ['id', 'title', 'topic', 'difficulty', 'type', 'tags', 'estimate'];
+const INDEX_FIELDS = ['id', 'title', 'topic', 'difficulty', 'lane', 'type', 'tags', 'estimate'];
 
 /* The two characters a mis-escaped newline leaves behind. Built from a char
    code rather than written as an escape so that there is no backslash in this
@@ -139,6 +147,9 @@ export function validate({ problems, concepts, solutions }) {
     if (!p.title) err(where, 'has no title');
     if (!TOPICS.includes(p.topic)) err(where, `unknown topic "${p.topic}"`);
     if (!DIFFICULTIES.includes(p.difficulty)) err(where, `unknown difficulty "${p.difficulty}"`);
+    /* Absent means core, so existing problems need no edit — but a typo is
+       caught rather than silently creating a third lane. */
+    if (p.lane !== undefined && !LANES.includes(p.lane)) err(where, `unknown lane "${p.lane}"`);
     if (!TYPES.includes(p.type)) err(where, `unknown type "${p.type}"`);
     if (!p.statement) err(where, 'has no statement');
     if (p.tags && !Array.isArray(p.tags)) err(where, 'tags is not an array');
@@ -210,6 +221,19 @@ function validatePayload(p, err, where) {
       for (const l of pay.langs || []) if (!LANGS.includes(l)) err(where, `unknown lang "${l}"`);
       if (pay.profile && !PROFILES.includes(pay.profile)) err(where, `unknown profile "${pay.profile}"`);
       if (!Array.isArray(pay.cases) || !pay.cases.length) err(where, 'code needs at least one visible case');
+      /* A problem whose answer depends on type widths, byte order or
+         alignment has to say what it assumes, or the "right" answer is a guess
+         about the reader's machine. The trigger is deliberately narrow — words
+         that only appear when the machine really is load-bearing — and an
+         explicit payload.platform note also satisfies it. */
+      const loadBearing = /sizeof|endian|alignment|word size|bit-width|two's complement/i
+        .test(`${p.title} ${String(p.statement)} ${(p.tags || []).join(' ')}`);
+      const statesIt = pay.platform
+        || /assume|assumption|64-bit|little-endian|bytes per|platform/i.test(String(p.statement));
+      if (loadBearing && !statesIt) {
+        err(where, 'the answer depends on platform details but nothing states the assumptions '
+          + '(say so in the statement, or set payload.platform)');
+      }
       for (const [i, c] of (pay.cases || []).entries()) {
         if (typeof c.stdin !== 'string') err(where, `case ${i} has no stdin string`);
         if (typeof c.expect !== 'string') err(where, `case ${i} has no expect string`);
@@ -343,6 +367,7 @@ export function buildIndex(problems) {
       const row = {};
       for (const f of INDEX_FIELDS) if (p[f] !== undefined) row[f] = p[f];
       row.tags = p.tags || [];
+      row.lane = p.lane || 'core';
       /* So the catalog can show a prerequisite count without fetching. */
       row.prereqs = (p.prereqs || []).map(x => x.concept);
       if (p.type === 'code') row.langs = (p.payload || {}).langs || [];

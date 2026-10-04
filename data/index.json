@@ -11,6 +11,7 @@
       "data-structures"
     ],
     "estimate": 12,
+    "lane": "core",
     "prereqs": [
       "amortised-analysis",
       "hash-tables"
@@ -29,6 +30,7 @@
       "io"
     ],
     "estimate": 15,
+    "lane": "core",
     "prereqs": [
       "array-bounds",
       "sanitizers"
@@ -52,6 +54,7 @@
       "bugs"
     ],
     "estimate": 12,
+    "lane": "core",
     "prereqs": [
       "integer-conversions",
       "undefined-behaviour"
@@ -70,6 +73,7 @@
       "caching"
     ],
     "estimate": 30,
+    "lane": "core",
     "prereqs": [
       "hash-tables",
       "linked-structures",
@@ -94,6 +98,7 @@
       "caches"
     ],
     "estimate": 14,
+    "lane": "core",
     "prereqs": [
       "bit-tricks",
       "memory-hierarchy",
@@ -112,6 +117,7 @@
       "memory"
     ],
     "estimate": 6,
+    "lane": "core",
     "prereqs": [
       "cache-lines",
       "spatial-locality"
@@ -130,6 +136,7 @@
       "structs"
     ],
     "estimate": 8,
+    "lane": "core",
     "prereqs": [
       "alignment",
       "cache-lines"
@@ -147,6 +154,7 @@
       "scaling"
     ],
     "estimate": 10,
+    "lane": "core",
     "prereqs": [
       "amdahl"
     ]
@@ -164,6 +172,7 @@
       "assembly"
     ],
     "estimate": 12,
+    "lane": "core",
     "prereqs": [
       "pipelining",
       "memory-hierarchy"
@@ -182,6 +191,7 @@
       "cache-lines"
     ],
     "estimate": 15,
+    "lane": "core",
     "prereqs": [
       "cache-coherence",
       "cache-lines",
@@ -201,6 +211,7 @@
       "strings"
     ],
     "estimate": 25,
+    "lane": "core",
     "prereqs": [
       "lexing",
       "compilation-pipeline"
@@ -223,6 +234,7 @@
       "toolchain"
     ],
     "estimate": 9,
+    "lane": "core",
     "prereqs": [
       "compilation-pipeline"
     ]
@@ -240,6 +252,7 @@
       "c"
     ],
     "estimate": 15,
+    "lane": "core",
     "prereqs": [
       "integer-conversions"
     ]
@@ -257,6 +270,7 @@
       "gcc"
     ],
     "estimate": 9,
+    "lane": "core",
     "prereqs": [
       "undefined-behaviour"
     ]
@@ -274,10 +288,33 @@
       "security"
     ],
     "estimate": 18,
+    "lane": "core",
     "prereqs": [
       "undefined-behaviour",
       "integer-conversions",
       "compilation-pipeline"
+    ]
+  },
+  {
+    "id": "cpp-count-digits",
+    "title": "How many digits, and their sum",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "loops",
+      "while",
+      "arithmetic",
+      "integer-division"
+    ],
+    "estimate": 15,
+    "prereqs": [
+      "cpp-loops",
+      "cpp-integer-types"
+    ],
+    "langs": [
+      "cpp"
     ]
   },
   {
@@ -292,8 +329,75 @@
       "equality"
     ],
     "estimate": 11,
+    "lane": "core",
     "prereqs": [
       "cpp-floating-point"
+    ]
+  },
+  {
+    "id": "cpp-function-min-of-three",
+    "title": "A function with a job",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "functions",
+      "parameters",
+      "return-values",
+      "reuse"
+    ],
+    "estimate": 14,
+    "prereqs": [
+      "cpp-functions",
+      "cpp-conditions"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
+    "id": "cpp-function-prime-count",
+    "title": "One function, asked many times",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "functions",
+      "loops",
+      "early-return",
+      "arithmetic"
+    ],
+    "estimate": 20,
+    "prereqs": [
+      "cpp-functions",
+      "cpp-loops",
+      "cpp-conditions"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
+    "id": "cpp-grade-bands",
+    "title": "Bands, in the right order",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "conditions",
+      "if-else",
+      "basics"
+    ],
+    "estimate": 14,
+    "prereqs": [
+      "cpp-conditions",
+      "cpp-functions"
+    ],
+    "langs": [
+      "cpp"
     ]
   },
   {
@@ -309,6 +413,7 @@
       "cin"
     ],
     "estimate": 18,
+    "lane": "core",
     "prereqs": [
       "cpp-functions",
       "cpp-initialisation"
@@ -329,8 +434,100 @@
       "basics"
     ],
     "estimate": 8,
+    "lane": "core",
     "prereqs": [
       "cpp-initialisation"
+    ]
+  },
+  {
+    "id": "cpp-loop-multiples",
+    "title": "Your first loop",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "loops",
+      "for",
+      "modulo",
+      "conditions"
+    ],
+    "estimate": 16,
+    "prereqs": [
+      "cpp-loops",
+      "cpp-conditions"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
+    "id": "cpp-map-word-count",
+    "title": "Counting things you have not seen yet",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "map",
+      "containers",
+      "strings",
+      "counting"
+    ],
+    "estimate": 24,
+    "prereqs": [
+      "cpp-std-map",
+      "cpp-strings",
+      "cpp-stdin-loop"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
+    "id": "cpp-reference-clamp",
+    "title": "A function that changes its caller's variable",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "references",
+      "functions",
+      "vector",
+      "pass-by-reference"
+    ],
+    "estimate": 20,
+    "prereqs": [
+      "cpp-references",
+      "cpp-functions",
+      "cpp-std-vector"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
+    "id": "cpp-reference-vector-fns",
+    "title": "Passing a whole container, both ways",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "references",
+      "const-reference",
+      "vector",
+      "functions"
+    ],
+    "estimate": 22,
+    "prereqs": [
+      "cpp-references",
+      "cpp-std-vector",
+      "cpp-functions"
+    ],
+    "langs": [
+      "cpp"
     ]
   },
   {
@@ -345,6 +542,7 @@
       "bugs"
     ],
     "estimate": 10,
+    "lane": "core",
     "prereqs": [
       "cpp-scope-linkage"
     ]
@@ -361,8 +559,78 @@
       "portability"
     ],
     "estimate": 10,
+    "lane": "core",
     "prereqs": [
       "cpp-fundamental-types"
+    ]
+  },
+  {
+    "id": "cpp-string-palindrome",
+    "title": "Two indices, walking towards each other",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "strings",
+      "two-pointers",
+      "indexing",
+      "loops"
+    ],
+    "estimate": 22,
+    "prereqs": [
+      "cpp-strings",
+      "cpp-loops",
+      "cpp-conditions"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
+    "id": "cpp-string-scan",
+    "title": "A line of text, character by character",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "strings",
+      "char",
+      "getline",
+      "loops",
+      "ascii"
+    ],
+    "estimate": 20,
+    "prereqs": [
+      "cpp-strings",
+      "cpp-loops",
+      "cpp-conditions"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
+    "id": "cpp-sum-until-zero",
+    "title": "Keep reading until it stops",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "loops",
+      "while",
+      "stdin",
+      "sentinel"
+    ],
+    "estimate": 15,
+    "prereqs": [
+      "cpp-stdin-loop",
+      "cpp-loops"
+    ],
+    "langs": [
+      "cpp"
     ]
   },
   {
@@ -378,8 +646,32 @@
       "bugs"
     ],
     "estimate": 10,
+    "lane": "core",
     "prereqs": [
       "cpp-integer-types"
+    ]
+  },
+  {
+    "id": "cpp-vector-stats",
+    "title": "A list you did not know the length of",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "vector",
+      "arrays",
+      "loops",
+      "indexing"
+    ],
+    "estimate": 18,
+    "prereqs": [
+      "cpp-std-vector",
+      "cpp-loops",
+      "cpp-stdin-loop"
+    ],
+    "langs": [
+      "cpp"
     ]
   },
   {
@@ -395,6 +687,7 @@
       "errors"
     ],
     "estimate": 13,
+    "lane": "core",
     "prereqs": [
       "cpp-odr",
       "cpp-functions",
@@ -413,6 +706,7 @@
       "constants"
     ],
     "estimate": 12,
+    "lane": "core",
     "prereqs": [
       "cpp-enums",
       "cpp-fundamental-types"
@@ -431,6 +725,7 @@
       "bugs"
     ],
     "estimate": 12,
+    "lane": "core",
     "prereqs": [
       "cpp-preprocessor",
       "cpp-odr"
@@ -448,6 +743,7 @@
       "name-lookup"
     ],
     "estimate": 12,
+    "lane": "core",
     "prereqs": [
       "cpp-namespaces"
     ]
@@ -465,6 +761,7 @@
       "ordering"
     ],
     "estimate": 14,
+    "lane": "core",
     "prereqs": [
       "logical-clocks"
     ]
@@ -482,6 +779,7 @@
       "partitions"
     ],
     "estimate": 7,
+    "lane": "core",
     "prereqs": [
       "cap-theorem",
       "replication"
@@ -500,6 +798,7 @@
       "quorum"
     ],
     "estimate": 15,
+    "lane": "core",
     "prereqs": [
       "consensus",
       "replication"
@@ -518,6 +817,7 @@
       "payments"
     ],
     "estimate": 14,
+    "lane": "core",
     "prereqs": [
       "idempotency"
     ]
@@ -534,6 +834,7 @@
       "replication"
     ],
     "estimate": 13,
+    "lane": "core",
     "prereqs": [
       "quorums",
       "replication",
@@ -553,6 +854,7 @@
       "sequential-logic"
     ],
     "estimate": 12,
+    "lane": "core",
     "prereqs": [
       "hdl-assignments",
       "fpga-fabric"
@@ -572,6 +874,7 @@
       "fabric"
     ],
     "estimate": 11,
+    "lane": "core",
     "prereqs": [
       "fpga-fabric"
     ]
@@ -589,6 +892,7 @@
       "fmax"
     ],
     "estimate": 14,
+    "lane": "core",
     "prereqs": [
       "timing-closure",
       "fpga-fabric"
@@ -607,6 +911,7 @@
       "verilog"
     ],
     "estimate": 22,
+    "lane": "core",
     "prereqs": [
       "state-machines",
       "hdl-assignments"
@@ -630,6 +935,7 @@
       "latency"
     ],
     "estimate": 13,
+    "lane": "core",
     "prereqs": [
       "pipelining-ii",
       "pipelining"
@@ -648,6 +954,7 @@
       "caches"
     ],
     "estimate": 10,
+    "lane": "core",
     "prereqs": [
       "row-major",
       "cache-lines"
@@ -665,6 +972,7 @@
       "arithmetic-intensity"
     ],
     "estimate": 12,
+    "lane": "core",
     "prereqs": [
       "roofline",
       "memory-hierarchy"
@@ -682,6 +990,7 @@
       "parallel-primitives"
     ],
     "estimate": 20,
+    "lane": "core",
     "prereqs": [
       "prefix-sum"
     ],
@@ -703,6 +1012,7 @@
       "distributed-memory"
     ],
     "estimate": 12,
+    "lane": "core",
     "prereqs": [
       "collectives"
     ]
@@ -720,6 +1030,7 @@
       "lower-bounds"
     ],
     "estimate": 16,
+    "lane": "core",
     "prereqs": [
       "tiling",
       "cache-lines",
@@ -739,6 +1050,7 @@
       "logs"
     ],
     "estimate": 10,
+    "lane": "core",
     "prereqs": [
       "shell-pipelines"
     ]
@@ -755,6 +1067,7 @@
       "files"
     ],
     "estimate": 7,
+    "lane": "core",
     "prereqs": [
       "file-permissions"
     ]
@@ -771,6 +1084,7 @@
       "shell"
     ],
     "estimate": 12,
+    "lane": "core",
     "prereqs": [
       "file-descriptors"
     ]
@@ -788,6 +1102,7 @@
       "syscalls"
     ],
     "estimate": 12,
+    "lane": "core",
     "prereqs": [
       "syscall-tracing",
       "dynamic-linking"
@@ -806,6 +1121,7 @@
       "memory"
     ],
     "estimate": 16,
+    "lane": "core",
     "prereqs": [
       "cgroups-oom",
       "virtual-memory"
@@ -824,6 +1140,7 @@
       "processes"
     ],
     "estimate": 10,
+    "lane": "core",
     "prereqs": [
       "stdio-buffering",
       "processes-fork"
@@ -842,6 +1159,7 @@
       "page-faults"
     ],
     "estimate": 8,
+    "lane": "core",
     "prereqs": [
       "page-faults",
       "mmu-tlb"
@@ -860,6 +1178,7 @@
       "locking"
     ],
     "estimate": 12,
+    "lane": "core",
     "prereqs": [
       "mutual-exclusion"
     ]
@@ -876,6 +1195,7 @@
       "latency"
     ],
     "estimate": 12,
+    "lane": "core",
     "prereqs": [
       "scheduling"
     ]
@@ -893,6 +1213,7 @@
       "virtual-memory"
     ],
     "estimate": 14,
+    "lane": "core",
     "prereqs": [
       "copy-on-write",
       "page-faults",
@@ -912,6 +1233,7 @@
       "network"
     ],
     "estimate": 10,
+    "lane": "core",
     "prereqs": [
       "latency-numbers",
       "memory-hierarchy"
@@ -929,6 +1251,7 @@
       "back-of-envelope"
     ],
     "estimate": 11,
+    "lane": "core",
     "prereqs": [
       "capacity-estimation"
     ]
@@ -946,6 +1269,7 @@
       "exactly-once"
     ],
     "estimate": 14,
+    "lane": "core",
     "prereqs": [
       "delivery-guarantees",
       "idempotency"
@@ -964,6 +1288,7 @@
       "durability"
     ],
     "estimate": 13,
+    "lane": "core",
     "prereqs": [
       "cache-policies",
       "memory-hierarchy"
@@ -981,6 +1306,7 @@
       "bursts"
     ],
     "estimate": 28,
+    "lane": "core",
     "prereqs": [
       "rate-limiting",
       "capacity-estimation"

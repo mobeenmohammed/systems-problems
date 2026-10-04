@@ -41,6 +41,13 @@ const Store = (() => {
   ];
   const DIFF_BY_ID = Object.fromEntries(DIFFICULTIES.map(d => [d.id, d]));
 
+  /* Orthogonal to difficulty: what a problem is for, not how hard it is. */
+  const LANES = [
+    { id: 'core',     label: 'Core',     note: 'Part of the curriculum. Tracks walk you through these.' },
+    { id: 'optional', label: 'Optional', note: 'Worth doing, safe to skip. Nothing depends on it.' },
+  ];
+  const LANE_BY_ID = Object.fromEntries(LANES.map(l => [l.id, l]));
+
   const FIRST_TRY_BONUS = 0.5;   /* +50% for getting it without a wrong answer */
   const HINT_PENALTY    = 0.25;  /* each hint costs a quarter of the base */
 
@@ -640,7 +647,7 @@ const Store = (() => {
     get migratedFrom() { return migratedFrom; },
     setJudgeUrl, loadJudgeUrl, setJudgeToken,
 
-    TOPICS, TOPIC_BY_ID, DIFFICULTIES, DIFF_BY_ID, RANKS,
+    TOPICS, TOPIC_BY_ID, DIFFICULTIES, DIFF_BY_ID, LANES, LANE_BY_ID, RANKS,
     SHOP, SHOP_BY_ID, SLOTS, ACHIEVEMENTS, ACHIEVEMENT_BY_ID,
     FIRST_TRY_BONUS, HINT_PENALTY,
 

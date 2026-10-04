@@ -1,0 +1,56 @@
+{
+  "id": "cpp-grade-bands",
+  "title": "Bands, in the right order",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "conditions",
+    "if-else",
+    "basics"
+  ],
+  "estimate": 14,
+  "prereqs": [
+    {
+      "concept": "cpp-conditions",
+      "why": "The whole problem is an else-if chain, and the order of its tests is the thing that makes it right or wrong."
+    },
+    {
+      "concept": "cpp-functions",
+      "why": "You need main, std::cin and std::cout, which you already have."
+    }
+  ],
+  "statement": "Read one integer `score` and print the band it falls in:\n\n| Score | Print |\n| --- | --- |\n| 70 to 100 | `distinction` |\n| 60 to 69 | `merit` |\n| 40 to 59 | `pass` |\n| 0 to 39 | `fail` |\n| anything outside 0-100 | `invalid` |\n\n```\ninput:   73          input:   40          input:   -5\noutput:  distinction  output:  pass        output:  invalid\n```\n\n### The point of the problem\n\nAn **else-if chain** tests its conditions in order and stops at the first true\none. That means `score >= 40` is a perfectly good test for \"pass\" *provided*\nthe higher bands were already ruled out above it. Get the order wrong and\nevery score becomes `pass`.\n\nSo write it as a chain rather than as four separate `if` statements, and put\nthe bands in an order where each test only has to exclude what is below it.\n\n### Boundary cases, which are most of the work\n\n`70`, `69`, `60`, `59`, `40`, `39`, `0`, `100`, `101` and `-1` are all\ndifferent answers here, and off-by-one at any boundary is the commonest way to\nget this wrong. The hidden tests include every one of them. Work out on paper\nwhat each should print before you write the chain.",
+  "hints": [
+    "Rule out the invalid range first, with a single condition using `||`. Then the chain only has to deal with scores you know are between 0 and 100.",
+    "Test the bands from the top down: `>= 70`, then `>= 60`, then `>= 40`, then everything left is `fail`. Each test only needs its own lower bound, because the ones above already returned.",
+    "Four separate `if` statements would print several lines for one score. The word you need between them is `else`."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n\nint main()\n{\n    int score{};\n    std::cin >> score;\n\n    // One else-if chain. Highest band first.\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "73\n",
+        "expect": "distinction\n"
+      },
+      {
+        "stdin": "40\n",
+        "expect": "pass\n"
+      },
+      {
+        "stdin": "-5\n",
+        "expect": "invalid\n"
+      }
+    ]
+  }
+}

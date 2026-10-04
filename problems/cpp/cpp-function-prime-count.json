@@ -1,0 +1,57 @@
+{
+  "id": "cpp-function-prime-count",
+  "title": "One function, asked many times",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "functions",
+    "loops",
+    "early-return",
+    "arithmetic"
+  ],
+  "estimate": 20,
+  "prereqs": [
+    {
+      "concept": "cpp-functions",
+      "why": "The exercise is to write one predicate function and call it from a loop, which is the shape of most real code."
+    },
+    {
+      "concept": "cpp-loops",
+      "why": "There is a loop inside the function and a loop outside it, and keeping them straight is half the work."
+    },
+    {
+      "concept": "cpp-conditions",
+      "why": "An early return out of the inner loop is the idiomatic way to write a predicate."
+    }
+  ],
+  "statement": "Read two integers `a` and `b` with `a <= b`. Print how many primes are in the\ninclusive range `a` to `b`, then the largest one, or `none` if there are no\nprimes in range.\n\n```\ninput:   10 20        input:   1 1         input:   24 28\noutput:  count 4      output:  count 0     output:  count 0\n         largest 19            largest none         largest none\n```\n\nThe primes between 10 and 20 are 11, 13, 17 and 19.\n\n### The point of the problem\n\nWrite the predicate as its own function:\n\n```cpp\nbool isPrime(int n);\n```\n\nand then the main loop is a sentence: *for each number in range, if it is prime,\ncount it and remember it.* The divisibility logic lives in one place, and the\nloop that uses it never has to know how primality is decided.\n\nThat separation is the whole exercise. A version with the trial division\ninlined into the range loop has two nested loops sharing variables, and the\nfirst thing you will want to change - testing fewer divisors - becomes risky\ninstead of local.\n\n### A definition worth getting exactly right\n\nA prime is a whole number greater than 1 whose only positive divisors are 1 and\nitself. So:\n\n- `2` is prime - the only even prime\n- `1` is **not** prime\n- `0` and negatives are **not** prime\n\nEach of those is a hidden test, because each is a line of code.\n\n### Boundary cases\n\n`a == b`, so the range holds one number. A range with no primes at all. A range\nstarting below 2, including negatives. `2` on its own. `a = b = 2`. Ranges where\nthe largest prime is the last number and where it is the first.\n\n### Platform assumptions\n\n`a` and `b` fit in a 32-bit `int` and `b` is at most 100000, so trial division\nup to the square root is far inside any time limit. `i * i <= n` is used rather\nthan `i <= sqrt(n)`, and with `n` under 100000 the product cannot overflow a\n32-bit `int`.",
+  "hints": [
+    "Start the predicate with the exclusions: `if (n < 2) return false;`. Getting 0, 1 and the negatives out of the way first means the loop below can assume a number worth testing.",
+    "Trial division: for each `i` from 2 upward, if `n % i == 0` then `n` is not prime, so `return false` immediately. If the loop finishes without finding a divisor, `return true`.",
+    "Stop the divisor loop at `i * i <= n`, not at `i < n`. If `n` has a divisor larger than its square root, it must also have the matching one below it - so there is nothing left to find above that point."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n\nbool isPrime(int n)\n{\n    return false;   // <- replace\n}\n\nint main()\n{\n    int a{}, b{};\n    std::cin >> a >> b;\n\n    int count{};\n    int largest{};\n\n    // for (int n = a; n <= b; ++n) ... isPrime(n) ...\n\n    std::cout << \"count \" << count << \"\\n\";\n    // \"largest none\" when there were no primes.\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "10 20\n",
+        "expect": "count 4\nlargest 19\n"
+      },
+      {
+        "stdin": "1 1\n",
+        "expect": "count 0\nlargest none\n"
+      }
+    ]
+  }
+}

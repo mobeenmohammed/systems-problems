@@ -1,0 +1,45 @@
+{
+  "key": {
+    "cases": [
+      {
+        "stdin": "1 2 3\n4 5 6\n",
+        "expect": "1\n4\n1\n"
+      },
+      {
+        "stdin": "3 2 1\n6 5 4\n",
+        "expect": "1\n4\n1\n"
+      },
+      {
+        "stdin": "2 1 3\n5 4 6\n",
+        "expect": "1\n4\n1\n"
+      },
+      {
+        "stdin": "-1 -2 -3\n0 0 0\n",
+        "expect": "-3\n0\n-3\n"
+      },
+      {
+        "stdin": "0 -5 5\n-10 1 2\n",
+        "expect": "-5\n-10\n-10\n"
+      },
+      {
+        "stdin": "7 7 3\n3 7 7\n",
+        "expect": "3\n3\n3\n"
+      },
+      {
+        "stdin": "100 100 100\n-100 -100 -100\n",
+        "expect": "100\n-100\n-100\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n\nint min2(int a, int b)\n{\n    return a < b ? a : b;\n}\n\nint min3(int a, int b, int c)\n{\n    return min2(a, min2(b, c));\n}\n\nint main()\n{\n    int a{}, b{}, c{}, d{}, e{}, f{};\n    if (!(std::cin >> a >> b >> c >> d >> e >> f)) return 0;\n\n    int first{ min3(a, b, c) };\n    int second{ min3(d, e, f) };\n\n    std::cout << first << \"\\n\";\n    std::cout << second << \"\\n\";\n    std::cout << min2(first, second) << \"\\n\";\n\n    return 0;\n}\n"
+    }
+  },
+  "explanation": "## Two small functions, each with one job\n\n```cpp\nint min2(int a, int b)\n{\n    return a < b ? a : b;\n}\n\nint min3(int a, int b, int c)\n{\n    return min2(a, min2(b, c));\n}\n```\n\n`min3` does not compare anything itself. It says \"the smallest of three is the\nsmaller of the first and the smallest of the other two\", which is the definition\nwritten down. That is what building on a smaller piece buys you: the second\nfunction is a sentence rather than a chain of comparisons.\n\n## The conditional operator\n\n```cpp\nreturn a < b ? a : b;\n```\n\nreads as \"if `a < b` then `a` else `b`\". It is an **expression**, so it has a\nvalue and can sit in a `return`. The `if` version is identical in meaning:\n\n```cpp\nif (a < b) return a;\nelse       return b;\n```\n\nFour lines instead of one. Use whichever reads better; for something this small\nthe conditional usually does, and for anything with a side effect the `if`\nalways does.\n\n## Why `<` and not `<=`\n\nFor a minimum it makes no difference to the answer — if `a == b` either one is\nthe minimum — so either works here. It matters when the values carry something\nbesides their order. Sorting records by key with `<=` instead of `<` makes the\nsort unstable, so equal keys can come out in a different order than they went\nin. Habitually writing `<` costs nothing and avoids the question.\n\n## The positions the tests check\n\n| Input | Smallest is | Why |\n| --- | --- | --- |\n| `1 2 3` | first | a chain that forgets to consider `a` fails here |\n| `3 2 1` | last | and one that never reaches `c` fails here |\n| `2 1 3` | middle | the one people miss |\n| `7 7 3` | ties above the minimum | `<` against `<=` |\n| `5 5 5` | all equal | nothing to distinguish |\n\nThree positions times a tie case is why there are seven hidden tests for a\nthree-line function. A broken comparison chain usually gets one or two\npositions right, which is exactly why testing only `4 9 2` tells you nothing.\n\n## What the standard library already has\n\n```cpp\n#include <algorithm>\nstd::cout << std::min({ a, b, c }) << \"\\n\";\n```\n\n`std::min` takes two arguments, or an initialiser list for any number. In real\ncode that is what you would write, and knowing the library is a large part of\nbeing quick in C++.\n\nWriting it yourself once is still worth it — the structure (a small function,\nreused, built on a smaller one) is the thing being practised, not the\ncomparison.",
+  "readMore": [
+    {
+      "concept": "cpp-functions",
+      "where": "learncpp 2.1-2.5, then cppreference on std::min"
+    }
+  ],
+  "id": "cpp-function-min-of-three"
+}

@@ -1,0 +1,57 @@
+{
+  "id": "cpp-vector-stats",
+  "title": "A list you did not know the length of",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "vector",
+    "arrays",
+    "loops",
+    "indexing"
+  ],
+  "estimate": 18,
+  "prereqs": [
+    {
+      "concept": "cpp-std-vector",
+      "why": "You need to store n values before you can report anything about all of them, and a vector is how you hold a run-time number of them."
+    },
+    {
+      "concept": "cpp-loops",
+      "why": "One loop to read, one to inspect - or one of each done cleverly."
+    },
+    {
+      "concept": "cpp-stdin-loop",
+      "why": "The count comes first, so the reading loop is counted rather than sentinel-driven."
+    }
+  ],
+  "statement": "The first number of input is `n`, the count. Then come `n` integers. Print:\n\n```\nmin <smallest>\nmax <largest>\nsum <total>\nabove <how many are strictly above the mean>\n```\n\n```\ninput:   5                 output:  min 1\n         3 1 4 1 5                  max 5\n                                    sum 14\n                                    above 3\n```\n\nThe mean of `3 1 4 1 5` is 2.8, and `3`, `4` and `5` are above it.\n\n**The specification, precisely:** a value `v` counts as above the mean when\n`v * n > sum`, which avoids division entirely. For the example that is\n`v * 5 > 14`, so `v >= 3`. Do **not** compute `sum / n` first - integer\ndivision truncates 2.8 to 2 and silently changes the question.\n\n### The point of the problem\n\nA `std::vector<int>` is a resizable array that knows its own length:\n\n```cpp\nstd::vector<int> v;      // empty\nv.push_back(7);          // now has one element\nv.size();                // 1\nv[0];                    // 7\n```\n\nYou need to store the values because the \"above the mean\" count cannot be\nanswered until the mean is known, and the mean is not known until every value\nhas been read. That is the reason the vector exists here - not because it is a\nnicer loop.\n\n### Boundary cases\n\n`n = 1`: min, max and sum are all that one value, and nothing is strictly above\nthe mean, so `above 0`. All values equal: again `above 0`. Negatives, so do not\ninitialise `max` to `0`. `n = 0`: print `min 0`, `max 0`, `sum 0`, `above 0` -\na vacuous answer rather than a crash.\n\n### Platform assumptions\n\nValues fit in a 32-bit `int` and `n` is at most 1000, so `sum` and `v * n` both\nfit comfortably in a 64-bit `long long`. Use `long long` for the product -\n`v * n` with both as `int` could overflow for larger inputs, and signed\noverflow is undefined behaviour, not a wrapped number you can rely on.",
+  "hints": [
+    "Read n first, then loop n times pushing each value into the vector. Accumulate the sum in the same loop - there is no reason to walk the data twice for that.",
+    "Initialise min and max from the **first element**, not from 0 and not from some 'big' constant. With negatives present, starting max at 0 reports 0 as the maximum of a list that never contained it.",
+    "For the count, compare `static_cast<long long>(v) * n > sum`. Never `v > sum / n`: integer division truncates, so the mean 2.8 becomes 2 and the question quietly changes."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n#include <vector>\n\nint main()\n{\n    int n{};\n    std::cin >> n;\n\n    std::vector<int> v;\n    // Read n values into v.\n\n    // min, max, sum, then the count above the mean.\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "5\n3 1 4 1 5\n",
+        "expect": "min 1\nmax 5\nsum 14\nabove 3\n"
+      },
+      {
+        "stdin": "1\n42\n",
+        "expect": "min 42\nmax 42\nsum 42\nabove 0\n"
+      }
+    ]
+  }
+}

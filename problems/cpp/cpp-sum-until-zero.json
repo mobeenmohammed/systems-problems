@@ -1,0 +1,53 @@
+{
+  "id": "cpp-sum-until-zero",
+  "title": "Keep reading until it stops",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "loops",
+    "while",
+    "stdin",
+    "sentinel"
+  ],
+  "estimate": 15,
+  "prereqs": [
+    {
+      "concept": "cpp-stdin-loop",
+      "why": "The whole problem is reading an unknown number of values, which is what a while loop over std::cin is for."
+    },
+    {
+      "concept": "cpp-loops",
+      "why": "A while loop is the right shape when you do not know the count in advance."
+    }
+  ],
+  "statement": "Read integers one at a time until you read a **0**, or until the input runs\nout. Print the sum of everything read **before** the 0, then the count.\n\n```\ninput:   4 9 2 0        input:   0           input:   5 5 5\noutput:  sum 15         output:  sum 0       output:  sum 15\n         count 3                 count 0             count 3\n```\n\nThe 0 itself is a **sentinel** — a marker that means \"stop\" — so it is not part\nof the sum and not counted.\n\n### The point of the problem\n\nA `for` loop is for when you know the count. Here you do not: the input decides\nwhen to stop. That is a `while`.\n\nTwo conditions end the loop, and both must work:\n\n```cpp\nint x{};\nwhile (std::cin >> x && x != 0)\n{\n    // ...\n}\n```\n\n`std::cin >> x` returns the stream, and a stream converts to `false` when the\nread failed — because the input ended, or because what was there was not a\nnumber. So that one expression handles \"ran out of input\" and the `&& x != 0`\nhandles the sentinel. Written the other way round it would test `x` before\nreading into it.\n\n### Boundary cases\n\nA leading `0` means sum 0 and count 0. Input that ends with no `0` at all must\nstill print the totals rather than hanging or losing the last value. Negative\nvalues count normally and can make the sum negative. The sums fit in an `int`.",
+  "hints": [
+    "`while (std::cin >> x && x != 0)` does both jobs: the extraction is the first condition, and && short-circuits so `x != 0` is only checked once a value was actually read.",
+    "Declare the accumulator and the counter before the loop, both brace-initialised to zero, and add to them inside it.",
+    "Trace `0` on its own: the extraction succeeds, `x != 0` is false, the body never runs, and you print the zeros you started with. That is the case to get right first."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n\nint main()\n{\n    int total{};\n    int count{};\n    int x{};\n\n    // while (std::cin >> x && x != 0) { ... }\n\n    std::cout << \"sum \" << total << \"\\n\";\n    std::cout << \"count \" << count << \"\\n\";\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "4 9 2 0\n",
+        "expect": "sum 15\ncount 3\n"
+      },
+      {
+        "stdin": "0\n",
+        "expect": "sum 0\ncount 0\n"
+      }
+    ]
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "key": {
+    "cases": [
+      {
+        "stdin": "5 5 5\n",
+        "expect": "sum 15\ncount 3\n"
+      },
+      {
+        "stdin": "",
+        "expect": "sum 0\ncount 0\n"
+      },
+      {
+        "stdin": "-3 -4 0\n",
+        "expect": "sum -7\ncount 2\n"
+      },
+      {
+        "stdin": "7 0 99 100\n",
+        "expect": "sum 7\ncount 1\n"
+      },
+      {
+        "stdin": "1 2 3 4 5 6 7 8 9 10\n",
+        "expect": "sum 55\ncount 10\n"
+      },
+      {
+        "stdin": "1000000 1000000 0\n",
+        "expect": "sum 2000000\ncount 2\n"
+      },
+      {
+        "stdin": "-5 5 0\n",
+        "expect": "sum 0\ncount 2\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n\nint main()\n{\n    int total{};\n    int count{};\n    int x{};\n\n    while (std::cin >> x && x != 0)\n    {\n        total += x;\n        ++count;\n    }\n\n    std::cout << \"sum \" << total << \"\\n\";\n    std::cout << \"count \" << count << \"\\n\";\n\n    return 0;\n}\n"
+    }
+  },
+  "explanation": "## The loop condition does two jobs\n\n```cpp\nwhile (std::cin >> x && x != 0)\n{\n    total += x;\n    ++count;\n}\n```\n\n`std::cin >> x` is an expression, not a statement. It returns the stream, and a\nstream converts to `bool` — `true` while it is in a good state, `false` once a\nread has failed. So the condition means:\n\n1. **Try to read a number.** If the input ended, or what was there was not a\n   number, the stream goes bad and the condition is false. Loop ends.\n2. **If that worked**, check the sentinel. `&&` short-circuits, so `x != 0` is\n   only evaluated when a value really was read into `x`.\n\nBoth exits are covered by one line, and the order matters: `x != 0 && std::cin >> x`\nwould test `x` before anything had been read into it.\n\n## Why not a for loop\n\nA `for` is for a known count. Here the input decides, so the loop has no counter\nto put in a header — and forcing one in produces the awkward shape people write\nwhen they have only met `for`:\n\n```cpp\nfor (;;)                        // \"forever\", then break out\n{\n    if (!(std::cin >> x)) break;\n    if (x == 0) break;\n    total += x;\n    ++count;\n}\n```\n\nThat works and says the same thing in five lines instead of one. `while` exists\nfor exactly this.\n\n## The cases worth tracing\n\n| Input | Why it matters |\n| --- | --- |\n| `0` | the body never runs; the answer is the initial values |\n| *empty* | the first extraction fails; same answer, different reason |\n| `7 0 99 100` | everything after the sentinel is ignored, not read |\n| `-5 5 0` | sum 0 with count 2 — a zero sum is not an empty input |\n\nThe last one is the reason `count` exists in the output: without it, \"sum 0\"\ncannot be told apart from \"nothing was read\", and a program that cannot\ndistinguish those two is quietly wrong.\n\n## Initialise before the loop\n\n```cpp\nint total{};   // 0, guaranteed\nint count{};   // 0, guaranteed\n```\n\n`int total;` with no braces leaves it uninitialised, and `total += x` would then\nbe reading a value that has none — undefined behaviour, and in practice a\nplausible-looking wrong answer. The braces cost two characters.\n\n## What the stream state actually is\n\nAfter the loop, `std::cin` may be in a failed state, and **it stays failed**\nuntil cleared. Nothing else here reads input so it does not matter — but it is\nwhy a program that reads a number, gets a letter, and then tries to read again\nappears to hang or loop forever. `std::cin.clear()` resets the flags and\n`std::cin.ignore(...)` discards the offending characters. Worth knowing before\nyou write an input prompt that has to tolerate a typo.",
+  "readMore": [
+    {
+      "concept": "cpp-stdin-loop",
+      "where": "learncpp on stream states and input validation"
+    }
+  ],
+  "id": "cpp-sum-until-zero"
+}

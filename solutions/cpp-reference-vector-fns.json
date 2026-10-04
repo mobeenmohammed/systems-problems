@@ -1,0 +1,53 @@
+{
+  "key": {
+    "cases": [
+      {
+        "stdin": "0\n",
+        "expect": "total 0\nafter-add\nreversed\ntotal 0\n"
+      },
+      {
+        "stdin": "2\n0 0\n",
+        "expect": "total 0\nafter-add 7 7\nreversed 7 7\ntotal 14\n"
+      },
+      {
+        "stdin": "3\n-1 -2 -3\n",
+        "expect": "total -6\nafter-add 6 5 4\nreversed 4 5 6\ntotal 15\n"
+      },
+      {
+        "stdin": "5\n1 1 1 1 1\n",
+        "expect": "total 5\nafter-add 8 8 8 8 8\nreversed 8 8 8 8 8\ntotal 40\n"
+      },
+      {
+        "stdin": "2\n2000000000 2000000000\n",
+        "expect": "total 4000000000\nafter-add 2000000007 2000000007\nreversed 2000000007 2000000007\ntotal 4000000014\n"
+      },
+      {
+        "stdin": "4\n-2000000000 -2000000000 -2000000000 -2000000000\n",
+        "expect": "total -8000000000\nafter-add -1999999993 -1999999993 -1999999993 -1999999993\nreversed -1999999993 -1999999993 -1999999993 -1999999993\ntotal -7999999972\n"
+      },
+      {
+        "stdin": "6\n1 2 3 4 5 6\n",
+        "expect": "total 21\nafter-add 8 9 10 11 12 13\nreversed 13 12 11 10 9 8\ntotal 63\n"
+      },
+      {
+        "stdin": "3\n10 -10 0\n",
+        "expect": "total 0\nafter-add 17 -3 7\nreversed 7 -3 17\ntotal 21\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n#include <vector>\n#include <utility>\n\nlong long total(const std::vector<int>& v)\n{\n    long long s{};\n    for (int x : v) s += x;\n    return s;\n}\n\nvoid addToAll(std::vector<int>& v, int d)\n{\n    for (int& x : v) x += d;\n}\n\nvoid reverseIt(std::vector<int>& v)\n{\n    std::size_t i{ 0 };\n    std::size_t j{ v.size() };\n    while (i + 1 < j)\n    {\n        std::swap(v[i], v[j - 1]);\n        ++i;\n        --j;\n    }\n}\n\nvoid printAll(const char* label, const std::vector<int>& v)\n{\n    std::cout << label;\n    for (std::size_t i = 0; i < v.size(); ++i)\n        std::cout << ' ' << v[i];\n    std::cout << \"\\n\";\n}\n\nint main()\n{\n    int n{};\n    if (!(std::cin >> n)) return 0;\n\n    std::vector<int> v;\n    for (int i = 0; i < n; ++i)\n    {\n        int x{};\n        std::cin >> x;\n        v.push_back(x);\n    }\n\n    std::cout << \"total \" << total(v) << \"\\n\";\n    addToAll(v, 7);\n    printAll(\"after-add\", v);\n    reverseIt(v);\n    printAll(\"reversed\", v);\n    std::cout << \"total \" << total(v) << \"\\n\";\n\n    return 0;\n}\n"
+    }
+  },
+  "explanation": "## Three signatures, three contracts\n\n```cpp\nlong long total(const std::vector<int>& v);   // reads\nvoid addToAll(std::vector<int>& v, int d);    // writes\nvoid reverseIt(std::vector<int>& v);          // writes\n```\n\nThe signature is documentation the compiler checks. A caller looking at `total`\nknows its vector will not change, and not because a comment says so - add\n`v.push_back(1)` inside `total` and the build fails with \"no matching member\nfunction for call to push_back\", because on a `const` vector only the\nconst-qualified members are callable.\n\nThat is the real value of `const`. It is not a performance hint; it is a\nconstraint, and the compiler is the one enforcing it.\n\n## Why `const&` rather than by value\n\n```cpp\nlong long total(std::vector<int> v)          // copies every element\nlong long total(const std::vector<int>& v)   // copies nothing\n```\n\nA `std::vector` owns a heap allocation holding its elements. Copying one\nallocates new storage and copies every element - so passing a thousand-element\nvector by value is a thousand copies plus a `new`, to compute a sum that reads\neach element once.\n\nA reference is just an address under the hood, so passing by reference is one\nmachine word regardless of how big the thing is.\n\nThe rule of thumb from the Core Guidelines: **take `const&` for anything you only\nread and that is not cheap to copy.** For `int`, `double` or a pointer, by value\nis cheaper than a reference and reads better. For strings, vectors, maps and\nanything holding an allocation, `const&`.\n\n## Accumulating into the wider type\n\n```cpp\nlong long s{};\nfor (int x : v) s += x;\n```\n\n`s += x` promotes `x` to `long long` before adding, because that is the type of\nthe left side. So the addition itself happens in 64 bits and there is no\nintermediate that could overflow.\n\nThe wrong version is subtler than it looks:\n\n```cpp\nint s{};                                        // overflows\nfor (int x : v) s += x;\nreturn s;                                       // widened too late\n```\n\nThe widening to `long long` on return happens *after* the damage. Two values of\ntwo billion each sum to four billion, which does not fit in a 32-bit `int`, and\nsigned overflow is undefined behaviour - so the result is not \"wrapped to a\nnegative number you can predict\", it is a program the standard gives no meaning\nto. At `-O2`, GCC is entitled to assume the overflow cannot happen and optimise\naccordingly.\n\nThe hidden cases include sums of ±8 billion precisely to make the right type\nnecessary rather than merely tidy.\n\n## Modifying through a reference, at both levels\n\n```cpp\nvoid addToAll(std::vector<int>& v, int d)\n{\n    for (int& x : v) x += d;\n}\n```\n\nTwo references are needed and each one matters:\n\n- `std::vector<int>& v` so the function works on the caller's vector\n- `int& x` so each loop iteration works on the vector's element\n\nDrop either `&` and the function compiles and does nothing observable. Drop the\nfirst and you modify a copy of the vector; drop the second and you modify a copy\nof each element. Neither is an error - both are legal programs that mean\nsomething else - which is why \"my function did not change anything\" is almost\nalways a missing `&`.\n\n## Reversing in place\n\n```cpp\nstd::size_t i{ 0 };\nstd::size_t j{ v.size() };\nwhile (i + 1 < j) { std::swap(v[i], v[j - 1]); ++i; --j; }\n```\n\nThe same two-index walk as the palindrome check, swapping instead of comparing.\n`j` is one-past-the-end for the same reason: `v.size() - 1` on an empty vector\nunderflows `std::size_t` to an enormous number, because it is unsigned.\n\nIn real code this is one line:\n\n```cpp\n#include <algorithm>\nstd::reverse(v.begin(), v.end());\n```\n\nwhich is shorter, cannot be off by one, and says what it does. Writing it by\nhand once is worth it to see that a reverse is n/2 swaps and touches no extra\nmemory.\n\n## Printing without a trailing space\n\n`printAll` prints the label first, then a space *before* each element. The label\nabsorbs the separator problem: there is always something before the first value,\nso no flag is needed and an empty vector prints just the label.\n\nThat is why the label is part of the function rather than printed by the caller -\na small design choice that removes a special case.\n\n## `const char*` for the label\n\n```cpp\nvoid printAll(const char* label, const std::vector<int>& v)\n```\n\n`const char*` is a pointer to characters, which is what a string literal like\n`\"after-add\"` actually is. `const std::string&` would also work and would\nconstruct a `std::string` at each call. For a literal, the pointer is the\nnatural fit; `std::string_view` is the modern answer that accepts both with no\ncopy either way.",
+  "readMore": [
+    {
+      "concept": "cpp-references",
+      "where": "learncpp 12.4-12.6 on const references and pass by reference"
+    },
+    {
+      "concept": "cpp-std-vector",
+      "where": "cppreference, then std::reverse and std::swap in <algorithm>"
+    }
+  ],
+  "id": "cpp-reference-vector-fns"
+}

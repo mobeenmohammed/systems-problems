@@ -1,0 +1,53 @@
+{
+  "key": {
+    "cases": [
+      {
+        "stdin": "0 10\n0\n",
+        "expect": "\nchanged 0\n"
+      },
+      {
+        "stdin": "0 10\n1\n5\n",
+        "expect": "5\nchanged 0\n"
+      },
+      {
+        "stdin": "0 10\n1\n-1\n",
+        "expect": "0\nchanged 1\n"
+      },
+      {
+        "stdin": "-5 -1\n4\n-10 -3 0 -5\n",
+        "expect": "-5 -3 -1 -5\nchanged 2\n"
+      },
+      {
+        "stdin": "0 0\n3\n-1 0 1\n",
+        "expect": "0 0 0\nchanged 2\n"
+      },
+      {
+        "stdin": "1 100\n4\n1 100 1 100\n",
+        "expect": "1 100 1 100\nchanged 0\n"
+      },
+      {
+        "stdin": "2 4\n5\n1 1 5 5 3\n",
+        "expect": "2 2 4 4 3\nchanged 4\n"
+      },
+      {
+        "stdin": "-1000000 1000000\n2\n-2000000 2000000\n",
+        "expect": "-1000000 1000000\nchanged 2\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n#include <vector>\n\nbool clampTo(int& v, int lo, int hi)\n{\n    if (v < lo) { v = lo; return true; }\n    if (v > hi) { v = hi; return true; }\n    return false;\n}\n\nint main()\n{\n    int lo{}, hi{}, n{};\n    if (!(std::cin >> lo >> hi >> n)) return 0;\n\n    std::vector<int> v;\n    for (int i = 0; i < n; ++i)\n    {\n        int x{};\n        std::cin >> x;\n        v.push_back(x);\n    }\n\n    int changed{};\n    for (int& x : v)\n        if (clampTo(x, lo, hi)) ++changed;\n\n    bool first{ true };\n    for (int x : v)\n    {\n        if (!first) std::cout << ' ';\n        std::cout << x;\n        first = false;\n    }\n    std::cout << \"\\n\";\n\n    std::cout << \"changed \" << changed << \"\\n\";\n\n    return 0;\n}\n"
+    }
+  },
+  "explanation": "## The function\n\n```cpp\nbool clampTo(int& v, int lo, int hi)\n{\n    if (v < lo) { v = lo; return true; }\n    if (v > hi) { v = hi; return true; }\n    return false;\n}\n```\n\n`int& v` is a **reference parameter**. `v` is not a new variable holding a copy\nof the argument - it is another name for the caller's object. `v = lo` writes\nthrough that name, so the caller's variable changes.\n\nEverything else is passed by value: `lo` and `hi` are only read, so a copy of\neach is exactly right, and copying an `int` is free.\n\n## What changes when the `&` is missing\n\n```cpp\nbool clampTo(int v, int lo, int hi)      // by value\n{\n    if (v < lo) { v = lo; return true; } // modifies the parameter, nothing else\n    ...\n}\n```\n\nThis compiles cleanly. It runs. It returns the right `bool`, so `changed 2` is\ncorrect. And every value in the vector is unchanged, because `v` was a copy that\ndied when the function returned.\n\nThat is a genuinely instructive failure, because nothing about it looks wrong -\nthe only symptom is output that ignored the function entirely. If a function was\nsupposed to modify something and did not, the first thing to check is whether\nits parameter is a reference.\n\nCompilers do help here. With `-Wall -Wextra`, assigning to a by-value parameter\nand never using it afterwards sometimes draws `-Wunused-but-set-parameter` -\nsometimes, not always, because assigning to a parameter is perfectly legal and\noccasionally intended.\n\n## The same mistake one level up\n\n```cpp\nfor (int& x : v)  if (clampTo(x, lo, hi)) ++changed;     // modifies v\nfor (int  x : v)  if (clampTo(x, lo, hi)) ++changed;     // modifies nothing\n```\n\nA range-for declares a variable that is initialised from each element in turn.\nWithout the `&` that variable is a **copy** of the element, so `clampTo` dutifully\nmodifies the copy through a perfectly good reference, and the vector never sees\nit.\n\nSo the modification has to be by reference *all the way down*. One by-value link\nanywhere in the chain silently breaks it, and the compiler cannot warn because\neach individual step is legal.\n\nThe three forms worth knowing:\n\n| Form | Means |\n| --- | --- |\n| `for (int x : v)` | a copy of each element; changes are discarded |\n| `for (int& x : v)` | the element itself; changes stick |\n| `for (const int& x : v)` | the element, read-only; no copy made |\n\nFor `int` the copy is free, so `const int&` buys nothing - but for a\n`std::string` or a vector of vectors, `for (const auto& s : v)` avoids copying\nevery element just to look at it. That is the default to reach for.\n\n## Why `<` and not `<=`\n\nA value exactly equal to `lo` is already in range, so it is not changed and must\nnot be counted. `if (v <= lo) { v = lo; return true; }` assigns `lo` to a\nvariable that already holds `lo` - harmless - and then returns `true`, which\nmakes the count wrong.\n\nThe hidden case `1 100 1 100` within bounds `1 100` is there for exactly this:\nall four values sit on a boundary, the correct answer is `changed 0`, and `<=`\nreports 4.\n\n## `lo == hi`\n\nThe range collapses to a single value, and the two tests still behave: anything\nbelow becomes `lo`, anything above becomes `hi`, and they are the same number.\nNo special case needed - a sign the two independent comparisons are the right\nstructure rather than something cleverer.\n\n## The separator\n\n```cpp\nbool first{ true };\nfor (int x : v)\n{\n    if (!first) std::cout << ' ';\n    std::cout << x;\n    first = false;\n}\nstd::cout << \"\\n\";\n```\n\nPrinting `x << ' '` after each element leaves a trailing space, and printing\n`' ' << x` before each leaves a leading one. The flag puts the separator\n*between* elements, which is what \"separated by spaces\" means, and it handles\nthe empty list by printing nothing at all.\n\n`std::cout << '\\n'` rather than `std::endl` throughout, by the way. `std::endl`\nwrites a newline *and flushes the stream*, which for output written in a loop\nmeans a system call per line. For a program whose output is a few lines it does\nnot matter; the habit matters, because the same code in a loop over a million\nlines is a hundred times slower for no benefit.\n\n## What C++ already has\n\n```cpp\n#include <algorithm>\nx = std::clamp(x, lo, hi);\n```\n\n`std::clamp` since C++17 returns the clamped value rather than modifying in\nplace, which composes better and is what you would use in real code. It cannot\ntell you whether it changed anything, which is why this exercise asks for the\nreference version - and the counting is the part that makes the reference\nearn its place.",
+  "readMore": [
+    {
+      "concept": "cpp-references",
+      "where": "learncpp 12.2-12.5, then F.17 in the Core Guidelines"
+    },
+    {
+      "concept": "cpp-range-for",
+      "where": "learncpp 16.8, specifically the by-reference form"
+    }
+  ],
+  "id": "cpp-reference-clamp"
+}

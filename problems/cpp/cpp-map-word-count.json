@@ -1,0 +1,57 @@
+{
+  "id": "cpp-map-word-count",
+  "title": "Counting things you have not seen yet",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "map",
+    "containers",
+    "strings",
+    "counting"
+  ],
+  "estimate": 24,
+  "prereqs": [
+    {
+      "concept": "cpp-std-map",
+      "why": "The whole problem is a key-to-count table, which is what a map is, and the output order comes free from the fact that a map is sorted."
+    },
+    {
+      "concept": "cpp-strings",
+      "why": "The keys are words read with >>, and they are lowercased before counting."
+    },
+    {
+      "concept": "cpp-stdin-loop",
+      "why": "The number of words is not given, so the reading loop runs until the input is exhausted."
+    }
+  ],
+  "statement": "Read whitespace-separated words until the input runs out. Lowercase each one,\nthen print:\n\n```\ndistinct <how many different words>\n<word> <count>        one line per distinct word, in ascending alphabetical order\n...\ntop <the most frequent word> <its count>\n```\n\nIf several words tie for most frequent, report the alphabetically first of them.\n\n```\ninput:   the cache line the Cache miss\n\noutput:  distinct 4\n         cache 2\n         line 1\n         miss 1\n         the 2\n         top cache 2\n```\n\n`the` and `Cache` both appear twice; `cache` wins the tie because it comes first\nalphabetically.\n\n### The point of the problem\n\nA `std::map<std::string, int>` is a table from key to value, and it does the one\nthing that makes counting easy:\n\n```cpp\nstd::map<std::string, int> count;\n++count[word];        // works whether or not word was there before\n```\n\nIndexing a map with a key that is **not** present inserts it with a\nvalue-initialised value - `0` for an `int` - and returns a reference to it. So\n`++count[word]` means \"one more of these\", with no \"have I seen this before\"\ncheck anywhere.\n\nAnd iterating a map visits keys in **sorted order**, so the alphabetical output\nneeds no sorting step. Choosing the container that already has the property you\nneed is most of what using the standard library well looks like.\n\n### A word is whatever `>>` gives you\n\n`std::cin >> word` skips whitespace and reads up to the next whitespace, so\npunctuation stays attached: `line,` and `line` are two different words here.\nThat keeps the problem about the map rather than about tokenising, and it is\nstated so the counts are predictable.\n\n### Boundary cases\n\nEmpty input: `distinct 0` and no word lines - and then what does `top` say?\nPrint `top none 0`. One word repeated. Every word distinct, so everything ties\nat 1 and the alphabetically first wins. Case differences that collapse into one\nkey, which is the reason for lowercasing. Words that differ only by punctuation,\nwhich stay separate.\n\n### Platform assumptions\n\nInput is ASCII; lowercasing applies to `A-Z` only, and bytes above 127 are\npassed through unchanged, so a word containing a multi-byte UTF-8 character is\ncounted as written. At most 20000 words and at most 40 characters per word.",
+  "hints": [
+    "`while (std::cin >> word)` reads words until the input ends - the same stream-state loop as reading numbers, because `>>` into a `std::string` works the same way.",
+    "Lowercase in place before counting: `for (char& c : word) if (c >= 'A' && c <= 'Z') c = static_cast<char>(c - 'A' + 'a');`. Note the `char&`, or you modify a copy.",
+    "For the winner, walk the map once afterwards keeping the best so far, and only replace it when the count is **strictly greater**. Because the walk is in alphabetical order, the first word to reach the highest count is kept, which is exactly the tie-break asked for."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n#include <map>\n#include <string>\n\nint main()\n{\n    std::map<std::string, int> count;\n\n    std::string word;\n    while (std::cin >> word)\n    {\n        // lowercase word, then ++count[word];\n    }\n\n    std::cout << \"distinct \" << count.size() << \"\\n\";\n\n    // One line per entry, then the winner.\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "the cache line the Cache miss\n",
+        "expect": "distinct 4\ncache 2\nline 1\nmiss 1\nthe 2\ntop cache 2\n"
+      },
+      {
+        "stdin": "",
+        "expect": "distinct 0\ntop none 0\n"
+      }
+    ]
+  }
+}

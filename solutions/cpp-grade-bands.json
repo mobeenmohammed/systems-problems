@@ -1,0 +1,53 @@
+{
+  "key": {
+    "cases": [
+      {
+        "stdin": "100\n",
+        "expect": "distinction\n"
+      },
+      {
+        "stdin": "70\n",
+        "expect": "distinction\n"
+      },
+      {
+        "stdin": "69\n",
+        "expect": "merit\n"
+      },
+      {
+        "stdin": "60\n",
+        "expect": "merit\n"
+      },
+      {
+        "stdin": "59\n",
+        "expect": "pass\n"
+      },
+      {
+        "stdin": "39\n",
+        "expect": "fail\n"
+      },
+      {
+        "stdin": "0\n",
+        "expect": "fail\n"
+      },
+      {
+        "stdin": "101\n",
+        "expect": "invalid\n"
+      },
+      {
+        "stdin": "-1\n",
+        "expect": "invalid\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n\nint main()\n{\n    int score{};\n    if (!(std::cin >> score)) return 0;\n\n    if (score < 0 || score > 100)\n        std::cout << \"invalid\\n\";\n    else if (score >= 70)\n        std::cout << \"distinction\\n\";\n    else if (score >= 60)\n        std::cout << \"merit\\n\";\n    else if (score >= 40)\n        std::cout << \"pass\\n\";\n    else\n        std::cout << \"fail\\n\";\n\n    return 0;\n}\n"
+    }
+  },
+  "explanation": "## One chain, highest band first\n\n```cpp\nif (score < 0 || score > 100)\n    std::cout << \"invalid\\n\";\nelse if (score >= 70)\n    std::cout << \"distinction\\n\";\nelse if (score >= 60)\n    std::cout << \"merit\\n\";\nelse if (score >= 40)\n    std::cout << \"pass\\n\";\nelse\n    std::cout << \"fail\\n\";\n```\n\n## Why the order is the whole problem\n\nEach test only needs its **lower** bound, because `else` guarantees everything\nabove it was already false. By the time control reaches `score >= 60`, the\nscore is known to be under 70 — so `>= 60` really does mean \"60 to 69\", even\nthough nothing in that line says 69.\n\nReverse the chain and it collapses:\n\n```cpp\nif (score >= 40)       std::cout << \"pass\\n\";        // 73 lands here\nelse if (score >= 60)  std::cout << \"merit\\n\";       // unreachable\nelse if (score >= 70)  std::cout << \"distinction\\n\"; // unreachable\n```\n\nEvery score of 40 or more prints `pass`, and the last two branches can never\nrun. The compiler will not warn you: the code is perfectly well formed and\nsimply means something else.\n\n## Four ifs is a different program\n\n```cpp\nif (score >= 70) std::cout << \"distinction\\n\";\nif (score >= 60) std::cout << \"merit\\n\";          // also true for 73\nif (score >= 40) std::cout << \"pass\\n\";           // also true for 73\n```\n\nA score of 73 prints three lines, because nothing stops the second test from\nrunning after the first succeeded. `else` is what makes the alternatives\nexclusive — that is its entire job.\n\n## The boundaries\n\nThe hidden cases are every edge, because this is where the mistakes live:\n\n| Input | Band | Why it is a test |\n| --- | --- | --- |\n| `100` | distinction | the top of the valid range |\n| `70` | distinction | `>=` not `>` |\n| `69` | merit | one below a boundary |\n| `60` | merit | `>=` again |\n| `39` | fail | the band with no lower test |\n| `0` | fail | the bottom of the valid range |\n| `101`, `-1` | invalid | one step outside, both directions |\n\nEvery one of those is a different answer, and a single `>` where you wanted\n`>=` breaks exactly one of them. That is why testing the boundaries beats\ntesting the middle: `73` passes under half a dozen wrong implementations.\n\n## Validating first\n\nChecking `score < 0 || score > 100` **before** the bands means the rest of the\nchain can assume a sane value. Doing it last would mean every other test had to\nguard against a negative number, and the chain would stop being readable.\n\nThe general shape is worth keeping: **reject the impossible, then handle the\npossible.** It is the same instinct as checking a pointer before dereferencing\nit, or a length before indexing.",
+  "readMore": [
+    {
+      "concept": "cpp-conditions",
+      "where": "learncpp on if statements and blocks"
+    }
+  ],
+  "id": "cpp-grade-bands"
+}

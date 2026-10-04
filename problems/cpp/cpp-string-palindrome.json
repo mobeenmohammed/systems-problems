@@ -1,0 +1,57 @@
+{
+  "id": "cpp-string-palindrome",
+  "title": "Two indices, walking towards each other",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "strings",
+    "two-pointers",
+    "indexing",
+    "loops"
+  ],
+  "estimate": 22,
+  "prereqs": [
+    {
+      "concept": "cpp-strings",
+      "why": "You build a filtered copy of the line and then index into it from both ends."
+    },
+    {
+      "concept": "cpp-loops",
+      "why": "The check is a while loop with two variables moving in opposite directions."
+    },
+    {
+      "concept": "cpp-conditions",
+      "why": "Filtering a character and comparing a pair are both small condition chains."
+    }
+  ],
+  "statement": "Read **one whole line**. Keep only the ASCII letters and digits, lowercasing\nthe letters, and then say whether what is left reads the same backwards.\n\n```\nclean [<the filtered, lowercased characters>]\npalindrome <yes or no>\n```\n\n```\ninput:   A man, a plan, a canal: Panama\n\noutput:  clean [amanaplanacanalpanama]\n         palindrome yes\n```\n\n```\ninput:   Cache line\n\noutput:  clean [cacheline]\n         palindrome no\n```\n\nAn empty result counts as a palindrome: there is nothing to disagree.\n\n### The point of the problem\n\nTwo indices, one at each end, walking inwards:\n\n```\na m a n a p l a n a c a n a l p a n a m a\n^                                       ^\ni                                       j      compare, then i++ and j--\n```\n\nThey meet in the middle, so the loop runs while `i < j` and compares exactly\nhalf the characters. The alternative - build the reversed string and compare the\ntwo - is also correct and allocates a second string to answer a question that\nneeds no extra memory at all.\n\nThis pattern has a name, **two pointers**, and it is the same loop that merges\ntwo sorted arrays, partitions around a pivot and finds a pair summing to a\ntarget. Worth having in your hands.\n\n### Boundary cases\n\nAn empty line, and a line with no letters or digits at all - both give\n`clean []` and `palindrome yes`. A single character, which is trivially a\npalindrome. An even-length and an odd-length palindrome, because the loop stops\nin a different place for each. Something that is a palindrome only after the\npunctuation is dropped, and something that stops being one because a digit was\nkept.\n\n### Platform assumptions\n\nLetters and digits mean the ASCII ranges `A-Z`, `a-z` and `0-9`; the runner uses\nthe C locale, so no locale-dependent classification applies. Bytes above 127 are\ndropped by the filter, so this program does not treat a multi-byte UTF-8\ncharacter as a letter. That is stated rather than left to chance - handling\naccented letters properly means decoding UTF-8, which is a different problem.",
+  "hints": [
+    "Do it in two stages. First build a `std::string clean` containing only the characters you keep, lowercased. Then check that one string, which is now free of every special case.",
+    "Lowercasing by hand: if `c >= 'A' && c <= 'Z'` then `c = static_cast<char>(c - 'A' + 'a')`. Digits and already-lowercase letters go in untouched.",
+    "`std::size_t i = 0; std::size_t j = clean.size();` then loop `while (i + 1 < j)` comparing `clean[i]` with `clean[j - 1]`. Using `j` as a one-past-the-end index avoids ever writing `j = size() - 1`, which underflows to a huge number on an empty string because size_t is unsigned."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n#include <string>\n\nint main()\n{\n    std::string line;\n    std::getline(std::cin, line);\n\n    std::string clean;\n    // Keep ASCII letters (lowercased) and digits.\n\n    bool pal{ true };\n    // Two indices walking inwards.\n\n    std::cout << \"clean [\" << clean << \"]\\n\";\n    std::cout << \"palindrome \" << (pal ? \"yes\" : \"no\") << \"\\n\";\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "A man, a plan, a canal: Panama\n",
+        "expect": "clean [amanaplanacanalpanama]\npalindrome yes\n"
+      },
+      {
+        "stdin": "Cache line\n",
+        "expect": "clean [cacheline]\npalindrome no\n"
+      }
+    ]
+  }
+}

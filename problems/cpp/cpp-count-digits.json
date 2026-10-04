@@ -1,0 +1,53 @@
+{
+  "id": "cpp-count-digits",
+  "title": "How many digits, and their sum",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "loops",
+    "while",
+    "arithmetic",
+    "integer-division"
+  ],
+  "estimate": 15,
+  "prereqs": [
+    {
+      "concept": "cpp-loops",
+      "why": "The loop runs once per digit, and how many digits there are is not known in advance."
+    },
+    {
+      "concept": "cpp-integer-types",
+      "why": "The method relies on integer division truncating, and on what % does to a negative number."
+    }
+  ],
+  "statement": "Read one integer `n` and print how many decimal digits it has, then the sum of\nthose digits.\n\n```\ninput:   4705           input:   0            input:   -312\noutput:  digits 4        output:  digits 1     output:  digits 3\n         sum 16                  sum 0                 sum 6\n```\n\nA negative number has the digits of its absolute value, and the sign is not a\ndigit. `0` has one digit.\n\n### The point of the problem\n\nPeeling digits off a number is the loop you will write a hundred times:\n\n```\nlast digit of n        n % 10\nn without its last     n / 10     (integer division truncates)\n```\n\nRepeat until `n` becomes 0. That is a `while` — the count is not known until you\nare done.\n\n### The two traps\n\n**`0` is a special case.** The loop \"while n is not zero\" never runs for an\ninput of 0, giving a count of 0 digits. But 0 is written with one digit. Decide\nhow to handle it: either a special case before the loop, or a loop shape that\nruns at least once.\n\n**`%` on a negative number gives a negative remainder** in C++: `-312 % 10` is\n`-2`, not `8`. So take the absolute value first rather than hoping the arithmetic\nworks out.\n\n### Platform assumptions\n\nAssume `int` is at least 32 bits, so inputs fit in the range roughly\n-2,147,483,648 to 2,147,483,647. The most negative value is excluded from the\ntests, because negating it overflows — which is itself worth knowing and is\nexplained in the solution.",
+  "hints": [
+    "Take the absolute value before the loop. `if (n < 0) n = -n;` is enough here, and you do not need `<cmath>`.",
+    "`n % 10` is the last digit, `n /= 10` removes it. Loop while `n != 0`, adding to a digit count and a digit sum each pass.",
+    "Handle 0 before the loop, or use a do-while so the body runs at least once. Either is fine; a plain while with no special case reports 0 digits for 0."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n\nint main()\n{\n    int n{};\n    std::cin >> n;\n\n    int digits{};\n    int sum{};\n\n    // Absolute value, then peel digits with % and /.\n\n    std::cout << \"digits \" << digits << \"\\n\";\n    std::cout << \"sum \" << sum << \"\\n\";\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "4705\n",
+        "expect": "digits 4\nsum 16\n"
+      },
+      {
+        "stdin": "0\n",
+        "expect": "digits 1\nsum 0\n"
+      }
+    ]
+  }
+}

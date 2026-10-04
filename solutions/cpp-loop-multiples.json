@@ -1,0 +1,45 @@
+{
+  "key": {
+    "cases": [
+      {
+        "stdin": "0\n",
+        "expect": ""
+      },
+      {
+        "stdin": "-3\n",
+        "expect": ""
+      },
+      {
+        "stdin": "3\n",
+        "expect": "1\n2\nthree\n"
+      },
+      {
+        "stdin": "5\n",
+        "expect": "1\n2\nthree\n4\nfive\n"
+      },
+      {
+        "stdin": "15\n",
+        "expect": "1\n2\nthree\n4\nfive\nthree\n7\n8\nthree\nfive\n11\nthree\n13\n14\nboth\n"
+      },
+      {
+        "stdin": "16\n",
+        "expect": "1\n2\nthree\n4\nfive\nthree\n7\n8\nthree\nfive\n11\nthree\n13\n14\nboth\n16\n"
+      },
+      {
+        "stdin": "30\n",
+        "expect": "1\n2\nthree\n4\nfive\nthree\n7\n8\nthree\nfive\n11\nthree\n13\n14\nboth\n16\n17\nthree\n19\nfive\nthree\n22\n23\nthree\nfive\n26\nthree\n28\n29\nboth\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n\nint main()\n{\n    int n{};\n    if (!(std::cin >> n)) return 0;\n\n    for (int i = 1; i <= n; ++i)\n    {\n        bool by3{ i % 3 == 0 };\n        bool by5{ i % 5 == 0 };\n\n        if (by3 && by5)\n            std::cout << \"both\\n\";\n        else if (by3)\n            std::cout << \"three\\n\";\n        else if (by5)\n            std::cout << \"five\\n\";\n        else\n            std::cout << i << \"\\n\";\n    }\n\n    return 0;\n}\n"
+    }
+  },
+  "explanation": "## The loop\n\n```cpp\nfor (int i = 1; i <= n; ++i)\n{\n    bool by3{ i % 3 == 0 };\n    bool by5{ i % 5 == 0 };\n\n    if (by3 && by5)   std::cout << \"both\\n\";\n    else if (by3)     std::cout << \"three\\n\";\n    else if (by5)     std::cout << \"five\\n\";\n    else              std::cout << i << \"\\n\";\n}\n```\n\n## The three parts of a for\n\n```\nfor ( init ; condition ; update )\n      ^       ^           ^\n      runs    tested      runs after\n      once    before      each pass\n      first   each pass\n```\n\nSo `for (int i = 1; i <= n; ++i)` starts at 1, keeps going while `i` is at most\n`n`, and adds one each time round. The condition is tested **before** the first\npass, which is why `n = 0` prints nothing with no special case: `1 <= 0` is\nfalse and the body never runs.\n\nThat is worth noticing. A `for` whose range is empty is not an error to guard\nagainst; it is the loop working correctly on no items. Writing `if (n > 0)`\naround it would be noise.\n\n**`<=` not `<`.** The range includes `n`, so the test is `i <= n`. With `<` the\nloop stops one short and `n = 7` prints only six lines. Off-by-one in a loop\nbound is the single most common loop bug, and the fix is to decide *before*\nwriting it whether the last value is included.\n\n**Declare `i` in the header.** `for (int i = ...)` scopes `i` to the loop, so it\ncannot be read afterwards by accident and the name is free for the next loop.\nDeclaring it above the loop is a C habit and leaks the variable.\n\n## Why `both` has to be tested first\n\n15 divides by 3 *and* by 5. Both `by3` and `by5` are true, so whichever\nsingle-divisor test comes first will claim it:\n\n```cpp\nif (by3)            std::cout << \"three\\n\";   // 15 lands here\nelse if (by5)       std::cout << \"five\\n\";\nelse if (by3 && by5) std::cout << \"both\\n\";   // unreachable, always\n```\n\nThe most specific case goes first. This is the same rule as the bands problem,\nand it generalises: **in an else-if chain, order from narrowest to widest.**\n\n## `%` and negative numbers\n\n`i % 3` is a remainder, and it is zero exactly when 3 divides `i`. The loop here\nonly ever sees positive `i`, which is worth knowing because C++ `%` on a\nnegative left operand gives a **negative** remainder: `-7 % 3` is `-1`, not `2`.\nSo `x % 3 == 0` is still a correct divisibility test for negatives, but\n`x % 3 == 1` is not what you would expect. Not a problem here; a real one the\nfirst time you write a hash function.\n\n## Two bools instead of four comparisons\n\nComputing `by3` and `by5` once and naming them is shorter, says what the\ncondition *means* rather than how it is computed, and makes `by3 && by5` read as\nthe English sentence it is. The compiler generates the same code either way, so\nthis is purely about the reader — which is the only thing it needs to be about.",
+  "readMore": [
+    {
+      "concept": "cpp-loops",
+      "where": "learncpp on for statements, then range-for for later"
+    }
+  ],
+  "id": "cpp-loop-multiples"
+}

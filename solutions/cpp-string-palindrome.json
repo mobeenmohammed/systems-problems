@@ -1,0 +1,65 @@
+{
+  "key": {
+    "cases": [
+      {
+        "stdin": "\n",
+        "expect": "clean []\npalindrome yes\n"
+      },
+      {
+        "stdin": "!!! ... ???\n",
+        "expect": "clean []\npalindrome yes\n"
+      },
+      {
+        "stdin": "x\n",
+        "expect": "clean [x]\npalindrome yes\n"
+      },
+      {
+        "stdin": "abba\n",
+        "expect": "clean [abba]\npalindrome yes\n"
+      },
+      {
+        "stdin": "aba\n",
+        "expect": "clean [aba]\npalindrome yes\n"
+      },
+      {
+        "stdin": "abca\n",
+        "expect": "clean [abca]\npalindrome no\n"
+      },
+      {
+        "stdin": "ab2ba\n",
+        "expect": "clean [ab2ba]\npalindrome yes\n"
+      },
+      {
+        "stdin": "ab2b1a\n",
+        "expect": "clean [ab2b1a]\npalindrome no\n"
+      },
+      {
+        "stdin": "No 'x' in Nixon\n",
+        "expect": "clean [noxinnixon]\npalindrome yes\n"
+      },
+      {
+        "stdin": "RaceCar\n",
+        "expect": "clean [racecar]\npalindrome yes\n"
+      },
+      {
+        "stdin": "café\n",
+        "expect": "clean [caf]\npalindrome no\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n#include <string>\n\nint main()\n{\n    std::string line;\n    std::getline(std::cin, line);\n\n    std::string clean;\n    for (char c : line)\n    {\n        if (c >= 'a' && c <= 'z')      clean.push_back(c);\n        else if (c >= 'A' && c <= 'Z') clean.push_back(static_cast<char>(c - 'A' + 'a'));\n        else if (c >= '0' && c <= '9') clean.push_back(c);\n    }\n\n    bool pal{ true };\n    std::size_t i{ 0 };\n    std::size_t j{ clean.size() };\n    while (i + 1 < j)\n    {\n        if (clean[i] != clean[j - 1]) { pal = false; break; }\n        ++i;\n        --j;\n    }\n\n    std::cout << \"clean [\" << clean << \"]\\n\";\n    std::cout << \"palindrome \" << (pal ? \"yes\" : \"no\") << \"\\n\";\n\n    return 0;\n}\n"
+    }
+  },
+  "explanation": "## Filter first, then check\n\n```cpp\nstd::string clean;\nfor (char c : line)\n{\n    if (c >= 'a' && c <= 'z')      clean.push_back(c);\n    else if (c >= 'A' && c <= 'Z') clean.push_back(static_cast<char>(c - 'A' + 'a'));\n    else if (c >= '0' && c <= '9') clean.push_back(c);\n}\n```\n\nTwo stages rather than one. The clever single-pass version skips punctuation\n*while* comparing from both ends, and it works - but then the two indices each\nneed their own inner skip loop, and the termination condition has to stay\ncorrect while both are moving unpredictably. It is about fifteen lines and it is\neasy to get subtly wrong.\n\nFiltering first costs one extra string and makes the second stage trivially\ncorrect. That is almost always the right trade when you are learning a pattern:\nget the shape right in the simple setting before optimising away the\nintermediate.\n\n## The two-index loop\n\n```cpp\nstd::size_t i{ 0 };\nstd::size_t j{ clean.size() };\nwhile (i + 1 < j)\n{\n    if (clean[i] != clean[j - 1]) { pal = false; break; }\n    ++i;\n    --j;\n}\n```\n\n`i` indexes from the front, `j` is **one past** the back. So the two characters\nbeing compared are `clean[i]` and `clean[j - 1]`, and the loop continues while\nthere are at least two characters left between them - which is what `i + 1 < j`\nsays.\n\nHalf-open ranges like this are the convention the whole standard library uses:\n`begin()` and `end()`, where `end()` points past the last element. The reason is\nvisible right here.\n\n## Why not `j = size() - 1`\n\n```cpp\nstd::size_t j = clean.size() - 1;      // a trap on an empty string\n```\n\n`size()` returns `std::size_t`, which is **unsigned**. On an empty string that\nis `0 - 1`, and unsigned arithmetic wraps: `j` becomes 18446744073709551615 on a\n64-bit platform. The loop condition `i < j` is then wildly true, and `clean[j]`\nreads 18 exabytes into nowhere.\n\nUnsigned wraparound is *not* undefined behaviour - it is defined to wrap modulo\n2^64, which is precisely what makes it dangerous. The program does not crash at\nthe subtraction; it computes a perfectly legal enormous number and crashes\nlater, somewhere else, or not at all.\n\nThis is one of the most common real bugs in C and C++, and it is the reason\n`-Wall -Wextra` warns when you compare a signed `int` against a `size()`. Three\nways to avoid it:\n\n- keep `j` one-past-the-end, as here, so nothing is ever decremented below zero\n- guard the empty case explicitly before computing `size() - 1`\n- compare with addition instead of subtraction: `i + 1 < j` rather than `i < j - 1`\n\nThe third is a habit worth forming generally. In unsigned arithmetic, moving the\nsubtraction to the other side of the comparison removes the chance of\nunderflow.\n\n## Where the loop stops\n\n```\neven, \"abba\":   i=0 j=4  compare a/a   ->  i=1 j=3  compare b/b  ->  i=2 j=2  stop\nodd,  \"aba\":    i=0 j=3  compare a/a   ->  i=1 j=2  stop (i+1 < j is 2 < 2, false)\n```\n\nFor even lengths the indices meet; for odd lengths they land either side of the\nmiddle character. Either way the loop stops, and the middle character of an\nodd-length string is never compared - correctly, since it is its own mirror.\n\nBoth are hidden cases, because an off-by-one in the condition typically breaks\nexactly one of them.\n\n## The empty case is a palindrome\n\n`pal` starts `true` and the loop never runs, so an empty string reports `yes`\nwith no special handling. That is not a shortcut - it is the right answer.\nA string of length 0 and 1 have no pair that could disagree, which is the same\nreason an empty sum is 0 and an empty product is 1.\n\n## `break` on the first mismatch\n\nOnce two characters disagree, the answer cannot change, so the loop stops. The\nflag-only version:\n\n```cpp\nif (clean[i] != clean[j - 1]) pal = false;      // keeps walking\n```\n\nis correct and keeps comparing characters whose verdict no longer matters. Same\nreasoning as the early `return false` in a primality test: say the answer as\nsoon as you know it.\n\n## What the filter drops\n\n`café` in UTF-8 is `c a f` followed by the bytes `0xC3 0xA9`. Neither byte falls\nin an ASCII letter or digit range, so both are dropped and `clean` is `caf` -\nwhich is not a palindrome. A program that understood Unicode would keep `é` and\nhave to decide whether it equals `e`, which is a genuinely hard question with a\ndifferent answer in different languages. Hence the stated assumption: ASCII\nonly, bytes above 127 dropped.",
+  "readMore": [
+    {
+      "concept": "cpp-strings",
+      "where": "learncpp on std::string, then cppreference for size() and operator[]"
+    },
+    {
+      "concept": "cpp-integer-types",
+      "where": "CS:APP 2.2-2.3 on unsigned wraparound, which is the trap here"
+    }
+  ],
+  "id": "cpp-string-palindrome"
+}

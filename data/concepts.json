@@ -1609,5 +1609,215 @@
         "url": "https://en.cppreference.com/w/cpp/language/definition"
       }
     ]
+  },
+  "cpp-conditions": {
+    "name": "Conditions and branching",
+    "topic": "cpp",
+    "oneLine": "An if statement runs a block only when a condition is true; else-if chains test alternatives in order, and the first match wins.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "learncpp 4.10 / 8.x: if statements",
+        "kind": "course",
+        "where": "start at 'if statements and blocks'",
+        "url": "https://www.learncpp.com/cpp-tutorial/if-statements-and-blocks/"
+      },
+      {
+        "title": "learncpp 6.7: Relational operators",
+        "kind": "course",
+        "where": "comparing values, and the float trap",
+        "url": "https://www.learncpp.com/cpp-tutorial/relational-operators-and-floating-point-comparisons/"
+      },
+      {
+        "title": "C++ Core Guidelines ES.78",
+        "kind": "docs",
+        "where": "do not rely on implicit fallthrough",
+        "url": "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#es78-dont-rely-on-implicit-fallthrough-in-switch-statements"
+      }
+    ]
+  },
+  "cpp-loops": {
+    "name": "Loops",
+    "topic": "cpp",
+    "oneLine": "A loop repeats a block: for when you know the count, while when you are waiting for a condition to change.",
+    "needs": [
+      "cpp-conditions"
+    ],
+    "readings": [
+      {
+        "title": "learncpp 8.x: Loops",
+        "kind": "course",
+        "where": "while, do-while, for — in that order",
+        "url": "https://www.learncpp.com/cpp-tutorial/intro-to-loops-and-while-statements/"
+      },
+      {
+        "title": "learncpp 8.10: For statements",
+        "kind": "course",
+        "where": "and why the loop variable belongs in the for",
+        "url": "https://www.learncpp.com/cpp-tutorial/for-statements/"
+      },
+      {
+        "title": "C++ Core Guidelines ES.71",
+        "kind": "docs",
+        "where": "prefer a range-for when you can",
+        "url": "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#es71-prefer-a-range-for-statement-to-a-for-statement-when-there-is-a-choice"
+      }
+    ]
+  },
+  "cpp-stdin-loop": {
+    "name": "Reading input until it runs out",
+    "topic": "cpp",
+    "oneLine": "Extracting from std::cin returns the stream, which converts to false when the read failed — which is how a program reads an unknown number of values.",
+    "needs": [
+      "cpp-loops"
+    ],
+    "readings": [
+      {
+        "title": "learncpp 23.x: Input and output streams",
+        "kind": "course",
+        "where": "stream state, and why `while (std::cin >> x)` works",
+        "url": "https://www.learncpp.com/cpp-tutorial/stream-states-and-input-validation/"
+      },
+      {
+        "title": "cppreference: basic_istream::operator bool",
+        "kind": "docs",
+        "where": "the conversion the loop relies on",
+        "url": "https://en.cppreference.com/w/cpp/io/basic_ios/operator_bool"
+      }
+    ]
+  },
+  "cpp-std-vector": {
+    "name": "std::vector",
+    "topic": "cpp",
+    "oneLine": "A vector is a resizable array that owns its elements: it knows its own size, grows with push_back, and frees itself when it goes out of scope.",
+    "needs": [
+      "cpp-loops"
+    ],
+    "readings": [
+      {
+        "title": "learncpp 16.x: std::vector",
+        "kind": "course",
+        "where": "introduction, then length and indexing",
+        "url": "https://www.learncpp.com/cpp-tutorial/introduction-to-stdvector-and-list-constructors/"
+      },
+      {
+        "title": "cppreference: std::vector",
+        "kind": "docs",
+        "where": "size, operator[], at, push_back, back",
+        "url": "https://en.cppreference.com/w/cpp/container/vector"
+      },
+      {
+        "title": "C++ Core Guidelines SL.con.2",
+        "kind": "docs",
+        "where": "prefer vector by default",
+        "url": "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#slcon2-prefer-using-stdvector-by-default-unless-you-have-a-reason-to-use-a-different-container"
+      }
+    ]
+  },
+  "cpp-range-for": {
+    "name": "Range-based for",
+    "topic": "cpp",
+    "oneLine": "A range-for visits every element of a container without an index, which removes the whole class of off-by-one and out-of-range mistakes.",
+    "needs": [
+      "cpp-std-vector"
+    ],
+    "readings": [
+      {
+        "title": "learncpp 16.8: Range-based for loops",
+        "kind": "course",
+        "where": "and why the element should be a const reference",
+        "url": "https://www.learncpp.com/cpp-tutorial/range-based-for-loops-for-each/"
+      },
+      {
+        "title": "cppreference: range-for",
+        "kind": "docs",
+        "where": "what the loop expands to",
+        "url": "https://en.cppreference.com/w/cpp/language/range-for"
+      }
+    ]
+  },
+  "cpp-references": {
+    "name": "References",
+    "topic": "cpp",
+    "oneLine": "A reference is another name for an existing object, so writing through it changes the original; a const reference gives read access without copying.",
+    "needs": [
+      "cpp-functions"
+    ],
+    "readings": [
+      {
+        "title": "learncpp 12.2-12.5: Lvalue references",
+        "kind": "course",
+        "where": "references, then const references, then pass by reference",
+        "url": "https://www.learncpp.com/cpp-tutorial/lvalue-references/"
+      },
+      {
+        "title": "C++ Core Guidelines F.16/F.17",
+        "kind": "docs",
+        "where": "when to take const& and when to take &",
+        "url": "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#f16-for-in-parameters-pass-cheaply-copied-types-by-value-and-others-by-reference-to-const"
+      },
+      {
+        "title": "cppreference: Reference declaration",
+        "kind": "docs",
+        "where": "and that a reference can never be reseated",
+        "url": "https://en.cppreference.com/w/cpp/language/reference"
+      }
+    ]
+  },
+  "cpp-strings": {
+    "name": "std::string",
+    "topic": "cpp",
+    "oneLine": "A std::string owns a sequence of characters, knows its own length, and indexes like an array — a char is just a small integer holding a character code.",
+    "needs": [
+      "cpp-std-vector"
+    ],
+    "readings": [
+      {
+        "title": "learncpp 5.7 / 17.x: std::string",
+        "kind": "course",
+        "where": "construction, length, indexing, and why to pass by const reference",
+        "url": "https://www.learncpp.com/cpp-tutorial/introduction-to-stdstring/"
+      },
+      {
+        "title": "cppreference: std::string",
+        "kind": "docs",
+        "where": "size, operator[], substr, push_back",
+        "url": "https://en.cppreference.com/w/cpp/string/basic_string"
+      },
+      {
+        "title": "cppreference: std::getline",
+        "kind": "docs",
+        "where": "reading a whole line, spaces included",
+        "url": "https://en.cppreference.com/w/cpp/string/basic_string/getline"
+      }
+    ]
+  },
+  "cpp-std-map": {
+    "name": "std::map",
+    "topic": "cpp",
+    "oneLine": "A map stores key-value pairs sorted by key, so looking a key up, inserting one and walking the whole thing in order are all easy.",
+    "needs": [
+      "cpp-std-vector"
+    ],
+    "readings": [
+      {
+        "title": "learncpp: Introduction to the standard library containers",
+        "kind": "course",
+        "where": "and where map sits among them",
+        "url": "https://www.learncpp.com/cpp-tutorial/introduction-to-the-standard-library-containers/"
+      },
+      {
+        "title": "cppreference: std::map",
+        "kind": "docs",
+        "where": "operator[], find, count, and that iteration is key-ordered",
+        "url": "https://en.cppreference.com/w/cpp/container/map"
+      },
+      {
+        "title": "cppreference: std::unordered_map",
+        "kind": "docs",
+        "where": "the hash-table sibling, and what you give up for speed",
+        "url": "https://en.cppreference.com/w/cpp/container/unordered_map"
+      }
+    ]
   }
 }

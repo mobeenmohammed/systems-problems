@@ -1,0 +1,57 @@
+{
+  "key": {
+    "cases": [
+      {
+        "stdin": "one\n",
+        "expect": "distinct 1\none 1\ntop one 1\n"
+      },
+      {
+        "stdin": "a a a a\n",
+        "expect": "distinct 1\na 4\ntop a 4\n"
+      },
+      {
+        "stdin": "c b a\n",
+        "expect": "distinct 3\na 1\nb 1\nc 1\ntop a 1\n"
+      },
+      {
+        "stdin": "ABC abc AbC\n",
+        "expect": "distinct 1\nabc 3\ntop abc 3\n"
+      },
+      {
+        "stdin": "line line, line\n",
+        "expect": "distinct 2\nline 2\nline, 1\ntop line 2\n"
+      },
+      {
+        "stdin": "   \n  spaced   out  \n\n",
+        "expect": "distinct 2\nout 1\nspaced 1\ntop out 1\n"
+      },
+      {
+        "stdin": "z y z y x\n",
+        "expect": "distinct 3\nx 1\ny 2\nz 2\ntop y 2\n"
+      },
+      {
+        "stdin": "b b a a a\n",
+        "expect": "distinct 2\na 3\nb 2\ntop a 3\n"
+      },
+      {
+        "stdin": "apple Apple APPLE banana BANANA cherry\n",
+        "expect": "distinct 3\napple 3\nbanana 2\ncherry 1\ntop apple 3\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n#include <map>\n#include <string>\n\nint main()\n{\n    std::map<std::string, int> count;\n\n    std::string word;\n    while (std::cin >> word)\n    {\n        for (char& c : word)\n            if (c >= 'A' && c <= 'Z') c = static_cast<char>(c - 'A' + 'a');\n        ++count[word];\n    }\n\n    std::cout << \"distinct \" << count.size() << \"\\n\";\n\n    std::string best;\n    int bestCount{ 0 };\n    for (const auto& entry : count)\n    {\n        std::cout << entry.first << ' ' << entry.second << \"\\n\";\n        if (entry.second > bestCount)\n        {\n            bestCount = entry.second;\n            best = entry.first;\n        }\n    }\n\n    if (bestCount > 0) std::cout << \"top \" << best << ' ' << bestCount << \"\\n\";\n    else               std::cout << \"top none 0\\n\";\n\n    return 0;\n}\n"
+    }
+  },
+  "explanation": "## The whole counting loop\n\n```cpp\nstd::map<std::string, int> count;\n\nstd::string word;\nwhile (std::cin >> word)\n{\n    for (char& c : word)\n        if (c >= 'A' && c <= 'Z') c = static_cast<char>(c - 'A' + 'a');\n    ++count[word];\n}\n```\n\nFour lines, and the interesting one is the last.\n\n## What `count[word]` does when the key is new\n\n```cpp\n++count[word];\n```\n\n`operator[]` on a map **inserts** the key if it is absent, value-initialises the\nvalue, and returns a reference to it. Value-initialising an `int` gives `0`, so\n`++` makes it `1`. For a key already present it returns a reference to the\nexisting count, and `++` makes it one more.\n\nSo one expression handles both cases, and the \"have I seen this word before\"\nquestion never has to be asked. Written out, the explicit version is:\n\n```cpp\nauto it = count.find(word);\nif (it == count.end()) count.insert({ word, 1 });\nelse                   ++it->second;\n```\n\nCorrect, five times longer, and does two lookups in the branch that inserts.\n\n**The flip side, and it bites people:** `operator[]` inserts on *read* too.\n\n```cpp\nif (count[\"cache\"] > 0) { ... }        // just inserted \"cache\" with value 0\n```\n\nLooking a key up this way creates it. If you only want to ask whether a key\nexists, use `count.contains(word)` (C++20) or `count.find(word) != count.end()`.\nAnd note that `operator[]` is therefore not available on a `const` map at all -\nit cannot be, since it may modify the container.\n\n## Why no sorting step\n\nIterating a `std::map` visits its keys in ascending order, because that is how it\nstores them - a balanced binary search tree, ordered by `std::less` on the key.\nSo:\n\n```cpp\nfor (const auto& entry : count)\n    std::cout << entry.first << ' ' << entry.second << \"\\n\";\n```\n\nprints alphabetically, with no `std::sort` anywhere. The container was chosen\nbecause it already has the property the output format needs.\n\nThe alternative is `std::unordered_map`, a hash table: lookups are O(1) average\ninstead of O(log n), and iteration order is **unspecified** - it depends on the\nhash function and the bucket count, and it can change between runs or library\nversions. For this problem that would mean collecting the entries into a vector\nand sorting them afterwards. Worth knowing both, and worth knowing which\nquestion each answers:\n\n| | `std::map` | `std::unordered_map` |\n| --- | --- | --- |\n| lookup | O(log n) | O(1) average |\n| iteration order | sorted by key | unspecified |\n| needs from the key | `<` | a hash and `==` |\n| memory | node per element, pointer-chasing | buckets, better locality |\n\n## `const auto&` in the loop\n\n```cpp\nfor (const auto& entry : count)\n```\n\nEach element of a map is a `std::pair<const std::string, int>`, so `entry.first`\nis the word and `entry.second` is the count. Writing that type out is noisy,\nhence `auto`.\n\nThe `&` matters: without it each iteration **copies** the pair, including a heap\nallocation for the string. The `const` says the loop only reads. Together they\nare the default form for iterating any container of non-trivial elements.\n\nC++17 can name the two halves directly, which reads better:\n\n```cpp\nfor (const auto& [word, n] : count)\n    std::cout << word << ' ' << n << \"\\n\";\n```\n\n## The tie-break falls out of the order\n\n```cpp\nif (entry.second > bestCount) { bestCount = entry.second; best = entry.first; }\n```\n\nStrictly greater, not `>=`. Since the walk is alphabetical, the first word to\nreach the maximum count is kept and no later word with the *same* count\ndisplaces it - which is precisely \"the alphabetically first of those tied\".\n\nChange it to `>=` and the **last** tied word wins instead. The hidden case\n`z y z y x` is there for this: `y` and `z` both appear twice, the answer is `y`,\nand `>=` reports `z`.\n\nThis is the useful observation. The tie-break was not implemented; it was\nobtained by walking the data in the right order and comparing strictly. When a\ntie-break happens to match the iteration order, that is the cheapest way to get\nit - and when it does not, you need an explicit comparison, so it is worth\nnoticing which situation you are in.\n\n## Lowercasing in place\n\n```cpp\nfor (char& c : word)\n```\n\n`char&`, so the characters of `word` are modified rather than copies of them.\nWithout the `&` the loop runs, changes nothing, and every capitalised word is\ncounted separately - the same missing-ampersand failure as the clamp problem,\none container deeper.\n\n## The empty input\n\n`distinct 0`, no word lines, and `bestCount` still `0`, so `top none 0`. Reporting\nan empty word with a count of zero would be worse than saying there is no answer -\nand `top none 0` is a shape a caller can test, which is the point of defining it\nrather than leaving it to whatever falls out.",
+  "readMore": [
+    {
+      "concept": "cpp-std-map",
+      "where": "cppreference on std::map, especially operator[] and find"
+    },
+    {
+      "concept": "cpp-strings",
+      "where": "learncpp on reading words with >> versus whole lines with getline"
+    }
+  ],
+  "id": "cpp-map-word-count"
+}
