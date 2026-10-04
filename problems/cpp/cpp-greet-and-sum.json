@@ -1,0 +1,52 @@
+{
+  "id": "cpp-greet-and-sum",
+  "title": "Your first compiled C++ problem",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "type": "code",
+  "tags": [
+    "functions",
+    "iostream",
+    "basics",
+    "cin"
+  ],
+  "estimate": 18,
+  "prereqs": [
+    {
+      "concept": "cpp-functions",
+      "why": "The problem asks for a function with parameters and a return value, which is the whole exercise."
+    },
+    {
+      "concept": "cpp-initialisation",
+      "why": "Every variable you declare here should be initialised, and braces are the form to use."
+    }
+  ],
+  "statement": "Everything up to now has been reading code. This one you write, and it is compiled and run with real `g++`.\n\nRead a **name** on the first line, then **two integers** on the second. Print exactly two lines:\n\n```\ninput:        output:\nJimmy         Hello, Jimmy!\n3 4           3 + 4 = 7\n```\n\nThe second line is the two numbers, the operator, an equals sign and the sum, with single spaces exactly as shown.\n\n### What this is really asking\n\nWrite the addition as a **function** rather than inline:\n\n```cpp\nint add(int a, int b)\n{\n    return a + b;\n}\n```\n\nand call it from `main`. It is a trivial function and that is the point — the exercise is the shape (a declaration, parameters, a return value, a call), not the arithmetic.\n\n### Notes\n\n- `std::cin >> name` reads one whitespace-separated word, which is all a name is here.\n- `std::cin >> a >> b` reads both integers. The newline between the lines is whitespace and `>>` skips it, so you do not need to do anything special about the two lines.\n- `'\\n'` is cheaper than `std::endl` and does the same thing to the output. `std::endl` also flushes, which you almost never need.\n- The sums all fit in an `int`.\n\n**C++ only.** This one needs the judge running — `docker compose -f judge/compose.yml up -d` — because the point is that your C++ is really compiled. The editor will lint it with `g++` as you type either way.",
+  "hints": [
+    "Three variables: a `std::string` for the name and two `int`s. Include `<string>` as well as `<iostream>`.",
+    "`std::cin >> name >> a >> b;` works in one statement, because `>>` skips whitespace including the newline between your two input lines.",
+    "Build the second line in one go: `std::cout << a << \" + \" << b << \" = \" << add(a, b) << '\\n';` — and mind the spaces inside the string literals."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n#include <string>\n\n// Write your function here. It takes two ints and returns their sum.\nint add(int a, int b)\n{\n    return 0;   // <- replace this\n}\n\nint main()\n{\n    std::string name{};\n    int a{};\n    int b{};\n\n    // Read the name, then the two numbers.\n\n    // Print the two lines.\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "Jimmy\n3 4\n",
+        "expect": "Hello, Jimmy!\n3 + 4 = 7\n"
+      },
+      {
+        "stdin": "Ada\n-5 12\n",
+        "expect": "Hello, Ada!\n-5 + 12 = 7\n"
+      }
+    ]
+  }
+}

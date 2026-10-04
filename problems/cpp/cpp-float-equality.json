@@ -1,0 +1,32 @@
+{
+  "id": "cpp-float-equality",
+  "title": "Nought point one plus nought point two",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "type": "predict",
+  "tags": [
+    "floating-point",
+    "precision",
+    "equality"
+  ],
+  "estimate": 11,
+  "prereqs": [
+    {
+      "concept": "cpp-floating-point",
+      "why": "Every line is a consequence of a double storing a binary fraction rather than a decimal one."
+    }
+  ],
+  "statement": "**What does this print?** Three lines.\n\nThe first line is the famous one. The second and third lines together explain why it took you until now to notice.",
+  "hints": [
+    "0.1 and 0.2 cannot be represented exactly in binary, any more than one third can be written exactly in decimal. So what is `sum` really?",
+    "`std::cout` prints a double with six significant digits by default. `precision(17)` asks for enough digits to show every double exactly.",
+    "The comparison on the first line is between two values that are both approximations — and they are not the *same* approximation."
+  ],
+  "payload": {
+    "lang": "cpp",
+    "lines": 4,
+    "verifyAs": "cpp",
+    "prompt": "Three lines of output.",
+    "code": "#include <iostream>\n\nint main()\n{\n    double a{ 0.1 };\n    double b{ 0.2 };\n    double sum{ a + b };\n\n    std::cout << (sum == 0.3) << '\\n';\n\n    std::cout << sum << '\\n';\n\n    std::cout.precision(17);\n    std::cout << sum << '\\n';\n\n    return 0;\n}"
+  }
+}

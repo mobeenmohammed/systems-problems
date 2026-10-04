@@ -80,18 +80,18 @@ const ProblemView = (() => {
     const type  = Catalog.TYPE_BY_ID[p.type] || { label: p.type };
 
     const head = el('div', { class: 'phead' }, [
-      el('div', { class: 'row tiny', style: 'margin-bottom:.4rem' }, [
-        el('a', { href: '#/problems', class: 'faint' }, ['← All problems']),
-        el('span', { class: 'faint' }, ['·']),
-        el('a', { href: `#/problems?topic=${p.topic}`, class: 'faint' }, [topic.label]),
+      el('div', { class: 'crumbs' }, [
+        el('a', { href: '#/problems' }, ['All problems']),
+        el('span', {}, ['/']),
+        el('a', { href: `#/problems?topic=${p.topic}` }, [topic.label]),
       ]),
       el('h1', { text: p.title }),
       el('div', { class: 'meta' }, [
-        el('span', { class: `pill diff-${p.difficulty}`, text: diff.label }),
-        el('span', { class: 'pill pill-plain', text: type.label }),
+        el('span', { class: `diff diff-${p.difficulty}`, text: diff.label }),
+        el('span', { class: 'tag', text: type.label }),
         el('span', { class: `status-${r.status}` }, [statusWord(r)]),
-        p.estimate ? el('span', { class: 'faint' }, [`~${p.estimate} min`]) : null,
-        ...(p.tags || []).map(t => el('span', { class: 'faint' }, [`#${t}`])),
+        p.estimate ? el('span', {}, [`~${p.estimate} min`]) : null,
+        ...(p.tags || []).map(t => el('span', { class: 'tag', text: `#${t}` })),
       ]),
     ]);
 
@@ -124,7 +124,9 @@ const ProblemView = (() => {
       solution: drawSolution,
     }[activeTab] || drawProblem)(panel);
 
-    const wrap = el('div', { class: 'pwrap' }, [
+    /* A code problem wants the whole width for the editor, so it drops the
+       side column and the rail runs along the bottom instead. */
+    const wrap = el('div', { class: p.type === 'code' ? 'pwrap code' : 'pwrap' }, [
       el('div', {}, [head, tabs, panel]),
       el('div', { class: 'rail' }, rail()),
     ]);

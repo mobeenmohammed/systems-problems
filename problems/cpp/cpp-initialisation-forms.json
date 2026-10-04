@@ -1,0 +1,32 @@
+{
+  "id": "cpp-initialisation-forms",
+  "title": "Four ways to initialise a variable",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "type": "predict",
+  "tags": [
+    "initialisation",
+    "braces",
+    "basics"
+  ],
+  "estimate": 8,
+  "prereqs": [
+    {
+      "concept": "cpp-initialisation",
+      "why": "The whole program is the four forms side by side, and the output is what each one produces."
+    }
+  ],
+  "statement": "C++ gives a variable its first value in several different ways, and they do not all mean the same thing.\n\n**What does this print?** Four lines.",
+  "hints": [
+    "Three of these four give the variable the number written next to it. Work those out first and the only question left is the fourth.",
+    "`int e{};` has nothing between the braces. That form has a name — value initialisation — and it does something specific rather than nothing.",
+    "An `int` with empty braces is zero. Not undefined, not arbitrary: zero, guaranteed."
+  ],
+  "payload": {
+    "lang": "cpp",
+    "lines": 5,
+    "verifyAs": "cpp",
+    "prompt": "Four lines of output.",
+    "code": "#include <iostream>\n\nint main()\n{\n    int b = 5;    // copy initialisation\n    int c( 6 );   // direct initialisation\n    int d{ 7 };   // direct-list (brace) initialisation\n    int e{};      // value initialisation\n\n    std::cout << b << '\\n';\n    std::cout << c << '\\n';\n    std::cout << d << '\\n';\n    std::cout << e << '\\n';\n\n    return 0;\n}"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "id": "cpp-declaration-vs-definition",
+  "title": "Compiler error, or linker error?",
+  "topic": "cpp",
+  "difficulty": "intermediate",
+  "type": "multi",
+  "tags": [
+    "declarations",
+    "linker",
+    "odr",
+    "errors"
+  ],
+  "estimate": 13,
+  "prereqs": [
+    {
+      "concept": "cpp-odr",
+      "why": "Which tool complains depends entirely on whether the missing thing is a declaration or a definition."
+    },
+    {
+      "concept": "cpp-functions",
+      "why": "The examples are all functions, and what a function declaration does and does not provide is the question."
+    },
+    {
+      "concept": "cpp-preprocessor",
+      "why": "One of the cases is about what putting a definition in a header does."
+    }
+  ],
+  "statement": "A program in two files. `main.cpp` includes `maths.h` and calls functions from it; `maths.cpp` is meant to define them.\n\nKnowing which tool will complain — the compiler or the linker — tells you where to look, and it is the single most useful thing to be able to predict about a build failure.\n\n**Which of these statements are true?** Select all that apply.",
+  "hints": [
+    "The compiler sees one translation unit at a time and never looks at another `.cpp`. So what can it possibly know about whether a function body exists?",
+    "A declaration is a promise that something exists somewhere. Who checks that the promise was kept, and when?",
+    "One of these is about `inline`, which exists precisely to make an exception to the one-definition rule."
+  ],
+  "payload": {
+    "options": [
+      "If `maths.h` declares `int square(int);` and no `.cpp` ever defines it, `main.cpp` compiles successfully and the **linker** reports an undefined reference.",
+      "If `main.cpp` calls `square(2, 3)` with two arguments while the header declares it taking one, the **compiler** reports the error.",
+      "If a non-inline function is *defined* in `maths.h` and the header is included by two different `.cpp` files, the **linker** reports a duplicate definition.",
+      "Adding `inline` to a function defined in a header makes the duplicate-definition problem go away, because an inline function may be defined in every translation unit that uses it."
+    ]
+  }
+}

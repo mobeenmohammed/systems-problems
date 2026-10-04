@@ -1,0 +1,45 @@
+{
+  "note": "One problem per week, each chosen to be doable with what the notes cover by then. `from` is the Monday the week starts; the site shows the latest entry whose date has arrived, so the list can run ahead without revealing anything. Add a row rather than editing the current one, so the history stays readable.",
+  "weeks": [
+    {
+      "from": "2026-09-28",
+      "problem": "cpp-initialisation-forms",
+      "why": "Four ways to initialise one variable, and only one of them is safe by default. Worth settling early, because every line you write from here on picks one."
+    },
+    {
+      "from": "2026-10-05",
+      "problem": "cpp-sizeof-and-types",
+      "why": "Your notes have sizeof and alignment fresh. This is the same idea pushed one step further, into why a struct is bigger than the sum of its parts."
+    },
+    {
+      "from": "2026-10-12",
+      "problem": "cpp-unsigned-wrap",
+      "why": "The note on why to avoid unsigned integers, made concrete: a comparison that is obviously true and is false."
+    },
+    {
+      "from": "2026-10-19",
+      "problem": "cpp-greet-and-sum",
+      "why": "The first problem where you write and compile real C++. Functions, parameters, std::cin and std::cout, and nothing else."
+    },
+    {
+      "from": "2026-10-26",
+      "problem": "cpp-scope-shadowing",
+      "why": "Shadowing is in your notes and it is the only one of these ideas that bites silently — the program compiles, runs, and uses the wrong variable."
+    },
+    {
+      "from": "2026-11-02",
+      "problem": "cpp-header-guard-bug",
+      "why": "You have header guards written down. This is what one looks like when it is subtly wrong, which is how they always go wrong."
+    },
+    {
+      "from": "2026-11-09",
+      "problem": "cpp-enum-values",
+      "why": "Unscoped enumerations are the newest thing in your notes, and their implicit conversion to int is the part that surprises everyone."
+    },
+    {
+      "from": "2026-11-16",
+      "problem": "arch-struct-padding",
+      "why": "Your data-alignment note, applied to a struct you have to lay out by hand. The first problem here that is about the machine rather than the language."
+    }
+  ]
+}

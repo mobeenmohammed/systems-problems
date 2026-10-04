@@ -1,0 +1,36 @@
+{
+  "id": "cpp-enum-values",
+  "title": "What an unscoped enumerator really is",
+  "topic": "cpp",
+  "difficulty": "intermediate",
+  "type": "predict",
+  "tags": [
+    "enums",
+    "conversions",
+    "constants"
+  ],
+  "estimate": 12,
+  "prereqs": [
+    {
+      "concept": "cpp-enums",
+      "why": "The output is the numbering rule plus the implicit conversion to int, which are the two things an unscoped enum does."
+    },
+    {
+      "concept": "cpp-fundamental-types",
+      "why": "The values are integers, and that is the point — the names are a thin layer over them."
+    }
+  ],
+  "statement": "**What does this print?** Four lines.\n\nTwo rules decide all of it: how the numbering works when you set some values and not others, and what an enumerator turns into when you use it where a number is expected.",
+  "hints": [
+    "The first enumerator is 0 unless you say otherwise, and each one after it is one more than the one before — including after an explicit value.",
+    "`std::cout << red` compiles. Think about what type `red` has to become for that to work, and what gets printed as a result.",
+    "Count carefully from `blue = 10`."
+  ],
+  "payload": {
+    "lang": "cpp",
+    "lines": 5,
+    "verifyAs": "cpp",
+    "prompt": "Four lines of output.",
+    "code": "#include <iostream>\n\nenum Colour\n{\n    red,\n    green,\n    blue = 10,\n    indigo,\n    violet\n};\n\nint main()\n{\n    std::cout << red << '\\n';\n    std::cout << violet << '\\n';\n    std::cout << (green < blue) << '\\n';\n\n    int x{ blue };\n    std::cout << x + 1 << '\\n';\n\n    return 0;\n}"
+  }
+}

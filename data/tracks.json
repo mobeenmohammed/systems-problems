@@ -1,0 +1,84 @@
+[
+  {
+    "id": "cpp-foundations",
+    "title": "C++ foundations",
+    "blurb": "The language as far as your notes go: initialisation, types and sizes, scope, linkage, namespaces and enums. No loops, no classes — none of these need them.",
+    "goal": "Finish this and every idea in chapters 0 to 2 of your notes has been tested rather than only read.",
+    "problems": [
+      "cpp-initialisation-forms",
+      "cpp-sizeof-and-types",
+      "cpp-scope-shadowing",
+      "cpp-header-guard-bug",
+      "cpp-namespace-resolution",
+      "cpp-unsigned-wrap",
+      "cpp-float-equality",
+      "cpp-enum-values",
+      "cpp-declaration-vs-definition",
+      "cpp-greet-and-sum"
+    ]
+  },
+  {
+    "id": "first-steps",
+    "title": "First steps",
+    "blurb": "Ten problems across the whole site, chosen so that each one needs only what the one before it taught. A reasonable first week.",
+    "goal": "A tour of what is here, without hitting anything that needs background you have not got yet.",
+    "problems": [
+      "cpp-initialisation-forms",
+      "cpp-sizeof-and-types",
+      "arch-struct-padding",
+      "arch-cache-line-stride",
+      "cpp-unsigned-wrap",
+      "linux-permission-octal",
+      "sysdesign-latency-ladder",
+      "os-page-fault-walk",
+      "dist-partition-choice",
+      "cpp-greet-and-sum"
+    ]
+  },
+  {
+    "id": "memory",
+    "title": "How memory really behaves",
+    "blurb": "Alignment, cache lines, locality, virtual memory and the page-fault path — the thread that runs from sizeof all the way to a 4.5x slowdown from a loop order.",
+    "goal": "Be able to explain why two loops doing identical arithmetic differ by eight times.",
+    "problems": [
+      "cpp-sizeof-and-types",
+      "arch-struct-padding",
+      "arch-cache-line-stride",
+      "hpc-loop-order-row-major",
+      "os-page-fault-walk",
+      "os-cow-after-fork",
+      "hpc-transpose-lower-bound",
+      "arch-false-sharing-fixes"
+    ]
+  },
+  {
+    "id": "undefined-behaviour",
+    "title": "What the standard does not promise",
+    "blurb": "Signed overflow, integer promotions, out-of-bounds reads, and the optimiser deleting a check you wrote. The most useful thing a C++ programmer can be frightened of.",
+    "goal": "Stop reading \"it worked at -O0\" as evidence of anything.",
+    "problems": [
+      "cpp-unsigned-wrap",
+      "compilers-integer-promotions",
+      "cpp-float-equality",
+      "algo-running-max",
+      "compilers-wrapv-flag",
+      "algo-binary-search-overflow",
+      "compilers-check-the-optimiser-deletes"
+    ]
+  },
+  {
+    "id": "writing-code",
+    "title": "Problems you write code for",
+    "blurb": "Every code problem on the site, easiest first. Each compiles and runs for real, in C++ if you want it to.",
+    "goal": "Six working programs, each one a thing worth having written once.",
+    "problems": [
+      "cpp-greet-and-sum",
+      "algo-running-max",
+      "compilers-expression-lexer",
+      "hpc-inclusive-scan",
+      "fpga-sequence-detector",
+      "algo-lru-cache",
+      "sysdesign-token-bucket"
+    ]
+  }
+]

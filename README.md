@@ -1,8 +1,8 @@
 # Systems Lab
 
 A personal problems site for the knowledge a low-level systems developer is
-expected to have: computer architecture, operating systems, Linux, compilers,
-HPC, distributed systems, FPGAs, algorithms and system design.
+expected to have: **C++**, computer architecture, operating systems, Linux,
+compilers, HPC, distributed systems, FPGAs, algorithms and system design.
 
 Not only coding problems. Most of what matters in these subjects is not "write
 a function" — it is *what does this print*, *where is the bug*, *what is the
@@ -19,19 +19,20 @@ serves it directly.
 
 ## What is in it
 
-**45 problems** across nine topics — five each, two Beginner, two Intermediate
-and one Advanced — using all nine problem types. **53 concepts** with **154
-readings** between them, every one naming a book and a chapter or a specific
-page.
+**55 problems** across ten topics. **63 concepts** carry **184 readings** between
+them, every one naming a book and a chapter or a specific page. **5 tracks**
+order subsets of the problems so there is always an obvious next one, and one
+problem is featured each week.
 
 ```
-Topics        arch · os · linux · compilers · hpc · dist · fpga · algo · sysdesign
+Topics        cpp · arch · os · linux · compilers · hpc · dist · fpga · algo · sysdesign
 Difficulty    Beginner · Intermediate · Advanced
 Types         mcq · multi · numeric · short · order · match · predict · locate · code
 ```
 
 | Topic | Problems |
 | --- | --- |
+| **C++** | Four ways to initialise a variable `predict`, Nought point one plus nought point two `predict`, The variable that is not the variable you meant `locate`, Three minus five, unsigned `predict`, What the standard actually guarantees about sizes `multi`, Your first compiled C++ problem `code`, Compiler error, or linker error? `multi`, The header guard that guards the wrong thing `locate`, What an unscoped enumerator really is `predict`, Which function gets called? `predict` |
 | **Computer Architecture** | How big is this struct? `numeric`, How often does a sequential walk miss? `numeric`, The ceiling on 64 cores `numeric`, Which instruction has to stall? `locate`, Two threads, one cache line `multi` |
 | **Operating Systems** | What happens on a page fault `order`, printf, then fork `predict`, Two locks, two orders `locate`, Which scheduler behaves like that? `match`, Memory after a fork `numeric` |
 | **Linux & Tooling** | Count the distinct clients `short`, Spell that permission in octal `numeric`, Read the strace and say what is wrong `mcq`, What the shell does, in order `order`, Killed at 2 GB on a 64 GB machine `multi` |
@@ -57,6 +58,24 @@ Types         mcq · multi · numeric · short · order · match · predict · l
 | `code` | Write a program; it is compiled and run against tests |
 
 Adding a type is one file in `js/types/` and one row in `Catalog.TYPES`.
+
+### C++
+
+The largest topic, and the one aimed at a specific person: these problems
+assume the language as far as *initialisation, fundamental types and sizes,
+scope and shadowing, the preprocessor and header guards, functions, namespaces,
+signed and unsigned integers, floating point, and unscoped enumerations* — and
+**no further**. No loops, no `switch`, no arrays or vectors, no structs or
+classes, no `auto`.
+
+That is a real constraint and it rules out most of what a C++ exercise set
+normally contains. What it leaves is the part that actually catches people:
+`predict`-the-output problems about conversions and initialisation, `locate`
+problems about shadowing and header guards, and one `code` problem that is
+compiled by real `g++`.
+
+The readings point at **learncpp.com chapter by chapter**, because that is the
+course these problems are calibrated against.
 
 ### Prerequisites and reading
 
@@ -123,6 +142,50 @@ compiler's warnings **even on a successful build**, and can require a program
 to be clean under AddressSanitizer as well as correct. That last one is the
 reason it is ours rather than Piston or Judge0, both of which run fixed compile
 commands. See [judge/README.md](judge/README.md).
+
+## The editor
+
+Code problems get syntax highlighting and real compiler diagnostics.
+
+**Highlighting** is a coloured `<pre>` sitting exactly behind a transparent
+`<textarea>`, scroll-synced. The textarea keeps the caret, selection, undo, IME
+and mobile keyboards — which is the whole reason to do it this way rather than
+reimplementing an editor over a `contenteditable` div. The catch is that any
+metric set on one layer and not the other makes text sit beside its own colour,
+so the metrics are declared once in a rule targeting both and
+`tests/browser/styles.test.mjs` fails if a later rule sets one of them on a
+single layer.
+
+**Linting** has two tiers:
+
+- A **bracket scanner** runs on every keystroke. It understands comments and
+  string literals, so a brace in a comment is not reported, and it points at
+  the line where an unclosed brace was *opened* rather than at end of file
+  where the compiler points.
+- The **real compiler**, through the judge's `/lint` endpoint: `g++
+  -fsyntax-only`, `rustc --emit=metadata`, `py_compile`, `node --check`. Its
+  diagnostics replace the local guess, with line and column, and clicking one
+  jumps the caret there. So the message you get while typing is the message a
+  build would give you.
+
+The editor also closes brackets, steps over a closer you type where one already
+sits, puts a lone closer on its own line, and keeps a separate draft per
+language.
+
+## Tracks, the weekly problem, and resources
+
+With fifty-odd problems the hard part is choosing one, so three things answer
+that:
+
+- **`data/tracks.json`** — ordered sets of problems that build on each other.
+  Each shows progress and the next unsolved problem. An id that names a problem
+  which does not exist yet is dropped rather than rendered as a dead row.
+- **`data/weekly.json`** — one problem per week, with a sentence on why that one
+  now. The site shows the latest entry whose Monday has arrived, so the file can
+  run ahead without giving anything away.
+- **`data/resources.json`** — where to *learn* a topic, as opposed to the
+  per-concept readings. "Where do I learn C++" and "where do I read about
+  alignment" are different questions and get different answers.
 
 ## Writing a problem
 
@@ -238,14 +301,15 @@ js/highlight.js         syntax colouring for displayed code
 js/catalog.js           the index, the concept graph, lazy problem loading
 js/runners/harness.js   output comparison and verdicts — pure, and tested alone
 js/runners/index.js     where each language runs: a Worker here, or the judge
-js/editor.js            a textarea with a gutter, Tab, and auto-indent
+js/lint.js              brackets locally, the real compiler through the judge
+js/editor.js            highlighting overlay, gutter, diagnostics
 js/types/registry.js    the problem-type contract
 js/types/*.js           one file per problem type
 js/problem.js           a problem: its tabs, submitting, the verdict
 js/views.js             dashboard, catalog, reading map, profile, shop, settings
 js/app.js               bootstrap, hash routing, shortcuts
 judge/                  the local C++/Rust/Python judge (Docker)
-problems/<topic>/*.json 45 problems
+problems/<topic>/*.json 55 problems
 solutions/*.json        keys and explanations
 scripts/build-index.mjs generate and validate the catalog
 ```
@@ -258,6 +322,7 @@ scripts/build-index.mjs generate and validate the catalog
 | `g` | Dashboard |
 | `p` | Problems |
 | `r` | Reading |
+| `t` | Tracks |
 | `u` | Profile |
 | `s` | Shop |
 | `Ctrl+Enter` | Run the samples (in a code problem) |

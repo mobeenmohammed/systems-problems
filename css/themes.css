@@ -64,7 +64,7 @@ html[data-theme="theme-paper"] {
   --hl-literal: #9a4a00;
   --hl-preproc: #3f5468;
 
-  --shadow: 0 8px 24px rgba(28, 32, 36, .10);
+  --shadow-2: 0 8px 24px rgba(28, 32, 36, .10);
 }
 
 /* ---------------- Gruvbox — warm and retro ---------------- */
@@ -304,7 +304,7 @@ html[data-theme="theme-phosphor"] {
   --hl-literal: #d8ffa8;
   --hl-preproc: #4fc967;
 
-  --shadow: 0 0 24px rgba(51, 255, 102, .10);
+  --shadow-2: 0 0 24px rgba(51, 255, 102, .10);
 }
 
 /* A faint scanline wash, only for the theme that asks for it. Pointer events

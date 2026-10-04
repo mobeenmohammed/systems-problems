@@ -46,10 +46,90 @@ const UI = (() => {
     root.setAttribute('data-frame', e.frame || 'frame-none');
   }
 
+  /* A progress ring. Reads better than a bar for a bare percentage, and it
+     fits beside a title where a full-width bar does not. */
+  function ring(fraction, label) {
+    const r = 18;
+    const circumference = 2 * Math.PI * r;
+    const clamped = Math.max(0, Math.min(1, Number(fraction) || 0));
+    const offset = circumference * (1 - clamped);
+    const wrap = el('div', { class: 'ring', title: `${Math.round(clamped * 100)}%` });
+    wrap.innerHTML =
+      '<svg viewBox="0 0 44 44" aria-hidden="true">' +
+      `<circle class="ring-track" cx="22" cy="22" r="${r}"></circle>` +
+      `<circle class="ring-fill" cx="22" cy="22" r="${r}" ` +
+      `stroke-dasharray="${circumference.toFixed(2)}" stroke-dashoffset="${offset.toFixed(2)}"></circle>` +
+      '</svg>' +
+      `<span class="ring-label">${MD.escapeHtml(String(label))}</span>`;
+    return wrap;
+  }
+
+  /* Difficulty as a coloured dot plus the word, so it never depends on hue. */
+  const diffTag = id => {
+    const d = Store.DIFF_BY_ID[id] || { label: id };
+    return el('span', { class: `diff diff-${id}`, text: d.label });
+  };
+
   const statPill = (n, k) => el('div', { class: 'stat' }, [
     el('div', { class: 'n', text: String(n) }),
     el('div', { class: 'k', text: k }),
   ]);
+
+  /* ---------------- the problem list ----------------
+
+     One renderer for the catalog, a track and the revisit strip. Aligned
+     columns scan far better than a stack of cards once there are more than a
+     dozen rows, which is why this is a table in all but name. */
+
+  const TICK = { solved: '✓', attempted: '◔', read: '◎', unsolved: '' };
+
+  function problemRow(p, { index = null } = {}) {
+    const r = Store.record(p.id);
+    const type = Catalog.TYPE_BY_ID[p.type] || {};
+    const due = r.reviewOn && r.reviewOn <= Store.todayISO();
+    const mark = TICK[r.status] || '';
+
+    return el('a', {
+      class: 'prow', href: `#/p/${p.id}`, 'data-status': r.status,
+    }, [
+      el('span', {
+        class: `tick status-${r.status}`,
+        title: r.status,
+        text: mark || (index != null ? String(index) : ''),
+      }),
+      el('span', {}, [
+        el('div', { class: 'title' }, [
+          p.title,
+          r.flagged ? el('span', { class: 'faint', text: ' ★' }) : null,
+          due ? el('span', { class: 'faint', text: ' ◷' }) : null,
+        ]),
+        el('div', { class: 'meta' }, [
+          el('span', { text: (Store.TOPIC_BY_ID[p.topic] || {}).label || p.topic }),
+          el('span', { class: 'tag', text: type.label || p.type }),
+          ...(p.tags || []).slice(0, 2).map(t => el('span', { text: `#${t}` })),
+        ]),
+      ]),
+      diffTag(p.difficulty),
+      el('span', {
+        class: 'worth',
+        text: r.status === 'solved' ? `${r.xpEarned} XP` : `${Store.potentialXp(p)} XP`,
+      }),
+    ]);
+  }
+
+  function problemList(metas, { numbered = false } = {}) {
+    const list = el('div', { class: 'plist' });
+    list.append(el('div', { class: 'plist-head' }, [
+      el('span', { text: numbered ? '#' : '' }),
+      el('span', { text: 'Problem' }),
+      el('span', { text: 'Difficulty' }),
+      el('span', { style: 'text-align:right', text: 'XP' }),
+    ]));
+    metas.filter(Boolean).forEach((p, i) => {
+      list.append(problemRow(p, { index: numbered ? i + 1 : null }));
+    });
+    return list;
+  }
 
   /* ---------------- dashboard ---------------- */
 
@@ -73,30 +153,18 @@ const UI = (() => {
       statPill(st.readings, 'readings read'),
     );
 
+    renderWeekly();
+    renderTracksStrip();
+
     /* Anything flagged or due — the dashboard is the only place this would
        ever be noticed, so it goes above the topics. */
     const due = Store.dueForReview();
     const review = $('#homeReview');
     if (due.length) {
-      const list = el('div', { class: 'plist' });
-      for (const r of due.slice(0, 6)) {
-        const m = Catalog.meta(r.id);
-        if (!m) continue;
-        list.append(el('a', { class: 'prow', href: `#/p/${r.id}` }, [
-          el('span', { class: 'tick', text: r.reason === 'flagged' ? '★' : '◷' }),
-          el('span', {}, [
-            el('div', { class: 'title', text: m.title }),
-            el('div', { class: 'meta' }, [
-              r.reason === 'flagged' ? 'you flagged this' : `booked for ${r.reviewOn}`,
-            ]),
-          ]),
-          el('span', { class: `pill diff-${m.difficulty}`, text: (Store.DIFF_BY_ID[m.difficulty] || {}).label || '' }),
-        ]));
-      }
+      const metas = due.slice(0, 6).map(r => Catalog.meta(r.id)).filter(Boolean);
       review.replaceChildren(
-        el('h2', { text: 'Worth revisiting' }),
-        list,
-        el('div', { style: 'height:1.5rem' }),
+        el('div', { class: 'section-head' }, [el('h2', { text: 'Worth revisiting' })]),
+        problemList(metas),
       );
     } else {
       review.replaceChildren();
@@ -104,17 +172,145 @@ const UI = (() => {
 
     const grid = $('#homeTopics');
     grid.replaceChildren(...Store.TOPICS.map(t => {
-      const s = st.perTopic[t.id] || { total: 0, solved: 0 };
-      const pct = s.total ? Math.round((s.solved / s.total) * 100) : 0;
+      const b = st.perTopic[t.id] || { total: 0, solved: 0 };
+      const fraction = b.total ? b.solved / b.total : 0;
       return el('a', { class: 'topic-card', href: `#/problems?topic=${t.id}` }, [
-        el('h3', { text: t.label }),
-        el('p', { text: t.blurb }),
-        el('div', { class: 'bar' }, [el('i', { style: `width:${pct}%` })]),
-        el('div', { class: 'count', text: `${s.solved} of ${s.total} solved` }),
+        el('div', {}, [
+          el('h3', { text: t.label }),
+          el('p', { text: t.blurb }),
+          el('div', { class: 'count', text: `${b.solved} of ${b.total} solved` }),
+        ]),
+        ring(fraction, `${b.solved}/${b.total}`),
       ]);
     }));
 
     renderHeat($('#homeHeat'), st.days);
+  }
+
+  /* The week's problem, chosen from data/weekly.json. Deliberately the most
+     prominent thing on the page: with forty-five problems the hardest part is
+     deciding which one to do, and this answers that. */
+  function renderWeekly() {
+    const host = $('#homeWeekly');
+    const week = Catalog.thisWeek();
+    if (!week) { host.replaceChildren(); return; }
+
+    const r = Store.record(week.problem);
+    const done = r.status === 'solved';
+    const diff = Store.DIFF_BY_ID[week.meta.difficulty] || {};
+    const type = Catalog.TYPE_BY_ID[week.meta.type] || {};
+
+    host.replaceChildren(el('div', { class: 'weekly' }, [
+      el('div', {}, [
+        el('div', { class: 'eyebrow', text: done ? 'This week · done' : 'This week' }),
+        el('h2', {}, [el('a', { href: `#/p/${week.problem}`, text: week.meta.title })]),
+        week.why ? el('p', { html: MD.renderInline(week.why) }) : null,
+        el('div', { class: 'meta' }, [
+          diffTag(week.meta.difficulty),
+          el('span', { class: 'tag', text: (Store.TOPIC_BY_ID[week.meta.topic] || {}).label || week.meta.topic }),
+          el('span', { class: 'tag', text: type.label || week.meta.type }),
+          week.meta.estimate ? el('span', { class: 'tag', text: `~${week.meta.estimate} min` }) : null,
+        ]),
+      ]),
+      el('div', { class: 'weekly-side' }, [
+        el('a', {
+          class: done ? 'btn' : 'btn btn-primary',
+          href: `#/p/${week.problem}`,
+        }, [done ? 'Look again' : 'Start it']),
+        el('span', { class: 'tiny faint', text: done ? `Solved ${r.solvedAt}` : `${Store.potentialXp(week.meta)} XP` }),
+      ]),
+    ]));
+  }
+
+  /* A short strip of tracks on the dashboard; the full list is its own view. */
+  function renderTracksStrip() {
+    const host = $('#homeTracks');
+    const tracks = Catalog.allTracks();
+    if (!tracks.length) { host.replaceChildren(); return; }
+
+    /* The ones with something left to do first, so the strip is useful rather
+       than a list of things already finished. */
+    const ranked = tracks
+      .map(t => ({ t, p: Catalog.trackProgress(t) }))
+      .sort((a, b) => (a.p.fraction === 1 ? 1 : 0) - (b.p.fraction === 1 ? 1 : 0)
+                   || b.p.fraction - a.p.fraction)
+      .slice(0, 3);
+
+    host.replaceChildren(
+      el('div', { class: 'section-head' }, [
+        el('h2', { text: 'Tracks' }),
+        el('a', { class: 'more', href: '#/tracks', text: 'All tracks →' }),
+      ]),
+      el('div', { class: 'tracks' }, ranked.map(({ t, p }) =>
+        el('a', { class: 'track-card', href: `#/tracks/${t.id}` }, [
+          el('h3', { text: t.title }),
+          el('p', { text: t.blurb }),
+          el('div', { class: 'bar' }, [el('i', { style: `width:${Math.round(p.fraction * 100)}%` })]),
+          el('div', { class: 'spread' }, [
+            el('span', { text: `${p.done} / ${p.total}` }),
+            el('span', { text: p.next ? 'next: ' + (p.next.meta.title.length > 26 ? p.next.meta.title.slice(0, 26) + '…' : p.next.meta.title) : 'done' }),
+          ]),
+        ]))),
+      el('div', { style: 'height:var(--s2)' }),
+    );
+  }
+
+  /* ---------------- tracks ---------------- */
+
+  function renderTracks(trackId) {
+    const host = $('#trackList');
+    const tracks = Catalog.allTracks();
+
+    if (!tracks.length) {
+      host.replaceChildren(el('div', { class: 'empty' }, ['No tracks are defined yet.']));
+      return;
+    }
+
+    /* One track, opened */
+    if (trackId) {
+      const t = Catalog.track(trackId);
+      if (!t) {
+        host.replaceChildren(el('div', { class: 'empty' }, [
+          el('h2', { text: 'No such track' }),
+          el('a', { class: 'btn', href: '#/tracks' }, ['All tracks']),
+        ]));
+        return;
+      }
+      const p = Catalog.trackProgress(t);
+      host.replaceChildren(
+        el('div', { class: 'phead' }, [
+          el('div', { class: 'crumbs' }, [
+            el('a', { href: '#/tracks', text: '← All tracks' }),
+          ]),
+          el('h1', { text: t.title }),
+          el('p', { class: 'muted', style: 'max-width:62ch', text: t.blurb }),
+          t.goal ? el('p', { class: 'small faint', style: 'max-width:62ch', text: t.goal }) : null,
+        ]),
+        el('div', { class: 'card', style: 'margin-bottom:var(--s4)' }, [
+          el('div', { class: 'spread', style: 'margin-bottom:var(--s2)' }, [
+            el('span', { class: 'small', text: `${p.done} of ${p.total} solved` }),
+            p.next ? el('a', { class: 'btn btn-sm btn-primary', href: `#/p/${p.next.id}` }, ['Next problem']) : el('span', { class: 'pill', style: 'color:var(--ok)', text: 'Complete' }),
+          ]),
+          el('div', { class: 'bar' }, [el('i', { style: `width:${Math.round(p.fraction * 100)}%` })]),
+        ]),
+        problemList(p.rows.map(r => r.meta), { numbered: true }),
+      );
+      return;
+    }
+
+    /* All tracks */
+    host.replaceChildren(el('div', { class: 'tracks' }, tracks.map(t => {
+      const p = Catalog.trackProgress(t);
+      return el('a', { class: 'track-card', href: `#/tracks/${t.id}` }, [
+        el('h3', { text: t.title }),
+        el('p', { text: t.blurb }),
+        el('div', { class: 'bar' }, [el('i', { style: `width:${Math.round(p.fraction * 100)}%` })]),
+        el('div', { class: 'spread' }, [
+          el('span', { text: `${p.done} / ${p.total} solved` }),
+          el('span', { text: p.next ? 'in progress' : 'complete' }),
+        ]),
+      ]);
+    })));
   }
 
   /* 26 weeks, ending today, laid out in columns of seven so it reads like a
@@ -192,31 +388,7 @@ const UI = (() => {
       return;
     }
 
-    list.replaceChildren(...rows.map(p => {
-      const r = Store.record(p.id);
-      const diff = Store.DIFF_BY_ID[p.difficulty] || {};
-      const type = Catalog.TYPE_BY_ID[p.type] || {};
-      const tick = { solved: '✓', attempted: '◔', read: '◎', unsolved: '' }[r.status] || '';
-      const due = r.reviewOn && r.reviewOn <= Store.todayISO();
-
-      return el('a', { class: 'prow', href: `#/p/${p.id}` }, [
-        el('span', { class: `tick status-${r.status}`, text: tick, title: r.status }),
-        el('span', {}, [
-          el('div', { class: 'title' }, [
-            p.title,
-            r.flagged ? el('span', { class: 'faint', text: ' ★' }) : null,
-            due ? el('span', { class: 'faint', text: ' ◷' }) : null,
-          ]),
-          el('div', { class: 'meta' }, [
-            el('span', { text: (Store.TOPIC_BY_ID[p.topic] || {}).label || p.topic }),
-            el('span', { text: type.label || p.type }),
-            ...(p.tags || []).slice(0, 3).map(t => el('span', { text: `#${t}` })),
-          ]),
-        ]),
-        el('span', { class: `pill diff-${p.difficulty}`, text: diff.label || p.difficulty }),
-        el('span', { class: 'worth', text: r.status === 'solved' ? `${r.xpEarned} XP` : `${Store.potentialXp(p)} XP` }),
-      ]);
-    }));
+    list.replaceChildren(problemList(rows));
   }
 
   function wireCatalog() {
@@ -238,7 +410,41 @@ const UI = (() => {
 
   let conceptFilter = { q: '', topic: '' };
 
+  /* Where to learn a topic from scratch, as opposed to the per-concept
+     readings below. "Where do I learn C++" and "where do I read about
+     alignment" are different questions and deserve different answers. */
+  function renderResources() {
+    const host = $('#resourceList');
+    if (!host) return;
+    const topicId = conceptFilter.topic;
+    const groups = topicId
+      ? [Catalog.topicResources(topicId)].filter(Boolean).map(r => ({ id: topicId, ...r }))
+      : Catalog.allResources();
+
+    if (!groups.length) { host.replaceChildren(); return; }
+
+    host.replaceChildren(...groups.map(g => el('div', { style: 'margin-bottom:var(--s5)' }, [
+      el('div', { class: 'section-head' }, [
+        el('h2', { text: g.title || (Store.TOPIC_BY_ID[g.id] || {}).label || g.id }),
+      ]),
+      g.blurb ? el('p', { class: 'muted small', style: 'max-width:68ch;margin-top:0', text: g.blurb }) : null,
+      el('div', { class: 'card stack' }, (g.resources || []).map(r => el('div', { class: 'prereq' }, [
+        el('div', { class: 'spread' }, [
+          el('h4', {}, [
+            r.url
+              ? el('a', { href: MD.safeHref(r.url), target: '_blank', rel: 'noopener noreferrer', text: r.title })
+              : r.title,
+          ]),
+          r.kind ? el('span', { class: 'kind', text: r.kind }) : null,
+        ]),
+        r.where ? el('p', { class: 'why', style: 'margin-bottom:.25rem', text: r.where }) : null,
+        r.note ? el('p', { class: 'one-line', style: 'margin-bottom:0', text: r.note }) : null,
+      ]))),
+    ])));
+  }
+
   function renderConcepts() {
+    renderResources();
     const topicSel = $('#cTopic');
     if (topicSel.options.length === 1) {
       for (const t of Store.TOPICS) topicSel.append(el('option', { value: t.id, text: t.label }));
@@ -543,6 +749,7 @@ const UI = (() => {
   return {
     toast, refreshPurse, applyCosmetics, wire,
     renderHome, renderCatalog, renderConcepts, renderProfile, renderShop, renderSettings,
+    renderTracks, renderResources, problemList,
     setFilter, checkJudge,
   };
 })();

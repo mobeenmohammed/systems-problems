@@ -1,0 +1,33 @@
+{
+  "id": "cpp-sizeof-and-types",
+  "title": "What the standard actually guarantees about sizes",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "type": "multi",
+  "tags": [
+    "sizeof",
+    "types",
+    "portability"
+  ],
+  "estimate": 10,
+  "prereqs": [
+    {
+      "concept": "cpp-fundamental-types",
+      "why": "The question is exactly which size facts are guaranteed by the language and which are properties of one machine."
+    }
+  ],
+  "statement": "You have been working with `sizeof` and you know that on your machine `int` is 4 bytes and `double` is 8.\n\n**Which of the following are guaranteed by the C++ standard**, on every conforming implementation? Select all that apply.",
+  "hints": [
+    "The standard gives *minimum* widths and a relative ordering, not exact sizes. Which of these statements is about a minimum or an ordering?",
+    "One of these is true by definition rather than by measurement — `sizeof` counts something, and the unit it counts in is itself a type.",
+    "Think about whether each statement would still hold on a small microcontroller, where `int` can be 2 bytes."
+  ],
+  "payload": {
+    "options": [
+      "`sizeof(char)` is always exactly 1.",
+      "`sizeof(int)` is at least as large as `sizeof(short)`, and `sizeof(long long)` is at least as large as `sizeof(int)`.",
+      "`sizeof(int)` is always 4.",
+      "`sizeof` returns a value of type `std::size_t`, which is unsigned."
+    ]
+  }
+}

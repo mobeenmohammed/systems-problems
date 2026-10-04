@@ -164,7 +164,8 @@ await go(window, '#/p/dist-partition-choice');
 check('the problem view is showing', document.getElementById('view-problem').hidden, false);
 ok('the title is rendered', document.querySelector('.phead h1').textContent.includes('partition'));
 ok('the statement is rendered', document.querySelector('.prose').innerHTML.includes('London'));
-ok('the difficulty is shown', document.querySelector('.phead .pill').textContent.length > 0);
+ok('the difficulty is shown as a dot and a word',
+  document.querySelector('.phead .diff').textContent.length > 0);
 ok('four options are offered', document.querySelectorAll('#answerWidget .opt').length === 4);
 ok('there are five tabs', document.querySelectorAll('.tabs .tab').length === 5);
 ok('the solution tab is locked', document.querySelector('[data-tab="solution"]').dataset.locked === 'true');
@@ -452,6 +453,116 @@ cTopic.value = 'os';
 change(cTopic);
 await settle(window);
 ok('filtering by topic works', document.querySelectorAll('#conceptList h2').length === 1);
+
+/* ---------------- the week's problem ---------------- */
+
+section("the week's problem");
+await go(window, '#/');
+const weekly = document.querySelector('.weekly');
+ok('a weekly card is shown', weekly !== null);
+ok('it names a real problem',
+  window.SystemsLab.Catalog.meta(weekly.querySelector('h2 a').getAttribute('href').replace('#/p/', '')) !== null);
+ok('it says why this one', weekly.querySelector('p') !== null);
+ok('it shows the difficulty', weekly.querySelector('.diff') !== null);
+ok('and offers a way in', weekly.querySelector('.weekly-side a.btn') !== null);
+
+/* The schedule can run ahead of today; entries dated in the future must not
+   appear, or the card gives away what is coming. */
+section('the schedule does not run ahead of itself');
+const week = window.SystemsLab.Catalog.thisWeek();
+ok('the chosen week has already started', week.weekOf <= window.SystemsLab.Store.todayISO());
+const futureWeek = await (async () => {
+  const res = await window.fetch('data/weekly.json');
+  const all = (await res.json()).weeks;
+  return all.some(w => w.from > window.SystemsLab.Store.todayISO());
+})();
+ok('there are future entries in the file (so the check means something)', futureWeek);
+const started = await (async () => {
+  const res = await window.fetch('data/weekly.json');
+  const all = (await res.json()).weeks;
+  return all.filter(w => w.from <= window.SystemsLab.Store.todayISO()).map(w => w.from).sort();
+})();
+check('the latest started week is the one chosen', week.weekOf, started[started.length - 1]);
+
+/* ---------------- tracks ---------------- */
+
+section('tracks');
+ok('the dashboard shows a tracks strip', document.querySelectorAll('#homeTracks .track-card').length > 0);
+ok('at most three of them', document.querySelectorAll('#homeTracks .track-card').length <= 3);
+
+await go(window, '#/tracks');
+check('the tracks view is showing', document.getElementById('view-tracks').hidden, false);
+const trackCards = () => [...document.querySelectorAll('#trackList .track-card')];
+ok('every track is listed', trackCards().length === window.SystemsLab.Catalog.allTracks().length);
+ok('each has a progress bar', trackCards().every(c => c.querySelector('.bar i') !== null));
+
+section('opening a track');
+const firstTrack = window.SystemsLab.Catalog.allTracks()[0];
+await go(window, `#/tracks/${firstTrack.id}`);
+ok('the title is shown', document.querySelector('#trackList h1').textContent === firstTrack.title);
+ok('its problems are listed in order',
+  document.querySelectorAll('#trackList .plist .prow').length === firstTrack.problems.length);
+ok('numbered, so there is an obvious order',
+  document.querySelector('#trackList .plist-head').textContent.includes('#'));
+ok('and it offers the next unsolved one',
+  document.querySelector('#trackList .btn-primary') !== null ||
+  document.querySelector('#trackList .pill') !== null);
+
+section('a track naming a problem that does not exist drops it');
+/* The file may list an id that has not been written yet; a dead row would be
+   worse than a shorter list. */
+ok('no row links to a missing problem',
+  [...document.querySelectorAll('#trackList .prow')].every(r =>
+    window.SystemsLab.Catalog.meta(r.getAttribute('href').replace('#/p/', '')) !== null));
+
+section('a track that does not exist');
+await go(window, '#/tracks/no-such-track');
+ok('says so rather than rendering nothing',
+  document.getElementById('trackList').textContent.includes('No such track'));
+
+/* ---------------- resources ---------------- */
+
+section('learning resources on the Reading page');
+/* The reading-map section above left the topic filter set, and the resources
+   honour it — so clear it first rather than testing a filtered view. */
+const cTopicReset = document.getElementById('cTopic');
+cTopicReset.value = '';
+change(cTopicReset);
+await settle(window);
+await go(window, '#/concepts');
+ok('resources are shown above the concepts',
+  document.querySelectorAll('#resourceList .prereq').length > 0);
+ok('they link out', document.querySelector('#resourceList a[target="_blank"]') !== null);
+ok('C++ has a resource group',
+  document.getElementById('resourceList').textContent.includes('learncpp'));
+
+section('filtering the Reading page filters the resources too');
+const cTopic2 = document.getElementById('cTopic');
+cTopic2.value = 'cpp';
+change(cTopic2);
+await settle(window);
+ok('only one resource group remains',
+  document.querySelectorAll('#resourceList .section-head').length === 1);
+ok('and it is the C++ one',
+  document.getElementById('resourceList').textContent.includes('Learning C++'));
+cTopic2.value = '';
+change(cTopic2);
+await settle(window);
+
+/* ---------------- the C++ topic ---------------- */
+
+section('the C++ topic');
+await go(window, '#/problems?topic=cpp');
+ok('C++ problems are listed', rows().length === inTopic('cpp'));
+ok('there are a useful number of them', inTopic('cpp') >= 8);
+ok('and they are mostly beginner',
+  window.SystemsLab.Catalog.all().filter(p => p.topic === 'cpp' && p.difficulty === 'beginner').length >= 5);
+
+section('a C++ predict problem renders its snippet');
+await go(window, '#/p/cpp-initialisation-forms');
+ok('the code is shown as a highlighted block', document.querySelector('.panel pre.code-block') !== null);
+ok('with C++ syntax colouring', document.querySelector('.panel .hl-keyword') !== null);
+ok('and an answer box', document.getElementById('predictAnswer') !== null);
 
 /* ---------------- settings ---------------- */
 

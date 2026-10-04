@@ -1342,5 +1342,272 @@
         "where": "Ch. 1, on load and backpressure"
       }
     ]
+  },
+  "cpp-initialisation": {
+    "name": "Initialisation",
+    "topic": "cpp",
+    "oneLine": "A variable can be given its first value in four different ways, and only some of them guarantee it has a value at all.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "learncpp 1.4: Variable assignment and initialization",
+        "kind": "course",
+        "where": "the four forms, in order",
+        "url": "https://www.learncpp.com/cpp-tutorial/variable-assignment-and-initialization/"
+      },
+      {
+        "title": "cppreference: initialization",
+        "kind": "docs",
+        "where": "the reference, once the names are familiar",
+        "url": "https://en.cppreference.com/w/cpp/language/initialization"
+      },
+      {
+        "title": "C++ Core Guidelines ES.20",
+        "kind": "docs",
+        "where": "always initialise an object",
+        "url": "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#es20-always-initialize-an-object"
+      }
+    ]
+  },
+  "cpp-fundamental-types": {
+    "name": "Fundamental types and their sizes",
+    "topic": "cpp",
+    "oneLine": "The standard fixes very little about how big a type is — only minimums and relative orderings — so sizes are a property of the implementation rather than of the language.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "learncpp 4.3: Object sizes and the sizeof operator",
+        "kind": "course",
+        "where": "and 4.x on each fundamental type",
+        "url": "https://www.learncpp.com/cpp-tutorial/object-sizes-and-the-sizeof-operator/"
+      },
+      {
+        "title": "learncpp 4.6: Fixed-width integers and size_t",
+        "kind": "course",
+        "where": "what to use when the width matters",
+        "url": "https://www.learncpp.com/cpp-tutorial/fixed-width-integers-and-size-t/"
+      },
+      {
+        "title": "cppreference: fundamental types",
+        "kind": "docs",
+        "where": "the table of guaranteed minimum widths",
+        "url": "https://en.cppreference.com/w/cpp/language/types"
+      }
+    ]
+  },
+  "cpp-scope-linkage": {
+    "name": "Scope, shadowing and linkage",
+    "topic": "cpp",
+    "oneLine": "A name is visible inside the block it was declared in, an inner declaration of the same name hides the outer one, and linkage decides whether other files can see it at all.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "learncpp 7.x: Scope, duration and linkage",
+        "kind": "course",
+        "where": "the whole chapter, especially shadowing",
+        "url": "https://www.learncpp.com/cpp-tutorial/local-variables/"
+      },
+      {
+        "title": "learncpp 7.5: Variable shadowing",
+        "kind": "course",
+        "where": "and -Wshadow, which finds it for you",
+        "url": "https://www.learncpp.com/cpp-tutorial/variable-shadowing-name-hiding/"
+      },
+      {
+        "title": "cppreference: storage duration and linkage",
+        "kind": "docs",
+        "where": "the reference for static and extern",
+        "url": "https://en.cppreference.com/w/cpp/language/storage_duration"
+      }
+    ]
+  },
+  "cpp-preprocessor": {
+    "name": "The preprocessor and header guards",
+    "topic": "cpp",
+    "oneLine": "The preprocessor does textual substitution before the compiler sees anything, which is why #include is literal inclusion and why a header needs a guard against being included twice.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "learncpp 2.10: Introduction to the preprocessor",
+        "kind": "course",
+        "where": "then 2.11 on headers and 2.12 on guards",
+        "url": "https://www.learncpp.com/cpp-tutorial/introduction-to-the-preprocessor/"
+      },
+      {
+        "title": "learncpp 2.12: Header guards",
+        "kind": "course",
+        "where": "including why #pragma once exists",
+        "url": "https://www.learncpp.com/cpp-tutorial/header-guards/"
+      },
+      {
+        "title": "cppreference: the preprocessor",
+        "kind": "docs",
+        "where": "every directive, precisely",
+        "url": "https://en.cppreference.com/w/cpp/preprocessor"
+      }
+    ]
+  },
+  "cpp-namespaces": {
+    "name": "Namespaces and the scope resolution operator",
+    "topic": "cpp",
+    "oneLine": "A namespace puts names in a labelled region so that two libraries can both have a function called max, and :: is how you say which one you mean.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "learncpp 2.9: Naming collisions and namespaces",
+        "kind": "course",
+        "where": "why std:: is spelled that way",
+        "url": "https://www.learncpp.com/cpp-tutorial/naming-collisions-and-an-introduction-to-namespaces/"
+      },
+      {
+        "title": "learncpp 7.2: User-defined namespaces and ::",
+        "kind": "course",
+        "where": "defining your own",
+        "url": "https://www.learncpp.com/cpp-tutorial/user-defined-namespaces-and-the-scope-resolution-operator/"
+      },
+      {
+        "title": "cppreference: namespaces",
+        "kind": "docs",
+        "where": "and unqualified name lookup, for the hard cases",
+        "url": "https://en.cppreference.com/w/cpp/language/namespace"
+      }
+    ]
+  },
+  "cpp-integer-types": {
+    "name": "Signed and unsigned integers",
+    "topic": "cpp",
+    "oneLine": "Unsigned arithmetic wraps rather than going negative, and mixing signed with unsigned converts the signed operand — which turns a sensible comparison into a wrong one.",
+    "needs": [
+      "cpp-fundamental-types"
+    ],
+    "readings": [
+      {
+        "title": "learncpp 4.5: Unsigned integers, and why to avoid them",
+        "kind": "course",
+        "where": "the argument, with examples",
+        "url": "https://www.learncpp.com/cpp-tutorial/unsigned-integers-and-why-to-avoid-them/"
+      },
+      {
+        "title": "Computer Systems: A Programmer's Perspective",
+        "kind": "book",
+        "where": "Ch. 2.2-2.3, how the bits actually work"
+      },
+      {
+        "title": "SEI CERT C: INT02",
+        "kind": "docs",
+        "where": "the conversion rules as a safety rule",
+        "url": "https://wiki.sei.cmu.edu/confluence/display/c/INT02-C.+Understand+integer+conversion+rules"
+      }
+    ]
+  },
+  "cpp-floating-point": {
+    "name": "Floating point",
+    "topic": "cpp",
+    "oneLine": "A float stores a binary fraction, so most decimal values are approximations and two computations that should agree often differ in the last bits.",
+    "needs": [
+      "cpp-fundamental-types"
+    ],
+    "readings": [
+      {
+        "title": "learncpp 4.8: Floating point numbers",
+        "kind": "course",
+        "where": "precision, rounding and why == is a trap",
+        "url": "https://www.learncpp.com/cpp-tutorial/floating-point-numbers/"
+      },
+      {
+        "title": "Float Exposed",
+        "kind": "docs",
+        "where": "see the bits of any value, interactively",
+        "url": "https://float.exposed/"
+      },
+      {
+        "title": "What Every Computer Scientist Should Know About Floating-Point Arithmetic",
+        "kind": "paper",
+        "where": "Goldberg — the definitive one, for later",
+        "url": "https://docs.oracle.com/cd/E19957-01/806-3568/ncg_goldberg.html"
+      }
+    ]
+  },
+  "cpp-enums": {
+    "name": "Unscoped enumerations",
+    "topic": "cpp",
+    "oneLine": "An unscoped enum defines named integer constants whose names leak into the surrounding scope and which convert to int on their own.",
+    "needs": [
+      "cpp-fundamental-types"
+    ],
+    "readings": [
+      {
+        "title": "learncpp 13.2: Unscoped enumerations",
+        "kind": "course",
+        "where": "then 13.6 on scoped enums, which fix the leaking",
+        "url": "https://www.learncpp.com/cpp-tutorial/unscoped-enumerations/"
+      },
+      {
+        "title": "cppreference: enumeration",
+        "kind": "docs",
+        "where": "the underlying type and the conversion rules",
+        "url": "https://en.cppreference.com/w/cpp/language/enum"
+      },
+      {
+        "title": "C++ Core Guidelines Enum.3",
+        "kind": "docs",
+        "where": "prefer enum class to plain enum",
+        "url": "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#enum3-prefer-class-enums-over-plain-enums"
+      }
+    ]
+  },
+  "cpp-functions": {
+    "name": "Functions, parameters and return values",
+    "topic": "cpp",
+    "oneLine": "A function names a piece of work, takes copies of its arguments by default, and hands one value back — which is enough structure to keep a program readable without any other machinery.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "learncpp 2.1-2.5: Functions and return values",
+        "kind": "course",
+        "where": "parameters, arguments, and why main returns int",
+        "url": "https://www.learncpp.com/cpp-tutorial/introduction-to-functions/"
+      },
+      {
+        "title": "learncpp 2.7: Forward declarations and definitions",
+        "kind": "course",
+        "where": "which is the other half of using functions",
+        "url": "https://www.learncpp.com/cpp-tutorial/forward-declarations/"
+      },
+      {
+        "title": "C++ Core Guidelines F.1-F.4",
+        "kind": "docs",
+        "where": "on packaging work into functions",
+        "url": "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#f-functions"
+      }
+    ]
+  },
+  "cpp-odr": {
+    "name": "Declarations, definitions and the one-definition rule",
+    "topic": "cpp",
+    "oneLine": "A declaration tells the compiler a name exists; a definition provides it. Every entity may be declared many times and defined exactly once across the whole program.",
+    "needs": [
+      "cpp-functions"
+    ],
+    "readings": [
+      {
+        "title": "learncpp 2.7: Forward declarations and definitions",
+        "kind": "course",
+        "where": "the distinction, with the linker errors it causes",
+        "url": "https://www.learncpp.com/cpp-tutorial/forward-declarations/"
+      },
+      {
+        "title": "learncpp 2.8: Programs with multiple code files",
+        "kind": "course",
+        "where": "where the rule starts to matter",
+        "url": "https://www.learncpp.com/cpp-tutorial/programs-with-multiple-code-files/"
+      },
+      {
+        "title": "cppreference: definitions and ODR",
+        "kind": "docs",
+        "where": "the exact wording, and the exceptions",
+        "url": "https://en.cppreference.com/w/cpp/language/definition"
+      }
+    ]
   }
 }

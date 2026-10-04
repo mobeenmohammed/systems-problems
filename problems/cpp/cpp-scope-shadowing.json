@@ -1,0 +1,30 @@
+{
+  "id": "cpp-scope-shadowing",
+  "title": "The variable that is not the variable you meant",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "type": "locate",
+  "tags": [
+    "scope",
+    "shadowing",
+    "bugs"
+  ],
+  "estimate": 10,
+  "prereqs": [
+    {
+      "concept": "cpp-scope-linkage",
+      "why": "The bug is a shadowed name, which only makes sense once you know which block a name belongs to."
+    }
+  ],
+  "statement": "This program is meant to read a temperature, convert it, and print the result. It compiles with no errors, runs, and prints the wrong number every time.\n\nThe bug is **one line**, and it is not a typo in any expression — every line here does exactly what it says. Click the line that causes the wrong answer.",
+  "hints": [
+    "There is nothing wrong with the arithmetic. Look instead at how many variables called `fahrenheit` this program has.",
+    "A declaration inside a block creates a *new* variable, even if a variable with that name already exists outside the block. The inner one hides the outer one until the block ends.",
+    "Which line makes a second variable where the author meant to assign to the first?"
+  ],
+  "payload": {
+    "code": "#include <iostream>\n\nint main()\n{\n    double celsius{};\n    double fahrenheit{};\n\n    std::cout << \"Celsius: \";\n    std::cin >> celsius;\n\n    {\n        double fahrenheit{ celsius * 9.0 / 5.0 + 32.0 };\n        std::cout << \"converted\\n\";\n    }\n\n    std::cout << \"Fahrenheit: \" << fahrenheit << '\\n';\n\n    return 0;\n}",
+    "lang": "cpp",
+    "prompt": "Click the line that causes the wrong answer."
+  }
+}

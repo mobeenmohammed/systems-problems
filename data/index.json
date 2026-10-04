@@ -281,6 +281,178 @@
     ]
   },
   {
+    "id": "cpp-float-equality",
+    "title": "Nought point one plus nought point two",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "type": "predict",
+    "tags": [
+      "floating-point",
+      "precision",
+      "equality"
+    ],
+    "estimate": 11,
+    "prereqs": [
+      "cpp-floating-point"
+    ]
+  },
+  {
+    "id": "cpp-greet-and-sum",
+    "title": "Your first compiled C++ problem",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "type": "code",
+    "tags": [
+      "functions",
+      "iostream",
+      "basics",
+      "cin"
+    ],
+    "estimate": 18,
+    "prereqs": [
+      "cpp-functions",
+      "cpp-initialisation"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
+    "id": "cpp-initialisation-forms",
+    "title": "Four ways to initialise a variable",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "type": "predict",
+    "tags": [
+      "initialisation",
+      "braces",
+      "basics"
+    ],
+    "estimate": 8,
+    "prereqs": [
+      "cpp-initialisation"
+    ]
+  },
+  {
+    "id": "cpp-scope-shadowing",
+    "title": "The variable that is not the variable you meant",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "type": "locate",
+    "tags": [
+      "scope",
+      "shadowing",
+      "bugs"
+    ],
+    "estimate": 10,
+    "prereqs": [
+      "cpp-scope-linkage"
+    ]
+  },
+  {
+    "id": "cpp-sizeof-and-types",
+    "title": "What the standard actually guarantees about sizes",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "type": "multi",
+    "tags": [
+      "sizeof",
+      "types",
+      "portability"
+    ],
+    "estimate": 10,
+    "prereqs": [
+      "cpp-fundamental-types"
+    ]
+  },
+  {
+    "id": "cpp-unsigned-wrap",
+    "title": "Three minus five, unsigned",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "type": "predict",
+    "tags": [
+      "unsigned",
+      "wrapping",
+      "integers",
+      "bugs"
+    ],
+    "estimate": 10,
+    "prereqs": [
+      "cpp-integer-types"
+    ]
+  },
+  {
+    "id": "cpp-declaration-vs-definition",
+    "title": "Compiler error, or linker error?",
+    "topic": "cpp",
+    "difficulty": "intermediate",
+    "type": "multi",
+    "tags": [
+      "declarations",
+      "linker",
+      "odr",
+      "errors"
+    ],
+    "estimate": 13,
+    "prereqs": [
+      "cpp-odr",
+      "cpp-functions",
+      "cpp-preprocessor"
+    ]
+  },
+  {
+    "id": "cpp-enum-values",
+    "title": "What an unscoped enumerator really is",
+    "topic": "cpp",
+    "difficulty": "intermediate",
+    "type": "predict",
+    "tags": [
+      "enums",
+      "conversions",
+      "constants"
+    ],
+    "estimate": 12,
+    "prereqs": [
+      "cpp-enums",
+      "cpp-fundamental-types"
+    ]
+  },
+  {
+    "id": "cpp-header-guard-bug",
+    "title": "The header guard that guards the wrong thing",
+    "topic": "cpp",
+    "difficulty": "intermediate",
+    "type": "locate",
+    "tags": [
+      "preprocessor",
+      "header-guards",
+      "linker",
+      "bugs"
+    ],
+    "estimate": 12,
+    "prereqs": [
+      "cpp-preprocessor",
+      "cpp-odr"
+    ]
+  },
+  {
+    "id": "cpp-namespace-resolution",
+    "title": "Which function gets called?",
+    "topic": "cpp",
+    "difficulty": "intermediate",
+    "type": "predict",
+    "tags": [
+      "namespaces",
+      "scope-resolution",
+      "name-lookup"
+    ],
+    "estimate": 12,
+    "prereqs": [
+      "cpp-namespaces"
+    ]
+  },
+  {
     "id": "dist-lamport-order",
     "title": "Order the events by their Lamport clock",
     "topic": "dist",

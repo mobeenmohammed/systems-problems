@@ -9,7 +9,7 @@
 
 (() => {
 
-  const VIEWS = ['home', 'problems', 'problem', 'concepts', 'profile', 'shop', 'settings', '404'];
+  const VIEWS = ['home', 'problems', 'problem', 'tracks', 'concepts', 'profile', 'shop', 'settings', '404'];
 
   function show(name) {
     for (const v of VIEWS) {
@@ -67,6 +67,11 @@
         location.hash = `#/problems?topic=${encodeURIComponent(path[1] || '')}`;
         return;
 
+      case 'tracks':
+        show('tracks');
+        UI.renderTracks(path[1] || null);
+        break;
+
       case 'concepts':
         show('concepts');
         UI.renderConcepts();
@@ -119,6 +124,7 @@
       case 'g': go('#/'); break;
       case 'p': go('#/problems'); break;
       case 'r': go('#/concepts'); break;
+      case 't': go('#/tracks'); break;
       case 'u': go('#/profile'); break;
       case 's': go('#/shop'); break;
       default: break;

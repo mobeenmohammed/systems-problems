@@ -1,0 +1,35 @@
+{
+  "id": "cpp-header-guard-bug",
+  "title": "The header guard that guards the wrong thing",
+  "topic": "cpp",
+  "difficulty": "intermediate",
+  "type": "locate",
+  "tags": [
+    "preprocessor",
+    "header-guards",
+    "linker",
+    "bugs"
+  ],
+  "estimate": 12,
+  "prereqs": [
+    {
+      "concept": "cpp-preprocessor",
+      "why": "The bug is in a header guard, so you need to know what the preprocessor does with one."
+    },
+    {
+      "concept": "cpp-odr",
+      "why": "The symptom is a one-definition-rule violation at link time, which is what the guard existed to prevent."
+    }
+  ],
+  "statement": "Two headers in a project. `shapes.h` was written first; `colours.h` was made by copying it and editing.\n\nIncluding both in the same `.cpp` file produces a compiler error saying that nothing in `colours.h` exists — as though the file were empty.\n\nClick the line that causes it.",
+  "hints": [
+    "A header guard works by defining a macro the first time through and checking for it on later passes. What has to be true of the macro name for that to work across two different headers?",
+    "Read the three guard lines in `colours.h` carefully and compare them with the ones in `shapes.h`.",
+    "If `shapes.h` is included first, which macro is already defined by the time the preprocessor reaches `colours.h`?"
+  ],
+  "payload": {
+    "code": "// ---------- shapes.h ----------\n#ifndef SHAPES_H\n#define SHAPES_H\n\nint sides_of_a_square();\n\n#endif\n\n// ---------- colours.h ----------\n#ifndef SHAPES_H\n#define COLOURS_H\n\nint number_of_primaries();\n\n#endif",
+    "lang": "cpp",
+    "prompt": "Click the line that causes the error."
+  }
+}

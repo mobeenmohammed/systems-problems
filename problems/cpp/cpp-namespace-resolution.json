@@ -1,0 +1,32 @@
+{
+  "id": "cpp-namespace-resolution",
+  "title": "Which function gets called?",
+  "topic": "cpp",
+  "difficulty": "intermediate",
+  "type": "predict",
+  "tags": [
+    "namespaces",
+    "scope-resolution",
+    "name-lookup"
+  ],
+  "estimate": 12,
+  "prereqs": [
+    {
+      "concept": "cpp-namespaces",
+      "why": "Every line of the output is one name-lookup decision, which is what a namespace changes."
+    }
+  ],
+  "statement": "Three functions called `value`, in three different places. The program prints which one each call reached.\n\n**What does it print?** Four lines.",
+  "hints": [
+    "`::value()` with nothing in front of the `::` means the *global* namespace, explicitly. That is different from writing `value()` with nothing at all.",
+    "Inside a namespace, an unqualified name is looked for in that namespace first, and only then outside it.",
+    "The last call is made from inside `inner`, which is nested in `outer`. Work outwards from there."
+  ],
+  "payload": {
+    "lang": "cpp",
+    "lines": 5,
+    "verifyAs": "cpp",
+    "prompt": "Four lines of output.",
+    "code": "#include <iostream>\n\nint value() { return 1; }                 // global\n\nnamespace outer\n{\n    int value() { return 2; }\n\n    namespace inner\n    {\n        int value() { return 3; }\n\n        int from_inner() { return value(); }\n    }\n\n    int from_outer() { return value(); }\n}\n\nint main()\n{\n    std::cout << value() << '\\n';\n    std::cout << ::value() << '\\n';\n    std::cout << outer::value() << '\\n';\n    std::cout << outer::inner::from_inner() << '\\n';\n\n    return 0;\n}"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "id": "cpp-unsigned-wrap",
+  "title": "Three minus five, unsigned",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "type": "predict",
+  "tags": [
+    "unsigned",
+    "wrapping",
+    "integers",
+    "bugs"
+  ],
+  "estimate": 10,
+  "prereqs": [
+    {
+      "concept": "cpp-integer-types",
+      "why": "The whole output is unsigned arithmetic wrapping instead of going negative."
+    }
+  ],
+  "statement": "Assume `unsigned int` is 32 bits, which it is on every machine you are likely to use.\n\n**What does this print?** Three lines.\n\nThe third line is the one worth thinking about rather than guessing — and the second line is the one that makes it a bug rather than a curiosity.",
+  "hints": [
+    "`unsigned int` cannot hold a negative number. So what happens to 3 - 5 before it is printed?",
+    "Unsigned arithmetic is defined to wrap: the result is taken modulo 2^32. What is -2 modulo 4294967296?",
+    "The third line is a comparison. Given what the first line printed, is that value greater than zero?"
+  ],
+  "payload": {
+    "lang": "cpp",
+    "lines": 4,
+    "verifyAs": "cpp",
+    "prompt": "Three lines of output.",
+    "code": "#include <iostream>\n\nint main()\n{\n    unsigned int a{ 3 };\n    unsigned int b{ 5 };\n\n    std::cout << a - b << '\\n';\n    std::cout << (a - b > 0) << '\\n';\n\n    int c{ 3 };\n    std::cout << c - 5 << '\\n';\n\n    return 0;\n}"
+  }
+}

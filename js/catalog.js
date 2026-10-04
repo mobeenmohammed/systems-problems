@@ -15,8 +15,11 @@
 
 const Catalog = (() => {
 
-  const INDEX_URL    = 'data/index.json';
-  const CONCEPTS_URL = 'data/concepts.json';
+  const INDEX_URL     = 'data/index.json';
+  const CONCEPTS_URL  = 'data/concepts.json';
+  const TRACKS_URL    = 'data/tracks.json';
+  const WEEKLY_URL    = 'data/weekly.json';
+  const RESOURCES_URL = 'data/resources.json';
 
   const TYPES = [
     { id: 'mcq',     label: 'Multiple choice', note: 'One right answer.' },
@@ -31,18 +34,24 @@ const Catalog = (() => {
   ];
   const TYPE_BY_ID = Object.fromEntries(TYPES.map(t => [t.id, t]));
 
-  let index    = [];
-  let byId     = {};
-  let concepts = {};
+  let index     = [];
+  let byId      = {};
+  let concepts  = {};
+  let tracks    = [];
+  let weekly    = { weeks: [] };
+  let resources = { topics: {} };
   let loadError = null;
 
   const fullCache = new Map();
   const solCache  = new Map();
 
   async function init() {
-    const [idx, con] = await Promise.all([
+    const [idx, con, trk, wk, res] = await Promise.all([
       fetchJson(INDEX_URL),
       fetchJson(CONCEPTS_URL),
+      fetchJson(TRACKS_URL),
+      fetchJson(WEEKLY_URL),
+      fetchJson(RESOURCES_URL),
     ]);
     if (idx.ok) {
       index = Array.isArray(idx.data) ? idx.data : (idx.data.problems || []);
@@ -51,7 +60,14 @@ const Catalog = (() => {
       loadError = idx.error;
     }
     concepts = con.ok ? con.data : {};
-    return { index, concepts, loadError };
+    /* These three are extras: the site is perfectly usable without them, so a
+       missing or malformed file leaves the feature out rather than breaking
+       the page. */
+    tracks    = trk.ok && Array.isArray(trk.data) ? trk.data : [];
+    weekly    = wk.ok && wk.data && Array.isArray(wk.data.weeks) ? wk.data : { weeks: [] };
+    resources = res.ok && res.data && res.data.topics ? res.data : { topics: {} };
+
+    return { index, concepts, tracks, weekly, resources, loadError };
   }
 
   async function fetchJson(url) {
@@ -188,9 +204,54 @@ const Catalog = (() => {
     return { read, total, fraction: read / total };
   }
 
+  /* ---------------- tracks ----------------
+
+     A track is an ordered list of problem ids. Ids that are not in the catalog
+     are dropped rather than rendered as dead rows, so a track can name a
+     problem that has not been written yet without breaking the page. */
+
+  function allTracks() {
+    return tracks.map(t => ({
+      ...t,
+      problems: (t.problems || []).filter(id => byId[id]),
+      missing: (t.problems || []).filter(id => !byId[id]).length,
+    }));
+  }
+
+  const track = id => allTracks().find(t => t.id === id) || null;
+
+  /* Solved count and the next unsolved problem, which is the only thing a
+     track really has to answer. */
+  function trackProgress(t) {
+    const rows = (t.problems || []).map(id => ({ id, meta: byId[id], record: Store.record(id) }));
+    const done = rows.filter(r => r.record.status === 'solved').length;
+    const next = rows.find(r => r.record.status !== 'solved') || null;
+    return { done, total: rows.length, rows, next, fraction: rows.length ? done / rows.length : 0 };
+  }
+
+  /* ---------------- the week's problem ----------------
+
+     The latest entry whose Monday has arrived. Entries dated in the future are
+     ignored, so the schedule can run ahead of today without giving anything
+     away. */
+  function thisWeek(today = Store.todayISO()) {
+    const past = (weekly.weeks || [])
+      .filter(w => w.from && w.from <= today && byId[w.problem])
+      .sort((a, b) => a.from.localeCompare(b.from));
+    if (!past.length) return null;
+    const w = past[past.length - 1];
+    return { ...w, meta: byId[w.problem], weekOf: w.from };
+  }
+
+  /* ---------------- resources ---------------- */
+
+  const topicResources = topicId => (resources.topics || {})[topicId] || null;
+  const allResources = () => Object.entries(resources.topics || {}).map(([id, r]) => ({ id, ...r }));
+
   return {
     init, all, meta, list, sorted, get, solution,
     concept, allConcepts, chain, prereqsFor, readProgress,
+    allTracks, track, trackProgress, thisWeek, topicResources, allResources,
     TYPES, TYPE_BY_ID,
     get loadError() { return loadError; },
   };

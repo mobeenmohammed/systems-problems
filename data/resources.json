@@ -1,0 +1,133 @@
+{
+  "note": "Where to learn a topic from scratch, as opposed to the per-concept readings in concepts.json. A concept reading answers 'where do I read about alignment'; a resource here answers 'where do I learn C++'.",
+  "topics": {
+    "cpp": {
+      "title": "Learning C++",
+      "blurb": "Your notes follow learncpp.com, which is the right choice — it is free, it is ordered so nothing depends on something later, and it is unusually careful about the things that are undefined. The rest of these are references rather than courses.",
+      "resources": [
+        {
+          "title": "learncpp.com",
+          "kind": "course",
+          "where": "Start at chapter 0 and do not skip. You are around chapter 4-5.",
+          "url": "https://www.learncpp.com/",
+          "note": "Free, complete, and the ordering is the value. Chapter 8 is control flow — loops and if — which is the next thing that unlocks most of the problems here."
+        },
+        {
+          "title": "cppreference.com",
+          "kind": "docs",
+          "where": "Look things up here, not on Stack Overflow",
+          "url": "https://en.cppreference.com/",
+          "note": "The reference, and the closest readable thing to the standard. Hard going at first; get used to it early, because every answer you find elsewhere is a worse version of what is here."
+        },
+        {
+          "title": "C++ Core Guidelines",
+          "kind": "docs",
+          "where": "Skim the ES (expressions and statements) section",
+          "url": "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines",
+          "note": "Stroustrup and Sutter on what to actually do. Not a tutorial — read it once you can write a program, as a list of habits worth forming."
+        },
+        {
+          "title": "Compiler Explorer",
+          "kind": "docs",
+          "where": "Paste anything in and look at the assembly",
+          "url": "https://godbolt.org/",
+          "note": "The single most educational tool for this language. Write a loop, see what -O2 does to it. This is how you find out what the compiler is really doing with your code."
+        },
+        {
+          "title": "A Tour of C++",
+          "kind": "book",
+          "where": "Stroustrup — read after learncpp, not instead of it",
+          "note": "Short, dense, written by the language's author. It assumes you can already program, and it is the fastest way to see the whole language at once."
+        },
+        {
+          "title": "Back to Basics (CppCon)",
+          "kind": "video",
+          "where": "The series, one talk per topic",
+          "url": "https://www.youtube.com/results?search_query=cppcon+back+to+basics",
+          "note": "An hour per subject from people who know it well. The ones on initialisation, lifetime and the type system are worth it even after reading the chapters."
+        }
+      ]
+    },
+    "arch": {
+      "title": "Computer architecture",
+      "blurb": "One book does most of the work here, and it is the same book that covers the C side of the machine.",
+      "resources": [
+        { "title": "Computer Systems: A Programmer's Perspective", "kind": "book", "where": "CS:APP — chapters 1-3 and 6", "url": "https://csapp.cs.cmu.edu/", "note": "The best single book for a programmer who wants to know what the hardware does. Chapter 6 on the memory hierarchy is the one to read first." },
+        { "title": "Nand2Tetris", "kind": "course", "where": "Free, and you build a computer from gates up", "url": "https://www.nand2tetris.org/", "note": "Start here if the machine still feels like magic. Twelve projects from a NAND gate to a working computer." },
+        { "title": "Agner Fog's optimization manuals", "kind": "docs", "where": "Volume 3, the microarchitecture manual", "url": "https://www.agner.org/optimize/", "note": "What real CPUs do, measured rather than documented. Reference material, not reading." }
+      ]
+    },
+    "os": {
+      "title": "Operating systems",
+      "blurb": "OSTEP is free, friendly and complete; TLPI is the reference for the Linux API specifically.",
+      "resources": [
+        { "title": "Operating Systems: Three Easy Pieces", "kind": "book", "where": "Free PDF, start with virtualisation", "url": "https://pages.cs.wisc.edu/~remzi/OSTEP/", "note": "Genuinely the best introduction, and free. Three parts: virtualisation, concurrency, persistence." },
+        { "title": "The Linux Programming Interface", "kind": "book", "where": "Kerrisk — the reference for syscalls", "note": "1500 pages and worth owning. Use it to look things up rather than to read through." },
+        { "title": "man7.org", "kind": "docs", "where": "The man pages, online and well formatted", "url": "https://man7.org/linux/man-pages/", "note": "Same author as TLPI. `man 2 <syscall>` is the habit to build." }
+      ]
+    },
+    "algo": {
+      "title": "Algorithms",
+      "blurb": "One free book to practise from, one reference to look things up in.",
+      "resources": [
+        { "title": "Competitive Programmer's Handbook", "kind": "book", "where": "Free PDF, and the chapters are short", "url": "https://cses.fi/book/book.pdf", "note": "Written for contests, which makes it unusually practical. The CSES problem set beside it is a good ladder." },
+        { "title": "Introduction to Algorithms", "kind": "book", "where": "CLRS — the reference", "note": "Not a book to read front to back. Look up the chapter you need." },
+        { "title": "The Algorithm Design Manual", "kind": "book", "where": "Skiena — the readable one", "note": "The war stories in it are the best argument for why any of this matters." }
+      ]
+    },
+    "compilers": {
+      "title": "Compilers and interpreters",
+      "blurb": "Crafting Interpreters is free, excellent and the only one of these you should start with.",
+      "resources": [
+        { "title": "Crafting Interpreters", "kind": "book", "where": "Free online, and you build two interpreters", "url": "https://craftinginterpreters.com/", "note": "The clearest writing on this subject anywhere. Part I is a tree-walking interpreter; part II is a bytecode VM in C." },
+        { "title": "Engineering a Compiler", "kind": "book", "where": "Cooper & Torczon", "note": "The textbook to use after Crafting Interpreters, and more approachable than the Dragon Book." },
+        { "title": "LLVM Kaleidoscope tutorial", "kind": "docs", "where": "Build a language on a real backend", "url": "https://llvm.org/docs/tutorial/", "note": "Where to go once you want your compiler to produce fast machine code rather than bytecode." }
+      ]
+    },
+    "linux": {
+      "title": "Linux and the command line",
+      "blurb": "The shell rewards a few hours of deliberate study more than almost anything else.",
+      "resources": [
+        { "title": "The Missing Semester of Your CS Education", "kind": "course", "where": "MIT, free, eleven short lectures", "url": "https://missing.csail.mit.edu/", "note": "Shell, scripting, git, debugging, profiling. Start here." },
+        { "title": "Julia Evans' zines", "kind": "docs", "where": "strace, perf, networking, containers", "url": "https://wizardzines.com/", "note": "The friendliest explanations of hard tools that exist." },
+        { "title": "Systems Performance", "kind": "book", "where": "Gregg — for when something is slow", "note": "The methodology chapters are the valuable part: how to find out what is slow rather than guessing." }
+      ]
+    },
+    "dist": {
+      "title": "Distributed systems",
+      "blurb": "One book, then the papers.",
+      "resources": [
+        { "title": "Designing Data-Intensive Applications", "kind": "book", "where": "Kleppmann — read it all", "note": "The best technical book of the last decade, and the one to read before any of the papers." },
+        { "title": "MIT 6.824", "kind": "course", "where": "Lectures and labs, free", "url": "https://pdos.csail.mit.edu/6.824/", "note": "The labs build a Raft implementation. Hard, and the fastest way to actually understand consensus." },
+        { "title": "The Raft paper", "kind": "paper", "where": "Written to be readable, and it is", "url": "https://raft.github.io/raft.pdf", "note": "Start with the visualisation on raft.github.io, then read the paper." }
+      ]
+    },
+    "hpc": {
+      "title": "HPC and performance",
+      "blurb": "Performance work is a skill with its own literature, and most of it is about memory.",
+      "resources": [
+        { "title": "MIT 6.172 Performance Engineering", "kind": "course", "where": "Free on OCW, with lecture videos", "url": "https://ocw.mit.edu/courses/6-172-performance-engineering-of-software-systems-fall-2018/", "note": "The best course on making real code fast. Lectures 14-15 on caching are the ones to watch first." },
+        { "title": "What Every Programmer Should Know About Memory", "kind": "paper", "where": "Drepper — long, and worth it", "url": "https://people.freebsd.org/~lstewart/articles/cpumemory.pdf", "note": "Dated in places and still the definitive explanation of why memory access patterns dominate." },
+        { "title": "Algorithms for Modern Hardware", "kind": "book", "where": "Free online, by Sergey Slotin", "url": "https://en.algorithmica.org/hpc/", "note": "Modern, measured, and full of code. The closest thing to a current Drepper." }
+      ]
+    },
+    "fpga": {
+      "title": "FPGAs and digital design",
+      "blurb": "Hardware needs a different kind of practice: write HDL, simulate it, look at the waveform.",
+      "resources": [
+        { "title": "HDLBits", "kind": "course", "where": "Free Verilog exercises, in order", "url": "https://hdlbits.01xz.net/", "note": "Where to actually learn to write HDL. Two hundred problems from a wire to a working FSM, checked by simulation." },
+        { "title": "Digital Design and Computer Architecture", "kind": "book", "where": "Harris & Harris", "note": "The standard introduction, and it builds a RISC-V processor by the end." },
+        { "title": "nandland", "kind": "docs", "where": "Short, practical articles", "url": "https://nandland.com/", "note": "The friendliest FPGA site there is. Good on the things textbooks skip, like clock domain crossing." }
+      ]
+    },
+    "sysdesign": {
+      "title": "System design",
+      "blurb": "Mostly the same book as distributed systems, plus the habit of estimating before designing.",
+      "resources": [
+        { "title": "Designing Data-Intensive Applications", "kind": "book", "where": "Kleppmann, again — chapters 1-3 first", "note": "Read this rather than any interview-prep book. It explains the machinery instead of listing architectures." },
+        { "title": "The Google SRE book", "kind": "book", "where": "Free online", "url": "https://sre.google/sre-book/table-of-contents/", "note": "How large systems are actually operated, which is the half that design discussions usually leave out." },
+        { "title": "Latency numbers every programmer should know", "kind": "docs", "where": "Memorise the orders of magnitude", "url": "https://colin-scott.github.io/personal_website/research/interactive_latency.html", "note": "Worth committing to memory. Every capacity estimate starts from these." }
+      ]
+    }
+  }
+}
