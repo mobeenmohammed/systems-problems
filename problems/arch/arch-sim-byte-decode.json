@@ -1,0 +1,60 @@
+{
+  "id": "arch-sim-byte-decode",
+  "title": "The same four bytes, read two ways",
+  "topic": "arch",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "byte-order",
+    "endianness",
+    "shifts",
+    "twos-complement",
+    "simulation"
+  ],
+  "estimate": 28,
+  "prereqs": [
+    {
+      "concept": "byte-order",
+      "why": "The two answers for every group of four bytes are the little-endian and big-endian readings of the same memory."
+    },
+    {
+      "concept": "shifts-and-masks",
+      "why": "Assembling an integer out of bytes is shifting each one into place and combining them."
+    },
+    {
+      "concept": "cpp-integer-types",
+      "why": "The signed reading is two's complement, and the whole exercise needs a type of known width."
+    }
+  ],
+  "statement": "You are handed the raw bytes of memory and have to decode them yourself.\n\nInput is `n`, a multiple of 4, then `n` byte values in **increasing address\norder**, each written in decimal from 0 to 255. For each group of four\nconsecutive bytes, print both readings:\n\n```\nle 0x<8 hex digits> <unsigned decimal> <signed decimal>\nbe 0x<8 hex digits> <unsigned decimal> <signed decimal>\n```\n\nHex is lowercase, zero-padded to exactly 8 digits. The signed value is the\ntwo's-complement interpretation of the same 32 bits.\n\n```\ninput:   4                output:  le 0x12345678 305419896 305419896\n         120 86 52 18              be 0x78563412 2018915346 2018915346\n```\n\nThe bytes `120 86 52 18` are `0x78 0x56 0x34 0x12`. Read least-significant-byte\nfirst they are the number `0x12345678`; read most-significant-byte first they\nare `0x78563412` - a completely different number, about six times larger, from\nthe identical four bytes. Neither has its top bit set, so the signed and\nunsigned readings agree here; the second sample shows what happens when it is\nset.\n\n### The point of the problem\n\nFour bytes in memory are just four bytes. Which number they *mean* depends on a\nconvention your program has to apply:\n\n```\naddress:   1000   1001   1002   1003\nbytes:     0x78   0x56   0x34   0x12\n\nlittle-endian:  0x12345678      (lowest address holds the LEAST significant byte)\nbig-endian:     0x78563412      (lowest address holds the MOST significant byte)\n```\n\nx86 and ARM in normal use are little-endian. Network protocols are big-endian,\nwhich is why they call it *network byte order* and why `htonl` exists. Get it\nwrong when parsing a file format or a packet and you read plausible nonsense -\n`0x12345678` becomes `0x78563412`, a number 6 times larger, with no error\nanywhere.\n\n### Build it with shifts, not with a cast\n\nThe decoding is explicit arithmetic:\n\n```cpp\nstd::uint32_t le = b0 | (b1 << 8) | (b2 << 16) | (b3 << 24);\n```\n\nResist the temptation to `reinterpret_cast` the byte array to a `std::uint32_t*`\nand dereference it. That would give you the **host's** byte order - so the\nanswer would change depending on the machine running it - and it is undefined\nbehaviour besides. The shift version produces the same answer everywhere, which\nis exactly why real protocol code is written this way. The solution goes\nthrough both problems.\n\n### Boundary cases\n\nAll zero bytes. All `255`, which is `0xffffffff` - the unsigned value\n4294967295 and the signed value -1. A value with the top bit exactly set,\n`0x80000000`, which is the most negative 32-bit integer. A palindromic group\nwhere both readings agree. Several groups in one input, so the loop steps by\nfour correctly.\n\n### Platform assumptions\n\nA byte is 8 bits and `std::uint32_t` exists and is exactly 32 bits - both\nguaranteed on every platform these problems run on. Signed integers are two's\ncomplement, which C++20 guarantees. The decoding is done with shifts, so **the\nanswer does not depend on the host's byte order** - that is the point, and it is\nwhy this problem can have one correct output at all.",
+  "hints": [
+    "Use `std::uint32_t` from `<cstdint>` for the assembled value, and read each byte into an `unsigned int`. Do not read bytes into a `char`: `std::cin >> c` on a char reads one *character*, not a number, so `120` would become the digit '1'.",
+    "Little-endian: the first byte of the group is the least significant, so it is shifted by 0, the next by 8, the next by 16, the last by 24. Big-endian is the same four shifts in the opposite order.",
+    "For the hex output: `std::hex << std::setw(8) << std::setfill('0')` from `<iomanip>`. `setw` applies to the next item only, while `hex` and `setfill` are sticky - so switch back with `std::dec` and `std::setfill(' ')` before printing the decimals."
+  ],
+  "payload": {
+    "langs": [
+      "cpp",
+      "python"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <cstdint>\n#include <iomanip>\n#include <iostream>\n#include <vector>\n\nint main()\n{\n    int n{};\n    std::cin >> n;\n\n    std::vector<std::uint32_t> bytes;\n    for (int i = 0; i < n; ++i)\n    {\n        unsigned int b{};\n        std::cin >> b;\n        bytes.push_back(static_cast<std::uint32_t>(b & 0xFFu));\n    }\n\n    for (std::size_t i = 0; i + 3 < bytes.size(); i += 4)\n    {\n        // Assemble le and be with shifts, then print both lines.\n    }\n\n    return 0;\n}\n",
+      "python": "import sys\n\ndef signed32(u):\n    return u - (1 << 32) if u >= (1 << 31) else u\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    pos = 0\n    n = int(data[pos]); pos += 1\n    b = [int(data[pos + i]) & 0xFF for i in range(n)]; pos += n\n\n    for i in range(0, len(b) - 3, 4):\n        # assemble le and be, then print both lines\n        pass\n\nmain()\n"
+    },
+    "cases": [
+      {
+        "stdin": "4\n120 86 52 18\n",
+        "expect": "le 0x12345678 305419896 305419896\nbe 0x78563412 2018915346 2018915346\n"
+      },
+      {
+        "stdin": "4\n255 255 255 255\n",
+        "expect": "le 0xffffffff 4294967295 -1\nbe 0xffffffff 4294967295 -1\n"
+      }
+    ]
+  }
+}

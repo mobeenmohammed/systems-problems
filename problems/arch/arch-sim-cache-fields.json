@@ -1,0 +1,60 @@
+{
+  "id": "arch-sim-cache-fields",
+  "title": "Which set does this address land in",
+  "topic": "arch",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "cache",
+    "address-decoding",
+    "shifts",
+    "simulation",
+    "memory-hierarchy"
+  ],
+  "estimate": 30,
+  "prereqs": [
+    {
+      "concept": "cache-indexing",
+      "why": "The whole problem is the offset/index/tag split, and the field widths come from the geometry."
+    },
+    {
+      "concept": "shifts-and-masks",
+      "why": "Each field is one shift and one mask, and the masks come from the sizes being powers of two."
+    },
+    {
+      "concept": "cache-lines",
+      "why": "The offset field exists because a cache moves whole blocks, not single bytes."
+    }
+  ],
+  "statement": "Given a cache's geometry, decode addresses into the three fields the hardware\nuses to look them up.\n\nInput, all on the first lines: `cacheBytes assoc blockBytes addrBits q`, then\n`q` addresses in decimal. `cacheBytes`, `assoc` and `blockBytes` are powers of\ntwo; `assoc` is the number of ways per set.\n\nPrint the derived geometry, then one line per address, then how many **adjacent\npairs** of addresses in the input land in the same set:\n\n```\ngeometry sets <S> offsetbits <ob> indexbits <ib> tagbits <tb>\n<address> offset <o> index <i> tag <t>\n...\nsameset <count>\n```\n\n```\ninput:   32768 8 64 48 3        output:  geometry sets 64 offsetbits 6 indexbits 6 tagbits 36\n         0                               0 offset 0 index 0 tag 0\n         64                              64 offset 0 index 1 tag 0\n         4096                            4096 offset 0 index 0 tag 1\n                                         sameset 0\n```\n\nThat is a 32 KiB 8-way cache with 64-byte lines - a realistic L1 data cache.\n\n### How the address is split\n\nA cache holds whole **blocks**, arranged in **sets**, with `assoc` blocks in each\nset. So an address has to answer three questions, and each is a slice of its\nbits:\n\n```\n    +--------------------------+------------+-------------+\n    |           tag            |   index    |   offset    |\n    +--------------------------+------------+-------------+\n      which block, among all      which       which byte\n      that map to this set         set         in the block\n\n     offsetBits = log2(blockBytes)\n     indexBits  = log2(sets),  where sets = cacheBytes / (assoc * blockBytes)\n     tagBits    = addrBits - indexBits - offsetBits\n```\n\nThe **low** bits are the offset, because consecutive addresses are in the same\nblock - which is the entire point of fetching a block at a time. The **middle**\nbits are the index, so addresses that are near each other spread across\ndifferent sets instead of fighting over one. The tag is everything left over,\nand it is stored in the cache next to the data so a lookup can tell which of the\nmany blocks that map to a set is actually present.\n\n### Extracting a field\n\n```cpp\noffset = addr & (blockBytes - 1);\nindex  = (addr >> offsetBits) & (sets - 1);\ntag    = addr >> (offsetBits + indexBits);\n```\n\n`blockBytes - 1` is a mask of `offsetBits` ones, because `blockBytes` is a power\nof two - `64 - 1` is `0b111111`. That is the only reason cache dimensions are\nalways powers of two: it makes the division free.\n\n### Boundary cases\n\nA fully associative cache, where `sets` is 1, `indexBits` is 0, and there is no\nindex field at all - the mask `sets - 1` is then 0, which must still work. A\ndirect-mapped cache, where `assoc` is 1. A block size of 1 byte, so `offsetBits`\nis 0. The address 0. The largest address the bit width allows. Addresses exactly\none block apart and exactly one *way size* apart, which is how a conflict is\nconstructed.\n\n### Platform assumptions\n\nAddresses are unsigned and fit in `addrBits` bits, with `addrBits` between 1 and\n48 - so `std::uint64_t` holds every value and every intermediate with room to\nspare. `cacheBytes`, `assoc` and `blockBytes` are powers of two, and\n`assoc * blockBytes` divides `cacheBytes` exactly, so the number of sets is a\nwhole power of two and no rounding is involved. Shift amounts are always less\nthan 64, which matters because shifting by the width of the type or more is\nundefined behaviour.",
+  "hints": [
+    "Work out the three widths first: `offsetBits = log2(blockBytes)`, `sets = cacheBytes / (assoc * blockBytes)`, `indexBits = log2(sets)`, and `tagBits` is whatever remains of `addrBits`. A small loop that counts how many times you can halve a value is all the log2 you need.",
+    "Masks from powers of two: a mask of k ones is `(1 << k) - 1`, and since `blockBytes` is already `1 << offsetBits`, the offset mask is just `blockBytes - 1`. Same for the index mask and `sets`.",
+    "A fully associative cache has `sets == 1`, so `indexBits` is 0 and the index mask `sets - 1` is 0 - meaning `(addr >> 0) & 0` is always 0. That is correct, not a special case: with one set, every address is in set 0."
+  ],
+  "payload": {
+    "langs": [
+      "cpp",
+      "python"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <cstdint>\n#include <iostream>\n#include <vector>\n\nstatic int log2exact(std::uint64_t v)\n{\n    int k{ 0 };\n    while (v > 1) { v >>= 1; ++k; }\n    return k;\n}\n\nint main()\n{\n    std::uint64_t cacheBytes{}, assoc{}, blockBytes{};\n    int addrBits{};\n    int q{};\n    std::cin >> cacheBytes >> assoc >> blockBytes >> addrBits >> q;\n\n    // sets, offsetBits, indexBits, tagBits\n\n    // print the geometry line\n\n    for (int i = 0; i < q; ++i)\n    {\n        std::uint64_t a{};\n        std::cin >> a;\n        // offset, index, tag by shift and mask\n    }\n\n    // sameset: adjacent input addresses whose index matches\n\n    return 0;\n}\n",
+      "python": "import sys\n\ndef log2exact(v):\n    k = 0\n    while v > 1:\n        v >>= 1\n        k += 1\n    return k\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    pos = 0\n    cache_bytes = int(data[pos]); pos += 1\n    assoc = int(data[pos]); pos += 1\n    block_bytes = int(data[pos]); pos += 1\n    addr_bits = int(data[pos]); pos += 1\n    q = int(data[pos]); pos += 1\n\n    # sets, offset_bits, index_bits, tag_bits, then the per-address fields\n\nmain()\n"
+    },
+    "cases": [
+      {
+        "stdin": "32768 8 64 48 3\n0\n64\n4096\n",
+        "expect": "geometry sets 64 offsetbits 6 indexbits 6 tagbits 36\n0 offset 0 index 0 tag 0\n64 offset 0 index 1 tag 0\n4096 offset 0 index 0 tag 1\nsameset 0\n"
+      },
+      {
+        "stdin": "1024 1 32 16 4\n0\n4\n32\n1024\n",
+        "expect": "geometry sets 32 offsetbits 5 indexbits 5 tagbits 6\n0 offset 0 index 0 tag 0\n4 offset 4 index 0 tag 0\n32 offset 0 index 1 tag 0\n1024 offset 0 index 0 tag 1\nsameset 1\n"
+      }
+    ]
+  }
+}

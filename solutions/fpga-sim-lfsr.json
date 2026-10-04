@@ -1,0 +1,66 @@
+{
+  "key": {
+    "cases": [
+      {
+        "stdin": "4 2\n3 2\n1\n0\n",
+        "expect": "values\nbits\nperiod none\n"
+      },
+      {
+        "stdin": "1 1\n0\n1\n3\n",
+        "expect": "values 1 1 1\nbits 1 1 1\nperiod 1\n"
+      },
+      {
+        "stdin": "4 1\n3\n1\n5\n",
+        "expect": "values 2 4 8 1 2\nbits 0 0 0 1 0\nperiod 4\n"
+      },
+      {
+        "stdin": "3 2\n2 1\n1\n8\n",
+        "expect": "values 2 5 3 7 6 4 1 2\nbits 0 0 1 0 1 1 1 0\nperiod 7\n"
+      },
+      {
+        "stdin": "5 2\n4 2\n1\n32\n",
+        "expect": "values 2 4 9 18 5 11 22 12 25 19 7 15 31 30 28 24 17 3 6 13 27 23 14 29 26 21 10 20 8 16 1 2\nbits 0 0 0 0 1 0 0 1 0 1 1 0 0 1 1 1 1 1 0 0 0 1 1 0 1 1 1 0 1 0 1 0\nperiod 31\n"
+      },
+      {
+        "stdin": "8 4\n7 5 4 3\n1\n20\n",
+        "expect": "values 2 4 8 17 35 71 142 28 56 113 226 196 137 18 37 75 151 46 92 184\nbits 0 0 0 0 0 0 0 1 0 0 0 1 1 1 0 0 0 1 0 0\nperiod none\n"
+      },
+      {
+        "stdin": "4 2\n3 2\n9\n15\n",
+        "expect": "values 3 6 13 10 5 11 7 15 14 12 8 1 2 4 9\nbits 1 0 0 1 1 0 1 0 1 1 1 1 0 0 0\nperiod 15\n"
+      },
+      {
+        "stdin": "16 4\n15 13 12 10\n1\n18\n",
+        "expect": "values 2 4 8 16 32 64 128 256 512 1024 2049 4098 8197 16395 32790 45 90 180\nbits 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0\nperiod none\n"
+      },
+      {
+        "stdin": "2 2\n1 0\n1\n6\n",
+        "expect": "values 3 2 1 3 2 1\nbits 0 1 1 0 1 1\nperiod 3\n"
+      },
+      {
+        "stdin": "4 0\n5\n6\n",
+        "expect": "values 10 4 8 0 0 0\nbits 0 1 0 1 0 0\nperiod none\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <cstdint>\n#include <iostream>\n#include <vector>\n\nint main()\n{\n    int W{}, T{};\n    if (!(std::cin >> W >> T)) return 0;\n\n    std::vector<int> taps;\n    for (int i = 0; i < T; ++i)\n    {\n        int t{};\n        std::cin >> t;\n        taps.push_back(t);\n    }\n\n    std::uint32_t seed{};\n    int cycles{};\n    std::cin >> seed >> cycles;\n\n    const std::uint32_t mask{ (std::uint32_t{ 1 } << W) - 1 };\n    std::uint32_t reg{ seed & mask };\n    const std::uint32_t start{ reg };\n\n    std::vector<std::uint32_t> values;\n    std::vector<unsigned> bits;\n    long long period{ -1 };\n\n    for (int c = 1; c <= cycles; ++c)\n    {\n        /* Everything here reads the OLD register, then one assignment commits. */\n        unsigned fb{ 0 };\n        for (int t : taps) fb ^= (reg >> t) & 1u;\n        unsigned outBit{ (reg >> (W - 1)) & 1u };\n\n        reg = ((reg << 1) | fb) & mask;\n\n        values.push_back(reg);\n        bits.push_back(outBit);\n        if (period < 0 && reg == start) period = c;\n    }\n\n    std::cout << \"values\";\n    for (std::uint32_t v : values) std::cout << ' ' << v;\n    std::cout << \"\\n\";\n\n    std::cout << \"bits\";\n    for (unsigned b : bits) std::cout << ' ' << b;\n    std::cout << \"\\n\";\n\n    if (period < 0) std::cout << \"period none\\n\";\n    else            std::cout << \"period \" << period << \"\\n\";\n\n    return 0;\n}\n",
+      "python": "import sys\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    pos = 0\n    W = int(data[pos]); pos += 1\n    T = int(data[pos]); pos += 1\n    taps = [int(data[pos + i]) for i in range(T)]; pos += T\n    seed = int(data[pos]); pos += 1\n    cycles = int(data[pos]); pos += 1\n\n    mask = (1 << W) - 1\n    reg = seed & mask\n    start = reg\n\n    values = []\n    bits = []\n    period = None\n\n    for c in range(1, cycles + 1):\n        fb = 0\n        for t in taps:\n            fb ^= (reg >> t) & 1\n        out_bit = (reg >> (W - 1)) & 1\n        reg = ((reg << 1) | fb) & mask\n        values.append(reg)\n        bits.append(out_bit)\n        if period is None and reg == start:\n            period = c\n\n    print(\"values%s\" % \"\".join(\" %d\" % v for v in values))\n    print(\"bits%s\" % \"\".join(\" %d\" % b for b in bits))\n    print(\"period %s\" % (\"none\" if period is None else period))\n\nmain()\n"
+    }
+  },
+  "explanation": "## One cycle\n\n```cpp\nunsigned fb{ 0 };\nfor (int t : taps) fb ^= (reg >> t) & 1u;\nunsigned outBit{ (reg >> (W - 1)) & 1u };\n\nreg = ((reg << 1) | fb) & mask;\n```\n\nThree reads of `reg`, then one write. The write is last, and that ordering is\nthe entire correctness argument.\n\n`(reg >> t) & 1` is the standard \"give me bit t\" idiom: shift it down to position\n0, then mask off everything above. `fb` starting at 0 is also the identity for\nXOR, which is why a tap list of length 0 gives a feedback of 0 with no special\ncase - the XOR of nothing is 0, just as the sum of nothing is 0.\n\n## Read everything, then write once\n\nThe hardware is a row of flip-flops sharing one clock:\n\n```\n        +---+     +---+     +---+     +---+\n fb --->| 0 |---->| 1 |---->| 2 |---->| 3 |---> outBit\n        +---+     +---+     +---+     +---+\n          ^                   |         |\n          |                   |         |\n          +--------- XOR <----+---------+\n                         taps 2 and 3\n```\n\nAt the clock edge, every flip-flop captures what its input *was* just before the\nedge. The XOR gate is combinational and its inputs are the old outputs of\nflip-flops 2 and 3. So all four bits update simultaneously from the old state -\nthere is no sequence, no \"first this one then that one\".\n\nWriting it with the assignment last reproduces that. The broken version does\nnot:\n\n```cpp\nreg = (reg << 1) & mask;                       // shifted already\nunsigned fb = ((reg >> 3) & 1) ^ ((reg >> 2) & 1);   // reads the NEW bits\nreg |= fb;\n```\n\nThat computes the feedback from bits that have already moved, which is a\ndifferent machine with a different sequence. It will produce plausible-looking\npseudo-random output and will not match any LFSR, nor any circuit.\n\n## This is `=` versus `<=` in Verilog\n\n```verilog\n// correct: nonblocking, all flip-flops update from the old state\nalways @(posedge clk)\n    if (rst) reg_q <= 4'b0001;\n    else     reg_q <= {reg_q[2:0], reg_q[3] ^ reg_q[2]};\n\n// wrong: blocking, so later lines see earlier updates\nalways @(posedge clk) begin\n    reg_q = {reg_q[2:0], 1'b0};\n    reg_q[0] = reg_q[3] ^ reg_q[2];     // reads the already-shifted value\nend\n```\n\nNonblocking assignment (`<=`) evaluates every right-hand side in the whole\nalways block first, then commits every left-hand side. That is exactly what a\nclock edge does. Blocking assignment (`=`) commits immediately, so statement\norder becomes semantics - and worse, the *simulator* follows your statement\norder while the *synthesiser* builds whatever gates it thinks you meant. The two\nthen disagree, and a design that simulates correctly fails in silicon.\n\nHence the rule every style guide gives: **`<=` in clocked blocks, `=` in\ncombinational ones.** The C++ version in this problem is the same discipline\nexpressed as \"read all the inputs into locals, then assign\".\n\n## Why the period is 15 and not 16\n\nFour bits have 16 states, but 0 is a fixed point - from zero the feedback is\nzero and the register never leaves. So the reachable cycle has at most\n`2^4 - 1 = 15` states, and a **maximal-length** tap set visits all of them.\n\nTaps 3 and 2 on 4 bits correspond to the polynomial `x^4 + x^3 + 1`, which is\nprimitive over GF(2) - that is the algebraic condition for maximal length. Which\ntap sets are primitive is not something you derive at the bench; you look it up.\nXilinx application note XAPP052 is the standard table, covering 3 to 168 bits,\nand it famously lists 4 taps as sufficient for every width in that range.\n\nOne hidden case has a **single** tap at bit `W-1`, which makes the feedback the\nbit being shifted out - so the register simply rotates, and from a seed of 1 the\nperiod is 4 rather than 15. A non-primitive tap set does not just give a shorter\ncycle; it splits the state space into several disjoint cycles of different\nlengths, so the period depends on the seed as well as the taps. Another hidden\ncase is a 16-bit register whose full period is 65535 - far longer than the 64\ncycles simulated, so its answer is `period none`. That is the honest result: the\nsimulation did not run long enough to see it come round, and reporting a number\nwould be a guess.\n\n## Seeding, and the lock-up\n\n```\ninput:  4 2 / taps 3 2 / seed 0 / 5 cycles\nvalues 0 0 0 0 0\nbits 0 0 0 0 0\nperiod 1\n```\n\nThe all-zeros state is self-sustaining, which is a property of the circuit and\nnot of the code. Every real design deals with it:\n\n- **reset to a non-zero value** - the usual fix, and why you see `<= 1` in reset\n  branches\n- **invert the feedback** (`fb = ~XOR(...)`) to make *all-ones* the dead state\n  instead, which is preferable when the register powers up at zero\n- **detect and inject** - a NOR of all bits forced into the feedback, which turns\n  the dead state into a 2^W-length cycle at the cost of a wide gate\n\n`period 1` is the correct output here, because the register does return to its\nseed after one cycle - it never left.\n\n## Where LFSRs are used, and where they are not\n\n**Used** because they are nearly free - W flip-flops and a handful of XOR gates,\none clock cycle per bit, no multiplier and no carry chain:\n\n- **CRC** - a CRC *is* an LFSR whose input is XORed into the feedback. Ethernet,\n  ZIP and PNG all use CRC-32, which is a 32-bit LFSR\n- **scrambling** - PCIe, SATA and USB 3 XOR the data with an LFSR stream so the\n  line has no long runs of identical bits, which keeps clock recovery working\n- **built-in self test** - an LFSR generates pseudo-random stimulus and another\n  compacts the responses into a signature, which is how a chip tests itself with\n  almost no extra area\n- **cheap counters** - an LFSR counter needs no carry propagation, so it runs at\n  a higher clock than a binary counter of the same width, when you only need to\n  count *to* something rather than know *where* you are\n\n**Not** used for anything security-related. The sequence is linear, so observing\n`W` consecutive output bits lets you solve for the entire state and predict\nevery future bit, by Gaussian elimination. The content-scrambling system on DVDs\nwas two LFSRs and was broken in 1999; the A5/1 cipher in GSM was three and was\nbroken as well. An LFSR is a *pseudo-random* generator in the statistical sense\nonly, and the distinction between \"passes randomness tests\" and\n\"unpredictable to an adversary\" is the whole of cryptography.",
+  "readMore": [
+    {
+      "concept": "shift-registers",
+      "where": "Harris & Harris ch. 5.4, then XAPP052 for the tap tables"
+    },
+    {
+      "concept": "finite-state-machines",
+      "where": "HDLBits lfsr5 and lfsr32, which are this in Verilog"
+    },
+    {
+      "concept": "shifts-and-masks",
+      "where": "CS:APP 2.1.7-2.1.9"
+    }
+  ],
+  "id": "fpga-sim-lfsr"
+}

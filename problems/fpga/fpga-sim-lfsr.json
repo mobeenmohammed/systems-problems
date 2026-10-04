@@ -1,0 +1,60 @@
+{
+  "id": "fpga-sim-lfsr",
+  "title": "A shift register that feeds itself",
+  "topic": "fpga",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "shift-register",
+    "lfsr",
+    "sequential-logic",
+    "xor",
+    "simulation"
+  ],
+  "estimate": 32,
+  "prereqs": [
+    {
+      "concept": "shift-registers",
+      "why": "The circuit being simulated is a shift register with XOR feedback, and the tap positions are the whole specification."
+    },
+    {
+      "concept": "shifts-and-masks",
+      "why": "Every step is a shift, a mask to the register width, and a bit extracted by shifting it down."
+    },
+    {
+      "concept": "finite-state-machines",
+      "why": "An LFSR is a state machine whose state is the register and whose next-state logic is three gates, which is why it is so cheap."
+    }
+  ],
+  "statement": "Simulate a `W`-bit **linear feedback shift register**.\n\nInput:\n\n```\nW T                  register width, and how many taps\nt_0 ... t_(T-1)      tap positions, as bit numbers where 0 is the least significant\nseed                 the starting register value\ncycles               how many clock cycles to simulate\n```\n\nEach clock cycle does exactly this, all of it reading the register as it was at\nthe start of the cycle:\n\n```\nfb      = XOR of the register bits at every tap position\noutBit  = bit (W-1) of the register       -- the bit about to be shifted out\nreg     = ((reg << 1) | fb) masked to W bits\n```\n\nPrint the register value after each cycle, the bit shifted out each cycle, and\nthe first cycle number at which the register returns to the seed value:\n\n```\nvalues <v_1> <v_2> ... <v_cycles>\nbits <b_1> <b_2> ... <b_cycles>\nperiod <first cycle where reg == seed, or none>\n```\n\n```\ninput:   4 2        output:  values 2 4 9 3 6 13 10 5 11 7 15 14 12 8 1 2\n         3 2                 bits 0 0 0 1 0 0 1 1 0 1 0 1 1 1 1 0\n         1                   period 15\n         16\n```\n\nFour bits, taps at 3 and 2, starting from 1: the register walks through all\n**fifteen** non-zero values before returning to 1. That is a maximal-length\nLFSR, and it is how hardware generates a pseudo-random bit stream with three\ngates and no multiplier.\n\n### The rule that makes it hardware\n\nEverything on the right-hand side is read **before** anything is written. The\nfeedback bit comes from the register as it is now, not from the half-shifted\nvalue - because in the real circuit all the flip-flops are clocked by the same\nedge, and the XOR gate sees the old outputs.\n\nWrite it as one assignment at the end of the cycle and that is automatic. Shift\nfirst and then compute the feedback from the shifted value and you have\nsimulated a circuit nobody built. This is exactly the Verilog `=` versus `<=`\ndistinction, and the solution shows the two side by side.\n\n### The all-zeros state\n\nIf the register ever holds 0, every tap reads 0, so the feedback is 0 and the\nnext state is 0. The register is stuck forever. That is not a bug in your code -\nit is a real property of the circuit, and it is why an LFSR must never be seeded\nwith zero and why hardware designs reset it to 1. One of the visible cases\nstarts from 0 so you can see it happen.\n\n### Boundary cases\n\n`cycles = 0`, where both lists are empty and the period is `none`. A seed of 0.\n`T = 0`, meaning no taps at all - the feedback is then the XOR of nothing, which\nis **0**, making it a plain shift register that fills with zeros. `W = 1`. A\nnon-maximal tap set, whose period is shorter than `2^W - 1`. A seed that is not\n1, which enters the same cycle at a different point and so has the same period.\n\n### Platform assumptions\n\n`W` is between 1 and 16, `T` between 0 and 4, tap positions are in `0..W-1`,\n`seed` is in `0..2^W - 1`, and `cycles` is between 0 and 64. A `std::uint32_t`\nholds the register with room to spare, so `reg << 1` can never shift a bit into\nthe sign position or off the top of the type before the mask is applied. Bit 0\nis the least significant bit throughout.",
+  "hints": [
+    "Mask once and reuse it: `mask = (1u << W) - 1`. Apply it after every shift, because `reg << 1` moves a bit out of the W-bit register and the mask is what discards it.",
+    "The feedback is `fb ^= (reg >> t) & 1` for each tap - shift the tap down to bit 0, keep that one bit, XOR it in. Starting `fb` at 0 means a machine with no taps correctly produces a feedback of 0.",
+    "Compute `fb` and `outBit` from `reg` first, both of them, and only then assign the new `reg`. One assignment per cycle, placed last - that is what makes the simulation match the hardware."
+  ],
+  "payload": {
+    "langs": [
+      "cpp",
+      "python"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <cstdint>\n#include <iostream>\n#include <vector>\n\nint main()\n{\n    int W{}, T{};\n    std::cin >> W >> T;\n\n    std::vector<int> taps;\n    for (int i = 0; i < T; ++i)\n    {\n        int t{};\n        std::cin >> t;\n        taps.push_back(t);\n    }\n\n    std::uint32_t seed{};\n    int cycles{};\n    std::cin >> seed >> cycles;\n\n    const std::uint32_t mask{ (std::uint32_t{ 1 } << W) - 1 };\n    std::uint32_t reg{ seed & mask };\n\n    for (int c = 1; c <= cycles; ++c)\n    {\n        // fb and outBit from the OLD reg, then one assignment.\n    }\n\n    // values, bits, period\n\n    return 0;\n}\n",
+      "python": "import sys\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    pos = 0\n    W = int(data[pos]); pos += 1\n    T = int(data[pos]); pos += 1\n    taps = [int(data[pos + i]) for i in range(T)]; pos += T\n    seed = int(data[pos]); pos += 1\n    cycles = int(data[pos]); pos += 1\n\n    mask = (1 << W) - 1\n    reg = seed & mask\n\n    for c in range(1, cycles + 1):\n        # fb and out_bit from the old reg, then one assignment\n        pass\n\nmain()\n"
+    },
+    "cases": [
+      {
+        "stdin": "4 2\n3 2\n1\n16\n",
+        "expect": "values 2 4 9 3 6 13 10 5 11 7 15 14 12 8 1 2\nbits 0 0 0 1 0 0 1 1 0 1 0 1 1 1 1 0\nperiod 15\n"
+      },
+      {
+        "stdin": "4 2\n3 2\n0\n5\n",
+        "expect": "values 0 0 0 0 0\nbits 0 0 0 0 0\nperiod 1\n"
+      }
+    ]
+  }
+}

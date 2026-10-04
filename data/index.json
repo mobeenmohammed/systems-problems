@@ -269,6 +269,31 @@
     ]
   },
   {
+    "id": "arch-sim-byte-decode",
+    "title": "The same four bytes, read two ways",
+    "topic": "arch",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "byte-order",
+      "endianness",
+      "shifts",
+      "twos-complement",
+      "simulation"
+    ],
+    "estimate": 28,
+    "prereqs": [
+      "byte-order",
+      "shifts-and-masks",
+      "cpp-integer-types"
+    ],
+    "langs": [
+      "cpp",
+      "python"
+    ]
+  },
+  {
     "id": "arch-struct-padding",
     "title": "How big is this struct?",
     "topic": "arch",
@@ -321,6 +346,31 @@
     "prereqs": [
       "pipelining",
       "memory-hierarchy"
+    ]
+  },
+  {
+    "id": "arch-sim-cache-fields",
+    "title": "Which set does this address land in",
+    "topic": "arch",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "cache",
+      "address-decoding",
+      "shifts",
+      "simulation",
+      "memory-hierarchy"
+    ],
+    "estimate": 30,
+    "prereqs": [
+      "cache-indexing",
+      "shifts-and-masks",
+      "cache-lines"
+    ],
+    "langs": [
+      "cpp",
+      "python"
     ]
   },
   {
@@ -1068,6 +1118,56 @@
     ]
   },
   {
+    "id": "fpga-sim-lfsr",
+    "title": "A shift register that feeds itself",
+    "topic": "fpga",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "shift-register",
+      "lfsr",
+      "sequential-logic",
+      "xor",
+      "simulation"
+    ],
+    "estimate": 32,
+    "prereqs": [
+      "shift-registers",
+      "shifts-and-masks",
+      "finite-state-machines"
+    ],
+    "langs": [
+      "cpp",
+      "python"
+    ]
+  },
+  {
+    "id": "fpga-sim-moore-fsm",
+    "title": "Run the state machine from its table",
+    "topic": "fpga",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "fsm",
+      "moore",
+      "sequential-logic",
+      "simulation",
+      "state-table"
+    ],
+    "estimate": 30,
+    "prereqs": [
+      "finite-state-machines",
+      "cpp-std-vector",
+      "cpp-loops"
+    ],
+    "langs": [
+      "cpp",
+      "python"
+    ]
+  },
+  {
     "id": "fpga-initiation-interval",
     "title": "Throughput of a pipelined block",
     "topic": "fpga",
@@ -1343,6 +1443,55 @@
     "lane": "core",
     "prereqs": [
       "scheduling"
+    ]
+  },
+  {
+    "id": "os-sim-page-replacement",
+    "title": "Three ways to choose a victim",
+    "topic": "os",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "paging",
+      "page-replacement",
+      "lru",
+      "simulation",
+      "virtual-memory"
+    ],
+    "estimate": 35,
+    "prereqs": [
+      "page-replacement",
+      "paging",
+      "cpp-std-vector"
+    ],
+    "langs": [
+      "cpp",
+      "python"
+    ]
+  },
+  {
+    "id": "os-sim-scheduling",
+    "title": "Three schedulers, three sets of numbers",
+    "topic": "os",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "scheduling",
+      "round-robin",
+      "simulation",
+      "processes"
+    ],
+    "estimate": 38,
+    "prereqs": [
+      "scheduling-metrics",
+      "scheduling",
+      "ring-buffers"
+    ],
+    "langs": [
+      "cpp",
+      "python"
     ]
   },
   {

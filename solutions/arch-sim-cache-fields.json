@@ -1,0 +1,62 @@
+{
+  "key": {
+    "cases": [
+      {
+        "stdin": "64 1 64 32 2\n0\n63\n",
+        "expect": "geometry sets 1 offsetbits 6 indexbits 0 tagbits 26\n0 offset 0 index 0 tag 0\n63 offset 63 index 0 tag 0\nsameset 1\n"
+      },
+      {
+        "stdin": "256 4 64 32 3\n0\n64\n128\n",
+        "expect": "geometry sets 1 offsetbits 6 indexbits 0 tagbits 26\n0 offset 0 index 0 tag 0\n64 offset 0 index 0 tag 1\n128 offset 0 index 0 tag 2\nsameset 2\n"
+      },
+      {
+        "stdin": "8 1 1 8 4\n0\n1\n7\n8\n",
+        "expect": "geometry sets 8 offsetbits 0 indexbits 3 tagbits 5\n0 offset 0 index 0 tag 0\n1 offset 0 index 1 tag 0\n7 offset 0 index 7 tag 0\n8 offset 0 index 0 tag 1\nsameset 0\n"
+      },
+      {
+        "stdin": "32768 8 64 48 1\n281474976710655\n",
+        "expect": "geometry sets 64 offsetbits 6 indexbits 6 tagbits 36\n281474976710655 offset 63 index 63 tag 68719476735\nsameset 0\n"
+      },
+      {
+        "stdin": "4096 1 64 32 4\n0\n4096\n8192\n12288\n",
+        "expect": "geometry sets 64 offsetbits 6 indexbits 6 tagbits 20\n0 offset 0 index 0 tag 0\n4096 offset 0 index 0 tag 1\n8192 offset 0 index 0 tag 2\n12288 offset 0 index 0 tag 3\nsameset 3\n"
+      },
+      {
+        "stdin": "32768 1 64 32 5\n0\n64\n128\n192\n256\n",
+        "expect": "geometry sets 512 offsetbits 6 indexbits 9 tagbits 17\n0 offset 0 index 0 tag 0\n64 offset 0 index 1 tag 0\n128 offset 0 index 2 tag 0\n192 offset 0 index 3 tag 0\n256 offset 0 index 4 tag 0\nsameset 0\n"
+      },
+      {
+        "stdin": "32768 1 64 32 3\n100\n132\n32868\n",
+        "expect": "geometry sets 512 offsetbits 6 indexbits 9 tagbits 17\n100 offset 36 index 1 tag 0\n132 offset 4 index 2 tag 0\n32868 offset 36 index 1 tag 1\nsameset 0\n"
+      },
+      {
+        "stdin": "2 2 1 4 3\n0\n1\n15\n",
+        "expect": "geometry sets 1 offsetbits 0 indexbits 0 tagbits 4\n0 offset 0 index 0 tag 0\n1 offset 0 index 0 tag 1\n15 offset 0 index 0 tag 15\nsameset 2\n"
+      },
+      {
+        "stdin": "32768 8 64 48 0\n",
+        "expect": "geometry sets 64 offsetbits 6 indexbits 6 tagbits 36\nsameset 0\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <cstdint>\n#include <iostream>\n#include <vector>\n\nstatic int log2exact(std::uint64_t v)\n{\n    int k{ 0 };\n    while (v > 1) { v >>= 1; ++k; }\n    return k;\n}\n\nint main()\n{\n    std::uint64_t cacheBytes{}, assoc{}, blockBytes{};\n    int addrBits{};\n    int q{};\n    if (!(std::cin >> cacheBytes >> assoc >> blockBytes >> addrBits >> q)) return 0;\n\n    const std::uint64_t sets{ cacheBytes / (assoc * blockBytes) };\n    const int offsetBits{ log2exact(blockBytes) };\n    const int indexBits{ log2exact(sets) };\n    const int tagBits{ addrBits - offsetBits - indexBits };\n\n    std::cout << \"geometry sets \" << sets\n              << \" offsetbits \" << offsetBits\n              << \" indexbits \" << indexBits\n              << \" tagbits \" << tagBits << \"\\n\";\n\n    const std::uint64_t offsetMask{ blockBytes - 1 };\n    const std::uint64_t indexMask{ sets - 1 };\n\n    std::vector<std::uint64_t> idx;\n    for (int i = 0; i < q; ++i)\n    {\n        std::uint64_t a{};\n        std::cin >> a;\n\n        std::uint64_t offset{ a & offsetMask };\n        std::uint64_t index{ (a >> offsetBits) & indexMask };\n        std::uint64_t tag{ a >> (offsetBits + indexBits) };\n\n        std::cout << a << \" offset \" << offset\n                  << \" index \" << index\n                  << \" tag \" << tag << \"\\n\";\n        idx.push_back(index);\n    }\n\n    int same{ 0 };\n    for (std::size_t i = 1; i < idx.size(); ++i)\n        if (idx[i] == idx[i - 1]) ++same;\n\n    std::cout << \"sameset \" << same << \"\\n\";\n\n    return 0;\n}\n",
+      "python": "import sys\n\ndef log2exact(v):\n    k = 0\n    while v > 1:\n        v >>= 1\n        k += 1\n    return k\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    pos = 0\n    cache_bytes = int(data[pos]); pos += 1\n    assoc = int(data[pos]); pos += 1\n    block_bytes = int(data[pos]); pos += 1\n    addr_bits = int(data[pos]); pos += 1\n    q = int(data[pos]); pos += 1\n\n    sets = cache_bytes // (assoc * block_bytes)\n    offset_bits = log2exact(block_bytes)\n    index_bits = log2exact(sets)\n    tag_bits = addr_bits - offset_bits - index_bits\n\n    out = [\"geometry sets %d offsetbits %d indexbits %d tagbits %d\"\n           % (sets, offset_bits, index_bits, tag_bits)]\n\n    offset_mask = block_bytes - 1\n    index_mask = sets - 1\n    indices = []\n\n    for _ in range(q):\n        a = int(data[pos]); pos += 1\n        offset = a & offset_mask\n        index = (a >> offset_bits) & index_mask\n        tag = a >> (offset_bits + index_bits)\n        out.append(\"%d offset %d index %d tag %d\" % (a, offset, index, tag))\n        indices.append(index)\n\n    same = sum(1 for i in range(1, len(indices)) if indices[i] == indices[i - 1])\n    out.append(\"sameset %d\" % same)\n    print(\"\\n\".join(out))\n\nmain()\n"
+    }
+  },
+  "explanation": "## The geometry comes first\n\n```cpp\nconst std::uint64_t sets{ cacheBytes / (assoc * blockBytes) };\nconst int offsetBits{ log2exact(blockBytes) };\nconst int indexBits{ log2exact(sets) };\nconst int tagBits{ addrBits - offsetBits - indexBits };\n```\n\nRead the division as a sentence: the cache holds `cacheBytes / blockBytes`\nblocks in total, and they are grouped `assoc` to a set, so there are\n`cacheBytes / blockBytes / assoc` sets. For the sample: 32768 / 64 = 512 blocks,\n8 per set, so 64 sets.\n\nEvery one of the three widths is forced by the geometry. Nothing here is a\ndesign choice at decode time - the hardware's wiring picks the bit ranges once,\nand this is that wiring written as arithmetic.\n\n## Each field is a shift and a mask\n\n```cpp\noffset = a & (blockBytes - 1);\nindex  = (a >> offsetBits) & (sets - 1);\ntag    = a >> (offsetBits + indexBits);\n```\n\nThe **shift** moves the field down to bit 0; the **mask** cuts off everything\nabove it. The tag needs no mask because it is the top field - everything above\nit is already zero, given that the address fits in `addrBits`.\n\n`blockBytes - 1` works as a mask only because `blockBytes` is a power of two:\n\n```\nblockBytes = 64 = 0b1000000\nblockBytes - 1  = 0b0111111      exactly offsetBits ones\n```\n\nThat is the real reason cache sizes, line sizes and page sizes are all powers of\ntwo. `addr % 64` and `addr & 63` are the same value, but the first is a division\ncircuit and the second is wires - no gates at all for the masked-off bits. When\nyou see a power of two in hardware, it is usually because somebody wanted a\ndivision to be free.\n\n## Why the offset is at the bottom\n\n```\naddresses 0..63 all have the same tag and index, differing only in offset\n```\n\nSo a whole 64-byte block occupies one cache entry, and reading byte 0 brings\nbytes 1 through 63 along with it. That is spatial locality paying off, and it is\nwhy walking an array sequentially costs one miss per 64 bytes instead of one per\nelement.\n\nPut the offset anywhere else and consecutive bytes would scatter across sets,\nmaking a block meaningless.\n\n## Why the index is in the middle, not at the top\n\nIf the index were the **high** bits, then a contiguous region of memory would\nmap almost entirely into one set, and a program working on a small array would\nuse a fraction of the cache while evicting itself constantly.\n\nWith the index in the middle, consecutive blocks go to consecutive sets and a\nsequential walk spreads over the whole cache before coming back round. The hidden\ncase `0 64 128 192 256` shows it: five consecutive blocks, five different sets,\n`sameset 0`.\n\n## How conflicts are built\n\nTwo addresses collide when their index matches and their tags differ. The index\nrepeats every `sets * blockBytes` bytes - the **way size**:\n\n```\nway size = sets * blockBytes = 512 * 64 = 32768 bytes = 32 KiB\n```\n\nThe hidden case `100 132 32868` is exactly this. `100` and `32868` differ by\n32768, so they have the same index (1) and different tags (0 and 1) - they\ncompete for the same set. In a direct-mapped cache those two addresses evict\neach other every time, no matter how large the cache is.\n\nThat is where the classic power-of-two array stride disaster comes from:\n\n```cpp\ndouble a[1024][1024];\nfor (int i = 0; i < 1024; ++i) sum += a[i][0];      // stride 8192 bytes\n```\n\nEvery element of column 0 is 8 KiB apart. With a 32 KiB 8-way L1, 8192 is a\nquarter of the way size, so only four distinct sets are ever touched - and the\n8 ways in each fill up after 32 rows, after which everything misses. Padding the\nrow to 1025 doubles breaks the pattern and can make the loop several times\nfaster without changing a single computation.\n\n`sameset` is in the output for this reason: it is the measurable symptom.\n\n## The degenerate geometries, which are not special cases\n\n**Fully associative**: `sets == 1`, so `indexBits == 0` and the index mask is\n`sets - 1 == 0`. Then `(a >> 0) & 0` is `0` for every address - which is right,\nbecause with one set every address is in set 0, and the tag carries the entire\naddress above the offset. The arithmetic handles it with no `if`.\n\n**Direct-mapped**: `assoc == 1`, so `sets` is the whole block count. Nothing in\nthe decode changes - associativity only affects how many blocks live in a set,\nnot how the address is split. Worth noticing: the *fields* depend on `assoc`\nonly through `sets`.\n\n**`blockBytes == 1`**: `offsetBits == 0`, the offset mask is 0, and every address\nis its own block. That is a cache with no spatial locality at all, and it is the\nmodel most textbook examples implicitly use before introducing lines.\n\nEach of these is a hidden case, because an implementation with a special-case\nbranch usually gets exactly one of them wrong.\n\n## The shift that must not be too large\n\n```cpp\ntag = a >> (offsetBits + indexBits);\n```\n\nIf `offsetBits + indexBits` ever reached 64, this would be **undefined\nbehaviour** - shifting by the width of the type or more is not \"0\", it is\nunspecified, and on x86 the hardware shift instruction masks the count to 6 bits\nso `x >> 64` compiles to `x >> 0` and silently returns `x` unchanged.\n\nHere the statement caps `addrBits` at 48 and the fields must sum to it, so it\ncannot happen. In real code that handles arbitrary widths, the guard matters -\nand `-fsanitize=undefined` reports it as \"shift exponent is too large\", which is\none of the clearest sanitizer messages there is.\n\n## Your own machine\n\n```\n$ lscpu -C\nNAME ONE-SIZE ALL-SIZE WAYS TYPE        LEVEL  SETS\nL1d       48K     384K   12 Data            1    64\nL1i       32K     256K    8 Instruction     1    64\nL2         1M       8M   16 Unified         2  1024\nL3        24M      24M   12 Unified         3 16384\n```\n\n`SETS`, `WAYS` and the size are exactly the three numbers this problem takes as\ninput, and `ONE-SIZE / (WAYS * SETS)` gives back the 64-byte line. Worth running,\nbecause the geometry of the machine in front of you is the geometry that decides\nwhether your loop is fast.",
+  "readMore": [
+    {
+      "concept": "cache-indexing",
+      "where": "CS:APP 6.4, which uses exactly this S/E/B decomposition"
+    },
+    {
+      "concept": "cache-lines",
+      "where": "CS:APP 6.2-6.3 for why blocks exist at all"
+    },
+    {
+      "concept": "shifts-and-masks",
+      "where": "CS:APP 2.1.7-2.1.9"
+    }
+  ],
+  "id": "arch-sim-cache-fields"
+}

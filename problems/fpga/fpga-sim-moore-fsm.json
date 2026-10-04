@@ -1,0 +1,60 @@
+{
+  "id": "fpga-sim-moore-fsm",
+  "title": "Run the state machine from its table",
+  "topic": "fpga",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "fsm",
+    "moore",
+    "sequential-logic",
+    "simulation",
+    "state-table"
+  ],
+  "estimate": 30,
+  "prereqs": [
+    {
+      "concept": "finite-state-machines",
+      "why": "The input is a state-transition table and a Moore output table, which is exactly how sequential hardware is specified before it is written."
+    },
+    {
+      "concept": "cpp-std-vector",
+      "why": "The transition table is a vector of vectors indexed by state and input symbol."
+    },
+    {
+      "concept": "cpp-loops",
+      "why": "The simulation is one pass over the input symbols, with the state carried between iterations."
+    }
+  ],
+  "statement": "You are given a **Moore machine** as a table and have to run it.\n\nInput:\n\n```\nS K                       number of states, number of input symbols\no_0 o_1 ... o_(S-1)       the Moore output of each state, 0 or 1\nn_0_0 ... n_0_(K-1)       next state from state 0, one entry per input symbol\n...                       one such line per state\nn                         how many input symbols follow\nc_0 c_1 ... c_(n-1)       the input symbols, each in 0..K-1\n```\n\nThe machine starts in **state 0** before any input is consumed. Print:\n\n```\nstates <s_0> <s_1> ... <s_n>      the state before any input, then after each symbol\noutputs <o_0> <o_1> ... <o_n>     the output of each of those states\nones <how many of those outputs are 1>\nfirst-one <index of the first 1, or none>\n```\n\nThere are `n + 1` states and outputs, because the initial state counts.\n\n```\ninput:   3 2              output:  states 0 0 1 2 0 1 2\n         0 0 1                     outputs 0 0 0 1 0 0 1\n         0 1                       ones 2\n         0 2                       first-one 3\n         0 2\n         6\n         0 1 1 0 1 1\n```\n\nThat table is a detector for two consecutive 1s: state 0 means \"nothing yet\",\nstate 1 means \"saw one 1\", state 2 means \"saw two\" and is the only state whose\noutput is 1. Feed it `0 1 1 0 1 1` and it asserts after the third symbol and\nagain after the sixth.\n\n### What a Moore machine is, in hardware\n\n```\n      +------------------+\n      |                  |\n   +--v--+   next     +--+---+        +--------+\n   | reg |----------->| comb |        | output |\n   |state|<-----------| next |<---    | logic  |---> out\n   +-----+   clock    +------+  input +---^----+\n      |                                   |\n      +-----------------------------------+\n            output depends on state ONLY\n```\n\nOne register holding the state, combinational logic computing the next state\nfrom the current state and the input, and separate combinational logic computing\nthe output from the state alone. \"Moore\" is that last part: **the output depends\nonly on the state, not on the current input.**\n\nSo the output is whatever the register holds, decoded - which is why it is\nstable for a whole clock period and why there are `n + 1` outputs for `n`\ninputs. The machine has an output before it has seen anything.\n\n### Boundary cases\n\n`n = 0`, where the answer is just the initial state and its output. A\nsingle-state machine, which can never change state - including one whose output\nis 1, making `first-one 0`. A machine whose output is 1 in state 0, so the very\nfirst output is 1 before any input. A machine that never produces a 1, giving\n`first-one none`. `K = 1`, where the input carries no information and the\nmachine's path is forced. A state that transitions to itself.\n\n### Platform assumptions\n\n`S` is between 1 and 8, `K` between 1 and 4, `n` between 0 and 200. Every entry\nin the table is a valid state index and every input symbol is a valid symbol, so\nno validation is needed. Outputs are 0 or 1. Everything fits in an `int`.",
+  "hints": [
+    "Read the table into a `std::vector<std::vector<int>>` indexed as `next[state][symbol]`, and the outputs into a flat `std::vector<int>`. Reading in exactly the order the input presents it keeps the indices straight.",
+    "Record the initial state **before** the loop: `states.push_back(0)`. Then the loop body is one line - `s = next[s][c]; states.push_back(s);` - and you naturally end up with n+1 entries.",
+    "`first-one` is the index into the states list, not into the input. Scan the outputs once afterwards and stop at the first 1; use a sentinel or a flag so you can tell 'index 0' apart from 'never', which is the same in-band-value trap as the earlier search problems."
+  ],
+  "payload": {
+    "langs": [
+      "cpp",
+      "python"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n#include <vector>\n\nint main()\n{\n    int S{}, K{};\n    std::cin >> S >> K;\n\n    std::vector<int> outOf(static_cast<std::size_t>(S), 0);\n    // read S outputs\n\n    std::vector<std::vector<int>> next(static_cast<std::size_t>(S),\n                                       std::vector<int>(static_cast<std::size_t>(K), 0));\n    // read S rows of K next-states\n\n    int n{};\n    std::cin >> n;\n\n    // start in state 0, record it, then consume n symbols\n\n    // states, outputs, ones, first-one\n\n    return 0;\n}\n",
+      "python": "import sys\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    pos = 0\n    S = int(data[pos]); pos += 1\n    K = int(data[pos]); pos += 1\n    out_of = [int(data[pos + i]) for i in range(S)]; pos += S\n    nxt = []\n    for _ in range(S):\n        nxt.append([int(data[pos + j]) for j in range(K)]); pos += K\n    n = int(data[pos]); pos += 1\n    syms = [int(data[pos + i]) for i in range(n)]; pos += n\n\n    # start in state 0, record it, then step through syms\n\nmain()\n"
+    },
+    "cases": [
+      {
+        "stdin": "3 2\n0 0 1\n0 1\n0 2\n0 2\n6\n0 1 1 0 1 1\n",
+        "expect": "states 0 0 1 2 0 1 2\noutputs 0 0 0 1 0 0 1\nones 2\nfirst-one 3\n"
+      },
+      {
+        "stdin": "2 2\n0 1\n0 1\n0 1\n3\n0 0 0\n",
+        "expect": "states 0 0 0 0\noutputs 0 0 0 0\nones 0\nfirst-one none\n"
+      }
+    ]
+  }
+}

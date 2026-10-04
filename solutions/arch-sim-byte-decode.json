@@ -1,0 +1,58 @@
+{
+  "key": {
+    "cases": [
+      {
+        "stdin": "4\n0 0 0 0\n",
+        "expect": "le 0x00000000 0 0\nbe 0x00000000 0 0\n"
+      },
+      {
+        "stdin": "4\n0 0 0 128\n",
+        "expect": "le 0x80000000 2147483648 -2147483648\nbe 0x00000080 128 128\n"
+      },
+      {
+        "stdin": "4\n1 0 0 0\n",
+        "expect": "le 0x00000001 1 1\nbe 0x01000000 16777216 16777216\n"
+      },
+      {
+        "stdin": "4\n18 52 52 18\n",
+        "expect": "le 0x12343412 305411090 305411090\nbe 0x12343412 305411090 305411090\n"
+      },
+      {
+        "stdin": "8\n1 2 3 4 255 0 0 0\n",
+        "expect": "le 0x04030201 67305985 67305985\nbe 0x01020304 16909060 16909060\nle 0x000000ff 255 255\nbe 0xff000000 4278190080 -16777216\n"
+      },
+      {
+        "stdin": "4\n255 255 255 127\n",
+        "expect": "le 0x7fffffff 2147483647 2147483647\nbe 0xffffff7f 4294967167 -129\n"
+      },
+      {
+        "stdin": "12\n0 0 0 0 255 255 255 255 171 205 239 254\n",
+        "expect": "le 0x00000000 0 0\nbe 0x00000000 0 0\nle 0xffffffff 4294967295 -1\nbe 0xffffffff 4294967295 -1\nle 0xfeefcdab 4277128619 -17838677\nbe 0xabcdeffe 2882400254 -1412567042\n"
+      },
+      {
+        "stdin": "0\n",
+        "expect": ""
+      }
+    ],
+    "reference": {
+      "cpp": "#include <cstdint>\n#include <iomanip>\n#include <iostream>\n#include <vector>\n\nint main()\n{\n    int n{};\n    if (!(std::cin >> n)) return 0;\n\n    std::vector<std::uint32_t> bytes;\n    for (int i = 0; i < n; ++i)\n    {\n        unsigned int b{};\n        std::cin >> b;\n        bytes.push_back(static_cast<std::uint32_t>(b & 0xFFu));\n    }\n\n    for (std::size_t i = 0; i + 3 < bytes.size(); i += 4)\n    {\n        std::uint32_t le{ bytes[i]\n                        | (bytes[i + 1] << 8)\n                        | (bytes[i + 2] << 16)\n                        | (bytes[i + 3] << 24) };\n\n        std::uint32_t be{ bytes[i + 3]\n                        | (bytes[i + 2] << 8)\n                        | (bytes[i + 1] << 16)\n                        | (bytes[i] << 24) };\n\n        std::cout << \"le 0x\" << std::hex << std::setw(8) << std::setfill('0') << le\n                  << std::dec << std::setfill(' ')\n                  << ' ' << le\n                  << ' ' << static_cast<std::int32_t>(le) << \"\\n\";\n\n        std::cout << \"be 0x\" << std::hex << std::setw(8) << std::setfill('0') << be\n                  << std::dec << std::setfill(' ')\n                  << ' ' << be\n                  << ' ' << static_cast<std::int32_t>(be) << \"\\n\";\n    }\n\n    return 0;\n}\n",
+      "python": "import sys\n\ndef signed32(u):\n    return u - (1 << 32) if u >= (1 << 31) else u\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    pos = 0\n    n = int(data[pos]); pos += 1\n    b = [int(data[pos + i]) & 0xFF for i in range(n)]; pos += n\n\n    out = []\n    for i in range(0, len(b) - 3, 4):\n        le = b[i] | (b[i + 1] << 8) | (b[i + 2] << 16) | (b[i + 3] << 24)\n        be = b[i + 3] | (b[i + 2] << 8) | (b[i + 1] << 16) | (b[i] << 24)\n        out.append(\"le 0x%08x %d %d\" % (le, le, signed32(le)))\n        out.append(\"be 0x%08x %d %d\" % (be, be, signed32(be)))\n    print(\"\\n\".join(out))\n\nmain()\n"
+    }
+  },
+  "explanation": "## Assembling the two readings\n\n```cpp\nstd::uint32_t le{ bytes[i]\n                | (bytes[i + 1] << 8)\n                | (bytes[i + 2] << 16)\n                | (bytes[i + 3] << 24) };\n\nstd::uint32_t be{ bytes[i + 3]\n                | (bytes[i + 2] << 8)\n                | (bytes[i + 1] << 16)\n                | (bytes[i] << 24) };\n```\n\nEach byte is shifted to the position it occupies in the final word and the four\nare combined with `|`. Since the bytes do not overlap after shifting, `|` and\n`+` give the same answer here - `|` is conventional because it says \"these are\ndisjoint fields\" rather than \"these are numbers being added\".\n\n```\nbytes:            0x78        0x56        0x34        0x12\nshift (le):       << 0        << 8        << 16       << 24\ncontribution:  0x00000078  0x00005600  0x00340000  0x12000000\nor them:       0x12345678\n```\n\n## The cast that looks easier and is wrong twice\n\n```cpp\nstd::uint32_t value = *reinterpret_cast<const std::uint32_t*>(&bytes[i]);\n```\n\nTwo separate problems.\n\n**It gives the host's byte order**, so the answer depends on the machine. On x86\nyou would get the little-endian reading; on a big-endian host, the other one.\nA program whose output changes with the hardware cannot have one correct answer -\nwhich is exactly the bug that makes a file written on one machine unreadable on\nanother.\n\n**It is undefined behaviour**, for two reasons at once. Reading a `std::uint32_t`\nthrough a pointer to objects of a different type violates the strict-aliasing\nrule, and the address may not be suitably aligned for a 32-bit load. On x86 the\nmisalignment is tolerated by the hardware and the aliasing violation usually\n\"works\" at `-O0` and sometimes stops working at `-O2`, where the optimiser is\nallowed to assume it never happened. On some ARM configurations the unaligned\nload faults outright.\n\nThe sanctioned way to reinterpret bytes, if you really want the host order, is\nC++20's `std::bit_cast`:\n\n```cpp\n#include <bit>\nstd::uint32_t value = std::bit_cast<std::uint32_t>(raw_array_of_4_bytes);\n```\n\nwhich is defined behaviour and compiles to the same single load. It still gives\nthe host's byte order, so it is the wrong tool for a protocol - but it is the\nright tool for \"these bytes are a float, show me the bits\".\n\n**The shift version has neither problem.** It is pure arithmetic on values, so\nthere is no aliasing and no alignment, and the result is determined by the\nshifts you wrote rather than by the machine. That is why every serious protocol\nparser is written with shifts, and why this problem can state one expected\noutput.\n\n## Signed and unsigned are the same bits\n\n```cpp\nstatic_cast<std::int32_t>(le)\n```\n\nNo bits move. The cast changes how the top bit is *interpreted*: as part of the\nmagnitude (unsigned) or as a sign (two's complement).\n\n| bits | unsigned | signed |\n| --- | --- | --- |\n| `0x00000000` | 0 | 0 |\n| `0x7fffffff` | 2147483647 | 2147483647 |\n| `0x80000000` | 2147483648 | -2147483648 |\n| `0xffffffff` | 4294967295 | -1 |\n\nThe rule for two's complement: if the top bit is set, the signed value is\n`unsigned - 2^32`. So `0xffffffff` is 4294967295 - 4294967296 = -1, and\n`0x80000000` is 2147483648 - 4294967296 = -2147483648.\n\nTwo things worth taking from that table. `0xffffffff` being -1 is why `-1` is the\nconventional \"all bits set\" mask. And the asymmetry - the most negative value has\nno positive counterpart - is the same one that makes `-INT_MIN` overflow, which\ncame up in the digit-counting problem.\n\nConverting out-of-range unsigned to signed was *implementation-defined* before\nC++20 and is now guaranteed to be the modular two's-complement result, so the\ntable above is portable in modern C++.\n\n## Why bytes are read into `unsigned int`, not `char`\n\n```cpp\nunsigned int b{};\nstd::cin >> b;            // reads the number 120\n\nchar c{};\nstd::cin >> c;            // reads the character '1' - the first digit!\n```\n\n`operator>>` on a `char` reads exactly one character, so `120` would give you\n`'1'` and leave `20` in the stream. Everything after that is wrong, with no\nerror reported.\n\n`& 0xFFu` on the way in keeps a malformed input from contributing bits above the\nbottom eight. Belt and braces - the statement promises 0 to 255 - but masking\nthe input to the width you claim it has is a habit worth having.\n\n## The sticky iostream manipulators\n\n```cpp\nstd::cout << \"le 0x\" << std::hex << std::setw(8) << std::setfill('0') << le\n          << std::dec << std::setfill(' ')\n          << ' ' << le << ' ' << static_cast<std::int32_t>(le) << \"\\n\";\n```\n\n`std::hex` and `std::setfill` are **sticky**: they change the stream until\nchanged back. `std::setw` is not - it applies to the next item only and then\nresets to 0.\n\nSo the decimals after the hex need `std::dec` put back, or they come out in hex\ntoo, and the fill must go back to a space or a later `setw` pads with zeros.\nForgetting one of these is the classic iostream formatting bug, and it typically\ncorrupts output written somewhere else entirely in a larger program.\n\nC++20's `std::format` avoids the whole issue by making formatting local to the\ncall:\n\n```cpp\nstd::cout << std::format(\"le 0x{:08x} {} {}\\n\", le, le, static_cast<std::int32_t>(le));\n```\n\n## Where this actually comes up\n\n- **network protocols** - every field in an IP, TCP or DNS header is\n  big-endian, which is why `htonl`/`ntohl` exist and why forgetting them gives\n  you a port number of 20480 instead of 80 (`0x0050` read backwards is `0x5000`)\n- **file formats** - PNG and most network formats are big-endian; BMP, ZIP and\n  ELF-on-x86 are little-endian. A format that does not pin it down needs a magic\n  number to tell the reader, which is literally what TIFF's `II`/`MM` header is\n- **memory dumps and debuggers** - a little-endian dword shown byte-by-byte\n  looks reversed, which is why `0x12345678` appears as `78 56 34 12` in a hex\n  editor and catches everyone once\n- **`std::endian`** in C++20 tells you which you are on at compile time:\n  `std::endian::native == std::endian::little`\n\nThe word comes from *Gulliver's Travels*, where the Lilliputians went to war\nover which end of a boiled egg to crack. Danny Cohen's 1980 paper \"On Holy Wars\nand a Plea for Peace\" borrowed it to make the point that neither order is better -\nonly that everyone has to agree.",
+  "readMore": [
+    {
+      "concept": "byte-order",
+      "where": "CS:APP 2.1.3-2.1.4, including the show_bytes exercise"
+    },
+    {
+      "concept": "shifts-and-masks",
+      "where": "CS:APP 2.1.7-2.1.9"
+    },
+    {
+      "concept": "cpp-integer-types",
+      "where": "CS:APP 2.2-2.3 on two's complement and conversions"
+    }
+  ],
+  "id": "arch-sim-byte-decode"
+}

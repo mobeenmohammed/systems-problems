@@ -1,0 +1,58 @@
+{
+  "key": {
+    "cases": [
+      {
+        "stdin": "1 1\n0\n0\n4\n0 0 0 0\n",
+        "expect": "states 0 0 0 0 0\noutputs 0 0 0 0 0\nones 0\nfirst-one none\n"
+      },
+      {
+        "stdin": "1 1\n1\n0\n2\n0 0\n",
+        "expect": "states 0 0 0\noutputs 1 1 1\nones 3\nfirst-one 0\n"
+      },
+      {
+        "stdin": "2 2\n0 1\n1 0\n0 1\n0\n",
+        "expect": "states 0\noutputs 0\nones 0\nfirst-one none\n"
+      },
+      {
+        "stdin": "2 2\n0 1\n1 1\n0 0\n5\n0 1 0 1 0\n",
+        "expect": "states 0 1 0 1 0 1\noutputs 0 1 0 1 0 1\nones 3\nfirst-one 1\n"
+      },
+      {
+        "stdin": "4 2\n0 0 0 1\n0 1\n0 2\n0 3\n0 3\n8\n1 1 1 0 1 1 1 1\n",
+        "expect": "states 0 1 2 3 0 1 2 3 3\noutputs 0 0 0 1 0 0 0 1 1\nones 3\nfirst-one 3\n"
+      },
+      {
+        "stdin": "3 3\n1 0 0\n1 2 0\n2 0 1\n0 1 2\n6\n0 1 2 0 1 2\n",
+        "expect": "states 0 1 0 0 1 0 0\noutputs 1 0 1 1 0 1 1\nones 5\nfirst-one 0\n"
+      },
+      {
+        "stdin": "4 2\n0 1 0 1\n1 0\n2 3\n1 0\n2 3\n7\n0 0 1 1 0 1 0\n",
+        "expect": "states 0 1 2 0 0 1 3 2\noutputs 0 1 0 0 0 1 1 0\nones 3\nfirst-one 1\n"
+      },
+      {
+        "stdin": "2 2\n1 0\n1 0\n1 0\n4\n0 0 0 0\n",
+        "expect": "states 0 1 1 1 1\noutputs 1 0 0 0 0\nones 1\nfirst-one 0\n"
+      },
+      {
+        "stdin": "5 2\n0 0 0 0 1\n1 0\n2 0\n3 0\n4 0\n4 4\n10\n1 1 1 1 0 1 1 1 1 1\n",
+        "expect": "states 0 0 0 0 0 1 0 0 0 0 0\noutputs 0 0 0 0 0 0 0 0 0 0 0\nones 0\nfirst-one none\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n#include <vector>\n\nint main()\n{\n    int S{}, K{};\n    if (!(std::cin >> S >> K)) return 0;\n\n    std::vector<int> outOf(static_cast<std::size_t>(S), 0);\n    for (int i = 0; i < S; ++i) std::cin >> outOf[static_cast<std::size_t>(i)];\n\n    std::vector<std::vector<int>> next(static_cast<std::size_t>(S),\n                                       std::vector<int>(static_cast<std::size_t>(K), 0));\n    for (int i = 0; i < S; ++i)\n        for (int j = 0; j < K; ++j)\n            std::cin >> next[static_cast<std::size_t>(i)][static_cast<std::size_t>(j)];\n\n    int n{};\n    std::cin >> n;\n\n    std::vector<int> states;\n    states.push_back(0);\n    int s{ 0 };\n    for (int i = 0; i < n; ++i)\n    {\n        int c{};\n        std::cin >> c;\n        s = next[static_cast<std::size_t>(s)][static_cast<std::size_t>(c)];\n        states.push_back(s);\n    }\n\n    std::cout << \"states\";\n    for (int x : states) std::cout << ' ' << x;\n    std::cout << \"\\n\";\n\n    std::cout << \"outputs\";\n    for (int x : states) std::cout << ' ' << outOf[static_cast<std::size_t>(x)];\n    std::cout << \"\\n\";\n\n    int ones{ 0 };\n    long long first{ -1 };\n    for (std::size_t i = 0; i < states.size(); ++i)\n    {\n        int o{ outOf[static_cast<std::size_t>(states[i])] };\n        if (o == 1)\n        {\n            ++ones;\n            if (first < 0) first = static_cast<long long>(i);\n        }\n    }\n\n    std::cout << \"ones \" << ones << \"\\n\";\n    if (first < 0) std::cout << \"first-one none\\n\";\n    else           std::cout << \"first-one \" << first << \"\\n\";\n\n    return 0;\n}\n",
+      "python": "import sys\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    pos = 0\n    S = int(data[pos]); pos += 1\n    K = int(data[pos]); pos += 1\n    out_of = [int(data[pos + i]) for i in range(S)]; pos += S\n    nxt = []\n    for _ in range(S):\n        nxt.append([int(data[pos + j]) for j in range(K)]); pos += K\n    n = int(data[pos]); pos += 1\n    syms = [int(data[pos + i]) for i in range(n)]; pos += n\n\n    states = [0]\n    s = 0\n    for c in syms:\n        s = nxt[s][c]\n        states.append(s)\n    outs = [out_of[x] for x in states]\n\n    first = None\n    for i, o in enumerate(outs):\n        if o == 1:\n            first = i\n            break\n\n    print(\"states%s\" % \"\".join(\" %d\" % x for x in states))\n    print(\"outputs%s\" % \"\".join(\" %d\" % x for x in outs))\n    print(\"ones %d\" % sum(1 for o in outs if o == 1))\n    print(\"first-one %s\" % (\"none\" if first is None else first))\n\nmain()\n"
+    }
+  },
+  "explanation": "## The entire simulation\n\n```cpp\nstd::vector<int> states;\nstates.push_back(0);          // the state before any input\nint s{ 0 };\nfor (each input symbol c)\n{\n    s = next[s][c];\n    states.push_back(s);\n}\n```\n\nTwo lines in the loop. A table-driven machine has no `if` chain and no `switch`\nover states - the behaviour is **data**, and the code that runs it does not\nchange when the machine does.\n\nThat is how real tools work. A Verilog `case` statement describing an FSM is\nsynthesised into exactly this: a register plus a lookup, where the \"table\" has\nbecome a truth table in gates. And a parser generator emits a transition table\nplus a twenty-line driver, for the same reason: the table can be generated,\nchecked and minimised, while a hand-written `switch` cannot.\n\n## Why there are n+1 outputs\n\nPushing the initial state before the loop is not an off-by-one to be tolerated -\nit is the machine's behaviour. A Moore output is the current state decoded, and\nthe machine is in state 0 before the first clock edge, so it has an output then.\n\nIn hardware terms: the state register comes out of reset holding 0, the output\nlogic is combinational, so `out` is valid as soon as reset releases - before any\ninput has been clocked in.\n\n## Moore and Mealy, and the cycle of latency\n\n| | Moore | Mealy |\n| --- | --- | --- |\n| output depends on | state only | state **and** current input |\n| output count for n inputs | n + 1 | n |\n| output is stable | for the whole clock period | changes when the input does |\n| detects a pattern | one cycle **after** the last symbol | in the **same** cycle |\n| typically needs | more states | fewer states |\n\nThe two-ones detector above is a Moore machine with three states, and it asserts\nat index 3 - the cycle *after* the second 1 arrived. A Mealy version needs only\ntwo states: from \"saw one 1\", an input of 1 produces output 1 immediately, with\nno third state at all.\n\nSo Mealy is faster by a cycle and smaller. The catch is that its output is a\ncombinational function of the input, so it inherits the input's glitches and its\ntiming - the output cannot be used by anything that needs it stable, and a long\nchain of Mealy machines accumulates combinational delay and limits the clock.\n\nThe practical rule in synchronous design: **use Moore outputs for anything\ncrossing a module boundary**, where the extra cycle buys you an output that is\nregistered, glitch-free and has a full clock period of slack. Reach for Mealy\ninside a block when the cycle genuinely matters.\n\nThis is also why `first-one` is in the output. It measures detection latency,\nwhich is exactly the quantity that differs between the two styles.\n\n## Why the state is read, then written, and never both\n\n```cpp\ns = next[s][c];\n```\n\nThe right-hand side uses the **old** state; the assignment installs the new one.\nIn hardware that separation is the flip-flop: the next-state logic reads what the\nregister currently holds, and the register only updates on the clock edge.\n\nIn Verilog, this is the whole `=` versus `<=` business:\n\n```verilog\nalways @(posedge clk) begin\n    state <= next_state;        // nonblocking: all registers update together\nend\n\nalways @(posedge clk) begin\n    state = next_state;         // blocking: a later line sees the NEW value\nend\n```\n\nNonblocking assignment (`<=`) computes every right-hand side first, then updates\nevery left-hand side - which is what real flip-flops do, all clocked by the same\nedge. Blocking assignment (`=`) inside a clocked block makes the order of your\nlines matter, so two registers in the same block can behave as if one was\nupdated before the other - which no hardware does, and which means the simulation\nand the synthesised circuit disagree. That is the classic simulation/synthesis\nmismatch, and it is the single most common Verilog bug.\n\nIn C++ the distinction is invisible because there is only one statement here. It\nbecomes visible the moment there are two registers:\n\n```cpp\n// WRONG if both are meant to be clocked on the same edge:\na = b;\nb = old_a;        // b already changed... and what is old_a?\n\n// RIGHT: compute both next values, then commit both\nint na = b, nb = a;\na = na; b = nb;\n```\n\nWhich is why the shift-register version of this problem exists as a separate\nexercise.\n\n## Reachability, and what the table does not tell you\n\nThe state list in the output shows which states the machine actually visited for\n*this* input. A table can contain states that no input can reach - dead states,\nusually left over from editing - and nothing in the simulation points them out.\n\nSynthesis tools do notice, and will optimise an unreachable state away, which\ncan quietly change the number of flip-flops. Worth knowing because an FSM with\nan unreachable \"error\" state is a common and harmless-looking mistake: the error\nhandling is there in the source and cannot ever run.\n\nThe opposite problem is worse. A state machine that can enter a state with no\npath back to reset is stuck, and in real hardware this happens when a glitch or\na single-event upset puts the register into an encoding the designer never\nintended. The defence is an explicit `default` arm sending any unexpected state\nback to reset - and, in Verilog, a `full_case` directive is precisely the wrong\nanswer, because it tells the tool to assume the unexpected cannot happen.\n\n## `first-one none` and the sentinel again\n\n```cpp\nlong long first{ -1 };\n...\nif (first < 0) std::cout << \"first-one none\\n\";\n```\n\nIndex 0 is a legitimate answer - the hidden single-state machine with output 1\nhas `first-one 0` - so \"no answer\" cannot be represented by 0. `-1` works\nbecause an index is never negative, which is the same reasoning, and the same\nlimitation, as the search problem. `std::optional<std::size_t>` is the honest\nversion.",
+  "readMore": [
+    {
+      "concept": "finite-state-machines",
+      "where": "Harris & Harris ch. 3.4, then HDLBits fsm1 onwards"
+    },
+    {
+      "concept": "cpp-std-vector",
+      "where": "cppreference, for the vector-of-vectors used as the table"
+    }
+  ],
+  "id": "fpga-sim-moore-fsm"
+}

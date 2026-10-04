@@ -1,0 +1,60 @@
+{
+  "id": "os-sim-page-replacement",
+  "title": "Three ways to choose a victim",
+  "topic": "os",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "paging",
+    "page-replacement",
+    "lru",
+    "simulation",
+    "virtual-memory"
+  ],
+  "estimate": 35,
+  "prereqs": [
+    {
+      "concept": "page-replacement",
+      "why": "The three policies being simulated are the three in every operating systems course, and the comparison between them is the point."
+    },
+    {
+      "concept": "paging",
+      "why": "Frames, pages and the idea that only some pages are resident are the vocabulary of the problem."
+    },
+    {
+      "concept": "cpp-std-vector",
+      "why": "Each policy is a small vector of resident pages plus a rule for which one to overwrite."
+    }
+  ],
+  "statement": "Simulate three page-replacement policies on the same reference string and count\nthe page faults each one takes.\n\nInput: `frames n`, then `n` page numbers - the order in which pages are\nreferenced. Memory starts **empty**, so the first reference to any page is\nalways a fault.\n\nFor each policy print the fault count and the pages still resident at the end,\nin ascending order:\n\n```\nfifo faults <f> resident <sorted pages>\nlru faults <f> resident <sorted pages>\nopt faults <f> resident <sorted pages>\n```\n\n```\ninput:   3 12                     output:  fifo faults 11 resident 0 1 3\n         7 0 1 2 0 3 0 4 2 3 0 1           lru faults 10 resident 0 1 3\n                                           opt faults 8 resident 1 3 4\n```\n\n### The three policies\n\n**FIFO** - evict the page that has been resident longest, regardless of use.\nOne counter, no bookkeeping on a hit. Note what that means: a page referenced on\nevery single access is still evicted when its turn comes round.\n\n**LRU** - evict the page whose most recent use is furthest in the past. Every\nhit updates the ordering, which is the cost. It is the standard answer because\nit bets on temporal locality: a page used recently is likely to be used again.\n\n**OPT** (Belady's optimal) - evict the page whose **next** use is furthest in\nthe future, preferring one that is never used again. It needs the whole\nreference string in advance, so it is unimplementable in a real kernel. It is\nthe lower bound: no policy can fault less, so it is what the other two are\nmeasured against.\n\n### The rules, pinned down\n\n- A reference to a resident page is a **hit**: no fault, no eviction. FIFO does\n  not change its queue on a hit; LRU moves that page to most-recently-used.\n- A reference to an absent page is a **fault**. If a frame is free, use it - no\n  eviction happens until memory is full.\n- For OPT, if two resident pages are both never used again, evict the one in the\n  **lowest-numbered frame** - that is, the one that was placed earliest among\n  those tied. The tie-break is specified because otherwise the final resident set\n  is ambiguous, even though the fault count is not.\n\n### Boundary cases\n\n`frames` larger than the number of distinct pages, so nothing is ever evicted\nand all three policies agree. `frames = 1`, where all three degenerate to the\nsame thing. An empty reference string, where every count is 0 and every resident\nset is empty. A string that only ever touches one page. A reference string where\n**FIFO beats LRU**, which is a real phenomenon and one of the hidden cases.\n\n### Platform assumptions\n\n`frames` is between 1 and 10, `n` is at most 200, and page numbers are between 0\nand 99. Those bounds are small on purpose: OPT scans forward from each fault, so\nthe obvious implementation is O(n^2 * frames) and is still trivially fast here.\nNo arithmetic can overflow an `int`.",
+  "hints": [
+    "Run the three simulations one after another over the same stored reference string, rather than trying to maintain all three states in one loop. Three short independent loops are far easier to get right than one loop doing three jobs.",
+    "FIFO needs a round-robin index: once memory is full, overwrite frame `next` and advance `next = (next + 1) % frames`. Crucially, do **not** touch `next` on a hit - that is the difference between FIFO and a mistaken LRU.",
+    "LRU is easiest as a vector ordered least-recently-used first: on a hit, erase the page and push it to the back; on a fault when full, erase the front. For OPT, scan forward from the current position for each resident page to find its next use, treating 'not found' as infinitely far away."
+  ],
+  "payload": {
+    "langs": [
+      "cpp",
+      "python"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n#include <vector>\n#include <algorithm>\n\nstatic void report(const char* name, int faults, std::vector<int> resident)\n{\n    std::sort(resident.begin(), resident.end());\n    std::cout << name << \" faults \" << faults << \" resident\";\n    for (int p : resident) std::cout << ' ' << p;\n    std::cout << \"\\n\";\n}\n\nint main()\n{\n    int frames{};\n    int n{};\n    std::cin >> frames >> n;\n\n    std::vector<int> refs;\n    for (int i = 0; i < n; ++i)\n    {\n        int p{};\n        std::cin >> p;\n        refs.push_back(p);\n    }\n\n    // FIFO: a round-robin victim index, untouched on a hit.\n\n    // LRU: keep the resident pages ordered least-recently-used first.\n\n    // OPT: for each resident page, find its next use after the current index.\n\n    return 0;\n}\n",
+      "python": "import sys\n\ndef report(out, name, faults, resident):\n    out.append(\"%s faults %d resident%s\"\n               % (name, faults, \"\".join(\" %d\" % p for p in sorted(resident))))\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    pos = 0\n    frames = int(data[pos]); pos += 1\n    n = int(data[pos]); pos += 1\n    refs = [int(data[pos + i]) for i in range(n)]; pos += n\n\n    out = []\n    # FIFO, then LRU, then OPT\n    print(\"\\n\".join(out))\n\nmain()\n"
+    },
+    "cases": [
+      {
+        "stdin": "3 12\n7 0 1 2 0 3 0 4 2 3 0 1\n",
+        "expect": "fifo faults 11 resident 0 1 3\nlru faults 10 resident 0 1 3\nopt faults 8 resident 1 3 4\n"
+      },
+      {
+        "stdin": "4 0\n",
+        "expect": "fifo faults 0 resident\nlru faults 0 resident\nopt faults 0 resident\n"
+      }
+    ]
+  }
+}
