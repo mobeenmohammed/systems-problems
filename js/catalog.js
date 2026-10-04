@@ -275,6 +275,50 @@ const Catalog = (() => {
   const topicResources = topicId => (resources.topics || {})[topicId] || null;
   const allResources = () => Object.entries(resources.topics || {}).map(([id, r]) => ({ id, ...r }));
 
+  /* ---------------- concepts, the other way round ----------------
+
+     A problem names the concepts it rests on. The reading list wants the
+     reverse — which exercises practise this concept — so that reading a
+     chapter has a visible next step rather than being its own reward. Built
+     from the index, which already carries each problem's prereq concept ids,
+     so no problem file has to be fetched. Cached, because the reading view
+     calls it once per concept. */
+  let reverseIndex = null;
+
+  function problemsForConcept(conceptId) {
+    if (!reverseIndex) {
+      reverseIndex = {};
+      for (const p of index) {
+        for (const c of p.prereqs || []) {
+          (reverseIndex[c] = reverseIndex[c] || []).push(p);
+        }
+      }
+      for (const list of Object.values(reverseIndex)) {
+        list.sort((a, b) =>
+          (ORDER[a.difficulty] ?? 9) - (ORDER[b.difficulty] ?? 9) ||
+          a.title.localeCompare(b.title));
+      }
+    }
+    return reverseIndex[conceptId] || [];
+  }
+
+  /* Unread / part-read / read, plus how much of the whole list is done. The
+     status is per concept, which is the unit someone actually works through. */
+  function readStatus(conceptId) {
+    const p = readProgress(conceptId);
+    if (!p.total) return { ...p, state: 'none' };
+    if (p.read === 0) return { ...p, state: 'unread' };
+    if (p.read >= p.total) return { ...p, state: 'read' };
+    return { ...p, state: 'partly' };
+  }
+
+  const READ_STATE_LABEL = {
+    none: 'No readings',
+    unread: 'Unread',
+    partly: 'Partly read',
+    read: 'Read',
+  };
+
   /* ---------------- what to do next ----------------
 
      The dashboard's main action, and the one question worth answering well:
@@ -370,8 +414,8 @@ const Catalog = (() => {
     init, all, meta, list, sorted, get, solution,
     concept, allConcepts, chain, prereqsFor, readProgress,
     allTracks, track, trackProgress, thisWeek, topicResources, allResources,
-    counts, nextUp,
-    TYPES, TYPE_BY_ID, TRACK_STATE_LABEL,
+    counts, nextUp, problemsForConcept, readStatus,
+    TYPES, TYPE_BY_ID, TRACK_STATE_LABEL, READ_STATE_LABEL,
     get loadError() { return loadError; },
   };
 })();

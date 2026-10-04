@@ -161,14 +161,30 @@
   <!-- ---------------- reading map ---------------- -->
   <section id="view-concepts" class="view" hidden>
     <h1>Reading</h1>
-    <p class="muted">Every concept the problems rest on, with where to actually read it.
+    <p class="muted prose">Every concept the problems rest on, with where to actually read it.
        Tick a reading when you have read it — it is your own record, and twenty of them
        unlocks something.</p>
+
+    <!-- Overall progress, then a topic strip, then the filters. The strip is
+         the navigation: eleven topics is too many for a select to be the only
+         way through them. -->
+    <div class="card read-summary" id="readingSummary"></div>
+    <nav class="topic-nav" id="conceptNav" aria-label="Reading topics"></nav>
+
     <div class="filters">
       <input type="search" id="cSearch" placeholder="Search concepts…" aria-label="Search concepts" autocomplete="off">
       <label>Topic
         <select id="cTopic"><option value="">All topics</option></select>
       </label>
+      <label>Read
+        <select id="cRead">
+          <option value="">Any</option>
+          <option value="unread">Not started</option>
+          <option value="partly">Partly read</option>
+          <option value="read">Finished</option>
+        </select>
+      </label>
+      <button class="btn btn-sm btn-ghost" id="cClear">Clear</button>
     </div>
     <div id="resourceList"></div>
     <div id="conceptList"></div>

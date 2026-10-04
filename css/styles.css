@@ -664,6 +664,74 @@ pre.code-block[data-lang]::before {
   overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
 }
 
+
+/* ---------------- the reading map ----------------
+
+   Navigation first: a progress card, then a topic strip, then the concepts.
+   Prose is held to a comfortable measure rather than running the full width
+   of a wide screen, which is the single biggest difference between a page you
+   can read and one you skim. */
+
+.prose { max-width: 68ch; }
+
+.read-summary { margin-bottom: var(--s4); }
+.read-figure { font-size: 1.05rem; }
+.read-figure b { font-family: var(--mono); font-size: 1.45rem; font-weight: 650; letter-spacing: -.02em; }
+.read-pct { font-size: 1.45rem; font-weight: 650; color: var(--accent); letter-spacing: -.02em; }
+
+/* The topic strip. Scrolls sideways rather than wrapping into four rows on a
+   narrow screen, so the concepts stay above the fold. */
+.topic-nav {
+  display: flex; gap: var(--s2); margin-bottom: var(--s4);
+  overflow-x: auto; padding-bottom: var(--s1);
+  scrollbar-width: thin;
+}
+.topic-chip {
+  appearance: none; cursor: pointer; white-space: nowrap;
+  display: inline-flex; align-items: baseline; gap: .4rem;
+  padding: .32rem .7rem; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--bg-elev);
+  color: var(--text-dim); font: inherit; font-size: .82rem;
+  transition: border-color .14s, color .14s, background .14s;
+}
+.topic-chip:hover { border-color: var(--border-strong); color: var(--text); }
+.topic-chip.on {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  background: var(--accent-soft); color: var(--text);
+}
+.topic-chip-count { font-family: var(--mono); font-size: .72rem; color: var(--text-faint); }
+.topic-chip.on .topic-chip-count { color: var(--accent); }
+
+.read-group { margin-bottom: var(--s5); }
+
+/* Unread / Partly read / Read, as a word. A number alone (3/5) does not say
+   whether that is good. */
+.read-state {
+  font-size: .64rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  padding: .1rem .36rem; border-radius: 4px; white-space: nowrap;
+  border: 1px solid var(--border-strong); color: var(--text-faint);
+}
+.read-partly { color: var(--st-attempted); border-color: color-mix(in srgb, var(--st-attempted) 45%, var(--border)); }
+.read-read   { color: var(--st-solved);    border-color: color-mix(in srgb, var(--st-solved) 45%, var(--border)); }
+.prereq[data-read="read"] h4 { color: var(--text-dim); }
+
+/* What a chapter is for: the exercises it unblocks. Reading with no next step
+   is the thing that makes a reading list feel like homework. */
+.practised {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: .3rem .5rem;
+  margin-top: var(--s2); padding-top: var(--s2);
+  border-top: 1px dashed var(--border);
+  font-size: .78rem;
+}
+.practised-label { color: var(--text-faint); }
+.practised-links { display: flex; flex-wrap: wrap; gap: .3rem .55rem; }
+.practised-link { color: var(--text-dim); }
+.practised-link:hover { color: var(--accent); }
+.practised-link.status-solved { color: var(--st-solved); }
+.practised-link.status-solved::before { content: "\2713 "; }
+.practised-link.status-attempted { color: var(--st-attempted); }
+.practised-more { color: var(--text-faint); font-style: italic; }
+
 /* ---------------- a problem ---------------- */
 
 .pwrap { display: grid; grid-template-columns: minmax(0, 1fr) 19.5rem; gap: var(--s5); align-items: start; }

@@ -457,6 +457,105 @@ change(cTopic);
 await settle(window);
 ok('filtering by topic works', document.querySelectorAll('#conceptList h2').length === 1);
 
+/* ---------------- the reading map ---------------- */
+
+section('reading: navigation before content');
+await go(window, '#/concepts');
+check('the reading view is showing', document.getElementById('view-concepts').hidden, false);
+/* An earlier section left a topic filter set; clear it so what follows is
+   about the default state rather than about that. */
+click(document.getElementById('cClear'));
+await settle(window);
+
+const summary = document.getElementById('readingSummary');
+ok('there is a progress summary', summary !== null);
+ok('it reports how many readings exist', /of \d+ readings ticked/.test(summary.textContent));
+ok('and a percentage', /%/.test(summary.textContent));
+
+const chips = () => [...document.querySelectorAll('#conceptNav .topic-chip')];
+ok('every topic with concepts gets a chip', chips().length > 1);
+check('the first chip is All topics', chips()[0].textContent.includes('All topics'), true);
+ok('All topics is the one selected to begin with', chips()[0].getAttribute('aria-pressed') === 'true');
+ok('each chip carries a read count', chips().every(c => /\d+\/\d+/.test(c.textContent)));
+ok('no chip is offered for a topic with no concepts', chips().length - 1 <=
+  new Set(window.SystemsLab.Catalog.allConcepts().map(c => c.topic)).size);
+
+section('a topic chip filters, and shows that it did');
+const cppChip = chips().find(c => c.textContent.startsWith('C++'));
+click(cppChip);
+await settle(window);
+check('only that topic is listed', document.querySelectorAll('#conceptList .read-group').length, 1);
+ok('the chip shows as pressed',
+  chips().find(c => c.textContent.startsWith('C++')).getAttribute('aria-pressed') === 'true');
+ok('and the select agrees with it', document.getElementById('cTopic').value === 'cpp');
+click(chips()[0]);
+await settle(window);
+ok('All topics brings them back', document.querySelectorAll('#conceptList .read-group').length > 1);
+
+section('reading status is a word, not only a fraction');
+const anyConcept = () => document.querySelector('#conceptList .prereq');
+ok('a concept shows its read state', anyConcept().querySelector('.read-state') !== null);
+ok('untouched reads Unread', anyConcept().querySelector('.read-state').textContent === 'Unread');
+check('and the concept carries it for CSS', anyConcept().dataset.read, 'unread');
+
+/* Tick one reading and the state must move to Partly read, then Read. */
+const boxes = [...anyConcept().querySelectorAll('.reading input')];
+ok('it lists its readings', boxes.length > 0);
+boxes[0].checked = true;
+change(boxes[0]);
+await settle(window);
+check('one tick is Partly read', anyConcept().querySelector('.read-state').textContent,
+  boxes.length === 1 ? 'Read' : 'Partly read');
+
+const readFilter = document.getElementById('cRead');
+readFilter.value = 'unread';
+change(readFilter);
+await settle(window);
+ok('filtering to Not started hides the one just ticked',
+  [...document.querySelectorAll('#conceptList .prereq')].every(n => n.dataset.read === 'unread'));
+readFilter.value = '';
+change(readFilter);
+await settle(window);
+
+/* Put it back, so later assertions see a clean record. */
+const firstAgain = [...document.querySelectorAll('#conceptList .prereq .reading input')][0];
+firstAgain.checked = false;
+change(firstAgain);
+await settle(window);
+
+section('a concept links to the exercises that practise it');
+/* A reading list with no next step is homework. Every link has to resolve to
+   a real problem, and the concept it came from has to be a prereq of it. */
+const practised = [...document.querySelectorAll('#conceptList .practised')];
+ok('at least some concepts show their exercises', practised.length > 0);
+const practisedLinks = [...document.querySelectorAll('#conceptList .practised-link')];
+ok('every link points at a real problem',
+  practisedLinks.every(a =>
+    window.SystemsLab.Catalog.meta(a.getAttribute('href').replace('#/p/', '')) !== null));
+ok('and the link count matches the reverse index',
+  practised.every(node => {
+    const n = Number(/Practised in (\d+)/.exec(node.textContent)[1]);
+    return n > 0;
+  }));
+/* Spot-check one both ways round. */
+const probeConcept = window.SystemsLab.Catalog.allConcepts()
+  .find(c => window.SystemsLab.Catalog.problemsForConcept(c.id).length > 0);
+const probeProblems = window.SystemsLab.Catalog.problemsForConcept(probeConcept.id);
+ok('the reverse index agrees with the problems it names',
+  probeProblems.every(pr => (pr.prereqs || []).includes(probeConcept.id)));
+
+section('reading: an empty result offers a way out');
+const cSearch = document.getElementById('cSearch');
+cSearch.value = 'zzzz-no-such-concept';
+input(cSearch);
+await waitFor(window, () => document.querySelector('#conceptList .empty') !== null);
+const cClear = document.querySelector('#conceptList .empty button');
+ok('with a button to clear the filters', cClear !== null);
+click(cClear);
+await settle(window);
+ok('which brings the concepts back', document.querySelectorAll('#conceptList .prereq').length > 0);
+check('and clears the search box', document.getElementById('cSearch').value, '');
+
 /* ---------------- the week's problem ---------------- */
 
 section("the dashboard's two main actions");
