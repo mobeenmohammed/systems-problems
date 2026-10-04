@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "build:index": "node scripts/build-index.mjs",
+    "build:readme": "node scripts/build-readme.mjs",
     "check:index": "node scripts/build-index.mjs --check",
     "test": "npm run test:unit && npm run test:browser",
     "test:unit": "node tests/store.test.mjs && node tests/md.test.mjs && node tests/contrast.test.mjs && node tests/grade.test.mjs && node tests/runner.test.mjs && node tests/lint.test.mjs && node tests/judge.test.mjs && node tests/judge0.test.mjs && node tests/content.test.mjs",

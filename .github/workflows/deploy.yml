@@ -1,8 +1,8 @@
 # Test, then publish to GitHub Pages.
 #
 # ubuntu-latest already ships g++, rustc and python3, so the compiled-language
-# paths are exercised on every push whether or not Docker was running on the
-# machine the commit came from. That is what keeps the C++ and Rust reference
+# paths are exercised on every push whether or not the local runner was up on
+# the machine the commit came from. That is what keeps the C++ and Rust reference
 # solutions honest: tests/content.test.mjs compiles and runs every one of them
 # against the problem's own hidden cases.
 
@@ -50,6 +50,12 @@ jobs:
       # which is invisible until a problem fails to open.
       - name: The committed index matches the problem files
         run: npm run check:index
+
+      # The README counts problems, topics, concepts and readings. Those were
+      # hand-written once and were wrong within a day, so they are generated
+      # and checked rather than maintained.
+      - name: The README matches the catalogue
+        run: node scripts/build-readme.mjs --check
 
       # An answer key in problems/ would be served alongside the problem it
       # answers, which defeats the one bit of answer-hiding a static site has.

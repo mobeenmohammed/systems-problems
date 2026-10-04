@@ -78,6 +78,18 @@ section('tracks name problems that exist');
   }
 }
 
+/* The README counts problems, topics, concepts and readings. Those numbers
+   were hand-written once and were wrong within a day, so they are generated
+   and checked here the same way data/index.json is. */
+section('the README is current');
+{
+  const fs = await import('node:fs');
+  const { generated } = await import('../scripts/build-readme.mjs');
+  const onDisk = fs.readFileSync(new URL('../README.md', import.meta.url), 'utf8');
+  ok('README.md matches the catalogue (run node scripts/build-readme.mjs)',
+    onDisk === generated);
+}
+
 section('the index is current');
 const fresh = JSON.stringify(buildIndex(problems), null, 2) + '\n';
 let committed = '';
