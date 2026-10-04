@@ -2,7 +2,7 @@
    the failures that look like "the site is broken" rather than like a CSS bug,
    and all of them are visible in the source.
 
-   Three things are enforced:
+   Four things are enforced:
 
      1. Every purchasable theme defines the whole required token set. A theme
         missing --text renders invisible text.
@@ -11,6 +11,9 @@
      3. [hidden] still wins. A class that sets display:flex outranks the
         browser's built-in [hidden] rule, and an absolutely positioned overlay
         left visible swallows every click on the page.
+     4. Every class applied has a rule, and every rule has a class that
+        applies it. Both directions, at zero tolerance, with the deliberate
+        exceptions listed.
 
    Run: node tests/browser/styles.test.mjs */
 
@@ -99,6 +102,105 @@ section('no token is defined and never used');
 const unused = [...defined].filter(t => !used.has(t)).sort();
 if (unused.length) console.log(`  --    defined but unused: ${unused.join(', ')}`);
 ok('the token list is not mostly dead', unused.length < defined.size / 2);
+
+/* ---------------- classes and rules that have lost each other ----------------
+
+   Two directions of drift, both failures:
+
+     - a class the markup or a renderer applies that no rule mentions, which
+       is a renamed selector or a typo and renders unstyled
+     - a rule for a class nothing applies any more, which is what seven rules
+       in this stylesheet had become after the workspace rewrite renamed
+       .pwrap.code to .workspace and replaced the shop's .swatch
+
+   Both are at zero tolerance. The deliberate exceptions are listed in the two
+   arrays below, so adding one is a decision rather than a drifting threshold. */
+
+section('classes and rules agree');
+
+const sources = [read('index.html'), ...[
+  'js/views.js', 'js/problem.js', 'js/editor.js', 'js/catalog.js', 'js/app.js',
+  'js/highlight.js', 'js/md.js', 'js/lint.js',
+  'js/types/registry.js', 'js/types/mcq.js', 'js/types/numeric.js',
+  'js/types/order.js', 'js/types/match.js', 'js/types/predict.js',
+  'js/types/locate.js', 'js/types/code.js',
+].map(read)].join('\n');
+
+/* Candidates come from the obvious forms; membership is then decided by plain
+   containment in the other text. Parsing the renderers properly is not worth
+   it — a class can be built by a ternary, a template literal or a lookup —
+   and containment has no false positives in the direction that matters.
+
+   The one thing containment cannot see is a name assembled at run time:
+   `diff diff-${id}` produces .diff-advanced, which appears nowhere as a
+   literal. So the prefixes that precede an interpolation or a concatenation
+   are collected, and a styled class starting with one of those is taken as
+   reachable. That keeps the check at zero tolerance without hand-listing
+   every status and difficulty value. */
+
+const appliedCandidates = new Set();
+const prefixes = new Set();
+
+for (const m of sources.matchAll(/class(?:Name)?\s*[:=]\s*(['"`])([^'"`]*)\1/g)) {
+  const body = m[2];
+  for (const name of body.replace(/\$\{[^}]*\}/g, ' ').split(/\s+/)) {
+    if (name && /^[a-z][\w-]*[a-z\d]$/i.test(name)) appliedCandidates.add(name);
+  }
+  /* The literal run immediately before each interpolation. */
+  for (const part of body.split('${').slice(0, -1)) {
+    const tail = /([\w-]+)$/.exec(part);
+    if (tail) prefixes.add(tail[1]);
+  }
+}
+for (const m of sources.matchAll(/classList\.(?:add|remove|toggle|contains)\((['"])([^'"]+)\1/g)) {
+  appliedCandidates.add(m[2]);
+}
+/* `cls = 'hl-' + kind`, `' action-' + tone` — the leading space is part of the
+   literal in the second one, so it is allowed for rather than assumed away. */
+for (const m of sources.matchAll(/(['"])\s*([a-z][\w-]*-)\1\s*\+/gi)) prefixes.add(m[2]);
+/* `cls = 'hl-comment'` — a bare literal that is plainly a class name. */
+for (const m of sources.matchAll(/\bcls\s*=\s*(['"])([a-z][\w-]*)\1/gi)) {
+  appliedCandidates.add(m[2]);
+}
+
+/* Every class a rule mentions. A file extension in a comment looks like a
+   class selector, so a dot followed by a known extension is skipped. */
+const EXTENSIONS = /^(css|mjs|js|json|html|md|sh|yml|yaml|py|txt|test)$/;
+const styled = new Set();
+for (const m of all.matchAll(/\.(-?[a-z][\w-]*)/gi)) {
+  if (!EXTENSIONS.test(m[1])) styled.add(m[1]);
+}
+
+ok('classes were found in the markup and the renderers', appliedCandidates.size > 60);
+ok('and the stylesheets define some', styled.size > 60);
+ok('and some are assembled at run time', prefixes.size > 3);
+
+/* Hooks a renderer applies purely so the tests and the JS can find a node.
+   Listed rather than silently tolerated, so adding one is a decision. */
+const UNSTYLED_HOOKS = [
+  'locate-status',     /* where the locate type writes its verdict */
+  'match-status',      /* the same, for match */
+  'topic-chip-label',  /* the chip's text, styled by the chip itself */
+];
+
+const unstyled = [...appliedCandidates]
+  .filter(c => !all.includes(c))
+  .filter(c => !UNSTYLED_HOOKS.includes(c))
+  .sort();
+if (unstyled.length) console.log(`  --    applied but never mentioned in the CSS: ${unstyled.join(', ')}`);
+check('no class is applied without the CSS mentioning it', unstyled, []);
+
+/* And the other way round: a rule for a name that appears nowhere in the
+   markup or the renderers, and does not belong to a run-time family, is dead.
+   Six rules here were, after the workspace rewrite renamed .pwrap.code. */
+const unapplied = [...styled]
+  .filter(c => !sources.includes(c))
+  .filter(c => ![...prefixes].some(pre => c.startsWith(pre)))
+  /* Produced by the markdown renderer rather than written in a renderer. */
+  .filter(c => !['table-wrap'].includes(c))
+  .sort();
+if (unapplied.length) console.log(`  --    styled but never applied: ${unapplied.join(', ')}`);
+check('no rule targets a class nothing applies', unapplied, []);
 
 /* ---------------- the hidden rule ---------------- */
 
