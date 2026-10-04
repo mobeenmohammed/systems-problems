@@ -58,7 +58,7 @@ html[data-theme="theme-paper"] {
   --hl-keyword: #b3246b;
   --hl-type:    #0a66c2;
   --hl-string:  #156b3a;
-  --hl-comment: #7d868f;
+  --hl-comment: #666d75;
   --hl-num:     #9a4a00;
   --hl-fn:      #6d28d9;
   --hl-literal: #9a4a00;
@@ -116,7 +116,7 @@ html[data-theme="theme-nord"] {
   --border-strong: #4c566a;
   --text:          #eceff4;
   --text-dim:      #d8dee9;
-  --text-faint:    #7b88a1;
+  --text-faint:    #8591a8;
 
   --accent:        #88c0d0;
   --accent-text:   #2e3440;
@@ -124,13 +124,13 @@ html[data-theme="theme-nord"] {
 
   --ok:            #a3be8c;
   --warn:          #ebcb8b;
-  --danger:        #bf616a;
+  --danger:        #c97a82;
 
   --diff-beginner:     #a3be8c;
   --diff-intermediate: #ebcb8b;
-  --diff-advanced:     #bf616a;
+  --diff-advanced:     #c97a82;
 
-  --st-unsolved:  #7b88a1;
+  --st-unsolved:  #8591a8;
   --st-attempted: #ebcb8b;
   --st-solved:    #a3be8c;
   --st-read:      #b48ead;
@@ -138,11 +138,11 @@ html[data-theme="theme-nord"] {
   --hl-keyword: #81a1c1;
   --hl-type:    #8fbcbb;
   --hl-string:  #a3be8c;
-  --hl-comment: #7b88a1;
+  --hl-comment: #8a96ac;
   --hl-num:     #b48ead;
   --hl-fn:      #88c0d0;
   --hl-literal: #d08770;
-  --hl-preproc: #5e81ac;
+  --hl-preproc: #7b98bb;
 }
 
 /* ---------------- Tokyo Night — neon on deep blue ---------------- */
@@ -155,7 +155,7 @@ html[data-theme="theme-tokyo"] {
   --border-strong: #3b4261;
   --text:          #c0caf5;
   --text-dim:      #9aa5ce;
-  --text-faint:    #565f89;
+  --text-faint:    #676f95;
 
   --accent:        #7aa2f7;
   --accent-text:   #16161e;
@@ -169,7 +169,7 @@ html[data-theme="theme-tokyo"] {
   --diff-intermediate: #e0af68;
   --diff-advanced:     #f7768e;
 
-  --st-unsolved:  #565f89;
+  --st-unsolved:  #676f95;
   --st-attempted: #e0af68;
   --st-solved:    #9ece6a;
   --st-read:      #bb9af7;
@@ -177,7 +177,7 @@ html[data-theme="theme-tokyo"] {
   --hl-keyword: #bb9af7;
   --hl-type:    #2ac3de;
   --hl-string:  #9ece6a;
-  --hl-comment: #565f89;
+  --hl-comment: #7981a2;
   --hl-num:     #ff9e64;
   --hl-fn:      #7aa2f7;
   --hl-literal: #ff9e64;
@@ -193,34 +193,34 @@ html[data-theme="theme-solarized"] {
   --border:        #0b4350;
   --border-strong: #16555f;
   --text:          #eee8d5;
-  --text-dim:      #93a1a1;
-  --text-faint:    #657b83;
+  --text-dim:      #a0acac;
+  --text-faint:    #6c8189;
 
   --accent:        #268bd2;
-  --accent-text:   #002b36;
+  --accent-text:   #00161c;
   --accent-soft:   rgba(38, 139, 210, .16);
 
   --ok:            #859900;
   --warn:          #b58900;
-  --danger:        #dc322f;
+  --danger:        #df4543;
 
   --diff-beginner:     #859900;
   --diff-intermediate: #b58900;
-  --diff-advanced:     #dc322f;
+  --diff-advanced:     #df4543;
 
-  --st-unsolved:  #657b83;
+  --st-unsolved:  #6c8189;
   --st-attempted: #b58900;
   --st-solved:    #859900;
-  --st-read:      #6c71c4;
+  --st-read:      #7176c6;
 
   --hl-keyword: #859900;
   --hl-type:    #b58900;
   --hl-string:  #2aa198;
-  --hl-comment: #657b83;
-  --hl-num:     #d33682;
+  --hl-comment: #778a91;
+  --hl-num:     #da5897;
   --hl-fn:      #268bd2;
-  --hl-literal: #cb4b16;
-  --hl-preproc: #6c71c4;
+  --hl-literal: #d4693c;
+  --hl-preproc: #7c81ca;
 }
 
 /* ---------------- Dracula — purple and loud ---------------- */
@@ -233,7 +233,7 @@ html[data-theme="theme-dracula"] {
   --border-strong: #565a71;
   --text:          #f8f8f2;
   --text-dim:      #c3c5d4;
-  --text-faint:    #6272a4;
+  --text-faint:    #7583af;
 
   --accent:        #bd93f9;
   --accent-text:   #21222c;
@@ -247,7 +247,7 @@ html[data-theme="theme-dracula"] {
   --diff-intermediate: #ffb86c;
   --diff-advanced:     #ff5555;
 
-  --st-unsolved:  #6272a4;
+  --st-unsolved:  #7583af;
   --st-attempted: #ffb86c;
   --st-solved:    #50fa7b;
   --st-read:      #bd93f9;
@@ -255,7 +255,7 @@ html[data-theme="theme-dracula"] {
   --hl-keyword: #ff79c6;
   --hl-type:    #8be9fd;
   --hl-string:  #f1fa8c;
-  --hl-comment: #6272a4;
+  --hl-comment: #7d8bb4;
   --hl-num:     #bd93f9;
   --hl-fn:      #50fa7b;
   --hl-literal: #bd93f9;
@@ -298,7 +298,7 @@ html[data-theme="theme-phosphor"] {
   --hl-keyword: #8cff9e;
   --hl-type:    #4fc967;
   --hl-string:  #b9ff7a;
-  --hl-comment: #2f8542;
+  --hl-comment: #358948;
   --hl-num:     #d8ffa8;
   --hl-fn:      #33ff66;
   --hl-literal: #d8ffa8;
@@ -319,4 +319,32 @@ html[data-theme="theme-phosphor"] body::after {
 }
 @media (prefers-reduced-motion: reduce) {
   html[data-theme="theme-phosphor"] body::after { display: none; }
+}
+
+/* ---------------- accents on a light theme ----------------
+
+   The four purchasable accents in styles.css are tuned for a dark surface. On
+   Paper they are 1.6:1 against the background — a link you cannot see, which
+   is a combination anyone who buys both ends up with. So each accent gets a
+   darkened variant here, chosen so white reaches 4.5:1 on the button fill and
+   the accent still clears 3:1 as link text. Hue is unchanged; only lightness
+   moves, so Amber is still amber.
+
+   These rules are more specific than [data-accent] alone, so they win without
+   needing !important. tests/contrast.test.mjs checks the numbers.
+   ---------------------------------------------------------------- */
+html[data-theme="theme-paper"][data-accent="accent-default"] {
+  --accent: #3b75be; --accent-text: #ffffff; --accent-soft: rgba(59, 117, 190, .11);
+}
+html[data-theme="theme-paper"][data-accent="accent-amber"] {
+  --accent: #906e42; --accent-text: #ffffff; --accent-soft: rgba(144, 110, 66, .12);
+}
+html[data-theme="theme-paper"][data-accent="accent-mint"] {
+  --accent: #2c834c; --accent-text: #ffffff; --accent-soft: rgba(44, 131, 76, .11);
+}
+html[data-theme="theme-paper"][data-accent="accent-magenta"] {
+  --accent: #b25385; --accent-text: #ffffff; --accent-soft: rgba(178, 83, 133, .11);
+}
+html[data-theme="theme-paper"][data-accent="accent-cyan"] {
+  --accent: #158090; --accent-text: #ffffff; --accent-soft: rgba(21, 128, 144, .11);
 }

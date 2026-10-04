@@ -21,8 +21,13 @@
   --border:        #1f2733;
   --border-strong: #2e3947;
   --text:          #e6edf5;
-  --text-dim:      #98a6b8;
-  --text-faint:    #67748a;
+  /* Secondary text is deliberately bright: --text-dim carries whole sentences
+     (a track blurb, a problem's meta line) and --text-faint carries asides.
+     tests/contrast.test.mjs holds dim to 4.5:1 and faint to 3:1 on every
+     surface in every theme; these sit far above both, because "legal" and
+     "comfortable to read for an hour" are different bars. */
+  --text-dim:      #aebbcb;
+  --text-faint:    #7f8da6;
 
   /* the accent, overridable on its own by [data-accent] */
   --accent:        #4f9dff;
@@ -49,7 +54,7 @@
   --hl-keyword: #ff7bb0;
   --hl-type:    #7dd3fc;
   --hl-string:  #a5e887;
-  --hl-comment: #67748a;
+  --hl-comment: #6f7c90;
   --hl-num:     #f0b86e;
   --hl-fn:      #c3a6ff;
   --hl-literal: #f0b86e;
