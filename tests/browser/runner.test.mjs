@@ -260,4 +260,124 @@ if (available.has('cpp')) {
   check('no diagnostics',   (res.diagnostics || []).length, 0);
 }
 
+/* ---------------- the workspace, against the real compiler ----------------
+
+   Everything above goes through Runners directly. This drives the page the way
+   a person does: open a code problem, type into the editor, press the Run
+   button in the action bar, and read what comes back. If the diagnostics panel
+   or the action bar is wired wrongly, nothing above would notice. */
+
+section('the workspace, driven like a person');
+
+const ws = await boot();
+const wsWin = ws.window;
+const wsDoc = ws.document;
+
+const settle = async (rounds = 20) => {
+  for (let i = 0; i < rounds; i += 1) {
+    await new Promise(r => wsWin.setTimeout(r, 0));
+    await Promise.resolve();
+  }
+};
+const waitFor = async (predicate, ms = 30000) => {
+  const start = Date.now();
+  for (;;) {
+    try { if (predicate()) return true; } catch { /* not yet */ }
+    if (Date.now() - start > ms) return false;
+    await new Promise(r => wsWin.setTimeout(r, 40));
+  }
+};
+const click = node => node.dispatchEvent(
+  new wsWin.MouseEvent('click', { bubbles: true, cancelable: true }));
+const typeInto = (node, text) => {
+  node.value = text;
+  node.dispatchEvent(new wsWin.Event('input', { bubbles: true }));
+};
+
+wsWin.location.hash = '#/p/cpp-greet-and-sum';
+await settle(30);
+
+ok('the workspace is two panels', wsDoc.querySelector('#problemHost .split') !== null);
+const runBtn = wsDoc.querySelector('#problemHost .actions-bar #runBtn');
+ok('Run samples is in the action bar', runBtn !== null);
+const editor = wsDoc.querySelector('#problemHost .ed .ed-input');
+ok('and the editor is there', editor !== null);
+
+if (available.has('cpp')) {
+  section('a program that builds with a warning');
+  /* Right answer, and an unused variable, so -Wall has something to say on a
+     build that succeeds. The whole point of leaving warnings on. */
+  typeInto(editor, [
+    '#include <iostream>',
+    '#include <string>',
+    'int main() {',
+    '    std::string name;',
+    '    long long a = 0, b = 0;',
+    '    int unusedHere = 7;',
+    '    std::cin >> name >> a >> b;',
+    '    std::cout << "Hello, " << name << "!\\n";',
+    '    std::cout << a << " + " << b << " = " << (a + b) << "\\n";',
+    '}',
+  ].join('\n'));
+  await settle();
+
+  click(runBtn);
+  const ran = await waitFor(() => wsDoc.querySelector('#problemHost .case') !== null);
+  ok('pressing Run produced case results', ran);
+
+  const diags = wsDoc.querySelector('#problemHost .diags');
+  ok('the compiler had something to say', diags !== null);
+  if (diags) {
+    check('and it is presented as a warning, not a failure', diags.dataset.kind, 'warn');
+    ok('with the summary saying it built', /It built/.test(diags.querySelector('.lbl').textContent));
+    ok('as a list of places rather than a blob',
+      diags.querySelector('.diags-list') !== null);
+    const where = diags.querySelector('.diag-where');
+    ok('each place is clickable', where !== null);
+    ok('and names a real line in the source',
+      where && Number(where.textContent.split(':')[0]) <= editor.value.split('\n').length);
+    ok('the real compiler text is kept underneath',
+      /unused/.test(diags.querySelector('.diags-raw').textContent));
+    ok('the warning really came from g++ and not from the bracket scanner',
+      diags.querySelector('.diags-raw').textContent.includes('-Wunused-variable'));
+
+    /* Clicking it should move the caret, which is the only reason to make it
+       a button. */
+    const line = Number(where.textContent.split(':')[0]);
+    click(where);
+    await settle();
+    const caretLine = editor.value.slice(0, editor.selectionStart).split('\n').length;
+    check('clicking it moves the caret to that line', caretLine, line);
+  }
+
+  const cases = [...wsDoc.querySelectorAll('#problemHost .case')];
+  ok('every sample case passed', cases.every(c => c.dataset.pass === 'true'));
+
+  section('a program that does not build, in the page');
+  typeInto(editor, '#include <iostream>\nint main() { std::cout << nope; }');
+  await settle();
+  click(runBtn);
+  const failed = await waitFor(() =>
+    (wsDoc.querySelector('#problemHost .diags') || {}).dataset?.kind === 'error');
+  ok('it is reported as a build failure', failed);
+  const bad = wsDoc.querySelector('#problemHost .diags');
+  ok('the summary counts the errors', /did not build/.test(bad.querySelector('.lbl').textContent));
+  ok('with at least one error row',
+    bad.querySelector('.diag[data-severity="error"]') !== null);
+  ok('and no cases ran', wsDoc.querySelector('#problemHost .case') === null);
+
+  section('a timeout, in the page');
+  typeInto(editor, 'int main() { for (;;) {} }');
+  await settle();
+  click(runBtn);
+  const timedOut = await waitFor(() => {
+    const node = wsDoc.querySelector('#problemHost .case');
+    return node && /timed out/i.test(node.textContent);
+  }, 40000);
+  ok('a runaway program is reported as a timeout rather than hanging the page', timedOut);
+  ok('and the Run button is usable again', runBtn.disabled === false);
+} else {
+  console.log('  --    g++ is not installed on the runner; skipping the live workspace checks.');
+}
+
 report('browser/runner');
