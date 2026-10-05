@@ -5,6 +5,23 @@
       1
     ]
   },
+  "feedback": {
+    "misconceptions": [
+      {
+        "picked": [
+          2
+        ],
+        "say": "On dropping `std::atomic`: that does not address sharing, it removes the synchronisation that makes the counts correct in the first place. Two threads incrementing a plain `long` is a data race, and a data race is undefined behaviour no matter how the cache behaves."
+      },
+      {
+        "picked": [
+          3
+        ],
+        "say": "On the memory order: a weaker order changes what the compiler and the CPU may reorder around the increment. It does not change which cache line the two counters sit in, and false sharing is a question about addresses."
+      }
+    ],
+    "nudge": "False sharing happens when two hot variables land in the same cache line. Ask of each option in turn: does it change where those variables live, or how often they are touched? Anything that changes neither cannot help."
+  },
   "distractors": {
     "0": "Correct. `alignas(64)` forces each counter onto its own 64-byte boundary, so they land in different lines and the two cores stop fighting. `std::hardware_destructive_interference_size` is the portable spelling of that 64. The cost is size: the struct grows from 16 bytes to 128.",
     "1": "Correct, and this is the better fix. A thread-local accumulator is not shared at all, so there is nothing to keep coherent — the hot loop becomes a register increment, which is not merely faster than a ping-ponging line but faster than an uncontended atomic too. One atomic add per thread at the end is free by comparison. This is what a reduction is, and it is why every parallel framework offers one.",

@@ -200,6 +200,21 @@ anything able to read it already runs as you — the Origin check is.
 
 **Never expose it to a network.** It runs arbitrary code by design.
 
+### The in-site guide
+
+Everything below is also in the site itself, at **#/setup**, reachable from
+Settings and from a **Set up execution** button that appears beside Run when
+nothing can compile the language you are looking at. It explains the three
+modes, shows which of them work *for you* from live probes rather than from
+configuration, walks through Windows + WSL step by step with copy buttons and
+the output each command should produce, and troubleshoots the state you are
+actually in — including the one where your runner is running and the browser
+will not let the page reach it.
+
+Its "Run the check" button compiles and runs a real C++ and a real Rust
+program and compares the output. Nothing on that page reports success before
+that has happened.
+
 ### Running from the published site: hosted execution
 
 The local runner is for this machine. For a phone, a borrowed laptop, or the
@@ -295,20 +310,25 @@ back to a plain textarea if the bundle fails to load.
 last character typed before pressing Run" is not a question that can have a
 wrong answer — there is no second copy to be stale.
 
-**Linting** has two tiers:
+**Colouring is not checking, and the editor says so.** Under the editor it
+reads *"Syntax colouring only. Press Run to compile it."* until a compiler has
+actually looked, and only then does it report anything about the code.
 
-- A **bracket scanner** runs on every keystroke. It understands comments and
-  string literals, so a brace in a comment is not reported, and it points at
-  the line where an unclosed brace was *opened* rather than at end of file
-  where the compiler points.
-- The **real compiler**, through the judge's `/lint` endpoint: `g++
-  -fsyntax-only`, `rustc --emit=metadata`, `py_compile`, `node --check`. Its
-  diagnostics replace the local guess, with line and column, and clicking one
-  jumps the caret there. So the message you get while typing is the message a
-  build would give you.
+There used to be a second thing there: a hand-written bracket scanner that ran
+on every keystroke and announced **"No unbalanced brackets."** It is gone. It
+was accurate and it was still the wrong idea — a verdict from something that is
+not a compiler, sitting under the editor looking like a check had passed, on a
+program that had never been built. CodeMirror still matches and closes brackets
+as you type, which is the part that helps.
 
-Brackets close themselves, a draft is kept per problem *and* per language, and
-the font size is adjustable from the header.
+What remains is the **real compiler**, through the judge's `/lint` endpoint:
+`g++ -fsyntax-only`, `rustc --emit=metadata`, `py_compile`, `node --check`.
+Diagnostics arrive with line and column, and clicking one jumps the caret
+there, so the message you get while typing is the message a build would give
+you.
+
+A draft is kept per problem *and* per language, and the font size is adjustable
+from the header.
 
 ## Tracks, the weekly problem, and resources
 
@@ -363,13 +383,24 @@ scrolls on its own.
 ```
 
 Both dividers drag, and both take the arrow keys, `Home`, `End` and `Enter`
-to reset. Positions are remembered. Run and Submit are in the editor's own
-toolbar rather than a bar that floats over the code — which is what used to
-swallow the clicks.
+to reset. Positions are remembered, and **Reset layout** in the `⋯` menu puts
+them back without touching a draft or a solve. Run and Submit are in the
+editor's own toolbar rather than a bar that floats over the code — which is
+what used to swallow the clicks.
+
+The divider is 18px of hit area with a visible 10px bar and a grip in the
+middle of it. It was 10px containing a 1px hairline, which is to say invisible:
+"dragging the divider does nothing" was mostly people not finding it and
+scrolling the pane behind it instead. A split remembered from a wide monitor is
+clamped rather than honoured on a small one — neither panel is ever allowed
+below 320px — and the stored preference is left alone, so the big screen gets
+it back.
 
 The toolbar also names the execution backend, always: **Hosted**, **Local** or
 **Browser** before a run, and "Ran on Hosted" or "Could not run — Hosted"
-after one.
+after one. When nothing can compile the language in front of you, a **Set up
+execution** button appears beside Run and goes to an in-site guide — see
+below. Editing stays available the whole time.
 
 XP, coins and review scheduling are **not** in the working area. The header
 carries a status word and nothing else; the arithmetic is behind the `⋯` menu
@@ -412,6 +443,43 @@ pays nothing the second time.
 Compilation errors, runtime errors, timeouts, an unreachable runner and a rate
 limit are **execution failures**, not wrong answers: nothing is recorded, the
 code is untouched, and the message says which it was.
+
+### What a wrong answer actually tells you
+
+"Incorrect." teaches nothing, so MCQ, select-all and find-the-bug problems
+carry authored feedback in a `feedback` block in their **solution** file:
+
+```jsonc
+// solutions/hpc-loop-order-row-major.json
+"feedback": {
+  "options":    { "1": "Count the additions. Both nests cover the same…" },
+  "reconsider": "Write down the address of a[i][j], then the address of…"
+}
+```
+
+It lives beside the key rather than in the problem file for a reason that only
+shows up when you try it the other way: if only the *wrong* options carried a
+note, the option without one would be the answer.
+
+One rule governs all of it — **a note may say why what you picked is
+unsuitable, and may never say what is right** — and the shape of the note
+follows from what each type would otherwise leak:
+
+| | |
+| --- | --- |
+| `mcq` | a note per wrong option, plus one thing to go away and reconsider |
+| `multi` | never per-option. With four options, telling someone which of their two ticks was wrong *is* the answer. Instead, one authored sentence about a misconception the whole selection matches (`misconceptions: [{ picked: [2], say: "…" }]`), or a conceptual `nudge` |
+| `locate` | what the line you clicked actually does, for lines worth describing. A blank line or a closing brace gets the `nudge` rather than an invented diagnosis of your reasoning |
+
+`tests/content.test.mjs` fails if a note is attached to the correct option, to
+an accepted line, or per-option on a select-all.
+
+**The verdict belongs to one attempt.** Change your answer and it is labelled
+*Previous attempt* and dimmed, the wrong-answer marks come off the controls,
+and your new selection is not sitting there pre-graded. Earlier attempts fold
+away into a list rather than vanishing. Submitting nothing — or an untouched
+code template, which is not the same thing and no longer claims to be — gets a
+validation message beside the control and costs no attempt.
 
 ## Writing a problem
 
@@ -516,6 +584,14 @@ Chromium against a real site:
 | `tests/browser/journeys.test.mjs` (`npm run test:journeys`) | The reported failures as journeys, with real mouse and keyboard: typing, caret placement, Tab, paste, cut, undo, long lines, scrolling, resizing, zoom, per-language drafts across a reload, a wrong MCQ and a wrong multi-select that disclose nothing, reveal-with-confirmation, practising a solved problem, and the layout at 1440×900, 1920×1080 and 390×844 in both themes |
 | `tests/browser/hosted.test.mjs` (`npm run test:hosted`) | The published-site journey with **no local runner**: write C++, Run, Submit, get marked — plus a compile error, a wrong submission then a fix, a timeout, a rate limit, an unreachable runner, and a check that no submission went to localhost |
 | `tests/browser/local.test.mjs` (`npm run test:local`) | The same workspace against the **local runner**, which is the only backend that can produce them: a warning on a successful build, a clickable compiler diagnostic that moves the caret, a build failure, a timeout, and a sanitizer trip on a program whose output is right |
+| `tests/browser/navigation.test.mjs` | Leaving a problem for every other page, thirty times over, plus focus mode, Back/Forward and a drag abandoned mid-navigation. Measures the **destination** page: is anything clipped out of reach, is the navigation there, can you still click and scroll |
+| `tests/browser/resize.test.mjs` | Both dividers, dragged with a real pointer, asserting measured panel widths and heights before and after. Minimum widths, keyboard resizing, every way a drag can end, a split saved on a big screen opened on a small one, and Reset layout |
+| `tests/browser/feedback.test.mjs` | A wrong answer on each of MCQ, select-all and find-the-bug: that the explanation is substantial, that it discloses nothing, and that the verdict is relabelled and the marks cleared the moment the answer changes |
+| `tests/browser/usability.test.mjs` | Buttons after a failure, a run in flight when the problem or language changes, the toolbar at five widths, horizontal overflow on ten routes at three widths, keyboard reach to hints/notes/solution, and the blast radius of a reset |
+
+`npm run test:ui` runs the last four together; they need `npm run serve`.
+`BROWSER=msedge` runs any of them through the Edge installed on the machine
+rather than Playwright's bundled Chromium.
 
 The first two want `npm run serve` and `npm run proxy` up and the local runner
 **stopped** — that is what makes "hosted" mean something. The third wants
@@ -550,6 +626,7 @@ js/editor.js            CodeMirror: mounting, theming, lint gutter, drafts
 js/types/registry.js    the problem-type contract
 js/types/*.js           one file per problem type
 js/problem.js           a problem: its tabs, submitting, the verdict
+js/setup.js             the "how do I run C++" guide, and its live probes
 js/views.js             dashboard, catalog, reading map, profile, shop, settings
 js/app.js               bootstrap, hash routing, shortcuts
 js/runners/hosted.js    the hosted backend, through the proxy

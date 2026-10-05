@@ -253,6 +253,55 @@ for (const p of problems) {
   ok(`${p.id}: every option has a note (${explained}/${n})`, explained === n);
 }
 
+/* ---------------- wrong-answer feedback does not give the game away ----------------
+
+   `distractors` are shown only once the answer is legitimately visible and may
+   say anything. `feedback` is shown after a WRONG attempt, which makes it the
+   one piece of authored text that has to be checked for leakage: a note
+   attached to the correct option, or to the buggy line, would hand over the
+   answer to anyone who guessed once. */
+
+section('feedback after a wrong answer discloses nothing');
+for (const p of problems) {
+  const sol = solutions[p.id];
+  const fb = sol && sol.feedback;
+  if (!fb) continue;
+
+  if (p.type === 'mcq') {
+    const right = String(Number(sol.key.answer));
+    const notes = Object.keys(fb.options || {});
+    ok(`${p.id}: no note on the correct option`, !notes.includes(right));
+    ok(`${p.id}: and the wrong ones are covered (${notes.length}/${(p.payload.options || []).length - 1})`,
+      notes.length === (p.payload.options || []).length - 1);
+    for (const [i, note] of Object.entries(fb.options || {})) {
+      const text = typeof note === 'string' ? note : note.why;
+      ok(`${p.id}: option ${i}'s note is a real explanation`, String(text).trim().length > 40);
+    }
+  }
+
+  if (p.type === 'multi') {
+    /* Per-option notes are forbidden here whatever they say: with four
+       options, telling someone which of their two ticks was wrong is telling
+       them the answer. */
+    ok(`${p.id}: no per-option notes on a select-all`, !fb.options);
+    for (const m of fb.misconceptions || []) {
+      ok(`${p.id}: a misconception names the ticks it matches`,
+        Array.isArray(m.picked) && m.picked.length > 0);
+      ok(`${p.id}: and says something`, String(m.say || '').trim().length > 40);
+    }
+    ok(`${p.id}: there is a fallback nudge`, String(fb.nudge || '').trim().length > 40);
+  }
+
+  if (p.type === 'locate') {
+    const answers = [Number(sol.key.line), ...(sol.key.alsoAccept || []).map(Number)]
+      .map(String);
+    for (const line of Object.keys(fb.lines || {})) {
+      ok(`${p.id}: line ${line} is not one of the accepted answers`, !answers.includes(line));
+    }
+    ok(`${p.id}: there is a fallback nudge`, String(fb.nudge || '').trim().length > 40);
+  }
+}
+
 /* ---------------- code problems are actually solvable ---------------- */
 
 /* The strongest check in the suite: each reference solution is compiled and

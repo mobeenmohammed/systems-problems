@@ -222,7 +222,7 @@ const Editor = (() => {
           row.innerHTML =
             `<span class="ed-problem-at">${d.line}:${d.column}</span>` +
             `<span class="ed-problem-msg">${MD.escapeHtml(d.message)}</span>` +
-            (d.from === 'local' ? '<span class="ed-problem-from">brackets</span>' : '');
+            '<span class="ed-problem-from">compiler</span>';
           row.addEventListener('click', () => goToLine(d.line, d.column));
           return row;
         }));
@@ -232,11 +232,15 @@ const Editor = (() => {
       status.dataset.state = errors ? 'error'
         : diagnostics.length ? 'warning'
         : checkedBy ? 'clean' : 'idle';
-      status.textContent = opts.lint
-        ? (checkedBy === 'compiler'
-            ? `${Lint.summarise(diagnostics, { checkedBy })} · checked by the compiler`
-            : Lint.summarise(diagnostics, { checkedBy }))
-        : '';
+
+      /* Three states, and the difference between them matters. Until a
+         compiler has looked, the editor says exactly what it is doing —
+         colouring the text — so that syntax highlighting is never mistaken
+         for a program having been checked. */
+      status.textContent = !opts.lint ? ''
+        : checkedBy === 'compiler'
+          ? `${Lint.summarise(diagnostics, { checkedBy })} · checked by the compiler`
+          : 'Syntax colouring only. Press Run to compile it.';
     }
 
     /* Our diagnostics carry a line and a column; CodeMirror wants document
@@ -274,7 +278,6 @@ const Editor = (() => {
         get lang() { return currentLang; },
         lang: currentLang,
         profile: currentProfile,
-        onLocal: list => setDiagnostics(list, 'local'),
         onRemote: res => setDiagnostics(res.diagnostics, 'compiler'),
       });
     }
@@ -295,7 +298,8 @@ const Editor = (() => {
       view.focus();
     }
 
-    if (opts.lint) setDiagnostics(Lint.local(opts.value, currentLang), 'local');
+    /* Nothing is marked up until a compiler has said something. */
+    if (opts.lint) setDiagnostics([], null);
 
     /* ---------------- the handle ----------------
 
@@ -315,8 +319,10 @@ const Editor = (() => {
              one keystroke at a time. */
           annotations: [],
         });
+        /* The old diagnostics belonged to the old text. They go, and the
+           compiler is asked again. */
         if (opts.lint) {
-          setDiagnostics(Lint.local(next, currentLang), 'local');
+          setDiagnostics([], null);
           if (watcher) watcher.changed();
         }
       },
@@ -328,7 +334,8 @@ const Editor = (() => {
         host.dataset.lang = next;
         view.dispatch({ effects: language.reconfigure(langExtension(next)) });
         startWatching();
-        if (opts.lint) setDiagnostics(Lint.local(view.state.doc.toString(), next), 'local');
+        /* A C++ diagnostic means nothing about the Rust in front of you. */
+        if (opts.lint) setDiagnostics([], null);
       },
       setReadOnly(ro) {
         view.dispatch({ effects: editable.reconfigure(EditorView.editable.of(!ro)) });

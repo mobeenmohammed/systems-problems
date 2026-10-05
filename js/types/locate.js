@@ -62,8 +62,15 @@
       return chosen === null ? null : chosen;
     },
 
+    /* The page redraws after every submission, and `chosen` is module state
+       that survives it while the highlight on the line does not. */
+    restore(mount, response) {
+      if (response == null) return;
+      select(mount, Number(response));
+    },
+
     /* key: { line: 14, alsoAccept?: [15], why?: "…" } */
-    grade(response, key) {
+    grade(response, key, problem, solution) {
       const want = Number(key.line);
       const also = (key.alsoAccept || []).map(Number);
       const got = Number(response);
@@ -76,12 +83,23 @@
          clicked its brace or its continuation, which is a different thing from
          not having found it. */
       const near = Math.abs(got - want) === 1;
+
+      /* What the line they clicked actually does, where the author wrote it
+         down. Only for lines that have a note: inventing a diagnosis for a
+         blank line or a closing brace would be pretending to read their mind,
+         and those get the honest fallback instead. */
+      const notes = ((solution && solution.feedback) || {}).lines || {};
+      const said = notes[String(got)];
+      const nudge = ((solution && solution.feedback) || {}).nudge || '';
+
+      const base = near
+        ? 'Close — you are one line away. Look at the statement next to it.'
+        : 'Not that line.';
+
       return {
         correct: false,
         score: 0,
-        feedback: near
-          ? 'Close — you are one line away. Look at the statement next to it.'
-          : 'Not that line.',
+        feedback: [said || base, said ? '' : nudge].filter(Boolean).join(' '),
       };
     },
 

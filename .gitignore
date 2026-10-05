@@ -15,3 +15,6 @@ data/judge-token.json
 # particular run, not part of the site — and the deploy job publishes the
 # whole checkout.
 _shots/
+
+# Throwaway reproduction scripts
+_repro*.mjs

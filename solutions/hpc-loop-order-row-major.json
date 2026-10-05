@@ -2,6 +2,14 @@
   "key": {
     "answer": 0
   },
+  "feedback": {
+    "options": {
+      "1": "Count the additions. Both nests cover the same `i` and `j` ranges, so the arithmetic is identical — the number of additions cannot differ between them. Vectorisation is a real secondary effect and worth knowing about, but notice that the measured factor is eight, and ask what there are eight of in a 64-byte line.",
+      "2": "TLB pressure really is part of version B's cost, so this is half right. The half that fails is the claim that the cache behaviour is the same. Work out the byte distance between the two elements each version touches one after the other, and compare that with the size of a cache line.",
+      "3": "Check the bounds: both loops run `i` and `j` over `[0, N)`, so neither one leaves the array. And consider what an out-of-bounds read actually produces — a crash, or a sanitizer report, not a steady and repeatable factor of eight."
+    },
+    "reconsider": "Write down the address of `a[i][j]`, then the address of the element the innermost loop touches next, and subtract. Do it for both versions."
+  },
   "distractors": {
     "0": "Correct. C is row-major, so `a[i][j]` and `a[i][j+1]` are adjacent. Version A touches eight consecutive doubles per 64-byte line; version B strides by `N*8 = 32768` bytes per step, landing on a different line every time and using one of its eight doubles before the line is evicted. Eight times the memory traffic for identical arithmetic.",
     "1": "Not the reason, though there is a grain of truth in it. The two loops perform exactly the same `N*N` additions — the count cannot differ. Version A *is* easier to vectorise, and that is a real secondary effect, but it is downstream of the same cause: contiguous access is what makes vectorisation possible. The eight-times figure matches doubles-per-line, not a vector width, and the effect persists with vectorisation disabled.",

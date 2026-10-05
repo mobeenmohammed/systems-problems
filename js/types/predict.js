@@ -55,6 +55,11 @@
       ]));
     },
 
+    restore(mount, response) {
+      const node = mount.querySelector('#predictAnswer');
+      if (node && response != null) node.value = String(response);
+    },
+
     collect(mount) {
       const node = mount.querySelector('#predictAnswer');
       if (!node) return null;

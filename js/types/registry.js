@@ -20,10 +20,38 @@
          instead of grading an empty submission as wrong and
          burning the first-try bonus.
 
-     grade(response, key, problem)
+     grade(response, key, problem, solution)
          Pure. Returns { correct, score, feedback }, where score
          is 0..1 for partial credit. Must not touch the DOM —
          this is what tests/grade.test.mjs drives directly.
+
+         `solution` is the whole answer file, and the only thing
+         a grader should take from it is `solution.feedback`:
+         authored sentences explaining why a particular wrong
+         choice is wrong. They live beside the key rather than in
+         the problem file for one reason — if only the wrong
+         options carried a note, the one without a note would be
+         the answer. Shipping them with the key means the absence
+         of a note tells nobody anything.
+
+         Whatever a grader takes from there is still bound by the
+         disclosure rule below: a note may explain why what you
+         picked is unsuitable, and may not say what is right.
+
+     emptyMessage(mount, problem)
+         What to say when collect() returned null. Optional: the
+         page has a sensible default per type, and this is for
+         the cases where "you have not answered" is not quite
+         what happened — an untouched code template is not an
+         empty editor, and being told it is sends the reader
+         looking for a bug that is not there.
+
+     restore(mount, response)
+         Put a previous answer back into a freshly rendered
+         widget. The page redraws after every submission, which
+         used to wipe the reader's ticks: they would submit,
+         get "not quite", and find the form blank. Optional —
+         a type that has nothing to put back can leave it out.
 
      mark(mount, { response, key, problem, result })
          Paint the outcome onto the widget: which option was
@@ -58,6 +86,7 @@ const ProblemTypes = (() => {
        disabled the inputs and painted the correct option. */
     types[id] = {
       collect: () => null,
+      restore: () => {},
       mark:    () => {},
       reveal:  impl.reveal || (() => {}),
       ...impl,

@@ -45,6 +45,16 @@
     }
   }
 
+  /* Put the reader's last selection back after a redraw. Without it the
+     form comes back blank after every submission, which reads as though the
+     attempt was thrown away. */
+  function restoreOptions(mount, response) {
+    const chosen = new Set([].concat(response == null ? [] : response).map(Number));
+    mount.querySelectorAll('.opt input').forEach((input, i) => {
+      input.checked = chosen.has(i);
+    });
+  }
+
   function collectOptions(mount, multiple) {
     const checked = [...mount.querySelectorAll('.opt input')]
       .map((n, i) => (n.checked ? i : -1))
@@ -91,18 +101,65 @@
     });
   }
 
+  /* ---------------- authored feedback ----------------
+
+     "Not that one." is true and useless. What helps is a sentence about the
+     choice actually made — and the rule that makes it safe to show is that
+     it may say why *this* is unsuitable and may never say what is right.
+
+     The notes live in the solution file, beside the key. If they lived in the
+     problem file and only the wrong options carried one, the option without a
+     note would be the answer. */
+
+  const fb = solution => (solution && solution.feedback) || {};
+
+  /* The note for one picked option, if the author wrote one. */
+  function noteFor(solution, i) {
+    const o = fb(solution).options || {};
+    const entry = o[String(i)];
+    if (!entry) return null;
+    return typeof entry === 'string' ? { why: entry } : entry;
+  }
+
+  /* The first authored misconception whose ticks are all present in the
+     selection. Used by "select all", where saying anything per-option would
+     hand over the combination. */
+  function misconception(solution, picked) {
+    const list = fb(solution).misconceptions || [];
+    const chosen = new Set([...picked].map(Number));
+    for (const m of list) {
+      const want = (m.picked || []).map(Number);
+      if (!want.length) continue;
+      if (want.every(i => chosen.has(i))) return m.say || null;
+    }
+    return null;
+  }
+
+  /* Joins the sentences into one paragraph, dropping the empties. */
+  const sentences = (...bits) => bits.filter(Boolean).join(' ');
+
   register('mcq', {
     render: (problem, mount, ctx) => renderOptions(problem, mount, ctx, false),
     collect: mount => collectOptions(mount, false),
+    restore: restoreOptions,
 
     /* key: { answer: <index> } */
-    grade(response, key) {
+    grade(response, key, problem, solution) {
       const right = Number(key && key.answer);
       const correct = Number(response) === right;
+      if (correct) return { correct: true, score: 1, feedback: 'Correct.' };
+
+      /* Why this one is unsuitable, and one thing to go and think about.
+         Neither sentence may name or hint at the right option — that is what
+         the retry is for. */
+      const note = noteFor(solution, Number(response));
+      const nudge = fb(solution).reconsider || fb(solution).nudge || '';
       return {
-        correct,
-        score: correct ? 1 : 0,
-        feedback: correct ? 'Correct.' : 'Not that one.',
+        correct: false,
+        score: 0,
+        feedback: note
+          ? sentences(note.why, note.reconsider || nudge)
+          : sentences('Not that one.', nudge),
       };
     },
 
@@ -118,6 +175,7 @@
   register('multi', {
     render: (problem, mount, ctx) => renderOptions(problem, mount, ctx, true),
     collect: mount => collectOptions(mount, true),
+    restore: restoreOptions,
 
     /* key: { answers: [<index>, …] }
 
@@ -125,7 +183,7 @@
        either of us ticked. A wrong tick therefore costs the same as a missed
        one, which is the honest reading of "select all that apply": claiming
        something false is as wrong as omitting something true. */
-    grade(response, key, problem) {
+    grade(response, key, problem, solution) {
       const right = new Set((key && key.answers || []).map(Number));
       const picked = new Set([].concat(response || []).map(Number));
       const total = (problem.payload && problem.payload.options || []).length;
@@ -144,7 +202,7 @@
          with four options that is most of the way to the answer. */
       let feedback;
       if (correct) {
-        feedback = `All of them, and nothing else.`;
+        feedback = 'All of them, and nothing else.';
       } else if (!picked.size) {
         feedback = 'Nothing ticked.';
       } else if (!hits) {
@@ -156,6 +214,15 @@
         if (missed) bits.push('and there is at least one you have not ticked');
         else if (wrong) bits.push(`but ${wrong === 1 ? 'one is' : wrong + ' are'} not`);
         feedback = bits.join(', ') + '.';
+      }
+
+      /* One authored sentence about the idea behind the selection, where the
+         author recognised it, and a general nudge otherwise. Deliberately
+         never per-option: with four options, telling someone which of their
+         two ticks is the wrong one is telling them the answer. */
+      if (!correct) {
+        const extra = misconception(solution, picked) || fb(solution).nudge;
+        if (extra) feedback = `${feedback} ${extra}`;
       }
       void total;
 

@@ -14,6 +14,7 @@
     "test:unit": "node tests/store.test.mjs && node tests/md.test.mjs && node tests/contrast.test.mjs && node tests/grade.test.mjs && node tests/runner.test.mjs && node tests/lint.test.mjs && node tests/judge.test.mjs && node tests/proxy.test.mjs && node tests/content.test.mjs",
     "test:browser": "node tests/browser/app.test.mjs && node tests/browser/styles.test.mjs && node tests/browser/states.test.mjs && node tests/browser/runner.test.mjs",
     "test:journeys": "node tests/browser/journeys.test.mjs",
+    "test:ui": "node tests/browser/navigation.test.mjs && node tests/browser/resize.test.mjs && node tests/browser/feedback.test.mjs && node tests/browser/usability.test.mjs",
     "test:runner": "node tests/browser/runner.test.mjs",
     "serve": "python -m http.server 8000",
     "proxy": "node proxy/server.mjs",

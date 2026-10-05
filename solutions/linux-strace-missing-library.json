@@ -2,6 +2,14 @@
   "key": {
     "answer": 0
   },
+  "feedback": {
+    "options": {
+      "1": "The errno in the trace rules this out. A permission problem returns **EACCES**; this trace shows **ENOENT**, which means the path is not there at all. The two lead to completely different fixes, which is exactly why the name and not just \"it failed\" is worth reading.",
+      "2": "Look at what lies between `execve` and `exit_group`: reading `ld.so.cache`, searching directories, and nothing else. If the program's own code had run you would see its own calls among them. Ask of each line in a trace which actor made it — the loader, or the program.",
+      "3": "Re-read those lines. `/etc/ld.so.cache` was opened successfully, stat'd, mapped and closed, with no error anywhere. A miss inside the cache is perfectly ordinary and simply sends the loader on to search the directories, which is what the following lines show it doing."
+    },
+    "reconsider": "Work out how far into a process's life this trace gets before it stops, and whose work the failing calls are."
+  },
   "distractors": {
     "0": "Correct. The loader searched its path for `libanalytics.so.2`, got ENOENT at every location, wrote the standard 'error while loading shared libraries' message to stderr and exited 127. None of the program's own code ran.",
     "1": "No — a permission problem returns **EACCES**, not ENOENT. This is exactly why the errno name in a trace matters: ENOENT means the path does not exist, EACCES means it exists and you may not read it, and they lead to completely different fixes. Reading the trace as 'the open failed' and stopping there loses the only useful information in it.",

@@ -2,6 +2,14 @@
   "key": {
     "answer": 0
   },
+  "feedback": {
+    "options": {
+      "1": "That is what the code looks like it does, and it is what `<=` would give you. But this block uses `=`, which is a different operator with different timing. Walk the three statements in order and treat each assignment as taking effect the instant it executes, before the next line is read.",
+      "2": "Not quite. What makes logic sequential is the `posedge clk` in the sensitivity list, not the choice of assignment operator — an `always @(posedge clk)` block infers flip-flops either way. Blocking assignment here is a correctness problem, not a \"no registers at all\" problem.",
+      "3": "Writing the statements in reverse order genuinely does produce a working shift register, which tells you something important: with blocking assignments the statement order matters. But that is not the order this code is in. Read the three lines top to bottom and substitute as you go."
+    },
+    "reconsider": "The question that settles it: at the moment the second statement reads `q1`, what is in `q1`?"
+  },
   "distractors": {
     "0": "Correct. `=` takes effect immediately, so `q2 = q1` reads the `q1` that was just assigned `d`, and `q3 = q2` reads that same value again. All three end the edge holding `d`. The synthesiser infers three flip-flops that are all fed from `d` — one stage of delay, in triplicate.",
     "1": "This is what `<=` would give, and it is why the bug is so easy to write: the *intent* is obvious from the code and the semantics do not match it. With non-blocking assignment all three right-hand sides are evaluated before any left-hand side is updated, so `q2` gets the old `q1` and the chain works.",

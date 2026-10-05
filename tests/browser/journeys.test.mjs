@@ -16,9 +16,17 @@
         SHOTS=1 node tests/browser/journeys.test.mjs    (also write screenshots) */
 
 import { chromium } from 'playwright';
+
 import fs from 'node:fs';
 import path from 'node:path';
 import { section, check, ok, report } from '../harness.mjs';
+
+/* BROWSER=msedge runs the whole suite through the Edge installed on this
+   machine rather than Playwright's bundled Chromium. Same engine, different
+   build and different default settings — and Edge on Windows is what this
+   site is actually read in. */
+const CHANNEL = process.env.BROWSER || null;
+const launch = () => chromium.launch(CHANNEL ? { channel: CHANNEL } : {});
 
 const BASE = process.env.BASE || 'http://127.0.0.1:8000';
 const PROXY = process.env.PROXY || 'http://127.0.0.1:8787';
@@ -38,7 +46,7 @@ try {
   process.exit(1);
 }
 
-const browser = await chromium.launch();
+const browser = await launch();
 
 /* Whether anything can compile C++ right now, and how. Checked once, so the
    run says plainly which backend the journeys below exercised rather than

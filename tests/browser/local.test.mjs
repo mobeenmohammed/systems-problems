@@ -21,9 +21,17 @@
    Run: node tests/browser/local.test.mjs */
 
 import { chromium } from 'playwright';
+
 import fs from 'node:fs';
 import path from 'node:path';
 import { section, check, ok, report } from '../harness.mjs';
+
+/* BROWSER=msedge runs the whole suite through the Edge installed on this
+   machine rather than Playwright's bundled Chromium. Same engine, different
+   build and different default settings — and Edge on Windows is what this
+   site is actually read in. */
+const CHANNEL = process.env.BROWSER || null;
+const launch = () => chromium.launch(CHANNEL ? { channel: CHANNEL } : {});
 
 const SITE = process.env.BASE || 'http://127.0.0.1:8000';
 const RUNNER = process.env.RUNNER || 'http://127.0.0.1:2000';
@@ -49,7 +57,7 @@ const health = await (await fetch(`${RUNNER}/health`)).json();
 const have = new Set((health.languages || []).filter(l => l.available).map(l => l.id));
 console.log(`  --    ${[...have].join(', ')} available on the runner`);
 
-const browser = await chromium.launch();
+const browser = await launch();
 const errors = [];
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 page.on('pageerror', e => errors.push('pageerror: ' + e.message));

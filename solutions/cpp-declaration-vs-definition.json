@@ -7,6 +7,9 @@
       3
     ]
   },
+  "feedback": {
+    "nudge": "Take each statement and ask which tool would catch the mistake it describes. The compiler sees one translation unit at a time; the linker sees all of them at once. A missing definition and a call with the wrong number of arguments are caught at different moments for exactly that reason."
+  },
   "distractors": {
     "0": "True. A declaration is all the compiler needs: it now knows the name, the parameter types and the return type, which is enough to check the call and emit a call instruction to a symbol. Whether that symbol exists anywhere is the linker's question, and `undefined reference to 'square(int)'` is its answer.",
     "1": "True, and this is the other side of the same division. Argument count and types are checked against the declaration, inside one translation unit, so the compiler catches it immediately and names the line. It never needs to see the definition to do so.",

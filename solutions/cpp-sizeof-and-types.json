@@ -6,6 +6,17 @@
       3
     ]
   },
+  "feedback": {
+    "misconceptions": [
+      {
+        "picked": [
+          2
+        ],
+        "say": "On `sizeof(int)`: it is 4 on very nearly every machine you will ever meet, and that is still not something the standard promises. What the standard gives you is minimum ranges and an ordering between the types, not fixed widths — which is the entire reason `<cstdint>` exists."
+      }
+    ],
+    "nudge": "Keep two questions apart: what is true on the machine in front of you, and what the standard actually guarantees. Only the second kind belongs in this list."
+  },
   "distractors": {
     "0": "Guaranteed, and true by definition. `sizeof` counts in units of `char`, so `sizeof(char) == 1` always — on every machine, including ones where a `char` is 16 or 32 bits. Note that this does *not* mean a char is 8 bits: `CHAR_BIT` is at least 8 and is 8 on everything you will meet, but the standard permits more.",
     "1": "Guaranteed. The standard fixes the *ordering*: `char` <= `short` <= `int` <= `long` <= `long long`, along with minimum widths of 8, 16, 16, 32 and 64 bits. So `int` can be the same size as `short`, and on many embedded platforms it is — but it can never be smaller.",

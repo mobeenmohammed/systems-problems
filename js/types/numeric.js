@@ -84,6 +84,11 @@
       ]));
     },
 
+    restore(mount, response) {
+      const node = mount.querySelector('#numAnswer');
+      if (node && response != null) node.value = String(response);
+    },
+
     collect(mount) {
       const raw = (mount.querySelector('#numAnswer') || {}).value || '';
       return raw.trim() ? raw : null;
@@ -160,6 +165,11 @@
           disabled: ctx.locked || undefined,
         }),
       ]));
+    },
+
+    restore(mount, response) {
+      const node = mount.querySelector('#shortAnswer');
+      if (node && response != null) node.value = String(response);
     },
 
     collect(mount) {

@@ -9,9 +9,16 @@
 
 (() => {
 
-  const VIEWS = ['home', 'problems', 'problem', 'tracks', 'concepts', 'profile', 'shop', 'settings', '404'];
+  const VIEWS = ['home', 'problems', 'problem', 'tracks', 'concepts', 'profile', 'shop',
+    'settings', 'setup', '404'];
 
   function show(name) {
+    /* Every route change comes through here, which makes it the one place
+       that can guarantee the problem page has been shut down properly. It
+       used to be nobody's job, and the workspace's full-bleed, clipped,
+       unscrollable layout followed the reader onto the dashboard. */
+    if (name !== 'problem') ProblemView.leave();
+
     for (const v of VIEWS) {
       const node = document.getElementById(`view-${v}`);
       if (node) node.hidden = v !== name;
@@ -95,6 +102,14 @@
       case 'settings':
         show('settings');
         UI.renderSettings();
+        break;
+
+      /* Reached from "Set up execution" beside Run, and from Settings. It is
+         a page rather than a dialog because it is a procedure with terminal
+         output in it, and because a link to it can be shared. */
+      case 'setup':
+        show('setup');
+        await SetupGuide.render();
         break;
 
       default:

@@ -1050,6 +1050,7 @@ pre.code-block[data-lang]::before {
 
 .danger-text { color: var(--danger); }
 .warn-text   { color: var(--warn); }
+.ok-text     { color: var(--ok); }
 
 /* Setup detail that only matters when something is wrong. Closed by default,
    so the common case does not read like documentation. */
@@ -1186,6 +1187,7 @@ body[data-workspace="true"] #problemHost { height: 100%; min-height: 0; }
   background: var(--bg-elev-2); border: 1px solid var(--border-strong);
   box-shadow: var(--shadow-2);
 }
+.ws-menu-rule { border: 0; border-top: 1px solid var(--border); margin: .2rem 0; }
 
 /* ---- the two columns ---- */
 
@@ -1265,25 +1267,79 @@ body[data-workspace="true"] #problemHost { height: 100%; min-height: 0; }
 
 /* ---- the dividers ---- */
 
+/* It used to be a 10px box containing a 1px hairline in --border, which is
+   to say: invisible. "Dragging the divider does nothing" was mostly people
+   not finding it and scrolling the pane behind it instead.
+
+   Now the element itself is 18px — that is the hit area, and it is a real
+   grid column so nothing can paint over it or clip it — and the bar you can
+   see is drawn 10px wide inside it by ::before. A pseudo-element overflowing
+   into the neighbouring panels was tried first and gave only 3px of overhang
+   on the right, because the panel after it in the DOM won. */
 .ws-gutter, .ws-hgutter {
-  position: relative; background: none; border: 0; padding: 0;
+  position: relative; border: 0; padding: 0; background: none;
   touch-action: none;
 }
-.ws-gutter { width: 11px; cursor: col-resize; }
-.ws-hgutter { height: 11px; cursor: row-resize; }
+.ws-gutter { width: 18px; cursor: col-resize; }
+.ws-hgutter { height: 18px; cursor: row-resize; }
+
+/* The bar. */
 .ws-gutter::before, .ws-hgutter::before {
-  content: ""; position: absolute; background: var(--border);
+  content: ""; position: absolute;
+  background: var(--bg-elev);
   transition: background .14s;
 }
-.ws-gutter::before { top: 0; bottom: 0; left: 50%; width: 1px; }
-.ws-hgutter::before { left: 0; right: 0; top: 50%; height: 1px; }
+.ws-gutter::before {
+  top: 0; bottom: 0; left: 4px; right: 4px;
+  border-left: 1px solid var(--border); border-right: 1px solid var(--border);
+}
+.ws-hgutter::before {
+  left: 0; right: 0; top: 4px; bottom: 4px;
+  border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+}
+
+/* The grip: three dots, so it reads as something to take hold of. */
+.ws-gutter::after, .ws-hgutter::after {
+  content: ""; position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--text-faint);
+  border-radius: 2px;
+  transition: background .14s, box-shadow .14s;
+}
+.ws-gutter::after {
+  width: 2px; height: 26px;
+  box-shadow: 0 -10px 0 var(--text-faint), 0 10px 0 var(--text-faint);
+}
+.ws-hgutter::after {
+  width: 26px; height: 2px;
+  box-shadow: -10px 0 0 var(--text-faint), 10px 0 0 var(--text-faint);
+}
+
 .ws-gutter:hover::before, .ws-hgutter:hover::before,
 [data-dragging] > .ws-gutter::before,
-[data-dragging] > .ws-hgutter::before { background: var(--accent); }
+[data-dragging] > .ws-hgutter::before { background: var(--accent-soft); }
+
+.ws-gutter:hover::after, [data-dragging] > .ws-gutter::after {
+  background: var(--accent);
+  box-shadow: 0 -10px 0 var(--accent), 0 10px 0 var(--accent);
+}
+.ws-hgutter:hover::after, [data-dragging] > .ws-hgutter::after {
+  background: var(--accent);
+  box-shadow: -10px 0 0 var(--accent), 10px 0 0 var(--accent);
+}
+
 .ws-gutter:focus-visible, .ws-hgutter:focus-visible {
   outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 3px;
 }
+
+/* While a drag is in flight nothing else may select, and the resize cursor
+   wins everywhere — otherwise it flickers as the pointer crosses the text. */
 [data-dragging] { user-select: none; }
+body[data-resizing] { user-select: none; cursor: col-resize; }
+body[data-resizing] * { cursor: inherit !important; }
+/* data-dragging goes on the container, and for the horizontal divider that
+   container is .ws-right itself. */
+body[data-resizing]:has(.ws-right[data-dragging]) { cursor: row-resize; }
 
 /* ---- focus mode ----
 
@@ -1535,4 +1591,153 @@ html[data-focus] .rail { display: none; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+/* A standfirst: the one paragraph under a page's title. */
+.lede { font-size: 1.02rem; color: var(--text-dim); max-width: 68ch; }
+
+/* ---------------- the execution setup guide ----------------
+
+   A procedure, so it reads as one: numbered steps, a command you can copy,
+   and what the command prints when it worked. The three mode cards above it
+   are the only place on the site that says "here is what can and cannot run
+   for you", and each of them is painted from a live probe rather than from
+   what the configuration claims. */
+
+.setup-modes {
+  display: grid; gap: var(--s3); margin: var(--s4) 0;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+}
+.setup-mode {
+  border: 1px solid var(--border); border-top-width: 3px;
+  border-radius: var(--radius); padding: var(--s3);
+  background: var(--bg-elev);
+}
+.setup-mode[data-state="ready"]   { border-top-color: var(--ok); }
+.setup-mode[data-state="partial"] { border-top-color: var(--warn); }
+.setup-mode[data-state="down"]    { border-top-color: var(--danger); }
+.setup-mode[data-state="off"],
+.setup-mode[data-state="unknown"] { border-top-color: var(--border-strong); }
+.setup-mode-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: var(--s2); margin-bottom: var(--s2);
+}
+.setup-mode-head h3 { margin: 0; }
+.setup-badge {
+  font-size: .68rem; text-transform: uppercase; letter-spacing: .05em;
+  font-weight: 700; padding: .12em .5em; border-radius: 999px;
+  border: 1px solid var(--border-strong); color: var(--text-dim);
+  white-space: nowrap;
+}
+.setup-badge[data-state="ready"]   { color: var(--ok);     border-color: var(--ok); }
+.setup-badge[data-state="partial"] { color: var(--warn);   border-color: var(--warn); }
+.setup-badge[data-state="down"]    { color: var(--danger); border-color: var(--danger); }
+
+/* ---- the steps ---- */
+
+.setup-steps {
+  list-style: none; margin: var(--s4) 0 0; padding: 0;
+  display: grid; gap: var(--s5); min-width: 0;
+}
+.setup-step, .setup-cmds, .setup-verify, .setup-results { min-width: 0; }
+.expect-out { max-width: 100%; overflow-x: auto; }
+.setup-step h4 {
+  display: flex; align-items: center; gap: var(--s2);
+  margin: 0 0 var(--s2); font-size: 1rem;
+}
+.step-n {
+  display: inline-grid; place-items: center; flex: none;
+  width: 1.6rem; height: 1.6rem; border-radius: 50%;
+  background: var(--accent-soft); color: var(--accent);
+  font-family: var(--mono); font-size: .8rem; font-weight: 700;
+}
+.setup-step > * + * { margin-top: var(--s2); }
+
+/* ---- a command, with the button that copies it ---- */
+
+/* min-width:0 on both, or a long command line makes the grid track as wide
+   as the line and pushes the whole page sideways — measured at 383px of
+   overflow on a 390px phone. The scrollbar belongs to the block. */
+.cmd { position: relative; margin: var(--s2) 0; min-width: 0; }
+.cmd .code-block {
+  margin: 0; padding-right: 5.5rem;
+  min-width: 0; max-width: 100%; overflow-x: auto;
+}
+.copy-btn {
+  position: absolute; top: .4rem; right: .4rem;
+  font-size: .72rem; padding: .2em .6em;
+}
+.copy-btn[data-state="done"]   { color: var(--ok); border-color: var(--ok); }
+.copy-btn[data-state="manual"] { color: var(--warn); border-color: var(--warn); }
+.cmd-note { margin: .3rem 0 0; }
+.setup-cmds { display: grid; gap: var(--s2); margin-top: var(--s2); }
+
+.expect { margin-top: .3rem; }
+.expect > summary {
+  cursor: pointer; font-size: .76rem; color: var(--text-faint);
+  padding: .15rem 0;
+}
+.expect > summary:hover { color: var(--text-dim); }
+.expect-out { margin: .3rem 0 0; color: var(--text-dim); font-size: .76rem; }
+
+/* ---- the result of a real compile ---- */
+
+.setup-verify:empty { display: none; }
+.setup-verify { margin-top: var(--s3); }
+.setup-results { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s2); }
+.setup-result {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--s2);
+  align-items: start; padding: var(--s2) var(--s3);
+  border: 1px solid var(--border); border-left-width: 3px;
+  border-radius: var(--radius-s); background: var(--bg-inset);
+}
+.setup-result[data-state="ok"]   { border-left-color: var(--ok); }
+.setup-result[data-state="fail"] { border-left-color: var(--danger); }
+.setup-result[data-state="none"] { border-left-color: var(--border-strong); }
+.setup-result-mark { font-weight: 700; font-family: var(--mono); }
+.setup-result[data-state="ok"]   .setup-result-mark { color: var(--ok); }
+.setup-result[data-state="fail"] .setup-result-mark { color: var(--danger); }
+
+/* ---- what is wrong, and what to do ---- */
+
+.setup-fault { padding: var(--s3) 0; border-top: 1px solid var(--border); }
+.setup-fault:first-of-type { border-top: 0; padding-top: 0; }
+.setup-fault h3 { margin: 0 0 var(--s2); font-size: .95rem; }
+.setup-remaining { margin: var(--s2) 0 0; padding-left: 1.3rem; display: grid; gap: var(--s2); }
+.setup-remaining li { font-size: .86rem; line-height: 1.6; color: var(--text-dim); max-width: 70ch; }
+
+/* The toolbar's way out, which only exists when nothing can run. */
+.ws-setup { white-space: nowrap; }
+.ws-setup[hidden] { display: none; }
+
+/* ---------------- the verdict, and which attempt it belongs to ----------------
+
+   A verdict that stays on screen while the reader changes their answer stops
+   describing anything. Rather than wiping it — the feedback is the useful
+   part and they may still be reading it — it is labelled and dimmed, and the
+   marks on the controls are cleared so that a freshly ticked box never looks
+   as though it has already been judged. */
+.verdict-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: var(--s3);
+}
+.verdict-head h4 { margin: 0; }
+.verdict-when { white-space: nowrap; }
+.verdict[data-stale="true"] { opacity: .62; border-left-style: dashed; }
+.verdict[data-stale="true"] .verdict-when { color: var(--warn); }
+
+.verdict-history { margin-top: var(--s2); }
+.verdict-history > summary { cursor: pointer; padding: .15rem 0; }
+.verdict-history > summary:hover { color: var(--text-dim); }
+.verdict-history ol {
+  margin: .35rem 0 0; padding-left: 1.2rem;
+  display: grid; gap: .3rem; color: var(--text-dim);
+}
+
+/* Said next to the control, because a toast is easy to miss. */
+.needs-answer {
+  margin: var(--s2) 0 0; padding: .4rem .7rem;
+  border: 1px solid var(--warn); border-left-width: 3px;
+  border-radius: var(--radius-s);
+  background: var(--bg-elev); color: var(--text);
 }

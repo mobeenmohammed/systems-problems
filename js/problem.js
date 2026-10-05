@@ -29,6 +29,7 @@ const ProblemView = (() => {
   let current = null;     /* the problem being shown */
   let solution = null;    /* its key + explanation, once fetched */
   let answered = null;    /* the last graded result, for re-rendering a tab */
+  let previousAttempts = []; /* the ones before it, collapsed */
   let lastBlocked = null; /* a submission that could not be run at all */
   let lastRun = null;     /* the last Run, for the Results pane */
   let solutionShown = false;
@@ -38,9 +39,15 @@ const ProblemView = (() => {
   /* ---------------- entry ---------------- */
 
   async function open(id, mount) {
+    /* Opening is leaving the last one first: a second problem must not
+       inherit the first one's editor, verdict or attempt history. */
+    leave();
+
     host = mount;
     activeTab = 'problem';
     answered = null;
+    previousAttempts = [];
+    answerChanged = false;
     lastBlocked = null;
     solutionShown = false;
     attempting = false;
@@ -70,6 +77,57 @@ const ProblemView = (() => {
     }
 
     draw();
+  }
+
+  /* ---------------- leaving ----------------
+
+     The reported bug, and it was not intermittent. Opening a code problem
+     puts body[data-workspace="true"] on the document, and that turns .main
+     into a fixed-height, zero-padding, overflow:hidden box — correct for a
+     workspace that owns the viewport, ruinous for the dashboard. Nothing ever
+     took it off again, so one click from a problem to anywhere else left the
+     destination page clipped to the window with no scrollbar: measured at
+     422px of the dashboard, and 29,021px of the reading map, simply
+     unreachable. html[data-focus] was the same mistake with the navigation.
+
+     So there is now exactly one way out, and the router takes it on every
+     route that is not a problem. It is written to be safe to call twice, and
+     safe to call when no problem was ever open. */
+  function leave() {
+    endAnyDrag();
+
+    /* CodeMirror holds listeners on the document and a mutation observer on
+       its own DOM. Hiding the view does not stop any of that, and thirty
+       crossings used to leave thirty of them. */
+    for (const impl of [ProblemTypes.get('code')]) {
+      if (impl && impl.teardown) impl.teardown();
+    }
+
+    delete document.body.dataset.workspace;
+    document.documentElement.removeAttribute('data-focus');
+
+    if (host && host.isConnected) host.replaceChildren();
+    current = null;
+    solution = null;
+    answered = null;
+    previousAttempts = [];
+    answerChanged = false;
+    lastBlocked = null;
+    lastRun = null;
+    solutionShown = false;
+    attempting = false;
+    host = null;
+  }
+
+  /* Any pointer drag in flight, so that navigating mid-drag cannot leave the
+     page with user-select off, a dragging flag set, or a capture held by an
+     element that is about to be thrown away. */
+  let dragCleanup = null;
+  function endAnyDrag() {
+    if (!dragCleanup) return;
+    const fn = dragCleanup;
+    dragCleanup = null;
+    try { fn(); } catch { /* the element may already be gone */ }
   }
 
   /* ---------------- four separate questions ----------------
@@ -136,7 +194,11 @@ const ProblemView = (() => {
   function draw() {
     const p = current;
     const workspace = p.type === 'code';
-    document.body.dataset.workspace = workspace ? 'true' : 'false';
+    /* Removed rather than set to "false": the attribute exists only while it
+       means something, so a stale one is visible in the DOM rather than
+       hiding behind a falsy-looking string. */
+    if (workspace) document.body.dataset.workspace = 'true';
+    else delete document.body.dataset.workspace;
     host.replaceChildren(workspace ? drawWorkspace() : drawReading());
     if (workspace) {
       applySplit();
@@ -264,6 +326,17 @@ const ProblemView = (() => {
         }, [`${d}d`]))),
         r.reviewOn ? el('p', { class: 'tiny faint', style: 'margin:.4rem 0 0', text: `Booked for ${r.reviewOn}.` }) : null,
       ]) : null,
+
+      p.type === 'code' ? el('div', {}, [
+        el('hr', { class: 'ws-menu-rule' }),
+        el('button', {
+          class: 'btn btn-sm btn-ghost', type: 'button', id: 'resetLayoutBtn',
+          title: 'Panel sizes and editor font back to their defaults',
+          onclick: () => resetLayout(),
+        }, ['Reset layout']),
+        el('p', { class: 'tiny faint', style: 'margin:.3rem 0 0',
+          text: 'Panels and font size only. Your code, notes and progress stay.' }),
+      ]) : null,
     ]);
 
     return el('details', { class: 'ws-menu' }, [
@@ -367,6 +440,15 @@ const ProblemView = (() => {
       el('div', { class: 'ws-toolbar-left', id: 'langSlot' }),
       el('div', { class: 'ws-toolbar-right' }, [
         el('span', { class: 'ws-exec', id: 'execState' }),
+        /* Shown only when the language in front of the reader cannot run.
+           code.js unhides it, because it is the thing that knows. Editing
+           stays available the whole time — not being able to run something
+           is no reason to stop someone writing it. */
+        el('a', {
+          class: 'btn btn-sm btn-ghost ws-setup', id: 'setupLink', href: '#/setup',
+          hidden: true,
+          title: 'What it takes to compile C++ and Rust, and what is working now',
+        }, ['Set up execution']),
         el('button', {
           class: 'btn btn-sm', type: 'button', id: 'runBtn',
           onclick: () => impl.run && impl.run(false),
@@ -390,11 +472,49 @@ const ProblemView = (() => {
     repaintMarks(widget);
   }
 
+  /* True once the reader has touched the answer since the last submission.
+     The verdict then stops describing what is on screen, so it is labelled
+     as the previous attempt and the marks on the controls are cleared —
+     a freshly ticked box must never arrive already marked wrong. */
+  let answerChanged = false;
+
+  function watchForChanges(widget) {
+    if (!widget) return;
+    const touched = () => {
+      if (answerChanged || !answered) return;
+      answerChanged = true;
+      /* Clear the marks immediately rather than waiting for a redraw: the
+         reader is looking at the control they just clicked. */
+      widget.querySelectorAll('[data-mark]').forEach(n => delete n.dataset.mark);
+      const v = host && host.querySelector('.verdict');
+      if (v) v.dataset.stale = 'true';
+      const note = host && host.querySelector('.verdict-when');
+      if (note) note.textContent = 'Previous attempt';
+    };
+    widget.addEventListener('change', touched);
+    widget.addEventListener('input', touched);
+    /* locate and order are clicked rather than changed. */
+    widget.addEventListener('click', e => {
+      if (e.target.closest('button, [data-line], .opt, li')) touched();
+    });
+  }
+
   function repaintMarks(widget) {
     const p = current;
     const impl = ProblemTypes.get(p.type);
     if (!impl || !widget) return;
-    if (answered) {
+
+    /* The page redraws after every submission, which rebuilds the widget from
+       the problem file and therefore blank. Putting the reader's own answer
+       back is the first thing to do: submitting and finding the form empty
+       reads as though the attempt was thrown away, and it makes "change your
+       answer and try again" into "type it all in again". */
+    if (answered && impl.restore) impl.restore(widget, answered.response);
+
+    watchForChanges(widget);
+    /* Marks from an attempt the reader has since edited would be pointing at
+       a selection that no longer exists. */
+    if (answered && !answerChanged) {
       impl.mark(widget, {
         response: answered.response,
         key: solution ? solution.key : null,
@@ -505,8 +625,15 @@ const ProblemView = (() => {
     bar.addEventListener('pointerdown', e => {
       const box = container(bar);
       if (!box) return;
-      bar.setPointerCapture(e.pointerId);
+
+      /* Only one drag at a time, and a second pointerdown ends the first
+         rather than running two. */
+      endAnyDrag();
+
+      try { bar.setPointerCapture(e.pointerId); } catch { /* synthetic events */ }
       box.dataset.dragging = 'true';
+      document.body.dataset.resizing = 'true';
+
       const move = ev => {
         const r = box.getBoundingClientRect();
         const { start, size } = axis(r);
@@ -514,18 +641,40 @@ const ProblemView = (() => {
         set((coord(ev) - start) / size);
         bar.setAttribute('aria-valuenow', String(Math.round(get() * 100)));
       };
-      const up = ev => {
-        bar.releasePointerCapture(ev.pointerId);
+
+      /* One cleanup, called by pointerup, by pointercancel, by Escape, by
+         losing the capture, and by navigating away mid-drag. Anything that
+         can end a drag has to end all of it — a left-behind
+         [data-dragging] takes user-select with it and the page stops being
+         selectable, which reads as "frozen". */
+      const finish = () => {
+        dragCleanup = null;
+        try { bar.releasePointerCapture(e.pointerId); } catch { /* already released */ }
         delete box.dataset.dragging;
+        delete document.body.dataset.resizing;
         bar.removeEventListener('pointermove', move);
-        bar.removeEventListener('pointerup', up);
-        bar.removeEventListener('pointercancel', up);
+        bar.removeEventListener('pointerup', finish);
+        bar.removeEventListener('pointercancel', finish);
+        bar.removeEventListener('lostpointercapture', finish);
+        window.removeEventListener('pointerup', finish);
+        window.removeEventListener('blur', finish);
+        window.removeEventListener('keydown', onKey);
         const ed = codeEditor();
         if (ed) ed.refresh();
       };
+      const onKey = ev => { if (ev.key === 'Escape') finish(); };
+
+      dragCleanup = finish;
       bar.addEventListener('pointermove', move);
-      bar.addEventListener('pointerup', up);
-      bar.addEventListener('pointercancel', up);
+      bar.addEventListener('pointerup', finish);
+      bar.addEventListener('pointercancel', finish);
+      bar.addEventListener('lostpointercapture', finish);
+      /* The belt to the capture's braces: a pointerup that lands anywhere
+         else — outside the window, on another element, after the capture was
+         broken — still ends it. */
+      window.addEventListener('pointerup', finish);
+      window.addEventListener('blur', finish);
+      window.addEventListener('keydown', onKey);
       e.preventDefault();
     });
 
@@ -602,47 +751,117 @@ const ProblemView = (() => {
      The split is a CSS custom property rather than two inline widths, so one
      number drives both columns and the gutter stays put during a drag. */
 
+  /* A fraction is the wrong unit on its own. 0.2-0.8 keeps either panel from
+     vanishing on a wide screen, but a split of 0.8 saved on a 1920px monitor
+     leaves 194px of editor at 1024px and about 110px at 800 — measured. So
+     the fraction is the stored preference and these are the law: whatever is
+     remembered, neither panel is ever narrower than this many pixels, and if
+     the window is too small to honour both the fraction is ignored in favour
+     of an even split. */
   const SPLIT_MIN = 0.2;
   const SPLIT_MAX = 0.8;
-  const splitFraction = () => {
-    const v = Number(Store.pref('splitFraction', 0.42));
-    return Number.isFinite(v) ? Math.min(SPLIT_MAX, Math.max(SPLIT_MIN, v)) : 0.42;
+  const MIN_PANEL_PX = 320;   /* a readable statement, a usable editor */
+  const MIN_EDITOR_PX = 180;  /* the results pane is allowed to be smaller */
+
+  const prefFraction = (key, fallback) => {
+    const v = Number(Store.pref(key, fallback));
+    return Number.isFinite(v) ? Math.min(SPLIT_MAX, Math.max(SPLIT_MIN, v)) : fallback;
   };
 
-  /* The editor/results divider, kept with the other view preferences. */
-  const vSplitFraction = () => {
-    const v = Number(Store.pref('vSplitFraction', 0.62));
-    return Number.isFinite(v) ? Math.min(SPLIT_MAX, Math.max(SPLIT_MIN, v)) : 0.62;
-  };
+  /* Clamp a fraction so that neither side of `total` falls below `minPx`.
+     When there is not room for both, half each is the least bad answer and
+     the stored preference is left alone — shrinking the window must not
+     quietly rewrite what the reader chose on their big screen. */
+  function fitted(fraction, total, minPx) {
+    if (!(total > 0)) return fraction;
+    if (total < minPx * 2) return 0.5;
+    const lo = minPx / total;
+    const hi = 1 - minPx / total;
+    return Math.min(hi, Math.max(lo, fraction));
+  }
+
+  const splitFraction = () => prefFraction('splitFraction', 0.42);
+  const vSplitFraction = () => prefFraction('vSplitFraction', 0.62);
+
+  /* What the layout should actually be right now, given the window. */
+  function effectiveSplit() {
+    const body = host && host.querySelector('.ws-body');
+    const w = body ? body.getBoundingClientRect().width : 0;
+    return fitted(splitFraction(), w, MIN_PANEL_PX);
+  }
+
+  function effectiveVSplit() {
+    const right = host && host.querySelector('.ws-right');
+    const h = right ? right.getBoundingClientRect().height : 0;
+    return fitted(vSplitFraction(), h, MIN_EDITOR_PX);
+  }
 
   function applySplit() {
+    if (!host) return;
     const body = host.querySelector('.ws-body');
-    if (body) body.style.setProperty('--split', String(splitFraction()));
+    if (body) body.style.setProperty('--split', String(effectiveSplit()));
     const right = host.querySelector('.ws-right');
-    if (right) right.style.setProperty('--vsplit', String(vSplitFraction()));
+    if (right) right.style.setProperty('--vsplit', String(effectiveVSplit()));
   }
 
   function setVSplit(fraction) {
-    const clamped = Math.min(SPLIT_MAX, Math.max(SPLIT_MIN, fraction));
-    Store.setPref('vSplitFraction', Math.round(clamped * 1000) / 1000);
+    Store.setPref('vSplitFraction',
+      Math.round(Math.min(SPLIT_MAX, Math.max(SPLIT_MIN, fraction)) * 1000) / 1000);
     applySplit();
     const ed = codeEditor();
     if (ed) ed.refresh();
   }
 
   function setSplit(fraction) {
-    const clamped = Math.min(SPLIT_MAX, Math.max(SPLIT_MIN, fraction));
-    Store.setPref('splitFraction', Math.round(clamped * 1000) / 1000);
+    Store.setPref('splitFraction',
+      Math.round(Math.min(SPLIT_MAX, Math.max(SPLIT_MIN, fraction)) * 1000) / 1000);
     applySplit();
     const ed = codeEditor();
     if (ed) ed.refresh();
   }
 
+  /* Back to the defaults, and only the layout: progress, drafts, bookmarks
+     and notes are a different kind of thing and are not touched. */
+  function resetLayout() {
+    Store.setPref('splitFraction', 0.42);
+    Store.setPref('vSplitFraction', 0.62);
+    Store.setPref('editorFontSize', 14);
+    const ed = codeEditor();
+    if (ed && ed.setFontSize) ed.setFontSize(14);
+    applySplit();
+    if (ed) ed.refresh();
+    if (current && host && host.isConnected) draw();
+    UI.toast('Layout reset. Your drafts and progress are untouched.', 'info');
+  }
+
+  /* A narrower window can make a remembered split illegal, and CodeMirror
+     measures lazily, so both have to be told. One listener for the life of
+     the page; it does nothing unless a workspace is on screen. */
+  let resizeTimer = null;
+  window.addEventListener('resize', () => {
+    if (!host || !host.isConnected) return;
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      if (!host || !host.isConnected) return;
+      applySplit();
+      const ed = codeEditor();
+      if (ed) ed.refresh();
+    }, 80);
+  });
+
+  /* Focus mode is "hide everything but the problem", so it is a preference
+     that belongs to the reader and an *attribute* that belongs to the problem
+     page. Keeping the two apart is the whole fix: the preference persists, the
+     attribute is applied on arrival and removed on leaving. It used to be set
+     once and never cleared, so pressing F inside a problem hid the navigation
+     on every page of the site until you went back and pressed it again. */
   const focusOn = () => !!Store.pref('focusMode', false);
+
+  const onProblemPage = () => !!(current && host && host.isConnected);
 
   function setFocus(on) {
     Store.setPref('focusMode', !!on);
-    document.documentElement.toggleAttribute('data-focus', !!on);
+    document.documentElement.toggleAttribute('data-focus', !!on && onProblemPage());
     const btn = host && host.querySelector('#focusBtn');
     if (btn) {
       btn.setAttribute('aria-pressed', String(!!on));
@@ -654,7 +873,7 @@ const ProblemView = (() => {
   /* Applied on every draw so that arriving straight at a problem with focus
      mode remembered does not flash the full chrome first. */
   function syncFocus() {
-    document.documentElement.toggleAttribute('data-focus', focusOn());
+    document.documentElement.toggleAttribute('data-focus', focusOn() && onProblemPage());
   }
 
 
@@ -746,12 +965,62 @@ const ProblemView = (() => {
     else if (disclosed()) next = 'You can see the solution; try again whenever you like.';
     else next = 'Try again, take a hint, or read the prerequisites. Nothing has been revealed.';
 
-    return el('div', { class: 'verdict', 'data-kind': kind }, [
-      el('h4', { text: result.correct ? 'Right' : (result.score > 0 ? 'Partly right' : 'Not right') }),
+    return el('div', { class: 'verdict', 'data-kind': kind,
+      'data-stale': answerChanged ? 'true' : undefined }, [
+      el('div', { class: 'verdict-head' }, [
+        el('h4', { text: result.correct ? 'Right' : (result.score > 0 ? 'Partly right' : 'Not right') }),
+        /* Which attempt this is about. It says "Previous attempt" the moment
+           the reader changes anything, so a verdict can never be read as a
+           judgement on what is currently selected. */
+        el('span', { class: 'verdict-when tiny faint',
+          text: answerChanged ? 'Previous attempt' : 'This attempt' }),
+      ]),
       el('p', { html: MD.renderInline(result.feedback || '') }),
       bits.length ? el('p', { class: 'award', text: bits.join(' · ') }) : null,
       el('p', { class: 'tiny faint' }, [next]),
+      attemptHistory(),
     ]);
+  }
+
+  /* Everything before the latest one, folded away. Worth keeping: on a
+     multi-select, what you tried last time is most of what you know. */
+  function attemptHistory() {
+    if (previousAttempts.length < 1) return null;
+    return el('details', { class: 'verdict-history' }, [
+      el('summary', { class: 'tiny faint',
+        text: `${previousAttempts.length} earlier `
+          + `${previousAttempts.length === 1 ? 'attempt' : 'attempts'}` }),
+      el('ol', { class: 'tiny' }, previousAttempts.map((a, i) => el('li', {}, [
+        el('strong', { text: a.result.correct ? 'Right' : (a.result.score > 0 ? 'Partly right' : 'Not right') }),
+        ' — ',
+        el('span', { html: MD.renderInline(a.result.feedback || '') }),
+        el('span', { class: 'faint', text: ` (attempt ${i + 1})` }),
+      ]))),
+    ]);
+  }
+
+  /* "You have not answered yet" belongs beside the control, not only in a
+     toast that slides away after three seconds. It clears itself as soon as
+     the reader touches anything. */
+  function sayNeedsAnswer(text) {
+    clearNeedsAnswer();
+    const widget = host && host.querySelector('#answerWidget');
+    const anchor = host && (host.querySelector('.ws-toolbar-right') || widget);
+    if (!anchor) return;
+    const note = el('p', { class: 'needs-answer small', role: 'status', text });
+    if (anchor.classList.contains('ws-toolbar-right')) anchor.before(note);
+    else anchor.append(note);
+    const go = () => clearNeedsAnswer();
+    if (widget) {
+      widget.addEventListener('change', go, { once: true });
+      widget.addEventListener('click', go, { once: true });
+      widget.addEventListener('input', go, { once: true });
+    }
+  }
+
+  function clearNeedsAnswer() {
+    if (!host) return;
+    host.querySelectorAll('.needs-answer').forEach(n => n.remove());
   }
 
   /* A submission that never ran. Deliberately not a verdict: it has no
@@ -784,10 +1053,23 @@ const ProblemView = (() => {
     const response = impl.collect(widget, p);
     if (response === null || response === undefined) {
       /* Grading an empty answer as wrong would silently burn the first-try
-         bonus for forgetting to tick a box. */
-      UI.toast('Answer it first.', 'bad');
+         bonus for forgetting to tick a box. A toast alone is easy to miss, so
+         it is also said next to the control, where the reader is looking. */
+      const says = (impl.emptyMessage && impl.emptyMessage(widget, p)) || {
+        mcq: 'Choose an option before submitting.',
+        multi: 'Tick at least one option before submitting.',
+        locate: 'Click the line you think is wrong before submitting.',
+        order: 'Put the items in an order before submitting.',
+        match: 'Pair every item before submitting.',
+        numeric: 'Enter a number before submitting.',
+        short: 'Type an answer before submitting.',
+        predict: 'Type what you think it prints before submitting.',
+      }[p.type] || 'Answer it first.';
+      UI.toast(says, 'bad');
+      sayNeedsAnswer(says);
       return;
     }
+    clearNeedsAnswer();
 
     if (attempting) return;
     attempting = true;
@@ -820,7 +1102,23 @@ const ProblemView = (() => {
     /* Awaited rather than called: a code problem has to reach a Worker or the
        judge before it knows anything, and awaiting a plain value costs the
        synchronous types nothing. */
-    const result = await impl.grade(response, solution.key, p);
+    /* The whole solution goes in, not just the key: graders read
+       solution.feedback to say why a wrong choice is wrong. */
+    let result;
+    try {
+      result = await impl.grade(response, solution.key, p, solution);
+    } catch (err) {
+      /* A grader that throws must not leave Submit disabled for ever, and it
+         is certainly not evidence that the answer was wrong. */
+      restore();
+      answered = null;
+      lastBlocked = {
+        feedback: `The grader failed: ${(err && err.message) || err}. Nothing was `
+          + 'recorded, and your answer is still here.',
+      };
+      draw();
+      return;
+    }
 
     /* A submission that could not be run at all is not a wrong answer. If the
        judge is down, recording an attempt would quietly cost the first-try
@@ -831,6 +1129,11 @@ const ProblemView = (() => {
          the runner being down must not cost a first-try bonus. */
       lastBlocked = result;
       impl.mark(widget, { response, key: solution.key, problem: p, solution, result });
+      /* Put the reader in front of the explanation. On the workspace the
+         result pane starts on Test cases, so a failed submission used to
+         produce no visible change at all — the reason was sitting in a tab
+         nobody had any reason to open. */
+      resultTab = 'results';
       draw();
       UI.toast(result.feedback, 'bad', 9000);
       return;
@@ -844,7 +1147,12 @@ const ProblemView = (() => {
       sanitized: result.sanitized,
     });
 
+    if (answered) previousAttempts.push(answered);
     answered = { response, result, award };
+    /* The verdict on screen belongs to this submission, so any note that it
+       is stale belongs to the one before it. */
+    answerChanged = false;
+    resultTab = 'results';
     attempting = false;
 
     /* Only now, and only if it is actually earned. */
@@ -1061,7 +1369,7 @@ const ProblemView = (() => {
   }
 
   return {
-    open, toggleFocus, setSplit, splitFraction, setVSplit, vSplitFraction,
-    showResults,
+    open, leave, toggleFocus, setSplit, splitFraction, setVSplit, vSplitFraction,
+    showResults, resetLayout,
   };
 })();

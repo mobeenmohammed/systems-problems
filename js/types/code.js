@@ -194,7 +194,8 @@ fn main() {
   function refreshExec() {
     if (!state) return;
     const { langs, mount } = state;
-    const tabs = mount.querySelector('.lang-tabs');
+    /* Same reason as switchLang: the tabs live in the toolbar by now. */
+    const tabs = mount.querySelector('.lang-tabs') || document.querySelector('.lang-tabs');
     const judgeBox = mount.querySelector('.judge-state');
 
     setExec('checking', 'Checking…');
@@ -210,6 +211,10 @@ fn main() {
            order of what the reader most needs: what just happened, what
            would happen, and that nothing can. */
         const here = rows.find(r => r.id === state.lang);
+
+        /* The way out, offered exactly when it is needed. */
+        const setupLink = document.getElementById('setupLink');
+        if (setupLink) setupLink.hidden = !!(here && here.ready);
 
         const text = document.getElementById('codeJudgeText');
         if (text) {
@@ -244,15 +249,25 @@ fn main() {
 
   function switchLang(id) {
     if (!state || state.lang === id) return;
+    /* Anything in flight belongs to the language being left. */
+    runEpoch += 1;
+    last = { verdict: null, reply: null, submission: false };
     /* The draft is saved per language, so flipping to C++ to look at the
        template and back does not cost you what you had written. */
     Store.saveDraft(state.problem, state.lang, state.editor.value);
     state.lang = id;
+    /* Remembered, so the redraw after a run does not put the reader back in
+       the language they just left. */
+    Store.setLang(state.problem, id);
     /* The language drives both the highlighting and which compiler lints it,
        so the editor has to be told before the new source goes in. */
     state.editor.setLang(id, (state.problem.payload || {}).profile || 'standard');
     state.editor.value = sourceFor(state.problem, id);
-    for (const node of state.mount.querySelectorAll('.lang-tab')) {
+    /* The tabs were moved into the workspace toolbar when the page mounted,
+       so they are no longer inside this module's mount. Looking for them
+       there found nothing, and the pressed state never moved — the editor
+       switched language while the tabs went on claiming the old one. */
+    for (const node of document.querySelectorAll('.lang-tab')) {
       node.setAttribute('aria-pressed', String(node.dataset.lang === id));
     }
     state.out.replaceChildren();
@@ -283,13 +298,24 @@ fn main() {
     }, 420);
   }
 
-  /* ---------------- running ---------------- */
+  /* ---------------- running ----------------
+
+     A run is slow enough that the reader can change the problem or the
+     language before it answers. Every run takes a ticket, and every exit
+     from a problem or a language takes a new one, so a late reply knows it
+     belongs to a page that is no longer there and paints nothing. Without it
+     a C++ result could land in a Rust editor, or in a different problem
+     altogether. */
+
+  let runEpoch = 0;
 
   async function doRun(hidden) {
     if (!state || state.running) return;
     const { problem } = state;
     const pay = problem.payload || {};
     const cases = pay.cases || [];
+    const epoch = runEpoch;
+    const lang = state.lang;
 
     state.running = true;
     const btn = document.getElementById('runBtn');
@@ -297,11 +323,38 @@ fn main() {
     if (state.out) state.out.replaceChildren(el('p', { class: 'muted small', text: 'Compiling and running…' }));
     setExec('running', 'Compiling and running…');
 
-    const reply = await Runners.run(state.lang, state.editor.value, cases, {
-      profile: pay.profile || 'standard',
-      compileMs: (pay.limits || {}).compileMs,
-      runMs: (pay.limits || {}).runMs,
-    });
+    /* The source is read here, at the moment of the click, and it is read
+       from CodeMirror's own document — there is no second copy to be stale. */
+    const source = state.editor.value;
+
+    let reply;
+    try {
+      reply = await Runners.run(lang, source, cases, {
+        profile: pay.profile || 'standard',
+        compileMs: (pay.limits || {}).compileMs,
+        runMs: (pay.limits || {}).runMs,
+      });
+    } catch (err) {
+      /* A throw from a backend must not leave Run disabled for ever. */
+      reply = {
+        lang, backend: null,
+        compile: { ok: false, stdout: '', stderr: '', ms: 0, timedOut: false },
+        cases: [], judgeDown: true,
+        judgeError: `The runner threw an error: ${(err && err.message) || err}`,
+      };
+    }
+
+    /* Whatever happened, this page is not running anything any more. Done
+       before the staleness check and outside any branch, because a Run button
+       stuck on "Running…" for ever is worse than any wrong answer. */
+    if (state) state.running = false;
+    const liveBtn = document.getElementById('runBtn');
+    if (liveBtn) { liveBtn.disabled = false; liveBtn.textContent = 'Run samples'; }
+
+    /* Too late: the reader changed problem or language while this was out. */
+    if (epoch !== runEpoch || !state || state.problem.id !== problem.id || state.lang !== lang) {
+      return;
+    }
 
     const verdict = RunHarness.judgeRun(reply, cases.map(c => c.expect), { requireClean: !!pay.requireClean });
     last = { verdict, reply, submission: false };
@@ -312,8 +365,7 @@ fn main() {
     if (reply.judgeDown) setExec('blocked', 'Could not run');
     else setExec('ready', `Ran on ${Runners.label(reply.backend)}`);
 
-    state.running = false;
-    if (btn) { btn.disabled = false; btn.textContent = 'Run samples'; }
+    void btn;
     /* Show the reader what just happened rather than leaving the result in a
        tab they are not looking at. */
     if (typeof ProblemView !== 'undefined' && ProblemView.showResults) ProblemView.showResults();
@@ -569,6 +621,21 @@ fn main() {
 
     /* The workspace owns the panes; this module owns what goes in them. */
     editor: () => (state ? state.editor : null),
+
+    /* Called by ProblemView.leave(). CodeMirror attaches listeners to the
+       document and watches its own DOM, so hiding the view is not enough —
+       thirty navigations used to leave thirty live editors behind. The lint
+       watcher holds a timer and an in-flight request, and a run in flight has
+       to be marked abandoned so its answer cannot be painted into whatever
+       problem is on screen by the time it arrives. */
+    teardown() {
+      if (!state) return;
+      runEpoch += 1;
+      try { if (state.editor && state.editor.destroy) state.editor.destroy(); } catch { /* already gone */ }
+      state = null;
+      last = { verdict: null, reply: null, submission: false };
+      clearTimeout(savedTimer);
+    },
     repaintOutput(into) {
       if (!into) return;
       if (last.verdict) paint(last.verdict, last.reply || {}, last.submission, into);
@@ -582,6 +649,16 @@ fn main() {
        against captured compiler output. */
     parseDiagnostics, diagnosticsNode,
     render,
+
+    /* collect() returns null for two quite different reasons, and saying
+       "the editor is empty" about a full one is how you send somebody
+       hunting for a bug that is not there. */
+    emptyMessage(mount, problem) {
+      if (!state || !state.editor) return 'The editor is not ready yet.';
+      if (!state.editor.value.trim()) return 'The editor is empty — write a program before submitting.';
+      return 'That is still the starting template, unchanged. Write your solution '
+        + 'first — submitting the template would count as an attempt for nothing.';
+    },
 
     collect(mount, problem) {
       if (!state || !state.editor) return null;

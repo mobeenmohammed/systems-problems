@@ -6,6 +6,17 @@
       3
     ]
   },
+  "feedback": {
+    "misconceptions": [
+      {
+        "picked": [
+          2
+        ],
+        "say": "On broker-side deduplication: it can remove duplicate *deliveries*, but not duplicate *effects*. A consumer can still perform the side effect and then crash before its acknowledgement is recorded, and from outside there is no way to tell that case apart from one where the work never happened."
+      }
+    ],
+    "nudge": "For each statement, follow a single message through a crash at the worst possible moment — the instant between the work finishing and the acknowledgement landing — and see whether the claim still holds."
+  },
   "distractors": {
     "0": "Correct, and it is the whole practical consequence of choosing at-least-once. The guarantee is that nothing is lost, not that nothing is repeated — so every handler must be safe to run twice. In practice that means an idempotency key, a version check, or a side effect that is naturally idempotent.",
     "1": "Correct, and this is the specific failure that makes duplicates unavoidable. The work is done; the broker has no way to know that, because the only evidence would have been the acknowledgement that never arrived. After the visibility timeout it redelivers, and it is right to — the alternative is losing messages whose work genuinely did not happen.",

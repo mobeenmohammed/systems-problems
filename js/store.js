@@ -426,6 +426,16 @@ const Store = (() => {
   }
   const draft = (id, lang) => (record(id).draft || {})[lang] || '';
 
+  /* Which language the reader last chose for this problem. It used to be
+     written only on submit, so choosing Rust and then pressing Run put you
+     back in C++: the page redraws after a run, and the redraw reads this. */
+  function setLang(problem, lang) {
+    const r = touch(problem);
+    r.lang = String(lang || '');
+    save();
+    return r.lang;
+  }
+
   /* Anything flagged by hand, or booked for a revisit that has come due. */
   function dueForReview() {
     const today = todayISO();
@@ -719,7 +729,7 @@ const Store = (() => {
     todayISO, addDays, daysBetween,
     record, isSolved, potentialXp, touch,
     openHint, reveal, submit,
-    setNotes, setPerceived, setFlag, toggleFlag, setReview, saveDraft, draft, dueForReview,
+    setNotes, setPerceived, setFlag, toggleFlag, setReview, saveDraft, setLang, draft, dueForReview,
     markReading, hasRead, readingCount,
     rankFor, rankProgress,
     buy, equip, isOwned, earnedTitles,

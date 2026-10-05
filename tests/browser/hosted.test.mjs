@@ -15,9 +15,17 @@
    Run: node tests/browser/hosted.test.mjs */
 
 import { chromium } from 'playwright';
+
 import fs from 'node:fs';
 import path from 'node:path';
 import { section, check, ok, report } from '../harness.mjs';
+
+/* BROWSER=msedge runs the whole suite through the Edge installed on this
+   machine rather than Playwright's bundled Chromium. Same engine, different
+   build and different default settings — and Edge on Windows is what this
+   site is actually read in. */
+const CHANNEL = process.env.BROWSER || null;
+const launch = () => chromium.launch(CHANNEL ? { channel: CHANNEL } : {});
 
 const SITE = process.env.BASE || 'http://127.0.0.1:8000';
 const PROXY = process.env.PROXY || 'http://127.0.0.1:8787';
@@ -49,7 +57,7 @@ if (runnerUp) {
 check('no local runner is running, so hosted is the only way this can work',
   runnerUp, false);
 
-const browser = await chromium.launch();
+const browser = await launch();
 const errors = [];
 
 /* A page that believes it is the deployed site: hosted execution configured,

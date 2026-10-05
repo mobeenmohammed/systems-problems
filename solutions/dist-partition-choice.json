@@ -1,6 +1,16 @@
 {
   "id": "dist-partition-choice",
-  "key": { "answer": 0 },
+  "key": {
+    "answer": 0
+  },
+  "feedback": {
+    "options": {
+      "1": "Look again at what the two halves are doing while the link is down: neither of them stopped answering clients. An unavailable system is one that refuses to serve, and nothing here refuses. Worth separating in your head — availability is about whether you get an answer at all; consistency is about whether two clients get the same one.",
+      "2": "The arithmetic does not work. Each side holds three of the six replicas, and a quorum has to be a strict majority of the whole replica set. Work out the smallest number that is a majority of six, then ask whether two halves that cannot talk to each other could both reach it.",
+      "3": "This is the famous misreading of CAP. Partition tolerance is not one of three things you pick two of — the network will partition whether or not you designed for it, so P is never actually on the menu. The useful version of the theorem is narrower, and is a statement about what happens *while* a partition is in progress."
+    },
+    "reconsider": "Follow one client on each side of the break: what does each of them see, and could the two of them disagree?"
+  },
   "distractors": {
     "0": "Right. Both sides accept writes, so the two halves diverge. A read on either side sees only its own half's version of the world, and when the link heals something has to decide which write wins — last-write-wins, vector clocks, CRDTs, or a human.",
     "1": "This has it backwards. The deployment *kept* availability: both sides go on answering. What it gave up is consistency. Availability would only be the casualty if the system had been configured to refuse service on the minority side — which is what a strictly consistent system does.",
@@ -9,7 +19,13 @@
   },
   "explanation": "## You chose availability, so you paid in consistency\n\nBoth sides keep serving, so neither side stops — availability is intact. But London and Frankfurt are now accepting writes to the same keys with no way to tell each other. The two halves of the dataset diverge, reads return whatever the local half believes, and the divergence has to be reconciled when the link comes back.\n\nThat is the whole content of the trade-off, and it is worth stating precisely because the slogan gets it wrong so often.\n\n## \"Pick two of three\" is the wrong way to remember it\n\nPartition tolerance is not a property you choose. Cables get unplugged, switches reboot, a BGP change blackholes a region. If your answer to a partition is \"we do not support that\", your answer is that you stop working.\n\nSo P is a fact, not an option, and the real theorem is conditional:\n\n> **While a partition is in progress**, a system must choose between answering (and risking staleness) and staying consistent (and refusing some requests).\n\nMartin Kleppmann's *Please stop calling databases CP or AP* is the short version of why the three-way framing misleads. A system is not permanently one letter: it makes this choice per operation, and good systems let you choose per request — which is what a tunable consistency level is.\n\n## Why three of six is not a quorum\n\nQuorums work because **two majorities of the same set must overlap**. With six replicas, a quorum is four. Two disjoint groups of four cannot exist in a set of six, so at most one side of any partition can form one. That is the entire mechanism, and it is why an even split leaves *neither* side able to proceed consistently.\n\nThis is also why replica counts are usually odd. Six replicas give you no more partition tolerance than five, and an even split is the one case where a majority system is guaranteed to stall.\n\n## What the other trade-off is\n\nThe part CAP leaves out, and which matters far more day to day: even with a perfectly healthy network, a strongly consistent write across London and Frankfurt costs a round trip between them — tens of milliseconds, every time. PACELC adds this explicitly: *if there is a Partition, choose Availability or Consistency; Else, choose Latency or Consistency.*\n\nPartitions are rare. Latency is every single request. Most real architecture decisions are made on the second half of that sentence.",
   "readMore": [
-    { "concept": "cap-theorem", "where": "DDIA ch. 9, then Kleppmann's post" },
-    { "concept": "replication", "where": "DDIA ch. 5, then MIT 6.824 lectures 2–4" }
+    {
+      "concept": "cap-theorem",
+      "where": "DDIA ch. 9, then Kleppmann's post"
+    },
+    {
+      "concept": "replication",
+      "where": "DDIA ch. 5, then MIT 6.824 lectures 2–4"
+    }
   ]
 }

@@ -239,6 +239,11 @@
     <div class="card" style="margin-bottom:1rem">
       <h3>Code execution</h3>
       <p class="small muted prose" id="execSummary"></p>
+      <p class="small" style="margin:.4rem 0 .8rem">
+        <a href="#/setup">How to run C++ and Rust →</a>
+        <span class="tiny faint">— what the three modes are, which of them work for you
+        right now, and a step-by-step setup for Windows.</span>
+      </p>
 
       <!-- Four states, not two: never checked, nothing listening, listening
            but refusing us, and ready. Treating the first as a failure is how a
@@ -346,6 +351,41 @@
     </div>
   </section>
 
+  <!-- ---------------- how to run C++ and Rust ----------------
+
+       Reached from "Set up execution", which appears beside Run whenever
+       nothing can compile the language in front of the reader. Everything in
+       it that claims a state is measured live by js/setup.js; nothing here
+       says "working" because a page said so. -->
+  <section id="view-setup" class="view" hidden>
+    <h1>Running C++ and Rust</h1>
+    <p class="prose lede">
+      Most problems on this site need nothing at all. The coding ones have to compile
+      your program somewhere, and there are three places that can happen. This page
+      shows which of them work for you right now, and how to get one going.
+    </p>
+
+    <div id="setupModes" class="setup-modes"></div>
+
+    <div class="card" style="margin:1.2rem 0">
+      <h3>Check what works right now</h3>
+      <p class="small muted prose">
+        This compiles and runs a real program on each backend that claims to be
+        available. Nothing here reports success until a program has actually come
+        back with the right answer.
+      </p>
+      <div class="row" style="margin-top:.6rem">
+        <button class="btn btn-primary" id="setupVerify">Run the check</button>
+        <button class="btn" id="setupRecheck">Look again for a runner</button>
+      </div>
+      <div id="setupVerifyOut" class="setup-verify"></div>
+    </div>
+
+    <div id="setupLocal"></div>
+    <div id="setupHosted"></div>
+    <div id="setupTrouble"></div>
+  </section>
+
   <!-- ---------------- not found ---------------- -->
   <section id="view-404" class="view" hidden>
     <div class="empty">
@@ -393,6 +433,7 @@
 <script src="js/types/locate.js"></script>
 <script src="js/types/code.js"></script>
 <script src="js/problem.js"></script>
+<script src="js/setup.js"></script>
 <script src="js/views.js"></script>
 <script src="js/app.js"></script>
 </body>

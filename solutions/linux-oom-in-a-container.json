@@ -5,6 +5,23 @@
       1
     ]
   },
+  "feedback": {
+    "misconceptions": [
+      {
+        "picked": [
+          2
+        ],
+        "say": "On `total-vm`: that figure is *virtual* address space — everything the process has mapped, including file mappings, guard pages, and memory reserved but never touched. The field that reports pages actually resident is a different one on the same line, and the two routinely differ several times over."
+      },
+      {
+        "picked": [
+          3
+        ],
+        "say": "On raising the limit: that is one option, not the only one. Before concluding the code needs the memory, it is worth asking whether it genuinely holds that much live at one time, or whether it is accumulating something it could stream, bound or release as it goes."
+      }
+    ],
+    "nudge": "Go along the kernel's OOM line field by field and sort them into two piles: fields that describe address space, and fields that describe physical pages."
+  },
   "distractors": {
     "0": "Correct, and it is the first thing to establish. The message says *Memory cgroup* out of memory, and `usage` equals `limit` exactly at 2097152 kB = 2 GiB. The machine's 50 GB of free memory is irrelevant: a cgroup limit is a cap on that group, enforced regardless of what the rest of the machine has spare.",
     "1": "Correct. The shell convention is that a process killed by signal N reports `128 + N`, so 137 is `128 + 9` — SIGKILL. SIGKILL cannot be caught, blocked or handled, so no atexit handler ran, no destructor ran, no buffered log line was flushed. That is exactly why the logs stop mid-record, and why 'the application logged nothing' is evidence *for* an OOM kill rather than against it.",
