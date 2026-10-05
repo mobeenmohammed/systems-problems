@@ -53,7 +53,12 @@ const LOOPBACK = ['127.0.0.1', '::1', 'localhost'];
 const MAX_SOURCE   = 256 * 1024;
 const MAX_CASES    = 60;
 const MAX_OUTPUT   = 64 * 1024;      /* per stream, per case */
-const COMPILE_MS   = 20_000;
+/* 20s was enough on a warm machine and not on a cold one: the first rustc of
+   a CI run faulted in its libraries from a fresh disk and went past it,
+   failing a trivial program with no stderr at all. The compiler is our own
+   trusted toolchain — the cap that matters is the one on the submitted
+   program's run, below — so this is generous on purpose. */
+const COMPILE_MS   = Number(process.env.JUDGE_COMPILE_MS || 45_000);
 const RUN_MS       = 5_000;
 const HARD_RUN_MS  = 30_000;
 const LINT_MS      = 10_000;         /* a syntax check runs while you type */
