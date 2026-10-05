@@ -53,15 +53,15 @@
     return multiple ? checked : checked[0];
   }
 
-  /* Painting the outcome. `right` is the set of correct indexes either way, so
-     one function serves both graders. */
-  function markOptions(mount, picked, right, solution) {
+  /* Everything, once the answer is legitimately visible: which were right,
+     which were missed, and why each distractor is attractive. `right` is the
+     set of correct indexes either way, so one function serves both graders. */
+  function revealOptions(mount, picked, right, solution) {
     const chosen = new Set([].concat(picked == null ? [] : picked));
     const correct = new Set(right);
     const why = (solution && solution.distractors) || {};
 
     mount.querySelectorAll('.opt').forEach((node, i) => {
-      node.querySelectorAll('input').forEach(n => { n.disabled = true; });
       if (correct.has(i) && chosen.has(i))       node.dataset.mark = 'right';
       else if (chosen.has(i))                    node.dataset.mark = 'wrong';
       else if (correct.has(i))                   node.dataset.mark = 'missed';
@@ -73,6 +73,21 @@
         node.querySelector('.opt-body')
           .append(el('div', { class: 'why', html: MD.render(note) }));
       }
+    });
+  }
+
+  /* After a wrong attempt. The reader learns that this pick was not it, and
+     nothing else: no mark on the options they missed, no distractor notes,
+     and the radios stay live so the next guess is one click away.
+
+     For "select all", not even their own ticks are marked. Telling someone
+     which three of their four ticks were right hands them the combination in
+     two attempts, which is the thing a retry is supposed to make them earn. */
+  function markOwnChoice(mount, picked, { perOption }) {
+    const chosen = new Set([].concat(picked == null ? [] : picked));
+    mount.querySelectorAll('.opt').forEach((node, i) => {
+      delete node.dataset.mark;
+      if (perOption && chosen.has(i)) node.dataset.mark = 'wrong';
     });
   }
 
@@ -91,8 +106,13 @@
       };
     },
 
-    mark: (mount, { response, key, solution }) =>
-      markOptions(mount, response, [Number(key && key.answer)], solution),
+    /* One answer, so marking the pick they made as wrong gives away nothing
+       they were not just told by the verdict. */
+    mark: (mount, { response, result }) =>
+      markOwnChoice(mount, response, { perOption: !(result && result.correct) }),
+
+    reveal: (mount, { response, key, solution }) =>
+      revealOptions(mount, response, [Number(key && key.answer)], solution),
   });
 
   register('multi', {
@@ -119,20 +139,32 @@
       const missed = [...right].filter(i => !picked.has(i)).length;
       const wrong  = [...picked].filter(i => !right.has(i)).length;
 
+      /* Feedback is about the ticks they made, never about the ones they did
+         not. "2 of 3 right" would say how many correct options exist, and
+         with four options that is most of the way to the answer. */
       let feedback;
-      if (correct) feedback = `All ${right.size} of them, and nothing else.`;
-      else if (!hits) feedback = 'None of those.';
-      else {
-        const bits = [`${hits} of ${right.size} right`];
-        if (wrong)  bits.push(`${wrong} that ${wrong === 1 ? 'is' : 'are'} not`);
-        if (missed) bits.push(`${missed} missed`);
-        feedback = bits.join(', ') + `. Out of ${total} options.`;
+      if (correct) {
+        feedback = `All of them, and nothing else.`;
+      } else if (!picked.size) {
+        feedback = 'Nothing ticked.';
+      } else if (!hits) {
+        feedback = picked.size === 1
+          ? 'Not that one.'
+          : `None of those ${picked.size}.`;
+      } else {
+        const bits = [`${hits} of your ${picked.size} ${picked.size === 1 ? 'tick is' : 'ticks are'} right`];
+        if (missed) bits.push('and there is at least one you have not ticked');
+        else if (wrong) bits.push(`but ${wrong === 1 ? 'one is' : wrong + ' are'} not`);
+        feedback = bits.join(', ') + '.';
       }
+      void total;
 
       return { correct, score, feedback };
     },
 
-    mark: (mount, { response, key, solution }) =>
-      markOptions(mount, response, (key && key.answers || []).map(Number), solution),
+    mark: mount => markOwnChoice(mount, null, { perOption: false }),
+
+    reveal: (mount, { response, key, solution }) =>
+      revealOptions(mount, response, (key && key.answers || []).map(Number), solution),
   });
 })();

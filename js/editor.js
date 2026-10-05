@@ -1,32 +1,66 @@
 /* ============================================================
-   editor.js — a code editor with syntax highlighting and real
-   compiler diagnostics.
+   editor.js — the code editor, on CodeMirror 6.
 
-   The highlighting is the standard overlay technique: a coloured
-   <pre> sits exactly behind a transparent <textarea>, and the two
-   are kept in scroll sync. The textarea keeps every behaviour a
-   textarea has — the caret, selection, undo, IME, accessibility,
-   mobile keyboards — which is what makes this worth doing rather
-   than reimplementing an editor over a contenteditable div.
+   ---------------- why this was replaced ----------------
 
-   Everything about the two layers that affects where a glyph
-   lands must match exactly: font, size, line height, letter
-   spacing, tab size, padding, and white-space handling. One
-   pixel of difference anywhere shows up as text sitting beside
-   its own colour. The pairs that matter are marked below and
-   enforced by a test.
+   The previous editor was the standard overlay trick: a coloured
+   <pre> behind a transparent <textarea>, kept in step by hand.
+   Three bugs were reported against it, and all three turned out
+   to be the same architectural problem — two layers with
+   independent geometry and independent scroll state:
 
-   Diagnostics come from js/lint.js: a bracket scanner on every
-   keystroke, and the real compiler through the judge shortly
-   after you stop typing.
+     · The textarea kept a min-height while the gutter and the
+       overlay grew with the content, so with 60 lines the
+       textarea was 315px inside a 1261px editor. Its horizontal
+       scrollbar therefore sat 946px above the bottom, with
+       highlighted code painting below it.
+
+     · Typing past the visible rows scrolled the textarea
+       implicitly to follow the caret. That does not reliably
+       fire a scroll event, and repainting the overlay reset its
+       scrollTop anyway — measured at textarea 540, overlay 0.
+       The painted text froze while the caret moved away, which
+       is what "the display is a character behind" looks like.
+
+     · The editor grew past the viewport, so the sticky action
+       bar ended up over it. A click halfway down hit the bar,
+       not the textarea, and typing went nowhere.
+
+   Each is fixable in isolation. Keeping them fixed, through
+   panel resizes, browser zoom, font-size changes, IME, mobile
+   keyboards and paste, is a project — and it is the project
+   CodeMirror has already finished. It has one scroll container
+   with the gutter inside it, so the alignment cannot drift and
+   the horizontal scrollbar is at the bottom by construction.
+
+   The cost is a 669 KB vendored bundle, which is why it is
+   vendored rather than fetched: this site is meant to work on a
+   laptop with no network. The site still has no build step —
+   the bundle is committed, and scripts/build-editor.mjs is run
+   by hand when the editor's feature set changes.
+
+   If the bundle fails to load, a plain textarea takes over, with
+   no highlighting but with every editing behaviour intact. A
+   missing nicety is better than a page you cannot type into.
+
+   Diagnostics still come from js/lint.js: a bracket scanner on
+   every keystroke, and the real compiler shortly after you stop.
    ============================================================ */
 
 const Editor = (() => {
 
   const INDENT = '  ';
-  /* Past this, re-highlighting the whole buffer on each keystroke stops being
-     free. Nothing on this site is near it, and a pasted file might be. */
-  const HIGHLIGHT_LINE_LIMIT = 3000;
+  const FONT_SIZES = [12, 13, 14, 16, 18];
+  const DEFAULT_FONT = 14;
+
+  const ready = () => typeof window !== 'undefined' && !!window.CM;
+
+  /* The reader's chosen size, shared by every editor on the page. Kept with
+     the other view preferences rather than with progress. */
+  function fontSize() {
+    const v = Number(Store.pref('editorFontSize', DEFAULT_FONT));
+    return FONT_SIZES.includes(v) ? v : DEFAULT_FONT;
+  }
 
   function create(mount, {
     value = '',
@@ -38,37 +72,38 @@ const Editor = (() => {
     readOnly = false,
     lint: doLint = true,
   } = {}) {
+    return ready()
+      ? createCM(mount, { value, lang, profile, onChange, onRun, onSubmit, readOnly, lint: doLint })
+      : createFallback(mount, { value, lang, onChange, onRun, onSubmit, readOnly });
+  }
 
-    /* ---------------- structure ---------------- */
+  /* ---------------- the real one ---------------- */
 
-    const gutter = document.createElement('div');
-    gutter.className = 'ed-gutter';
-    gutter.setAttribute('aria-hidden', 'true');
+  function createCM(mount, opts) {
+    const {
+      EditorState, EditorView, Compartment,
+      keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter,
+      highlightSpecialChars, drawSelection, dropCursor,
+      defaultKeymap, history, historyKeymap, indentWithTab, undo, redo,
+      syntaxHighlighting, indentUnit, bracketMatching,
+      closeBrackets, closeBracketsKeymap,
+      lintGutter, setDiagnostics: cmSetDiagnostics,
+      highlightStyle, LANGUAGES,
+    } = window.CM;
 
-    const highlight = document.createElement('pre');
-    highlight.className = 'ed-highlight';
-    highlight.setAttribute('aria-hidden', 'true');
-    const highlightCode = document.createElement('code');
-    highlight.append(highlightCode);
+    let currentLang = opts.lang;
+    let currentProfile = opts.profile;
+    let diagnostics = [];
+    let checkedBy = null;
+    let watcher = null;
 
-    const area = document.createElement('textarea');
-    area.className = 'ed-input';
-    area.spellcheck = false;
-    area.autocapitalize = 'off';
-    area.autocomplete = 'off';
-    area.setAttribute('autocorrect', 'off');
-    area.setAttribute('aria-label', 'Your solution');
-    area.value = value;
-    area.readOnly = readOnly;
+    const language = new Compartment();
+    const editable = new Compartment();
+    const theming = new Compartment();
 
-    const stack = document.createElement('div');
-    stack.className = 'ed-stack';
-    stack.append(highlight, area);
-
-    const wrap = document.createElement('div');
-    wrap.className = 'ed';
-    wrap.dataset.lang = lang;
-    wrap.append(gutter, stack);
+    const host = document.createElement('div');
+    host.className = 'ed';
+    host.dataset.lang = currentLang;
 
     const status = document.createElement('div');
     status.className = 'ed-status';
@@ -77,61 +112,104 @@ const Editor = (() => {
     problems.className = 'ed-problems';
     problems.hidden = true;
 
-    mount.append(wrap, status, problems);
+    mount.append(host, status, problems);
 
-    /* ---------------- state ---------------- */
+    const langExtension = id => {
+      const make = LANGUAGES[id];
+      return make ? make() : [];
+    };
 
-    let currentLang = lang;
-    let currentProfile = profile;
-    let diagnostics = [];
-    let checkedBy = null;      /* 'local' | 'compiler' */
-    let watcher = null;
+    /* Colours and metrics come from the page's tokens, so a theme bought in
+       the shop repaints the editor too. Only the handful CodeMirror needs as
+       real values are set here; the rest is in css/styles.css. */
+    const siteTheme = EditorView.theme({
+      '&': {
+        height: '100%',
+        fontSize: `${fontSize()}px`,
+        backgroundColor: 'var(--bg-inset)',
+        color: 'var(--text)',
+      },
+      '.cm-scroller': {
+        fontFamily: 'var(--mono)',
+        lineHeight: '1.6',
+        /* The one scroll container. Both scrollbars belong to it, which is
+           what keeps the horizontal one at the bottom of the editor. */
+        overflow: 'auto',
+      },
+      '.cm-content': { caretColor: 'var(--text)', paddingBlock: '.6rem' },
+      '.cm-cursor, .cm-dropCursor': { borderLeftColor: 'var(--text)', borderLeftWidth: '2px' },
+      '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, ::selection': {
+        backgroundColor: 'color-mix(in srgb, var(--accent) 30%, transparent)',
+      },
+      '.cm-gutters': {
+        backgroundColor: 'var(--bg-elev)',
+        color: 'var(--text-faint)',
+        borderRight: '1px solid var(--border)',
+      },
+      '.cm-activeLineGutter': { backgroundColor: 'var(--bg-elev-2)', color: 'var(--text-dim)' },
+      '.cm-activeLine': { backgroundColor: 'color-mix(in srgb, var(--accent) 6%, transparent)' },
+      '.cm-lineNumbers .cm-gutterElement': { padding: '0 .5rem 0 .7rem' },
+      '&.cm-editor.cm-focused': { outline: 'none' },
+      '.cm-lint-marker-error': { content: 'none' },
+    }, { dark: true });
 
-    /* ---------------- painting ---------------- */
+    const view = new EditorView({
+      parent: host,
+      state: EditorState.create({
+        doc: opts.value,
+        extensions: [
+          lineNumbers(),
+          highlightActiveLineGutter(),
+          highlightActiveLine(),
+          highlightSpecialChars(),
+          history(),
+          drawSelection(),
+          dropCursor(),
+          bracketMatching(),
+          closeBrackets(),
+          lintGutter(),
+          indentUnit.of(INDENT),
+          EditorState.tabSize.of(2),
+          syntaxHighlighting(highlightStyle),
+          language.of(langExtension(currentLang)),
+          editable.of(EditorView.editable.of(!opts.readOnly)),
+          theming.of(siteTheme),
+          keymap.of([
+            /* Run and submit first, so they win over anything else bound to
+               Enter and work with a selection active. */
+            {
+              key: 'Mod-Enter',
+              preventDefault: true,
+              run: () => { if (opts.onRun) opts.onRun(); return true; },
+            },
+            {
+              key: 'Mod-Shift-Enter',
+              preventDefault: true,
+              run: () => { if (opts.onSubmit) opts.onSubmit(); return true; },
+            },
+            ...closeBracketsKeymap,
+            ...defaultKeymap,
+            ...historyKeymap,
+            /* Tab indents rather than leaving the editor. Escape then Tab
+               still moves focus out, which is the accessible escape hatch
+               CodeMirror provides and a bare textarea does not. */
+            indentWithTab,
+          ]),
+          EditorView.updateListener.of(u => {
+            if (!u.docChanged) return;
+            opts.onChange(view.state.doc.toString());
+            if (watcher) watcher.changed();
+          }),
+        ],
+      }),
+    });
 
-    function paintHighlight() {
-      const text = area.value;
-      const lines = text.split('\n');
+    /* ---------------- diagnostics ---------------- */
 
-      if (lines.length > HIGHLIGHT_LINE_LIMIT) {
-        wrap.dataset.plain = 'true';
-        highlightCode.textContent = '';
-        return;
-      }
-      delete wrap.dataset.plain;
-
-      /* The trailing newline is the one thing the two layers disagree about:
-         a <pre> ending in a newline renders no final line box, while the
-         textarea gives you a caret row. A sentinel space restores it. */
-      const escaped = MD.escapeHtml(text.endsWith('\n') ? text + ' ' : text);
-      highlightCode.innerHTML = Highlight.supports(currentLang)
-        ? Highlight.run(escaped, currentLang)
-        : escaped;
-    }
-
-    function paintGutter() {
-      const count = Math.max(area.value.split('\n').length, 1);
-      const bad = new Map();
-      for (const d of diagnostics) {
-        const was = bad.get(d.line);
-        if (!was || (was !== 'error' && d.severity === 'error')) bad.set(d.line, d.severity);
-      }
-
-      /* Built as one string: a 400-line file would otherwise be 400 nodes
-         rebuilt on every keystroke. */
-      let html = '';
-      for (let n = 1; n <= count; n += 1) {
-        const mark = bad.get(n);
-        html += mark
-          ? `<span class="ed-ln" data-mark="${mark}">${n}</span>`
-          : `<span class="ed-ln">${n}</span>`;
-      }
-      gutter.innerHTML = html;
-      gutter.scrollTop = area.scrollTop;
-    }
+    const SEVERITY = { error: 'error', warning: 'warning', info: 'info' };
 
     function paintProblems() {
-      if (!doLint || !diagnostics.length) {
+      if (!opts.lint || !diagnostics.length) {
         problems.hidden = true;
         problems.replaceChildren();
       } else {
@@ -154,35 +232,45 @@ const Editor = (() => {
       status.dataset.state = errors ? 'error'
         : diagnostics.length ? 'warning'
         : checkedBy ? 'clean' : 'idle';
-      status.textContent = doLint
+      status.textContent = opts.lint
         ? (checkedBy === 'compiler'
             ? `${Lint.summarise(diagnostics, { checkedBy })} · checked by the compiler`
             : Lint.summarise(diagnostics, { checkedBy }))
         : '';
     }
 
-    const repaint = () => { paintHighlight(); paintGutter(); };
-
-    /* ---------------- scroll sync ----------------
-       The overlay has no scrollbar of its own; it is moved to match. */
-    area.addEventListener('scroll', () => {
-      highlight.scrollTop = area.scrollTop;
-      highlight.scrollLeft = area.scrollLeft;
-      gutter.scrollTop = area.scrollTop;
-    });
-
-    /* ---------------- editing ---------------- */
+    /* Our diagnostics carry a line and a column; CodeMirror wants document
+       offsets. A line past the end of the document is clamped rather than
+       dropped, because a compiler reporting "at end of input" is pointing at
+       a line that may not exist yet. */
+    function toOffsets(list) {
+      const doc = view.state.doc;
+      return list.map(d => {
+        const lineNo = Math.min(Math.max(1, d.line || 1), doc.lines);
+        const line = doc.line(lineNo);
+        const from = Math.min(line.from + Math.max(0, (d.column || 1) - 1), line.to);
+        return {
+          from,
+          to: Math.min(line.to, from + 1),
+          severity: SEVERITY[d.severity] || 'info',
+          message: d.message || '',
+          source: d.from === 'local' ? 'brackets' : 'compiler',
+        };
+      });
+    }
 
     function setDiagnostics(list, by) {
       diagnostics = Array.isArray(list) ? list : [];
       checkedBy = by;
-      paintGutter();
+      view.dispatch(cmSetDiagnostics(view.state, toOffsets(diagnostics)));
       paintProblems();
     }
 
-    if (doLint) {
+    function startWatching() {
+      if (!opts.lint) return;
+      if (watcher) watcher.cancel();
       watcher = Lint.watch({
-        getSource: () => area.value,
+        getSource: () => view.state.doc.toString(),
         get lang() { return currentLang; },
         lang: currentLang,
         profile: currentProfile,
@@ -190,131 +278,45 @@ const Editor = (() => {
         onRemote: res => setDiagnostics(res.diagnostics, 'compiler'),
       });
     }
-
-    function changed() {
-      repaint();
-      onChange(area.value);
-      if (watcher) watcher.changed();
-    }
-
-    area.addEventListener('input', changed);
+    startWatching();
 
     function goToLine(line, column = 1) {
-      const lines = area.value.split('\n');
-      let at = 0;
-      for (let i = 0; i < Math.min(line - 1, lines.length); i += 1) at += lines[i].length + 1;
-      at += Math.max(0, column - 1);
-      area.focus();
-      area.setSelectionRange(at, at);
-      /* Put the line roughly a third down rather than at the very top. */
-      const lineHeight = area.scrollHeight / Math.max(lines.length, 1);
-      area.scrollTop = Math.max(0, (line - 1) * lineHeight - area.clientHeight / 3);
-      highlight.scrollTop = area.scrollTop;
-      gutter.scrollTop = area.scrollTop;
+      const doc = view.state.doc;
+      const lineNo = Math.min(Math.max(1, line), doc.lines);
+      const l = doc.line(lineNo);
+      const at = Math.min(l.from + Math.max(0, column - 1), l.to);
+      view.dispatch({
+        selection: { anchor: at },
+        /* "center" rather than "nearest", so a diagnostic you clicked is not
+           left pinned to the very top edge. */
+        effects: EditorView.scrollIntoView(at, { y: 'center' }),
+        scrollIntoView: true,
+      });
+      view.focus();
     }
 
-    area.addEventListener('keydown', e => {
-      /* Run and submit first, so they work with a selection active. */
-      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-        e.preventDefault();
-        if (e.shiftKey && onSubmit) onSubmit();
-        else if (onRun) onRun();
-        return;
-      }
+    if (opts.lint) setDiagnostics(Lint.local(opts.value, currentLang), 'local');
 
-      if (e.key === 'Tab') {
-        /* Tab in a code box should indent. Losing focus to the next control
-           mid-expression is never what anyone wanted. Shift+Tab dedents, and a
-           multi-line selection indents as a block. */
-        e.preventDefault();
-        const { selectionStart: a, selectionEnd: b, value } = area;
+    /* ---------------- the handle ----------------
 
-        if (a !== b && value.slice(a, b).includes('\n')) {
-          const from = value.lastIndexOf('\n', a - 1) + 1;
-          const lines = value.slice(from, b).split('\n');
-          const next = e.shiftKey
-            ? lines.map(l => (l.startsWith(INDENT) ? l.slice(INDENT.length) : l.replace(/^[ \t]/, '')))
-            : lines.map(l => INDENT + l);
-          area.setRangeText(next.join('\n'), from, b, 'select');
-        } else if (e.shiftKey) {
-          const from = value.lastIndexOf('\n', a - 1) + 1;
-          const lineText = value.slice(from, a);
-          const cut = lineText.startsWith(INDENT) ? INDENT.length : (/^[ \t]/.test(lineText) ? 1 : 0);
-          if (cut) {
-            area.setRangeText('', from, from + cut, 'end');
-            area.selectionStart = area.selectionEnd = a - cut;
-          }
-        } else {
-          area.setRangeText(INDENT, a, b, 'end');
-        }
-        changed();
-        return;
-      }
-
-      if (e.key === 'Enter') {
-        /* Carry the current line's indent onto the new one, and go one deeper
-           after an opening brace. Without this, writing a function body means
-           re-typing the indent on every line. */
-        const { selectionStart: a, value } = area;
-        const from = value.lastIndexOf('\n', a - 1) + 1;
-        const lineText = value.slice(from, a);
-        const indent = (lineText.match(/^[ \t]*/) || [''])[0];
-        const deeper = /[{([:]\s*$/.test(lineText) ? INDENT : '';
-        /* Typing Enter between a brace pair puts the closer on its own line,
-           which is what every editor does and its absence is immediately
-           annoying. */
-        const closerNext = /^[\s]*[}\])]/.test(value.slice(a));
-        if (!indent && !deeper) return;
-        e.preventDefault();
-        if (deeper && closerNext) {
-          area.setRangeText(`\n${indent}${deeper}\n${indent}`, a, area.selectionEnd, 'end');
-          const caret = a + 1 + indent.length + deeper.length;
-          area.setSelectionRange(caret, caret);
-        } else {
-          area.setRangeText(`\n${indent}${deeper}`, a, area.selectionEnd, 'end');
-        }
-        changed();
-        return;
-      }
-
-      /* Typing a closer where one already sits just moves over it. */
-      if ([')', ']', '}'].includes(e.key)) {
-        const { selectionStart: a, selectionEnd: b, value } = area;
-        if (a === b && value[a] === e.key) {
-          e.preventDefault();
-          area.setSelectionRange(a + 1, a + 1);
-        }
-        return;
-      }
-
-      /* Auto-close a bracket, but only at the end of a line or before
-         whitespace or another closer — inserting a ')' in the middle of an
-         existing expression is never wanted. */
-      const CLOSE = { '(': ')', '[': ']', '{': '}' };
-      if (CLOSE[e.key]) {
-        const { selectionStart: a, selectionEnd: b, value } = area;
-        const after = value[a] || '\n';
-        if (a === b && /[\s)\]};,]/.test(after)) {
-          e.preventDefault();
-          area.setRangeText(e.key + CLOSE[e.key], a, b, 'end');
-          area.setSelectionRange(a + 1, a + 1);
-          changed();
-        }
-      }
-    });
-
-    repaint();
-    if (doLint) setDiagnostics(Lint.local(area.value, currentLang), 'local');
-
-    /* ---------------- the handle ---------------- */
+       The same shape the overlay editor exposed, so problem.js and the code
+       type did not have to change. `value` is read straight out of the live
+       document, which is what makes "the last character typed before Run" a
+       non-question: there is no second copy to fall behind. */
 
     return {
-      get value() { return area.value; },
+      get value() { return view.state.doc.toString(); },
       set value(v) {
-        area.value = v;
-        repaint();
-        if (doLint) {
-          setDiagnostics(Lint.local(area.value, currentLang), 'local');
+        const next = String(v);
+        if (next === view.state.doc.toString()) return;
+        view.dispatch({
+          changes: { from: 0, to: view.state.doc.length, insert: next },
+          /* A programmatic replacement is not something to undo back through
+             one keystroke at a time. */
+          annotations: [],
+        });
+        if (opts.lint) {
+          setDiagnostics(Lint.local(next, currentLang), 'local');
           if (watcher) watcher.changed();
         }
       },
@@ -323,27 +325,118 @@ const Editor = (() => {
       setLang(next, nextProfile) {
         currentLang = next;
         if (nextProfile) currentProfile = nextProfile;
-        wrap.dataset.lang = next;
-        if (watcher) watcher.cancel();
-        if (doLint) {
-          watcher = Lint.watch({
-            getSource: () => area.value,
-            lang: currentLang,
-            profile: currentProfile,
-            onLocal: list => setDiagnostics(list, 'local'),
-            onRemote: res => setDiagnostics(res.diagnostics, 'compiler'),
-          });
-        }
-        repaint();
-        if (doLint) setDiagnostics(Lint.local(area.value, currentLang), 'local');
+        host.dataset.lang = next;
+        view.dispatch({ effects: language.reconfigure(langExtension(next)) });
+        startWatching();
+        if (opts.lint) setDiagnostics(Lint.local(view.state.doc.toString(), next), 'local');
       },
-      setReadOnly(ro) { area.readOnly = ro; },
-      focus: () => area.focus(),
+      setReadOnly(ro) {
+        view.dispatch({ effects: editable.reconfigure(EditorView.editable.of(!ro)) });
+      },
+      /* The reader can make the code bigger without zooming the whole page,
+         which on a split layout would cost them the statement. */
+      get fontSize() { return fontSize(); },
+      setFontSize(px) {
+        const want = FONT_SIZES.includes(px) ? px : DEFAULT_FONT;
+        Store.setPref('editorFontSize', want);
+        /* The size rides on top of the base theme rather than replacing it,
+           so nothing else in the theme has to be repeated here. */
+        view.dispatch({
+          effects: theming.reconfigure([
+            siteTheme,
+            EditorView.theme({ '&': { fontSize: `${want}px` } }),
+          ]),
+        });
+        view.requestMeasure();
+        return want;
+      },
+      focus: () => view.focus(),
       goToLine,
-      textarea: area,
-      element: wrap,
+      /* Panel resizing and zoom: CodeMirror measures lazily, so it is told to
+         re-measure rather than left to notice. */
+      refresh: () => view.requestMeasure(),
+      destroy: () => { if (watcher) watcher.cancel(); view.destroy(); },
+      undo: () => undo(view),
+      redo: () => redo(view),
+      element: host,
+      view,
+      backend: 'codemirror',
     };
   }
 
-  return { create, INDENT, HIGHLIGHT_LINE_LIMIT };
+  /* ---------------- the fallback ----------------
+
+     If vendor/codemirror.js did not load, the page still has to be usable.
+     A plain textarea: no highlighting, no gutter, every editing behaviour a
+     browser gives you for free, and the same handle. */
+
+  function createFallback(mount, opts) {
+    const host = document.createElement('div');
+    host.className = 'ed ed-plain';
+    host.dataset.lang = opts.lang;
+
+    const area = document.createElement('textarea');
+    area.className = 'ed-input';
+    area.spellcheck = false;
+    area.autocapitalize = 'off';
+    area.autocomplete = 'off';
+    area.setAttribute('autocorrect', 'off');
+    area.setAttribute('aria-label', 'Your solution');
+    area.value = opts.value;
+    area.readOnly = opts.readOnly;
+    host.append(area);
+
+    const status = document.createElement('div');
+    status.className = 'ed-status';
+    status.dataset.state = 'warning';
+    status.textContent = 'Syntax highlighting is unavailable — vendor/codemirror.js did not load. '
+      + 'Everything else works.';
+
+    mount.append(host, status);
+
+    area.addEventListener('input', () => opts.onChange(area.value));
+    area.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        if (e.shiftKey && opts.onSubmit) opts.onSubmit();
+        else if (opts.onRun) opts.onRun();
+        return;
+      }
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const { selectionStart: a, selectionEnd: b } = area;
+        area.setRangeText(INDENT, a, b, 'end');
+        opts.onChange(area.value);
+      }
+    });
+
+    let currentLang = opts.lang;
+    return {
+      get value() { return area.value; },
+      set value(v) { area.value = String(v); opts.onChange(area.value); },
+      get diagnostics() { return []; },
+      get lang() { return currentLang; },
+      setLang(next) { currentLang = next; host.dataset.lang = next; },
+      setReadOnly(ro) { area.readOnly = ro; },
+      get fontSize() { return fontSize(); },
+      setFontSize(px) { Store.setPref('editorFontSize', px); area.style.fontSize = `${px}px`; return px; },
+      focus: () => area.focus(),
+      goToLine(line) {
+        const lines = area.value.split('\n');
+        let at = 0;
+        for (let i = 0; i < Math.min(line - 1, lines.length); i += 1) at += lines[i].length + 1;
+        area.focus();
+        area.setSelectionRange(at, at);
+      },
+      refresh: () => {},
+      destroy: () => {},
+      undo: () => document.execCommand && document.execCommand('undo'),
+      redo: () => document.execCommand && document.execCommand('redo'),
+      element: host,
+      textarea: area,
+      backend: 'textarea',
+    };
+  }
+
+  return { create, INDENT, FONT_SIZES, DEFAULT_FONT, available: ready };
 })();

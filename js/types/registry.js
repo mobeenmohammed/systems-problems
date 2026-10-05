@@ -42,9 +42,24 @@ const ProblemTypes = (() => {
     if (!impl || typeof impl.render !== 'function' || typeof impl.grade !== 'function') {
       throw new Error(`problem type "${id}" must implement render() and grade()`);
     }
+    /* Two painting steps, not one.
+
+       mark()   runs after EVERY submission, including wrong ones, and must
+                not disclose anything the reader has not earned. It may show
+                them their own answer and whether it was accepted; it may not
+                show the right answer, mark the options they missed, or
+                explain the distractors. It must leave the controls usable, so
+                the next attempt is one click away.
+
+       reveal() runs only when the answer is legitimately visible — a correct
+                submission, or a deliberate Reveal — and may show everything.
+
+       They were one function, and the result was that a wrong answer
+       disabled the inputs and painted the correct option. */
     types[id] = {
       collect: () => null,
       mark:    () => {},
+      reveal:  impl.reveal || (() => {}),
       ...impl,
       id,
     };

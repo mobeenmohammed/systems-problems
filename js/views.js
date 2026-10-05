@@ -1171,11 +1171,50 @@ const UI = (() => {
       const name = l => LANG_LABEL[l] || l;
       summary.textContent =
         `${[...local].map(name).join(' and ') || 'Nothing'} runs in this browser and needs nothing. `
-        + `${[...remote].map(name).join(' and ') || 'Nothing else'} compiles on a small runner `
-        + `you start on this machine.`;
+        + `${[...remote].map(name).join(' and ') || 'Nothing else'} has to be compiled, which `
+        + 'means either a hosted runner or one you start on this machine.';
     }
 
+    const hosted = $('#setHosted');
+    if (hosted) hosted.value = (Store.config.hosted || {}).url || '';
+
     paintJudgeState(Runners.judge);
+    paintHostedState();
+  }
+
+  /* The hosted runner, painted from whatever the last probe said. It is a
+     separate line from the local runner on purpose: "something can run C++"
+     and "your own machine can run C++" are different facts, and conflating
+     them is how a page ends up quietly talking to localhost. */
+  function paintHostedState(probe) {
+    const box = $('#hostedState');
+    const text = $('#hostedStateText');
+    if (!box || !text) return;
+
+    const url = (Store.config.hosted || {}).url || '';
+    if (!url) {
+      box.dataset.state = 'unchecked';
+      box.dataset.up = 'false';
+      text.textContent = 'Not configured — compiled languages need a local runner.';
+      return;
+    }
+
+    const h = probe || (typeof Hosted !== 'undefined' ? Hosted.state : null);
+    if (!h || !h.checked) {
+      box.dataset.state = 'unchecked';
+      box.dataset.up = 'false';
+      text.textContent = `Configured at ${url}. Not checked yet.`;
+      return;
+    }
+    if (h.up) {
+      box.dataset.state = 'ready';
+      box.dataset.up = 'true';
+      text.textContent = `Ready at ${url} — ${(h.languages || []).join(', ') || 'no languages reported'}`;
+      return;
+    }
+    box.dataset.state = 'down';
+    box.dataset.up = 'false';
+    text.textContent = `Not answering at ${url}${h.error ? ` (${h.error})` : ''}.`;
   }
 
   const LOCAL_LANGS = new Set(['js', 'python']);
@@ -1256,6 +1295,32 @@ const UI = (() => {
     });
 
     $('#judgeCheck').addEventListener('click', checkJudge);
+
+    const hostedInput = $('#setHosted');
+    if (hostedInput) {
+      hostedInput.addEventListener('change', e => {
+        const url = Store.setHostedUrl(e.target.value);
+        toast(url ? 'Hosted runner address saved.' : 'Hosted runner turned off.', 'info');
+        paintHostedState();
+      });
+    }
+
+    const hostedBtn = $('#hostedCheck');
+    if (hostedBtn) {
+      hostedBtn.addEventListener('click', async () => {
+        if (!(Store.config.hosted || {}).url) { paintHostedState(); return; }
+        const box = $('#hostedState');
+        const text = $('#hostedStateText');
+        if (box) box.dataset.state = 'checking';
+        if (text) text.textContent = 'Checking…';
+        hostedBtn.disabled = true;
+        try {
+          paintHostedState(await Hosted.check({ force: true }));
+        } finally {
+          hostedBtn.disabled = false;
+        }
+      });
+    }
 
     const tokenInput = $('#setJudgeToken');
     if (tokenInput) {

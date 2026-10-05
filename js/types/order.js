@@ -145,7 +145,17 @@
       };
     },
 
-    mark(mount, { key }) {
+    /* An order is given away position by position, so a wrong attempt gets
+       no per-row marks at all and the rows stay draggable. */
+    mark(mount) {
+      mount.querySelectorAll('.order-item').forEach(node => {
+        node.draggable = true;
+        delete node.dataset.mark;
+        node.querySelectorAll('.moves button').forEach(b => { b.disabled = false; });
+      });
+    },
+
+    reveal(mount, { key }) {
       const want = (key && key.order || []).map(Number);
       const nodes = [...mount.querySelectorAll('.order-item')];
 

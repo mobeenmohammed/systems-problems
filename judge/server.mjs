@@ -35,6 +35,7 @@
 
 import http from 'node:http';
 import fs from 'node:fs/promises';
+import fsSync from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -73,14 +74,32 @@ const TOKEN_FILE = process.env.JUDGE_TOKEN_FILE
 
 let TOKEN = process.env.JUDGE_TOKEN || '';
 
-async function ensureToken() {
-  if (TOKEN) return TOKEN;
-  TOKEN = crypto.randomBytes(24).toString('base64url');
+/* Generating the token and publishing it are two steps on purpose.
+
+   They used to be one, run before listen(), so starting a second runner
+   while the first was up overwrote the live instance's token file and then
+   died on EADDRINUSE. The page would then read a token belonging to a
+   process that no longer existed, and report "running, but it refused this
+   page" — a state that looked like a bug in the page and was a bug here.
+
+   Now nothing is written until the port is actually ours. */
+function makeToken() {
+  if (!TOKEN) TOKEN = crypto.randomBytes(24).toString('base64url');
+  return TOKEN;
+}
+
+async function publishToken() {
+  makeToken();
   try {
     await fs.mkdir(path.dirname(TOKEN_FILE), { recursive: true });
     await fs.writeFile(
       TOKEN_FILE,
-      JSON.stringify({ token: TOKEN, port: PORT, startedAt: new Date().toISOString() }, null, 2) + NEWLINE,
+      JSON.stringify({
+        token: TOKEN,
+        port: PORT,
+        pid: process.pid,
+        startedAt: new Date().toISOString(),
+      }, null, 2) + NEWLINE,
       'utf8',
     );
   } catch (err) {
@@ -88,6 +107,21 @@ async function ensureToken() {
     console.error('the page will not find the token; paste it into Settings instead');
   }
   return TOKEN;
+}
+
+/* The file names whoever is listening, so it goes when they do. Leaving a
+   token for a dead process is how the page ends up reporting "refused" when
+   the honest answer is "nothing is running". */
+/* Synchronous on purpose. This runs from a signal handler and from the exit
+   hook, and an awaited unlink does not reliably land before the process goes
+   away — which leaves a token file on disk naming a runner that is no longer
+   there. The pid check is what makes a second instance safe: it will not
+   delete a file belonging to the one that is actually serving. */
+function retractToken() {
+  try {
+    const raw = fsSync.readFileSync(TOKEN_FILE, 'utf8');
+    if (JSON.parse(raw).pid === process.pid) fsSync.unlinkSync(TOKEN_FILE);
+  } catch { /* already gone, or never ours */ }
 }
 
 /* ---------------- origins ----------------
@@ -160,7 +194,13 @@ export function exec(cmd, args, { cwd, stdin = '', timeoutMs = RUN_MS, env } = {
     try {
       child = spawn(cmd, args, {
         cwd,
-        env: { ...process.env, ...env },
+        /* NO_COLOR and FORCE_COLOR=0 are deliberate and go after the
+           inherited environment. Node colourises console.log of a number
+           whenever FORCE_COLOR is set, and several terminals and CI runners
+           set it; the judge would then hand back "[33m42[39m"
+           where the problem expected "42" and mark a correct answer wrong.
+           Program output is compared byte for byte, so it must be plain. */
+        env: { ...process.env, ...env, NO_COLOR: '1', FORCE_COLOR: '0' },
         stdio: ['pipe', 'pipe', 'pipe'],
       });
     } catch (err) {
@@ -508,21 +548,26 @@ if (isMain) {
     process.exit(1);
   }
 
-  await ensureToken();
+  makeToken();
   await detectPrlimit();
   const langs = await languages();
 
   server.on('error', err => {
     if (err.code === 'EADDRINUSE') {
-      console.error(`port ${PORT} is already in use — another runner is probably up.`);
-      console.error('Stop that one, or start this with JUDGE_PORT=2001.');
+      console.error(`port ${PORT} is already in use — another runner is already up.`);
+      console.error('Nothing has been changed; the running one keeps its token.');
+      console.error('  npm run runner:status   to see what is there');
+      console.error('  npm run runner:stop     to stop it');
+      console.error('  JUDGE_PORT=2001 npm run runner   to run a second one beside it');
     } else {
       console.error(`could not listen: ${err.message}`);
     }
     process.exit(1);
   });
 
-  server.listen(PORT, HOST, () => {
+  server.listen(PORT, HOST, async () => {
+    /* The port is ours, so the token file may now name us. */
+    await publishToken();
     const rule = '-'.repeat(60);
     console.log(rule);
     console.log(`  Systems Lab runner    http://${HOST}:${PORT}`);
@@ -544,6 +589,17 @@ if (isMain) {
     console.log('  loopback only. never expose this to a network.');
     console.log(rule);
   });
+
+  /* Tidy up on the way out, so the next start is not confused by a token
+     that belongs to nobody. */
+  for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
+    process.on(sig, () => {
+      retractToken();
+      process.exit(0);
+    });
+  }
+  /* A catch-all for the ways a process ends without a signal we handle. */
+  process.on('exit', retractToken);
 }
 
 export { server };

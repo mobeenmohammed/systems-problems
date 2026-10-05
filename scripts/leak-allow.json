@@ -1,0 +1,46 @@
+{
+  "_note": "Lines a statement shows on purpose. scripts/audit-leaks.mjs compares every reference solution against its own statement and fails on anything not declared here, so a new accidental leak cannot slip in while these stay. Each entry is a deliberate teaching decision: the line is the concept the problem exists to introduce, and the task around it is still the reader's to do. The case that prompted the audit - cpp-greet-and-sum printing the whole add() function it asked for - is NOT in this list; it was reworked so add() is given in the template and the task is a different function.",
+
+  "algo-impl-count": {
+    "cpp": ["if (x < target) ++less;"],
+    "why": "Shown inside the counter-example that discusses where the overlap bug lives. The else-if chain, the three counters and the per-query reset are the work."
+  },
+  "cpp-loop-multiples": {
+    "cpp": ["for (int i = 1; i <= n; ++i)"],
+    "why": "Problem 2 of the curriculum, and the for header is the thing being taught. The else-if chain inside it, and its ordering, is the work."
+  },
+  "cpp-sum-until-zero": {
+    "cpp": ["while (std::cin >> x && x != 0)"],
+    "why": "The whole point of the problem is that this one expression does both jobs. Hiding it would leave a beginner with no way in; the accumulator, the counter and the boundary cases are the work."
+  },
+  "cpp-string-scan": {
+    "cpp": ["for (char c : line)"],
+    "why": "A range-for over a string, shown because the problem introduces it. Classifying each character and building the uppercased copy is the work."
+  },
+  "cpp-map-word-count": {
+    "cpp": ["++count[word];"],
+    "why": "The problem exists to explain that operator[] inserts a value-initialised entry. Lowercasing, the sorted output and the strict-greater tie-break are the work."
+  },
+  "rust-ownership-move": {
+    "rust": ["let n = measure(&word);"],
+    "why": "One call shown while explaining that a borrow leaves the caller's String usable. The three function bodies and the order they are called in are the work."
+  },
+  "rust-option-lookup": {
+    "rust": [
+      "match find_name(&names, query) {",
+      "if let Some(i) = position_of(&names, query) {",
+      "let len = find_name(&names, query).map(|s| s.len()).unwrap_or(0);"
+    ],
+    "why": "The problem's subject is the three ways to take an Option apart, and it asks for one of each by name. The two search functions, the lifetime annotation and the output format are the work."
+  },
+  "rust-question-mark-records": {
+    "rust": [
+      "let name = fields.first().ok_or(RecordError::Missing(\"name\"))?;",
+      "let qty_tok = fields.get(1).ok_or(RecordError::Missing(\"qty\"))?;",
+      "let qty: i64 = qty_tok",
+      ".map_err(|_| RecordError::NotANumber((*qty_tok).to_string()))?;",
+      "let mut it = line.split_whitespace();"
+    ],
+    "why": "This problem is the ? operator. It shows the staircase of matches and then the same thing with ?, because the comparison is the lesson. The error enum, its Display impl, the range check and the totals are the work."
+  }
+}

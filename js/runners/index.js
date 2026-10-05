@@ -185,10 +185,20 @@ const Runners = (() => {
 
   const authHeaders = () => (token ? { 'X-Judge-Token': token } : {});
 
-  async function checkJudge({ force = false } = {}) {
-    const url = Store.config.judgeUrl;
-    if (judgeState.checked && judgeState.url === url && !force) return judgeState;
+  /* One probe at a time, for the same reason as Hosted.check: the state is
+     marked checked before the request comes back, so a concurrent caller
+     would otherwise be handed a half-built "nothing is listening". */
+  let judgePending = null;
 
+  function checkJudge({ force = false } = {}) {
+    const url = Store.config.judgeUrl;
+    if (judgePending) return judgePending;
+    if (judgeState.checked && judgeState.url === url && !force) return Promise.resolve(judgeState);
+    judgePending = probeJudge(url, force).finally(() => { judgePending = null; });
+    return judgePending;
+  }
+
+  async function probeJudge(url, force) {
     judgeState = {
       checked: true, up: false, authed: false,
       languages: [], missing: [], url, error: '', info: null, state: 'down',
@@ -300,71 +310,162 @@ const Runners = (() => {
     }
   }
 
-  /* ---------------- the front door ---------------- */
+  /* ---------------- the front door ----------------
 
-  const LOCAL = new Set(['js']);
+     Three backends, and the reader is always told which one answered:
 
-  /* Which languages a problem can actually offer right now, and where each
-     would run. A language the editor lists but cannot run is worse than one it
-     does not list, so `ready` is strict: it means a submission will actually
-     execute, not that something plausibly exists. */
+       Browser   JavaScript, in a Worker in this tab. Needs nothing.
+       Hosted    a server, through our proxy. Works from any device.
+       Local     the runner on this machine. Fastest, and the code never
+                 leaves the laptop, but it has to be started.
+
+     The order is deliberate and it is NOT "whatever works". A local runner
+     that is up is preferred because it is faster and more private; hosted is
+     used when there is no local one. What never happens is a silent fall
+     back to localhost from a deployed page: if the page is not served from
+     this machine, a request to 127.0.0.1 is either refused or — worse —
+     answered by something else entirely, and either way the reader is owed
+     the truth about where their code went. */
+
+  const BROWSER = new Set(['js']);
+
+  const BACKEND_LABEL = { browser: 'Browser', hosted: 'Hosted', local: 'Local' };
+
+  const hostedAvailable = () => typeof Hosted !== 'undefined' && Hosted.enabled();
+
+  /* Where a language would run right now, in preference order, or null. */
+  async function backendFor(lang) {
+    if (BROWSER.has(lang)) return 'browser';
+
+    const judge = await checkJudge();
+    if (judge.state === 'ready' && judge.languages.some(l => l.id === lang)) return 'local';
+
+    if (hostedAvailable()) {
+      const h = await Hosted.check();
+      if (h.up && h.languages.includes(lang)) return 'hosted';
+    }
+    return null;
+  }
+
+  /* Which languages a problem can actually offer, and where each would run.
+     A language the editor lists but cannot run is worse than one it does not
+     list, so `ready` is strict: it means a submission will execute. */
   async function available(langs = []) {
     const judge = await checkJudge();
     const judgeIds = new Set(judge.languages.map(l => l.id));
 
-    /* Judge0 is only probed when it is switched on, so the common case costs
-       no extra request. */
-    let j0 = { up: false, languages: [] };
-    if (typeof Judge0 !== 'undefined' && Judge0.enabled()) j0 = await Judge0.check();
-    const j0Ids = new Set(j0.languages.map(l => l.id));
+    let hosted = { up: false, languages: [] };
+    if (hostedAvailable()) hosted = await Hosted.check();
+    const hostedIds = new Set(hosted.languages || []);
 
     return langs.map(id => {
-      const localReady = LOCAL.has(id);
-      const runnerReady = judge.state === 'ready' && judgeIds.has(id);
-      const j0Ready = j0.up && j0Ids.has(id);
-      const where = localReady ? 'in this tab'
-        : runnerReady ? 'your runner'
-        : j0Ready ? 'Judge0'
-        : 'the runner';
+      const browserReady = BROWSER.has(id);
+      const localReady = judge.state === 'ready' && judgeIds.has(id);
+      const hostedReady = hosted.up && hostedIds.has(id);
+      const backend = browserReady ? 'browser'
+        : localReady ? 'local'
+        : hostedReady ? 'hosted'
+        : null;
+
       return {
         id,
-        ready: localReady || runnerReady || j0Ready,
-        installed: localReady || judgeIds.has(id) || j0Ids.has(id),
-        where,
-        backend: localReady ? 'local' : runnerReady ? 'runner' : j0Ready ? 'judge0' : null,
-        version: (judge.languages.find(l => l.id === id) || {}).version
-          || (j0.languages.find(l => l.id === id) || {}).version
-          || null,
+        ready: !!backend,
+        installed: browserReady || judgeIds.has(id) || hostedIds.has(id),
+        backend,
+        where: backend ? BACKEND_LABEL[backend] : null,
+        version: (judge.languages.find(l => l.id === id) || {}).version || null,
       };
     });
   }
 
-  /* Your own runner first, always: it compiles once for every case, answers in
-     milliseconds, and your code never leaves the machine. Judge0 is the
-     fallback for a device that cannot reach it. */
-  async function run(lang, source, cases, opts = {}) {
-    if (LOCAL.has(lang)) return runLocalJs(source, cases, opts);
-
+  /* A single sentence about execution for the whole problem, which is what
+     the toolbar shows. Honest about the case where nothing can run. */
+  async function describe(langs = []) {
+    const rows = await available(langs);
+    const ready = rows.filter(r => r.ready);
+    const blocked = rows.filter(r => !r.ready);
     const judge = await checkJudge();
-    if (judge.state === 'ready' && judge.languages.some(l => l.id === lang)) {
-      return runRemote(lang, source, cases, opts);
-    }
 
-    if (typeof Judge0 !== 'undefined' && Judge0.supports(lang)) {
-      const j0 = await Judge0.check();
-      if (j0.up && j0.languages.some(l => l.id === lang)) {
-        return Judge0.run(lang, source, cases, opts);
+    if (!rows.length) return { kind: 'idle', text: '' };
+
+    if (!ready.length) {
+      const names = blocked.map(r => r.id.toUpperCase()).join(' and ');
+      if (hostedAvailable()) {
+        const h = await Hosted.check();
+        return {
+          kind: 'blocked',
+          text: `${names} cannot run: the hosted runner is not answering`
+            + `${h.error ? ` (${h.error})` : ''}.`,
+        };
       }
+      return {
+        kind: 'blocked',
+        text: `${names} needs a runner. Start one with npm run runner, or `
+          + 'turn on hosted execution in Settings.',
+      };
     }
 
-    /* Neither available. Go to the local runner anyway so the reply carries
-       its diagnosis — "start the runner", or "the token is stale" — rather
-       than a generic failure. */
-    return runRemote(lang, source, cases, opts);
+    const byBackend = {};
+    for (const r of ready) (byBackend[r.backend] = byBackend[r.backend] || []).push(r.id);
+    const parts = Object.entries(byBackend)
+      .map(([b, ids]) => `${BACKEND_LABEL[b]}: ${ids.join(', ')}`);
+    void judge;
+    return {
+      kind: 'ready',
+      text: parts.join(' · ')
+        + (blocked.length ? ` · ${blocked.map(r => r.id).join(', ')} unavailable` : ''),
+    };
+  }
+
+  /* Runs it, and says who did. */
+  async function run(lang, source, cases, opts = {}) {
+    const backend = await backendFor(lang);
+
+    if (backend === 'browser') {
+      const reply = await runLocalJs(source, cases, opts);
+      return { ...reply, backend: 'browser' };
+    }
+    if (backend === 'local') {
+      const reply = await runRemote(lang, source, cases, opts);
+      return { ...reply, backend: 'local' };
+    }
+    if (backend === 'hosted') {
+      return Hosted.run(lang, source, cases, opts);
+    }
+
+    /* Nothing can run this. Say so plainly, with the specific reason, and do
+       not post the source anywhere on the way to finding that out. */
+    const judge = await checkJudge();
+    let why;
+    if (hostedAvailable()) {
+      const h = await Hosted.check();
+      why = `The hosted runner is not answering${h.error ? ` (${h.error})` : ''}.`;
+    } else if (judge.state === 'unauthed') {
+      why = `A runner is listening at ${judge.url} but refused this page. `
+        + 'Reload, or paste its token under Settings.';
+    } else if (judge.state === 'down') {
+      why = `No runner is listening at ${judge.url}. Start one with npm run runner, `
+        + 'or turn on hosted execution in Settings.';
+    } else {
+      why = 'No runner is configured for this language.';
+    }
+
+    return {
+      lang,
+      backend: null,
+      compile: { ok: false, stdout: '', stderr: '', ms: 0, timedOut: false },
+      cases: [],
+      judgeDown: true,
+      judgeError: why,
+    };
   }
 
   return {
-    run, available, checkJudge, loadToken, authHeaders,
+    run, available, describe, backendFor, checkJudge, loadToken, authHeaders,
+    BACKEND_LABEL,
+    /* The one place a backend is turned into words for a person to read, so
+       "Hosted" cannot drift into "hosted" or "the server" somewhere else. */
+    label: b => BACKEND_LABEL[b] || 'No runner',
     get judge() { return judgeState; },
     get token() { return token; },
     /* Exposed for tests, which drive the JS path without a browser. */

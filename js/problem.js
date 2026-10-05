@@ -29,6 +29,9 @@ const ProblemView = (() => {
   let current = null;     /* the problem being shown */
   let solution = null;    /* its key + explanation, once fetched */
   let answered = null;    /* the last graded result, for re-rendering a tab */
+  let lastBlocked = null; /* a submission that could not be run at all */
+  let lastRun = null;     /* the last Run, for the Results pane */
+  let solutionShown = false;
   let host = null;
   let activeTab = 'problem';
 
@@ -38,6 +41,9 @@ const ProblemView = (() => {
     host = mount;
     activeTab = 'problem';
     answered = null;
+    lastBlocked = null;
+    solutionShown = false;
+    attempting = false;
     solution = null;
 
     host.replaceChildren(el('p', { class: 'muted', text: 'Loading…' }));
@@ -66,98 +72,523 @@ const ProblemView = (() => {
     draw();
   }
 
-  const locked = () => {
+  /* ---------------- four separate questions ----------------
+
+     These were one boolean called locked(), which conflated them and meant a
+     wrong answer disabled the controls while a solved problem could not be
+     practised again. They are not the same question:
+
+       disclosed()  may the reader see the answer?
+       finished()   has this problem been completed, however?
+       rewarded()   has it already paid out, so a resubmit must not pay again?
+       attempting() is a submission in flight right now?
+
+     Only the last one has any business disabling a control. */
+
+  const disclosed = () => {
     const r = Store.record(current.id);
-    return r.status === 'solved' || r.status === 'read' || r.revealed;
+    return r.status === 'solved' || r.status === 'read' || !!r.revealed;
   };
+
+  const finished = () => {
+    const r = Store.record(current.id);
+    return r.status === 'solved' || r.status === 'read';
+  };
+
+  const rewarded = () => Store.record(current.id).status === 'solved';
+
+  let attempting = false;
 
   /* ---------------- chrome ---------------- */
 
+  /* ---------------- the workspace ----------------
+
+     A code problem is a workspace, not a document. The old page let the
+     editor grow with the content, which put it past the bottom of the window
+     and under the sticky action bar — a click halfway down hit the bar and
+     typing went nowhere. So the whole thing is now a fixed-height grid
+     anchored to the viewport, and every pane scrolls inside its own box:
+
+       header            compact: navigation, title, status, tools
+       left   | right    statement and tabs | toolbar, editor, results
+                         with a draggable divider between them, and a
+                         second one between the editor and the results
+
+     Nothing outside a pane scrolls, so there is no page-level scrollbar and
+     no accidental nested one. */
+
+  const LEFT_TABS = [
+    { id: 'problem',  label: 'Description' },
+    { id: 'prereq',   label: 'Prerequisites' },
+    { id: 'hints',    label: 'Hints' },
+    { id: 'notes',    label: 'Notes' },
+    { id: 'solution', label: 'Solution' },
+  ];
+
+  const RESULT_TABS = [
+    { id: 'cases',    label: 'Test cases' },
+    { id: 'results',  label: 'Results' },
+    { id: 'compiler', label: 'Compiler output' },
+  ];
+
+  let resultTab = 'cases';
+
   function draw() {
     const p = current;
-    const r = Store.record(p.id);
-    const topic = Store.TOPIC_BY_ID[p.topic] || { label: p.topic };
-    const diff  = Store.DIFF_BY_ID[p.difficulty] || { label: p.difficulty };
-    const type  = Catalog.TYPE_BY_ID[p.type] || { label: p.type };
+    const workspace = p.type === 'code';
+    document.body.dataset.workspace = workspace ? 'true' : 'false';
+    host.replaceChildren(workspace ? drawWorkspace() : drawReading());
+    if (workspace) {
+      applySplit();
+      /* CodeMirror measures lazily and has just been put in a box whose size
+         it has not seen. */
+      if (codeEditor()) codeEditor().refresh();
+    }
+  }
 
-    const head = el('div', { class: 'phead' }, [
-      el('div', { class: 'crumbs' }, [
-        el('a', { href: '#/problems' }, ['All problems']),
-        el('span', {}, ['/']),
-        el('a', { href: `#/problems?topic=${p.topic}` }, [topic.label]),
+  const codeEditor = () => {
+    const impl = ProblemTypes.get('code');
+    return impl && impl.editor ? impl.editor() : null;
+  };
+
+  /* ---------------- the header ---------------- */
+
+  /* Where this problem sits in the catalogue, so the header can offer the one
+     before and the one after without the reader going back to the list. */
+  function neighbours() {
+    const all = Catalog.sorted(Catalog.all());
+    const at = all.findIndex(x => x.id === current.id);
+    return {
+      at: at + 1, total: all.length,
+      prev: at > 0 ? all[at - 1] : null,
+      next: at >= 0 && at < all.length - 1 ? all[at + 1] : null,
+    };
+  }
+
+  function header() {
+    const p = current;
+    const r = Store.record(p.id);
+    const diff = Store.DIFF_BY_ID[p.difficulty] || { label: p.difficulty };
+    const n = neighbours();
+
+    const navBtn = (meta, label, title) => meta
+      ? el('a', { class: 'ws-nav', href: `#/p/${meta.id}`, title: `${title}: ${meta.title}` }, [label])
+      : el('span', { class: 'ws-nav', 'aria-disabled': 'true' }, [label]);
+
+    return el('header', { class: 'ws-head' }, [
+      el('div', { class: 'ws-head-left' }, [
+        el('a', { class: 'ws-back', href: '#/problems', title: 'All problems' }, ['←']),
+        navBtn(n.prev, '‹', 'Previous'),
+        el('span', { class: 'ws-count tiny faint', text: `${n.at}/${n.total}` }),
+        navBtn(n.next, '›', 'Next'),
       ]),
-      el('div', { class: 'phead-top' }, [
-        el('h1', { text: p.title }),
-        el('div', { class: 'phead-tools' }, [
-          el('button', {
-            class: 'btn btn-sm btn-ghost', type: 'button', id: 'bookmarkBtn',
-            'aria-pressed': String(!!r.flagged),
-            title: r.flagged ? 'Remove the bookmark' : 'Bookmark this for later',
-            onclick: () => { Store.toggleFlag(p); draw(); },
-          }, [r.flagged ? '\u2605 Bookmarked' : '\u2606 Bookmark']),
-          el('button', {
-            class: 'btn btn-sm btn-ghost', type: 'button', id: 'focusBtn',
-            'aria-pressed': String(focusOn()),
-            title: focusOn()
-              ? 'Leave focus mode (F)'
-              : 'Focus mode: hide everything but the problem (F)',
-            onclick: () => setFocus(!focusOn()),
-          }, [focusOn() ? 'Leave focus' : 'Focus']),
-        ]),
-      ]),
-      el('div', { class: 'meta' }, [
+
+      el('div', { class: 'ws-head-mid' }, [
+        el('h1', { class: 'ws-title', title: p.title, text: p.title }),
         el('span', { class: `diff diff-${p.difficulty}`, text: diff.label }),
-        el('span', { class: 'tag', text: type.label }),
-        el('span', { class: `status-${r.status}` }, [statusWord(r)]),
-        p.estimate ? el('span', {}, [`~${p.estimate} min`]) : null,
-        ...(p.tags || []).map(t => el('span', { class: 'tag', text: `#${t}` })),
+        el('span', { class: `status-word status-${r.status}`, text: statusWord(r) }),
+      ]),
+
+      el('div', { class: 'ws-head-right' }, [
+        p.type === 'code' ? fontSizeControl() : null,
+        el('button', {
+          class: 'btn btn-sm btn-ghost', type: 'button', id: 'bookmarkBtn',
+          'aria-pressed': String(!!r.flagged),
+          title: r.flagged ? 'Remove the bookmark' : 'Bookmark this for later',
+          onclick: () => { Store.toggleFlag(p); draw(); },
+        }, [r.flagged ? '★' : '☆']),
+        el('button', {
+          class: 'btn btn-sm btn-ghost', type: 'button', id: 'focusBtn',
+          'aria-pressed': String(focusOn()),
+          title: focusOn() ? 'Leave focus mode (F)' : 'Focus mode (F)',
+          onclick: () => setFocus(!focusOn()),
+        }, [focusOn() ? 'Unfocus' : 'Focus']),
+        moreMenu(),
+      ]),
+    ]);
+  }
+
+  /* Bigger code without zooming the page, which on a split layout would cost
+     the reader the statement. */
+  function fontSizeControl() {
+    const sizes = Editor.FONT_SIZES;
+    const now = Editor.create ? (Store.pref('editorFontSize', Editor.DEFAULT_FONT)) : Editor.DEFAULT_FONT;
+    const step = delta => {
+      const i = Math.max(0, Math.min(sizes.length - 1, sizes.indexOf(now) + delta));
+      const ed = codeEditor();
+      if (ed && ed.setFontSize) ed.setFontSize(sizes[i]);
+      else Store.setPref('editorFontSize', sizes[i]);
+      draw();
+    };
+    return el('div', { class: 'ws-font', role: 'group', 'aria-label': 'Editor font size' }, [
+      el('button', {
+        class: 'btn btn-sm btn-ghost', type: 'button', title: 'Smaller code',
+        disabled: now <= sizes[0] || undefined,
+        onclick: () => step(-1),
+      }, ['A−']),
+      el('span', { class: 'tiny faint mono', text: `${now}` }),
+      el('button', {
+        class: 'btn btn-sm btn-ghost', type: 'button', title: 'Bigger code',
+        disabled: now >= sizes[sizes.length - 1] || undefined,
+        onclick: () => step(1),
+      }, ['A+']),
+    ]);
+  }
+
+  /* Scoring, revealing and revisit scheduling: real, and not what the reader
+     is doing right now, so they live behind one button rather than taking a
+     column of the workspace. */
+  function moreMenu() {
+    const p = current;
+    const r = Store.record(p.id);
+    const worth = Store.potentialXp(p);
+
+    const items = el('div', { class: 'ws-menu-body' }, [
+      el('p', { class: 'tiny faint', text: r.status === 'solved'
+        ? `Earned ${r.xpEarned} XP. Practising again is free and pays nothing.`
+        : `Worth ${worth} XP right now.` }),
+
+      disclosed() ? null : el('button', {
+        class: 'btn btn-sm btn-ghost', type: 'button', onclick: doReveal,
+      }, ['Reveal the solution…']),
+
+      finished() ? el('div', {}, [
+        el('p', { class: 'tiny faint', style: 'margin:.4rem 0 .2rem', text: 'Come back to it in' }),
+        el('div', { class: 'row' }, [3, 7, 30].map(d => el('button', {
+          class: 'btn btn-sm', type: 'button',
+          onclick: () => {
+            Store.setReview(p, d);
+            UI.toast(`Booked for ${Store.record(p.id).reviewOn}.`, 'info');
+            draw();
+          },
+        }, [`${d}d`]))),
+        r.reviewOn ? el('p', { class: 'tiny faint', style: 'margin:.4rem 0 0', text: `Booked for ${r.reviewOn}.` }) : null,
+      ]) : null,
+    ]);
+
+    return el('details', { class: 'ws-menu' }, [
+      el('summary', { class: 'btn btn-sm btn-ghost', title: 'Scoring, reveal, revisit' }, ['⋯']),
+      items,
+    ]);
+  }
+
+  /* ---------------- the code workspace ---------------- */
+
+  function drawWorkspace() {
+    const p = current;
+
+    const left = el('section', { class: 'ws-left' }, [
+      tabStrip(LEFT_TABS, activeTab, id => { activeTab = id; draw(); }),
+      el('div', { class: 'ws-pane', id: 'leftPane' }),
+    ]);
+    fillLeftPane(left.querySelector('#leftPane'));
+
+    const right = el('section', { class: 'ws-right' }, [
+      el('div', { class: 'ws-toolbar', id: 'wsToolbar' }),
+      el('div', { class: 'ws-editor', id: 'wsEditor' }),
+      hGutter(),
+      el('section', { class: 'ws-results' }, [
+        tabStrip(RESULT_TABS, resultTab, id => { resultTab = id; draw(); }, 'ws-tabs ws-tabs-sm'),
+        el('div', { class: 'ws-pane', id: 'resultPane' }),
       ]),
     ]);
 
-    const tabs = el('div', { class: 'tabs', role: 'tablist' });
-    for (const t of TABS) {
-      const isSolution = t.id === 'solution';
-      const shut = isSolution && !locked();
-      const badge = t.id === 'hints' && (p.hints || []).length
-        ? `${r.hintsUsed}/${p.hints.length}` : null;
+    const body = el('div', { class: 'ws-body' }, [left, vGutter(), right]);
+    const wrap = el('div', { class: 'ws' }, [header(), body]);
 
-      tabs.append(el('button', {
+    /* The widget is mounted after the frame exists, so CodeMirror is created
+       inside a box that already has its final size. */
+    queueMicrotask(() => {
+      const slot = wrap.querySelector('#wsEditor');
+      const bar = wrap.querySelector('#wsToolbar');
+      if (!slot || !bar) return;
+      mountAnswer(slot, bar);
+      fillResultPane(wrap.querySelector('#resultPane'));
+      applySplit();
+      const ed = codeEditor();
+      if (ed) ed.refresh();
+    });
+
+    return wrap;
+  }
+
+  function tabStrip(tabs, active, onPick, cls = 'ws-tabs') {
+    const strip = el('div', { class: cls, role: 'tablist' });
+    for (const t of tabs) {
+      const shut = t.id === 'solution' && !disclosed();
+      const r = Store.record(current.id);
+      const badge = t.id === 'hints' && (current.hints || []).length
+        ? `${r.hintsUsed}/${current.hints.length}` : null;
+      strip.append(el('button', {
         class: 'tab', role: 'tab', type: 'button',
-        'aria-selected': String(t.id === activeTab),
+        'aria-selected': String(t.id === active),
         'data-tab': t.id,
         'data-locked': shut ? 'true' : undefined,
-        onclick: () => { activeTab = t.id; draw(); },
+        onclick: () => onPick(t.id),
       }, [
         t.label,
         shut ? el('span', { class: 'badge', text: '🔒' }) : null,
         badge ? el('span', { class: 'badge', text: badge }) : null,
       ]));
     }
+    return strip;
+  }
 
-    const panel = el('div', { class: 'panel', role: 'tabpanel' });
+  function fillLeftPane(pane) {
+    if (!pane) return;
+    pane.replaceChildren();
     ({
-      problem:  drawProblem,
+      problem:  panel => panel.append(el('div', { class: 'prose statement', html: MD.render(current.statement || '') })),
       prereq:   drawPrereq,
       hints:    drawHints,
       notes:    drawNotes,
       solution: drawSolution,
-    }[activeTab] || drawProblem)(panel);
+    }[activeTab] || drawPrereq)(pane);
+  }
 
-    /* A code problem is a workspace rather than a page: the statement and the
-       editor sit side by side with a divider you can drag, because reading the
-       specification while writing against it is the whole activity. Everything
-       else keeps the one-column reading layout with a side rail. */
-    const isWorkspace = p.type === 'code' && activeTab === 'problem';
+  /* The answer widget plus the toolbar that drives it. The toolbar is built
+     here rather than inside the type module so Run and Submit are in the same
+     place for every problem, and stay visible while the editor scrolls. */
+  function mountAnswer(slot, bar) {
+    const p = current;
+    const impl = ProblemTypes.get(p.type);
+    if (!impl) {
+      slot.append(el('div', { class: 'empty' }, [
+        `This problem is of type "${p.type}", which this build cannot show yet.`,
+      ]));
+      return;
+    }
 
-    const wrap = el('div', {
-      class: isWorkspace ? 'pwrap workspace' : 'pwrap',
-    }, [
-      el('div', { class: 'pmain' }, [head, tabs, panel]),
-      isWorkspace ? null : el('div', { class: 'rail' }, rail()),
+    const widget = el('div', { class: 'widget', id: 'answerWidget' });
+    slot.append(widget);
+    impl.render(p, widget, { locked: false, disclosed: disclosed() });
+
+    bar.replaceChildren(
+      el('div', { class: 'ws-toolbar-left', id: 'langSlot' }),
+      el('div', { class: 'ws-toolbar-right' }, [
+        el('span', { class: 'ws-exec', id: 'execState' }),
+        el('button', {
+          class: 'btn btn-sm', type: 'button', id: 'runBtn',
+          onclick: () => impl.run && impl.run(false),
+        }, ['Run samples']),
+        el('button', {
+          class: 'btn btn-sm btn-primary', type: 'button', id: 'submitBtn',
+          onclick: doSubmit,
+        }, ['Submit']),
+      ]),
+    );
+
+    /* The language tabs the type module built belong in the toolbar. */
+    const tabs = widget.querySelector('.lang-tabs');
+    const slotFor = bar.querySelector('#langSlot');
+    if (tabs && slotFor) slotFor.append(tabs);
+    const exec = widget.querySelector('.judge-state');
+    if (exec) exec.remove();
+
+    repaintMarks(widget);
+  }
+
+  function repaintMarks(widget) {
+    const p = current;
+    const impl = ProblemTypes.get(p.type);
+    if (!impl || !widget) return;
+    if (answered) {
+      impl.mark(widget, {
+        response: answered.response,
+        key: solution ? solution.key : null,
+        problem: p, solution, result: answered.result,
+      });
+    }
+    if (disclosed() && solution) {
+      impl.reveal(widget, {
+        response: answered ? answered.response : null,
+        key: solution.key, problem: p, solution,
+        result: answered ? answered.result : null,
+      });
+    }
+  }
+
+  function fillResultPane(pane) {
+    if (!pane) return;
+    pane.replaceChildren();
+
+    if (resultTab === 'cases') {
+      const cases = ((current.payload || {}).cases) || [];
+      if (!cases.length) {
+        pane.append(el('p', { class: 'muted small', text: 'This problem has no visible sample cases.' }));
+        return;
+      }
+      pane.append(el('p', { class: 'tiny faint', text:
+        `${cases.length} sample ${cases.length === 1 ? 'case' : 'cases'}. `
+        + 'Submit also runs hidden ones.' }));
+      cases.forEach((c, i) => {
+        pane.append(el('div', { class: 'case' }, [
+          el('div', { class: 'case-head' }, [el('span', { text: `Case ${i + 1}` })]),
+          el('div', { class: 'io' }, [
+            el('div', {}, [el('h5', { text: 'stdin' }), el('pre', { text: c.stdin || '(none)' })]),
+            el('div', {}, [el('h5', { text: 'expected' }), el('pre', { text: c.expect || '(nothing)' })]),
+          ]),
+        ]));
+      });
+      return;
+    }
+
+    if (resultTab === 'results') {
+      if (lastBlocked) { pane.append(executionFailureNode(lastBlocked)); return; }
+      if (!lastRun && !answered) {
+        pane.append(el('p', { class: 'muted small', text: 'Press Run samples, or Submit.' }));
+        return;
+      }
+      if (answered) pane.append(verdictNode(answered));
+      const out = el('div', { class: 'run-out', id: 'runOut' });
+      pane.append(out);
+      const impl = ProblemTypes.get('code');
+      if (impl && impl.repaintOutput) impl.repaintOutput(out);
+      return;
+    }
+
+    /* compiler */
+    const impl = ProblemTypes.get('code');
+    const text = impl && impl.lastCompilerOutput ? impl.lastCompilerOutput() : '';
+    if (!text) {
+      pane.append(el('p', { class: 'muted small', text: 'Nothing from the compiler yet.' }));
+      return;
+    }
+    pane.append(impl.diagnosticsNode(text, impl.lastBuildOk ? impl.lastBuildOk() : true));
+  }
+
+  /* ---------------- the two dividers ---------------- */
+
+  function vGutter() {
+    return makeGutter({
+      cls: 'ws-gutter', orientation: 'vertical',
+      label: 'Resize the statement and editor panels',
+      get: splitFraction, set: setSplit,
+      axis: box => ({ start: box.left, size: box.width }),
+      coord: e => e.clientX,
+      container: node => node.closest('.ws-body'),
+    });
+  }
+
+  function hGutter() {
+    return makeGutter({
+      cls: 'ws-hgutter', orientation: 'horizontal',
+      label: 'Resize the editor and results panels',
+      get: vSplitFraction, set: setVSplit,
+      axis: box => ({ start: box.top, size: box.height }),
+      coord: e => e.clientY,
+      container: node => node.closest('.ws-right'),
+    });
+  }
+
+  function makeGutter({ cls, orientation, label, get, set, axis, coord, container }) {
+    const bar = el('div', {
+      class: cls, role: 'separator', 'aria-orientation': orientation,
+      'aria-label': label, tabindex: '0',
+      'aria-valuemin': '20', 'aria-valuemax': '80',
+      'aria-valuenow': String(Math.round(get() * 100)),
+      onkeydown: e => {
+        const step = e.shiftKey ? 0.1 : 0.02;
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') set(get() - step);
+        else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') set(get() + step);
+        else if (e.key === 'Home') set(0.2);
+        else if (e.key === 'End') set(0.8);
+        else if (e.key === 'Enter' || e.key === ' ') set(orientation === 'vertical' ? 0.42 : 0.62);
+        else return;
+        e.preventDefault();
+        bar.setAttribute('aria-valuenow', String(Math.round(get() * 100)));
+      },
+    });
+
+    bar.addEventListener('pointerdown', e => {
+      const box = container(bar);
+      if (!box) return;
+      bar.setPointerCapture(e.pointerId);
+      box.dataset.dragging = 'true';
+      const move = ev => {
+        const r = box.getBoundingClientRect();
+        const { start, size } = axis(r);
+        if (size <= 0) return;
+        set((coord(ev) - start) / size);
+        bar.setAttribute('aria-valuenow', String(Math.round(get() * 100)));
+      };
+      const up = ev => {
+        bar.releasePointerCapture(ev.pointerId);
+        delete box.dataset.dragging;
+        bar.removeEventListener('pointermove', move);
+        bar.removeEventListener('pointerup', up);
+        bar.removeEventListener('pointercancel', up);
+        const ed = codeEditor();
+        if (ed) ed.refresh();
+      };
+      bar.addEventListener('pointermove', move);
+      bar.addEventListener('pointerup', up);
+      bar.addEventListener('pointercancel', up);
+      e.preventDefault();
+    });
+
+    return bar;
+  }
+
+  /* ---------------- the reading layout ----------------
+
+     Everything that is not a code problem: one comfortable column, the answer
+     controls under the statement, and the same retry feedback. */
+
+  function drawReading() {
+    const p = current;
+    const impl = ProblemTypes.get(p.type);
+
+    const panel = el('div', { class: 'panel', role: 'tabpanel' });
+    if (activeTab === 'problem') {
+      panel.append(el('div', { class: 'prose statement', html: MD.render(p.statement || '') }));
+
+      const answer = el('div', { class: 'answer' });
+      const widget = el('div', { class: 'widget', id: 'answerWidget' });
+      answer.append(widget);
+      if (impl) impl.render(p, widget, { locked: false, disclosed: disclosed() });
+      panel.append(answer);
+
+      panel.append(el('div', { class: 'actions-bar' }, [
+        el('div', { class: 'actions-bar-main' }, [
+          el('button', {
+            class: 'btn btn-primary', type: 'button', id: 'submitBtn', onclick: doSubmit,
+          }, ['Submit']),
+        ]),
+        el('div', { class: 'actions-bar-note' }, [
+          el('span', { class: 'tiny', id: 'worthNow',
+            text: rewarded() ? 'Already solved — practice only' : `Worth ${Store.potentialXp(p)} XP now` }),
+        ]),
+      ]));
+
+      if (lastBlocked) panel.append(executionFailureNode(lastBlocked));
+      else if (answered) panel.append(verdictNode(answered));
+
+      repaintMarks(widget);
+    } else {
+      ({
+        prereq: drawPrereq, hints: drawHints, notes: drawNotes, solution: drawSolution,
+      }[activeTab] || drawPrereq)(panel);
+    }
+
+    return el('div', { class: 'pwrap reading' }, [
+      el('div', { class: 'pmain' }, [
+        header(),
+        tabStrip(LEFT_TABS, activeTab, id => { activeTab = id; draw(); }, 'tabs'),
+        panel,
+      ]),
     ]);
+  }
 
-    host.replaceChildren(wrap);
-    if (isWorkspace) applySplit();
+  function statusWord(r) {
+    return {
+      unsolved:  'Not started',
+      attempted: `Attempted ${r.attempts}×`,
+      solved:    'Solved',
+      /* "Read the answer" sounded like a judgement. This is the record saying
+         what happened, and what happened is that the solution was reviewed. */
+      read:      'Solution reviewed',
+    }[r.status] || 'Not started';
   }
 
   /* ---------------- the split, and focus mode ----------------
@@ -169,22 +600,40 @@ const ProblemView = (() => {
      The split is a CSS custom property rather than two inline widths, so one
      number drives both columns and the gutter stays put during a drag. */
 
-  const SPLIT_MIN = 0.25;
-  const SPLIT_MAX = 0.75;
+  const SPLIT_MIN = 0.2;
+  const SPLIT_MAX = 0.8;
   const splitFraction = () => {
-    const v = Number(Store.pref('splitFraction', 0.46));
-    return Number.isFinite(v) ? Math.min(SPLIT_MAX, Math.max(SPLIT_MIN, v)) : 0.46;
+    const v = Number(Store.pref('splitFraction', 0.42));
+    return Number.isFinite(v) ? Math.min(SPLIT_MAX, Math.max(SPLIT_MIN, v)) : 0.42;
+  };
+
+  /* The editor/results divider, kept with the other view preferences. */
+  const vSplitFraction = () => {
+    const v = Number(Store.pref('vSplitFraction', 0.62));
+    return Number.isFinite(v) ? Math.min(SPLIT_MAX, Math.max(SPLIT_MIN, v)) : 0.62;
   };
 
   function applySplit() {
-    const node = host.querySelector('.split');
-    if (node) node.style.setProperty('--split', String(splitFraction()));
+    const body = host.querySelector('.ws-body');
+    if (body) body.style.setProperty('--split', String(splitFraction()));
+    const right = host.querySelector('.ws-right');
+    if (right) right.style.setProperty('--vsplit', String(vSplitFraction()));
+  }
+
+  function setVSplit(fraction) {
+    const clamped = Math.min(SPLIT_MAX, Math.max(SPLIT_MIN, fraction));
+    Store.setPref('vSplitFraction', Math.round(clamped * 1000) / 1000);
+    applySplit();
+    const ed = codeEditor();
+    if (ed) ed.refresh();
   }
 
   function setSplit(fraction) {
     const clamped = Math.min(SPLIT_MAX, Math.max(SPLIT_MIN, fraction));
     Store.setPref('splitFraction', Math.round(clamped * 1000) / 1000);
     applySplit();
+    const ed = codeEditor();
+    if (ed) ed.refresh();
   }
 
   const focusOn = () => !!Store.pref('focusMode', false);
@@ -206,71 +655,7 @@ const ProblemView = (() => {
     document.documentElement.toggleAttribute('data-focus', focusOn());
   }
 
-  /* A draggable divider that is also operable from the keyboard, because a
-     separator you can only reach with a mouse is a separator half the people
-     using the page cannot move. */
-  function gutter() {
-    const bar = el('div', {
-      class: 'gutter',
-      role: 'separator',
-      'aria-orientation': 'vertical',
-      'aria-label': 'Resize the statement and editor panels',
-      'aria-valuemin': '25',
-      'aria-valuemax': '75',
-      'aria-valuenow': String(Math.round(splitFraction() * 100)),
-      tabindex: '0',
-      onkeydown: e => {
-        const step = e.shiftKey ? 0.1 : 0.02;
-        if (e.key === 'ArrowLeft')       setSplit(splitFraction() - step);
-        else if (e.key === 'ArrowRight') setSplit(splitFraction() + step);
-        else if (e.key === 'Home')       setSplit(SPLIT_MIN);
-        else if (e.key === 'End')        setSplit(SPLIT_MAX);
-        else if (e.key === 'Enter' || e.key === ' ') setSplit(0.46);
-        else return;
-        e.preventDefault();
-        bar.setAttribute('aria-valuenow', String(Math.round(splitFraction() * 100)));
-      },
-    });
 
-    bar.addEventListener('pointerdown', e => {
-      const split = bar.closest('.split');
-      if (!split) return;
-      /* Capture the pointer so the drag survives the cursor leaving the thin
-         gutter, which it will immediately. */
-      bar.setPointerCapture(e.pointerId);
-      split.dataset.dragging = 'true';
-
-      const move = ev => {
-        const box = split.getBoundingClientRect();
-        if (box.width <= 0) return;
-        setSplit((ev.clientX - box.left) / box.width);
-        bar.setAttribute('aria-valuenow', String(Math.round(splitFraction() * 100)));
-      };
-      const up = ev => {
-        bar.releasePointerCapture(ev.pointerId);
-        delete split.dataset.dragging;
-        bar.removeEventListener('pointermove', move);
-        bar.removeEventListener('pointerup', up);
-        bar.removeEventListener('pointercancel', up);
-      };
-
-      bar.addEventListener('pointermove', move);
-      bar.addEventListener('pointerup', up);
-      bar.addEventListener('pointercancel', up);
-      e.preventDefault();
-    });
-
-    return bar;
-  }
-
-  function statusWord(r) {
-    return {
-      unsolved:  'Not solved',
-      attempted: `Attempted ${r.attempts}×`,
-      solved:    'Solved',
-      read:      'Read the answer',
-    }[r.status] || 'Not solved';
-  }
 
   /* ---------------- the side rail ---------------- */
 
@@ -297,7 +682,7 @@ const ProblemView = (() => {
     ];
 
     const actions = [];
-    if (!locked()) {
+    if (!disclosed()) {
       actions.push(el('button', {
         class: 'btn btn-sm btn-ghost', type: 'button',
         onclick: doReveal,
@@ -339,170 +724,6 @@ const ProblemView = (() => {
 
   /* ---------------- the problem tab ---------------- */
 
-  function drawProblem(panel) {
-    const p = current;
-    const impl = ProblemTypes.get(p.type);
-
-    const statement = el('div', { class: 'prose statement', html: MD.render(p.statement || '') });
-
-    if (!impl) {
-      panel.append(statement);
-      panel.append(el('div', { class: 'empty' }, [
-        `This problem is of type "${p.type}", which this build does not know how to show yet.`,
-      ]));
-      return;
-    }
-
-    const answer = el('div', { class: 'answer' });
-    const widget = el('div', { class: 'widget', id: 'answerWidget' });
-    answer.append(widget);
-
-    impl.render(p, widget, { locked: locked() });
-
-    /* The two actions, together, in one place. Run is secondary and Submit is
-       primary, and the bar sticks to the bottom of the editor column so
-       neither is below the fold on a long statement. Non-code types get the
-       same bar with only Submit in it, so the button is always in the same
-       place. */
-    const actions = locked() ? null : el('div', { class: 'actions-bar' }, [
-      el('div', { class: 'actions-bar-main' }, [
-        p.type === 'code'
-          ? el('button', {
-              class: 'btn', type: 'button', id: 'runBtn',
-              onclick: () => ProblemTypes.get('code').run(false),
-            }, ['Run samples'])
-          : null,
-        el('button', {
-          class: 'btn btn-primary', type: 'button', id: 'submitBtn', onclick: doSubmit,
-        }, ['Submit']),
-      ]),
-      el('div', { class: 'actions-bar-note' }, [
-        el('span', { class: 'tiny', id: 'worthNow', text: `Worth ${Store.potentialXp(p)} XP now` }),
-        p.type === 'code'
-          ? el('span', { class: 'tiny faint', id: 'draftState' }, ['Drafts save as you type'])
-          : null,
-        p.type === 'code'
-          ? el('span', { class: 'tiny faint' }, ['Ctrl+Enter runs \u00b7 Ctrl+Shift+Enter submits'])
-          : null,
-      ]),
-    ]);
-
-    const verdict = (answered && solution) ? verdictNode(answered) : null;
-
-    if (p.type === 'code') {
-      /* Statement left, workspace right, with a divider between them. */
-      panel.append(el('div', { class: 'split' }, [
-        el('div', { class: 'split-pane split-statement' }, [
-          statement,
-          workspaceAside(),
-        ]),
-        gutter(),
-        el('div', { class: 'split-pane split-work' }, [
-          answer,
-          actions,
-          verdict,
-        ]),
-      ]));
-    } else {
-      panel.append(statement);
-      panel.append(answer);
-      if (actions) panel.append(actions);
-      if (verdict) panel.append(verdict);
-    }
-
-    /* Re-painting the marks after a tab switch, so going to the prerequisites
-       and coming back does not lose what you just learned. */
-    if (answered && solution) {
-      impl.mark(widget, { response: answered.response, key: solution.key, problem: p, solution, result: answered.result });
-    } else if (locked() && solution) {
-      impl.mark(widget, { response: null, key: solution.key, problem: p, solution, result: null });
-    }
-  }
-
-  /* ---------------- hints and notes, without leaving the editor ----------------
-
-     Both exist as tabs, and on a code problem leaving the editor to read a
-     hint means losing sight of what you were writing. So they also appear
-     under the statement as disclosures: the same state, the same cost, the
-     same records - just reachable from where the work is happening. */
-
-  function workspaceAside() {
-    const p = current;
-    const r = Store.record(p.id);
-    const hints = p.hints || [];
-    const base = (Store.DIFF_BY_ID[p.difficulty] || {}).base || 0;
-    const cost = Math.round(base * Store.HINT_PENALTY);
-    const shown = locked() ? hints.length : r.hintsUsed;
-
-    const parts = [];
-
-    if (hints.length) {
-      const body = el('div', { class: 'aside-body' }, [
-        el('p', { class: 'tiny faint' }, [
-          locked()
-            ? 'All of them, now that you are done with the problem.'
-            : `One at a time. Each new one costs ${cost} XP off this problem; `
-              + 're-reading one you already opened is free.',
-        ]),
-        ...hints.slice(0, shown).map((h, i) => el('div', { class: 'hint' }, [
-          el('span', { class: 'hn', text: `Hint ${i + 1}` }),
-          el('div', { html: MD.render(h) }),
-        ])),
-        (!locked() && shown < hints.length)
-          ? el('button', {
-              class: 'btn btn-sm', type: 'button',
-              onclick: () => {
-                Store.openHint(p);
-                UI.toast(`Hint ${Store.record(p.id).hintsUsed} opened. Worth ${Store.potentialXp(p)} XP now.`, 'info');
-                draw();
-              },
-            }, [shown === 0
-              ? `Open the first hint (\u2212${cost} XP)`
-              : `Open hint ${shown + 1} of ${hints.length} (\u2212${cost} XP)`])
-          : null,
-        (shown >= hints.length && hints.length)
-          ? el('p', { class: 'tiny faint', text: 'That is all of them.' })
-          : null,
-      ]);
-
-      parts.push(el('details', {
-        class: 'aside', open: (shown > 0) || undefined,
-      }, [
-        el('summary', {}, [
-          'Hints',
-          el('span', { class: 'aside-count', text: `${shown}/${hints.length}` }),
-        ]),
-        body,
-      ]));
-    }
-
-    parts.push(el('details', { class: 'aside' }, [
-      el('summary', {}, [
-        'Your notes',
-        r.notes ? el('span', { class: 'aside-count', text: 'written' }) : null,
-      ]),
-      el('div', { class: 'aside-body' }, [
-        el('p', { class: 'tiny faint' }, [
-          'Kept locally, and carried to the Learning Tree with the solve.',
-        ]),
-        el('textarea', {
-          style: 'width:100%;min-height:6rem',
-          placeholder: 'The sentence worth remembering.',
-          oninput: e => Store.setNotes(p, e.target.value),
-        }, [r.notes]),
-      ]),
-    ]));
-
-    /* The rail's contents still matter on a code problem - what it is worth,
-       reveal, revisit - they just cannot sit in a third column. */
-    parts.push(el('details', { class: 'aside' }, [
-      el('summary', {}, ['Scoring and bookkeeping']),
-      el('div', { class: 'aside-body stack' }, rail()),
-    ]));
-
-    return el('div', { class: 'asides' }, parts);
-  }
-
   function verdictNode({ result, award }) {
     const kind = result.correct ? 'right' : (result.score > 0 ? 'part' : 'wrong');
     const bits = [];
@@ -513,19 +734,21 @@ const ProblemView = (() => {
         if (award.streakBonus) line += ` and +${award.streakBonus} coins for the streak`;
         bits.push(line);
       } else if (Store.record(current.id).revealed) {
-        bits.push('No points: you had revealed the answer.');
+        bits.push('No points: you had reviewed the solution.');
       }
     }
+
+    /* What to do next, which depends on which of the four states this is. */
+    let next;
+    if (result.correct) next = 'The Solution tab is open now.';
+    else if (disclosed()) next = 'You can see the solution; try again whenever you like.';
+    else next = 'Try again, take a hint, or read the prerequisites. Nothing has been revealed.';
 
     return el('div', { class: 'verdict', 'data-kind': kind }, [
       el('h4', { text: result.correct ? 'Right' : (result.score > 0 ? 'Partly right' : 'Not right') }),
       el('p', { html: MD.renderInline(result.feedback || '') }),
       bits.length ? el('p', { class: 'award', text: bits.join(' · ') }) : null,
-      el('p', { class: 'tiny faint' }, [
-        result.correct || Store.record(current.id).revealed
-          ? 'The Solution tab is open now.'
-          : 'Try again, take a hint, or read the prerequisites.',
-      ]),
+      el('p', { class: 'tiny faint' }, [next]),
     ]);
   }
 
@@ -545,14 +768,33 @@ const ProblemView = (() => {
       return;
     }
 
+    if (attempting) return;
+    attempting = true;
+    const restore = () => {
+      attempting = false;
+      if (btn) { btn.disabled = false; btn.textContent = 'Submit'; }
+    };
     if (btn) { btn.disabled = true; btn.textContent = 'Checking…'; }
 
-    solution = solution || await Catalog.solution(p.id);
-    if (!solution) {
-      if (btn) { btn.disabled = false; btn.textContent = 'Submit'; }
-      UI.toast('Could not load the answer key for this problem.', 'bad');
+    /* Fetching the key is itself a network call, and a page opened offline
+       should say that rather than looking like a wrong answer. */
+    let key = solution;
+    try {
+      key = solution || await Catalog.solution(p.id);
+    } catch (err) {
+      key = null;
+    }
+    if (!key) {
+      restore();
+      answered = null;
+      lastBlocked = {
+        feedback: 'The answer key could not be loaded. That is a network or '
+          + 'serving problem rather than anything to do with your answer.',
+      };
+      draw();
       return;
     }
+    solution = key;
 
     /* Awaited rather than called: a code problem has to reach a Worker or the
        judge before it knows anything, and awaiting a plain value costs the
@@ -563,11 +805,16 @@ const ProblemView = (() => {
        judge is down, recording an attempt would quietly cost the first-try
        bonus for something that was never graded. */
     if (result.noAttempt) {
-      if (btn) { btn.disabled = false; btn.textContent = 'Submit'; }
+      restore();
+      /* Deliberately not recorded as an attempt and not passed to the store:
+         the runner being down must not cost a first-try bonus. */
+      lastBlocked = result;
       impl.mark(widget, { response, key: solution.key, problem: p, solution, result });
+      draw();
       UI.toast(result.feedback, 'bad', 9000);
       return;
     }
+    lastBlocked = null;
 
     const award = Store.submit(p, {
       correct: result.correct,
@@ -577,6 +824,10 @@ const ProblemView = (() => {
     });
 
     answered = { response, result, award };
+    attempting = false;
+
+    /* Only now, and only if it is actually earned. */
+    if (result.correct && !solutionShown) solutionShown = true;
 
     if (result.correct && !award.alreadySolved && award.xp > 0) {
       UI.toast(`+${award.xp} XP`, 'good');
@@ -677,13 +928,13 @@ const ProblemView = (() => {
     const cost = Math.round(base * Store.HINT_PENALTY);
 
     panel.append(el('p', { class: 'muted small' }, [
-      locked()
+      disclosed()
         ? 'All of them, now that you are done with the problem.'
         : `Each hint costs ${cost} XP off this problem, and only the first time you open it — ` +
           're-reading one you already have is free.',
     ]));
 
-    const show = locked() ? hints.length : r.hintsUsed;
+    const show = disclosed() ? hints.length : r.hintsUsed;
 
     hints.slice(0, show).forEach((h, i) => {
       panel.append(el('div', { class: 'hint' }, [
@@ -692,7 +943,7 @@ const ProblemView = (() => {
       ]));
     });
 
-    if (!locked() && show < hints.length) {
+    if (!disclosed() && show < hints.length) {
       panel.append(el('button', {
         class: 'btn', type: 'button', style: 'margin-top:.5rem',
         onclick: () => {
@@ -735,7 +986,7 @@ const ProblemView = (() => {
   /* ---------------- solution ---------------- */
 
   function drawSolution(panel) {
-    if (!locked()) {
+    if (!disclosed()) {
       panel.append(el('div', { class: 'empty' }, [
         el('h2', { text: 'Not yet' }),
         el('p', { class: 'muted' }, [
@@ -780,5 +1031,16 @@ const ProblemView = (() => {
     if (current && host && host.isConnected) draw();
   }
 
-  return { open, toggleFocus, setSplit, splitFraction };
+  /* Called by the code type after a run, so the pane the reader is looking
+     at is the one with the answer in it. */
+  function showResults() {
+    lastRun = true;
+    resultTab = 'results';
+    draw();
+  }
+
+  return {
+    open, toggleFocus, setSplit, splitFraction, setVSplit, vSplitFraction,
+    showResults,
+  };
 })();

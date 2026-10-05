@@ -309,7 +309,7 @@ ok('a problem shows a loading line rather than a blank panel',
   /loading/i.test(duringLoad) || duringLoad.includes(index[0].title));
 await settle(fresh.window, 20);
 ok('and then the problem itself',
-  fresh.document.querySelector('#problemHost .phead h1') !== null);
+  fresh.document.querySelector('#problemHost .ws-head h1') !== null);
 
 /* ---------------- the keyboard ---------------- */
 
@@ -337,15 +337,11 @@ await settle(partway.window);
 ok('and pressing it toggles the bookmark',
   partway.window.SystemsLab.Store.record(starId).flagged !== wasFlagged);
 
-section('the divider is in the tab order');
-const code = index.find(p => p.type === 'code');
-await go(partway.window, `#/p/${code.id}`);
-await settle(partway.window, 20);
-const gutter = partway.document.querySelector('#problemHost .gutter');
-ok('there is a divider', gutter !== null);
-check('with an explicit tabindex', gutter.getAttribute('tabindex'), '0');
-ok('a label for a screen reader', !!gutter.getAttribute('aria-label'));
-ok('and a reported position', !!gutter.getAttribute('aria-valuenow'));
+/* The panel divider's keyboard operation moved to
+   tests/browser/journeys.test.mjs. It is a control whose whole purpose is to
+   change a layout, and jsdom has no layout: a check here could only confirm
+   the element exists, which is the kind of reassurance that let three editor
+   bugs through. */
 
 section('the theme preview is a button, not a swatch you cannot press');
 await go(partway.window, '#/shop');
@@ -379,7 +375,7 @@ ok('there is a global focus-visible ring',
    or a keyboard user loses the cursor. Each exception is listed with the rule
    that replaces it, so a new one cannot be added silently. */
 const SUPPRESSED = [
-  { selector: '.ed-input:focus-visible', replacedBy: '.ed:focus-within' },
+  { selector: '.ed-plain .ed-input:focus', replacedBy: '.ed:focus-within' },
   { selector: '.prow-link:focus-visible', replacedBy: '.prow:has(.prow-link:focus-visible)' },
 ];
 for (const { selector, replacedBy } of SUPPRESSED) {
@@ -390,6 +386,14 @@ for (const { selector, replacedBy } of SUPPRESSED) {
 const suppressors = [...styles.matchAll(/([^{}]*):focus(-visible)?[^{}]*\{([^}]*)\}/g)]
   .filter(m => /outline:\s*(none|0)/.test(m[3]))
   .map(m => m[1].trim() + ':focus' + (m[2] || ''));
+/* CodeMirror draws its own focus treatment inside the editor, so the ring on
+   its inner element is turned off; the frame around it lights up instead.
+   That rule carries no ":focus" in its selector, so the sweep below cannot
+   see it and it is named here. */
+ok('the CodeMirror inner outline is suppressed in favour of the frame',
+  styles.includes('.ed .cm-editor.cm-focused { outline: none; }')
+  && styles.includes('.ed:focus-within'));
+
 const unexpected = suppressors.filter(sel =>
   !SUPPRESSED.some(s => sel.includes(s.selector.split(':')[0])));
 check('no other rule removes a focus ring', unexpected, []);
@@ -402,7 +406,7 @@ section('every fixed-column layout has a narrow-screen rule');
    the page sideways on a phone. */
 const MEDIA = styles.split('@media').slice(1).join('@media');
 const NEEDS_NARROW = [
-  '.prow', '.plist-head', '.action', '.split', '.hero', '.pwrap',
+  '.prow', '.plist-head', '.action', '.ws', '.hero', '.pwrap',
   '.preview-bar', '.topbar', '.filters',
 ];
 for (const sel of NEEDS_NARROW) {

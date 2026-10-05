@@ -150,7 +150,17 @@
       };
     },
 
-    mark(mount, { response, key, problem }) {
+    /* Nothing per-pair: marking which rows were right would give the
+       remaining pairs away by elimination. The controls stay live. */
+    mark(mount) {
+      mount.querySelectorAll('.match-item').forEach(n => {
+        n.disabled = false;
+        delete n.dataset.mark;
+      });
+      mount.querySelectorAll('.match-item .why').forEach(n => n.remove());
+    },
+
+    reveal(mount, { response, key, problem }) {
       const want = (key && key.pairs || []).map(Number);
       const got = [].concat(response || []).map(Number);
       const rightText = problem.payload.right || [];

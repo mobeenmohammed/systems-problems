@@ -70,6 +70,11 @@ fn main() {
      slot is honest rather than a map that never gets cleaned out. */
   let state = null;
 
+  /* The last run, kept so the Results and Compiler output panes can be
+     repainted when the reader switches between them — the panes belong to the
+     workspace, the output belongs here. */
+  let last = { verdict: null, reply: null, submission: false };
+
   function templateFor(problem, lang) {
     const given = (problem.payload.templates || {})[lang];
     return given != null ? given : (TEMPLATE[lang] || '');
@@ -88,6 +93,13 @@ fn main() {
     const record = Store.record(problem.id);
     const lang = langs.includes(record.lang) ? record.lang : langs[0];
 
+    /* Opening a different problem must not inherit the last one's result.
+       The workspace redraws in place, though, so the result is kept when the
+       problem is the same — that is what puts "Ran on Hosted" back on the
+       chip and the cases back in the pane after a redraw. */
+    if (!state || state.problem.id !== problem.id) {
+      last = { verdict: null, reply: null, submission: false };
+    }
     state = { problem, mount, lang, editor: null, out: null, langs, running: false };
 
     const head = el('div', { class: 'editor-head' });
@@ -106,13 +118,16 @@ fn main() {
     }
     mount.append(head);
 
-    const judgeBox = el('div', { class: 'judge-state', 'data-up': 'false', style: 'margin-bottom:.6rem' }, [
+    /* Rendered here, then moved into the workspace toolbar by problem.js so
+       execution status sits beside Run and Submit rather than above the
+       editor. On the reading layout it stays where it is. */
+    const judgeBox = el('div', { class: 'judge-state', 'data-up': 'false' }, [
       el('span', { class: 'dot' }),
       el('span', { id: 'codeJudgeText', text: 'Checking what can run…' }),
     ]);
     mount.append(judgeBox);
 
-    const editorHost = el('div', {});
+    const editorHost = el('div', { class: 'ed-host' });
     mount.append(editorHost);
 
     state.editor = Editor.create(editorHost, {
@@ -161,39 +176,64 @@ fn main() {
       }, [LABEL[id] || id]));
     }
 
-    /* Which languages are actually runnable is a question for the judge, and
-       the answer can change while the page is open — so it is asked here and
-       the tabs are updated when it comes back, rather than being guessed. */
-    Runners.available(langs).then(rows => {
-      const judge = Runners.judge;
-      const text = document.getElementById('codeJudgeText');
-      const ready = rows.filter(r => r.ready).map(r => LABEL[r.id] || r.id);
-      const notReady = rows.filter(r => !r.ready).map(r => LABEL[r.id] || r.id);
+    /* Which languages are actually runnable — and *where* each would run —
+       is a question for the runners, and the answer can change while the page
+       is open. So it is asked here and the tabs are updated when it comes
+       back, rather than being guessed. The backend is always named: Hosted,
+       Local or Browser. Nothing quietly assumes localhost. */
+    refreshExec();
+  }
 
-      if (text) {
-        judgeBox.dataset.up = String(judge.up);
-        if (judge.up) {
-          text.textContent = `Ready: ${ready.join(', ')}.`;
-        } else if (notReady.length) {
-          text.textContent =
-            `${ready.length ? `${ready.join(', ')} runs here. ` : ''}` +
-            `${notReady.join(' and ')} ${notReady.length === 1 ? 'needs' : 'need'} the runner, ` +
-            `which is not answering at ${judge.url}. Start it with: npm run runner`;
+  /* Repaints the toolbar chip, the sentence under the tabs, and which tabs
+     are selectable, from a fresh look at what can run right now. Called on
+     mount and again whenever the language changes, because the three
+     backends do not all offer the same languages. */
+  function refreshExec() {
+    if (!state) return;
+    const { langs, mount } = state;
+    const tabs = mount.querySelector('.lang-tabs');
+    const judgeBox = mount.querySelector('.judge-state');
+
+    setExec('checking', 'Checking…');
+
+    return Promise.all([Runners.available(langs), Runners.describe(langs)])
+      .then(([rows, said]) => {
+        /* The page may have moved on while the probes were out. */
+        if (!state || state.mount !== mount) return;
+
+        const text = document.getElementById('codeJudgeText');
+        if (text) {
+          if (judgeBox) judgeBox.dataset.up = String(said.kind === 'ready');
+          text.textContent = said.text;
+        }
+
+        /* The workspace redraws after every run, which remounts this widget,
+           so the chip has to be rebuilt from what is known rather than left
+           as whatever doRun last wrote into it. Three things it can say, in
+           order of what the reader most needs: what just happened, what
+           would happen, and that nothing can. */
+        const here = rows.find(r => r.id === state.lang);
+        const ran = last.reply && last.reply.lang === state.lang;
+        if (ran && last.reply.judgeDown) {
+          setExec('blocked', `Could not run — ${Runners.label(last.reply.backend)}`);
+        } else if (ran) {
+          setExec('ready', `Ran on ${Runners.label(last.reply.backend)}`);
+        } else if (here && here.ready) {
+          setExec('ready', here.version ? `${here.where} · ${here.version}` : here.where);
         } else {
-          text.textContent = `Ready: ${ready.join(', ')}.`;
+          setExec('blocked', 'No runner');
         }
-      }
 
-      for (const node of tabs.querySelectorAll('.lang-tab')) {
-        const row = rows.find(r => r.id === node.dataset.lang);
-        if (row && !row.ready) {
-          node.disabled = true;
-          node.title = 'Needs the judge, which is not running';
-        } else if (row && row.version) {
-          node.title = `${row.where} — ${row.version}`;
+        if (!tabs) return;
+        for (const node of tabs.querySelectorAll('.lang-tab')) {
+          const row = rows.find(r => r.id === node.dataset.lang);
+          if (!row) continue;
+          node.disabled = !row.ready;
+          node.title = row.ready
+            ? `${row.where}${row.version ? ` — ${row.version}` : ''}`
+            : 'Nothing available can run this — see the note under the tabs';
         }
-      }
-    });
+      });
   }
 
   function switchLang(id) {
@@ -210,6 +250,9 @@ fn main() {
       node.setAttribute('aria-pressed', String(node.dataset.lang === id));
     }
     state.out.replaceChildren();
+    /* C++ may be hosted while JavaScript runs in the browser, so the chip has
+       to be re-asked rather than carried over from the previous language. */
+    refreshExec();
   }
 
   /* Drafts were already saved on every keystroke; what was missing was any
@@ -245,7 +288,8 @@ fn main() {
     state.running = true;
     const btn = document.getElementById('runBtn');
     if (btn) { btn.disabled = true; btn.textContent = 'Running…'; }
-    state.out.replaceChildren(el('p', { class: 'muted small', text: 'Compiling and running…' }));
+    if (state.out) state.out.replaceChildren(el('p', { class: 'muted small', text: 'Compiling and running…' }));
+    setExec('running', 'Compiling and running…');
 
     const reply = await Runners.run(state.lang, state.editor.value, cases, {
       profile: pay.profile || 'standard',
@@ -254,24 +298,59 @@ fn main() {
     });
 
     const verdict = RunHarness.judgeRun(reply, cases.map(c => c.expect), { requireClean: !!pay.requireClean });
+    last = { verdict, reply, submission: false };
     paint(verdict, reply, false);
 
+    /* Say where it just ran, every time. A reader who cannot tell Hosted from
+       Local cannot tell a service outage from a runner they forgot to start. */
+    if (reply.judgeDown) setExec('blocked', 'Could not run');
+    else setExec('ready', `Ran on ${Runners.label(reply.backend)}`);
+
     state.running = false;
-    if (btn) { btn.disabled = false; btn.textContent = 'Run the samples'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'Run samples'; }
+    /* Show the reader what just happened rather than leaving the result in a
+       tab they are not looking at. */
+    if (typeof ProblemView !== 'undefined' && ProblemView.showResults) ProblemView.showResults();
     return verdict;
   }
 
   /* ---------------- output ---------------- */
 
-  function paint(verdict, reply, isSubmission) {
-    const host = state.out;
+  /* The execution-status chip in the workspace toolbar. */
+  function setExec(kind, text) {
+    const node = document.getElementById('execState');
+    if (!node) return;
+    node.dataset.state = kind;
+    node.textContent = text;
+  }
+
+  /* What to tell someone whose run did not happen. An execution failure is
+     not a wrong answer, and the advice has to match the backend that actually
+     failed: telling a visitor on the public site to run `npm run runner` is
+     wrong, and so is telling someone whose own runner died to go and wait for
+     a hosted service to recover. */
+  function downAdvice(backend) {
+    if (backend === 'local') {
+      return 'Start it with:\n  npm run runner\n\nThen press Check connection in '
+        + `Settings. The address it is trying is ${Store.config.judgeUrl}.`;
+    }
+    if (backend === 'hosted') {
+      return 'That is the hosted runner, not your code. Your work is saved — try '
+        + 'again in a moment, or start a local runner and point Settings at it.';
+    }
+    return 'Nothing available can run this language. Settings can point the page '
+      + 'at a hosted runner, or you can start a local one with npm run runner.';
+  }
+
+  function paint(verdict, reply, isSubmission, into) {
+    const host = into || state.out;
+    if (!host) return;
     host.replaceChildren();
 
     if (reply.judgeDown) {
       host.append(el('div', { class: 'compile-out', 'data-kind': 'error' }, [
-        el('span', { class: 'lbl', text: 'the judge is not answering' }),
-        `${reply.judgeError || 'no connection'}\n\nStart it with:\n  npm run runner\n\n` +
-        `Then press Check connection in Settings. The address it is trying is ${Store.config.judgeUrl}.`,
+        el('span', { class: 'lbl', text: `could not run — ${reply.backend ? Runners.label(reply.backend) : 'no runner'}` }),
+        `${reply.judgeError || 'no connection'}\n\n${downAdvice(reply.backend)}`,
       ]));
       return;
     }
@@ -481,6 +560,17 @@ fn main() {
        Submit, so the two are in one place rather than one being buried under
        the editor. The type module still owns running. */
     run: doRun,
+
+    /* The workspace owns the panes; this module owns what goes in them. */
+    editor: () => (state ? state.editor : null),
+    repaintOutput(into) {
+      if (!into) return;
+      if (last.verdict) paint(last.verdict, last.reply || {}, last.submission, into);
+      else into.replaceChildren(el('p', { class: 'muted small', text: 'Nothing run yet.' }));
+    },
+    lastCompilerOutput: () => ((last.reply && last.reply.compile && last.reply.compile.stderr) || '').trim(),
+    lastBuildOk: () => !!(last.reply && last.reply.compile && last.reply.compile.ok),
+
     /* Exposed so the presentation can be tested without a toolchain: the
        parser's job is turning one blob into rows, and that is checkable
        against captured compiler output. */
@@ -540,8 +630,13 @@ fn main() {
 
     mark(mount, { result }) {
       if (!state) return;
+      /* The editor is never locked by an attempt: a compile error, a wrong
+         answer and a timeout all leave the code exactly as written, and the
+         next attempt is one keystroke away. */
       state.editor.setReadOnly(false);
-      if (result && result.verdict) paint(result.verdict, result.reply || {}, true);
+      if (result && result.verdict) {
+        last = { verdict: result.verdict, reply: result.reply || {}, submission: true };
+      }
     },
   });
 })();

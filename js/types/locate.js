@@ -85,7 +85,25 @@
       };
     },
 
-    mark(mount, { response, key }) {
+    /* The line they clicked, marked wrong. Not the line the bug is on, and
+       not key.why, which names it. */
+    mark(mount, { response, result }) {
+      const got = Number(response);
+      mount.querySelectorAll('.locate-line').forEach(node => {
+        delete node.dataset.mark;
+        if (Number(node.dataset.line) === got && !(result && result.correct)) {
+          node.dataset.mark = 'wrong';
+        }
+      });
+      const status = mount.querySelector('.locate-status');
+      if (status) {
+        status.textContent = (result && result.correct)
+          ? `Line ${got}.`
+          : `Not line ${got}. Look again.`;
+      }
+    },
+
+    reveal(mount, { response, key }) {
       const want = Number(key.line);
       const also = (key.alsoAccept || []).map(Number);
       const got = Number(response);

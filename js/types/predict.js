@@ -108,13 +108,21 @@
       return { correct: false, score: 0, feedback: why };
     },
 
-    mark(mount, { key, response }) {
+    /* What they wrote, and nothing about what it really prints. */
+    mark(mount) {
       const node = mount.querySelector('#predictAnswer');
-      if (node) node.disabled = true;
+      if (node) node.disabled = false;
+      mount.querySelectorAll('.predict-reveal').forEach(n => n.remove());
+    },
+
+    reveal(mount, { key, response }) {
+      const node = mount.querySelector('#predictAnswer');
+      if (node) node.disabled = false;
+      mount.querySelectorAll('.predict-reveal').forEach(n => n.remove());
 
       /* The answer side by side with what you wrote. Reading a diff out of the
          explanation is work the page should have done. */
-      mount.append(el('div', { class: 'case', style: 'margin-top:.8rem' }, [
+      mount.append(el('div', { class: 'case predict-reveal', style: 'margin-top:.8rem' }, [
         el('div', { class: 'io' }, [
           el('div', {}, [
             el('h5', { text: 'you wrote' }),

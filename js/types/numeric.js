@@ -133,9 +133,15 @@
       return { correct: false, score: 0, feedback: `Not that.${nudge}` };
     },
 
-    mark(mount, { result }) {
+    /* The field stays live: a number that was out by a factor of ten is
+       corrected by editing it, not by reloading the page. */
+    mark(mount) {
       const input = mount.querySelector('#numAnswer');
-      if (input) input.disabled = true;
+      if (input) input.disabled = false;
+    },
+    reveal(mount) {
+      const input = mount.querySelector('#numAnswer');
+      if (input) input.disabled = false;
     },
 
     parseNumber,
@@ -190,7 +196,11 @@
 
     mark(mount) {
       const input = mount.querySelector('#shortAnswer');
-      if (input) input.disabled = true;
+      if (input) input.disabled = false;
+    },
+    reveal(mount) {
+      const input = mount.querySelector('#shortAnswer');
+      if (input) input.disabled = false;
     },
   });
 })();

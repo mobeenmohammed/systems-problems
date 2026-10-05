@@ -15,6 +15,10 @@ const Store = (() => {
 
   const LS_KEY     = 'systems-lab/state/v1';
   const LS_JUDGE   = 'systems-lab/judge-url';
+  /* Where hosted execution lives, kept beside the runner address for the
+     same reason: it is a property of how this browser reaches a service,
+     not of the reader's progress, so it never travels in an export. */
+  const LS_HOSTED  = 'systems-lab/hosted-url';
   const LS_JUDGE_TOKEN = 'systems-lab/judge-token';
   /* Interface preferences — a panel split, focus mode — live under their own
      key rather than in the progress state. They are per-device and
@@ -122,7 +126,10 @@ const Store = (() => {
 
   let state  = null;
   let migratedFrom = null;
-  let config = { judgeUrl: 'http://127.0.0.1:2000', judgeToken: '', pyodideUrl: '', judge0: { enabled: false } };
+  let config = {
+    judgeUrl: 'http://127.0.0.1:2000', judgeToken: '', pyodideUrl: '',
+    hosted: { enabled: false, url: '', clientToken: '' },
+  };
   const listeners = [];
 
   /* ---------------- dates ----------------
@@ -618,6 +625,19 @@ const Store = (() => {
   /* ---------------- the judge's address ----------------
      Kept out of state so it never travels in an exported snapshot: where your
      judge listens is a property of the machine, not of your progress. */
+  /* Turning hosted execution on is one field: a URL. Blank turns it off,
+     which is why there is no separate switch to get out of step with it. */
+  function setHostedUrl(url) {
+    const clean = String(url || '').trim().replace(/\/+$/, '');
+    config.hosted = { ...(config.hosted || {}), url: clean, enabled: !!clean };
+    try {
+      if (clean) localStorage.setItem(LS_HOSTED, clean);
+      else localStorage.removeItem(LS_HOSTED);
+    } catch { /* storage blocked; it just will not persist */ }
+    emit('hosted-url', clean);
+    return clean;
+  }
+
   function setJudgeUrl(url) {
     config.judgeUrl = String(url || '').trim().replace(/\/+$/, '');
     try { localStorage.setItem(LS_JUDGE, config.judgeUrl); } catch {}
@@ -630,6 +650,8 @@ const Store = (() => {
       if (u) config.judgeUrl = u;
       const t = localStorage.getItem(LS_JUDGE_TOKEN);
       if (t) config.judgeToken = t;
+      const h = localStorage.getItem(LS_HOSTED);
+      if (h) config.hosted = { ...(config.hosted || {}), url: h, enabled: true };
     } catch {}
     return config.judgeUrl;
   }
@@ -688,7 +710,7 @@ const Store = (() => {
     get state()  { return state; },
     get config() { return config; },
     get migratedFrom() { return migratedFrom; },
-    setJudgeUrl, loadJudgeUrl, setJudgeToken, pref, setPref,
+    setJudgeUrl, loadJudgeUrl, setJudgeToken, setHostedUrl, pref, setPref,
 
     TOPICS, TOPIC_BY_ID, DIFFICULTIES, DIFF_BY_ID, LANES, LANE_BY_ID, RANKS,
     SHOP, SHOP_BY_ID, SLOTS, ACHIEVEMENTS, ACHIEVEMENT_BY_ID,

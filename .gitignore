@@ -10,3 +10,8 @@ __pycache__/
 
 # Written by the runner at startup; regenerated each start, never committed
 data/judge-token.json
+
+# Screenshots written by SHOTS=1 on the browser suites. Evidence for a
+# particular run, not part of the site — and the deploy job publishes the
+# whole checkout.
+_shots/

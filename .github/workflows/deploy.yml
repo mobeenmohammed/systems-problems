@@ -68,6 +68,25 @@ jobs:
           fi
           echo "ok"
 
+      # The subtler leak: a statement that hands over the answer in prose or
+      # in its own starting template. Each deliberate one is declared in
+      # scripts/leak-allow.json, so a new undeclared one fails here.
+      - name: No statement gives its own answer away
+        run: npm run audit:leaks
+
+      # The local runner writes data/judge-token.json on every start. It is in
+      # .gitignore, but the deploy job publishes the whole checkout, so a
+      # mistake here would put a live credential on a public URL.
+      - name: No runner token in the files that get published
+        run: |
+          found=$(find . -path ./node_modules -prune -o -name 'judge-token*.json' -print)
+          if [ -n "$found" ]; then
+            echo "A runner token file is in the tree and would be deployed:"
+            echo "$found"
+            exit 1
+          fi
+          echo "ok"
+
   deploy:
     needs: test
     runs-on: ubuntu-latest

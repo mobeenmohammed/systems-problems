@@ -163,10 +163,12 @@ works if you prefer it:
 docker compose -f judge/compose.yml up -d
 ```
 
-Then **Settings ▸ Code execution ▸ Check connection**. JavaScript and Python
-run in the tab and need nothing; C++ and Rust need the runner. With it down the
-site says so, gives that one command, and everything else goes on working — the
-six non-executing types cover a lot of C++ knowledge on their own.
+Then **Settings ▸ Code execution ▸ Check connection**. JavaScript runs in the
+tab and needs nothing; C++, Rust and Python have to be compiled or
+interpreted somewhere, which means either this runner or the hosted one
+described below. With neither of them up the site says so, names which backend
+it tried, gives that one command, and everything else goes on working — the six
+non-executing types cover a lot of C++ knowledge on their own.
 
 The runner compiles with real `g++` and `rustc`, returns the compiler's
 warnings **even on a successful build**, and can require a program to be clean
@@ -198,14 +200,47 @@ anything able to read it already runs as you — the Origin check is.
 
 **Never expose it to a network.** It runs arbitrary code by design.
 
-### Running from another device: Judge0
+### Running from the published site: hosted execution
 
-If you want C++ from a phone, a borrowed laptop, or a machine where you cannot
-start the runner, `data/config.json` has a `judge0` block. It is **off by
-default** and nothing has been provisioned.
+The local runner is for this machine. For a phone, a borrowed laptop, or the
+published site on anything at all, there is a second backend: a small proxy
+you deploy, in [`proxy/`](proxy/README.md).
 
-The public endpoint at `https://ce.judge0.com` was probed rather than read off
-the documentation, which understates it badly:
+The browser never talks to an execution service directly. It posts a
+problem-shaped request to the proxy — language, profile *name*, source, cases
+— and the proxy chooses the compiler flags from a table identical to
+`judge/languages.mjs`, applies every limit, and calls Judge0 with a credential
+that never leaves the server. Three reasons, each sufficient on its own:
+
+- a key cannot live in a static page;
+- a public endpoint that forwards caller-supplied compiler options is a remote
+  code execution service with extra steps;
+- a limit the client picks is not a limit.
+
+It caps source size, case count, stdin size, CPU, wall clock and memory,
+rate-limits per IP, and checks `Origin`. `handler.mjs` is platform-neutral:
+`worker.mjs` runs it on Cloudflare, `server.mjs` on Node.
+
+**What is done and what is not.** The proxy is written and tested —
+`tests/proxy.test.mjs` offline and against a live service, and
+`tests/browser/hosted.test.mjs` drives the whole journey through Chromium with
+the local runner stopped: write C++, Run, Submit, get marked. What is missing
+is somewhere to deploy it (a Cloudflare account; the free tier is far beyond
+what this needs) and a Judge0 to call. `https://ce.judge0.com` works and is
+free, but has no SLA, no authentication and no documented limits — fine to try,
+not something to point a public site at and walk away from; Judge0 Cloud via
+RapidAPI is about €27–€107/month; self-hosting needs a VM that allows
+privileged containers. [`proxy/README.md`](proxy/README.md) has the exact
+commands and the full comparison.
+
+**Until then, the site says so.** The toolbar reads **No runner**, compiled
+languages are offered but marked unavailable with the reason, and nothing
+falls back to a local address. Which backend ran is always named: **Hosted**,
+**Local** or **Browser**.
+
+### Measured, not read off the documentation
+
+`ce.judge0.com` understates itself badly:
 
 | | documented | measured |
 | --- | --- | --- |
@@ -218,17 +253,7 @@ reports `202302`), `-Wall -Wextra` with warnings returned on a **successful**
 build, `--edition 2021`, stdin, and `-fsanitize=address,undefined` — which
 links *and fires*, once `memory_limit` is raised, for the reason above. Compile
 errors arrive as status 6 with the text in `compile_output`, runtime errors as
-11, timeouts as 5. `tests/judge0.test.mjs` checks the flags this adapter sends
-are character-for-character the ones the local runner uses, so a problem cannot
-mean two different things depending on which backend answered.
-
-**Cost and accounts.** The public endpoint needs **no account and no API key**,
-so there is no secret for a static page to leak. It is rate limited: six
-submissions in quick succession got the connection reset, and four seconds of
-spacing was enough. Judge0's RapidAPI plans need a RapidAPI account and are
-pay-per-use; a key for those must **not** go in `data/config.json`, which is
-served to the browser. Put it behind a proxy and set `judge0.proxyUrl` — the
-adapter then sends no key itself.
+11, timeouts as 5.
 
 Two things to be deliberate about: it is one compile per test case rather than
 one compile for all of them, so it is slower; and your submission goes to a
@@ -236,16 +261,39 @@ third party. For these problems that is uninteresting, and it is still true.
 
 ## The editor
 
-Code problems get syntax highlighting and real compiler diagnostics.
+Code problems use **CodeMirror 6**, vendored as a single prebuilt bundle at
+`vendor/codemirror.js` (`npm run build:editor` regenerates it from
+`scripts/editor-entry.js`; the pinned versions are in
+`vendor/codemirror.versions.json`). The site still has no build step at serve
+time — the bundle is a file, like everything else.
 
-**Highlighting** is a coloured `<pre>` sitting exactly behind a transparent
-`<textarea>`, scroll-synced. The textarea keeps the caret, selection, undo, IME
-and mobile keyboards — which is the whole reason to do it this way rather than
-reimplementing an editor over a `contenteditable` div. The catch is that any
-metric set on one layer and not the other makes text sit beside its own colour,
-so the metrics are declared once in a rule targeting both and
-`tests/browser/styles.test.mjs` fails if a later rule sets one of them on a
-single layer.
+It replaced a hand-written editor: a coloured `<pre>` behind a transparent
+`<textarea>`, scroll-synced. That design has one failure mode and it produced
+three distinct bugs, all reported and all reproduced before anything was
+changed:
+
+| reported as | what it actually was |
+| --- | --- |
+| "typing does not work on some problems" | the sticky action bar sat *over* the lower part of the editor and took the clicks: the caret never landed, so the keystrokes went nowhere |
+| "the text or caret is one character behind" | the overlay repainted on a frame boundary while the textarea painted immediately — the two layers disagreed for one frame |
+| "the horizontal scrollbar is halfway down" | the textarea had grown past its container (measured: 1840px inside a 492px box), so its own scrollbar was wherever the container happened to end |
+
+They are the same architectural problem — two elements with independent
+geometry and scroll state, kept in agreement by hand — and the list of things
+the editor had to do correctly (caret placement, selection, undo/redo, IME,
+paste, long lines, aligned gutters) is the list a maintained editor already
+guarantees. So the overlay went.
+
+CodeMirror owns one scroll container with the gutter inside it, which makes
+the three bugs structurally impossible rather than fixed: line numbers cannot
+drift from their lines, and the horizontal scrollbar is at the bottom of the
+editor by construction. `js/editor.js` keeps the same small API the rest of
+the site already used, plus `setFontSize`, `refresh` and `destroy`, and falls
+back to a plain textarea if the bundle fails to load.
+
+`editor.value` reads the document directly from CodeMirror's state, so "the
+last character typed before pressing Run" is not a question that can have a
+wrong answer — there is no second copy to be stale.
 
 **Linting** has two tiers:
 
@@ -259,9 +307,8 @@ single layer.
   jumps the caret there. So the message you get while typing is the message a
   build would give you.
 
-The editor also closes brackets, steps over a closer you type where one already
-sits, puts a lone closer on its own line, and keeps a separate draft per
-language.
+Brackets close themselves, a draft is kept per problem *and* per language, and
+the font size is adjustable from the header.
 
 ## Tracks, the weekly problem, and resources
 
@@ -297,23 +344,74 @@ it up:
 
 ### The workspace
 
-A `code` problem opens as two panels — the statement beside the editor — with a
-divider you can drag, or move with the arrow keys, `Home`, `End` and `Enter` to
-reset. The position is remembered. **Run samples** and **Submit** sit together
-in a bar that sticks to the bottom of the editor column, so neither is ever
-below the fold on a long statement.
+A `code` problem opens as a workspace that uses the whole window: nothing but
+the site header is above it, and the page itself never scrolls — every panel
+scrolls on its own.
+
+```
+┌ back · 25/85 · title · difficulty · status ····· A− 14 A+ · ☆ · Focus · ⋯ ┐
+├────────────────────────────┬──────────────────────────────────────────────┤
+│ Description  Prereqs       │ C++  Rust  JS        Hosted  Run     Submit  │
+│ Hints  Notes  Solution 🔒  ├──────────────────────────────────────────────┤
+│                            │                                              │
+│  the statement             │  the editor                                  │
+│                            │                                              │
+│                            ├──────────────────────────────────────────────┤
+│                            │ Test cases  Results  Compiler output         │
+│                            │                                              │
+└────────────────────────────┴──────────────────────────────────────────────┘
+```
+
+Both dividers drag, and both take the arrow keys, `Home`, `End` and `Enter`
+to reset. Positions are remembered. Run and Submit are in the editor's own
+toolbar rather than a bar that floats over the code — which is what used to
+swallow the clicks.
+
+The toolbar also names the execution backend, always: **Hosted**, **Local** or
+**Browser** before a run, and "Ran on Hosted" or "Could not run — Hosted"
+after one.
+
+XP, coins and review scheduling are **not** in the working area. The header
+carries a status word and nothing else; the arithmetic is behind the `⋯` menu
+and on the profile.
 
 Compiler output is parsed into a list of places with a severity and a line you
 can click to jump the caret there, with the compiler's own words kept
 underneath — the caret diagrams and the template backtraces are sometimes
-exactly what you need. Hints and your notes appear as disclosures under the
-statement as well as in their tabs, so reading a hint does not mean losing
-sight of the code.
+exactly what you need.
 
-`F` toggles **focus mode**, which hides the header and the side rail and gives
-the problem the whole window. `Escape` leaves it. Both the split and focus mode
-are stored under `systems-lab/ui/v1`, separate from progress, so a bad value
-there can never cost a solve.
+Non-code problems get a single comfortable reading column instead, with the
+answer controls under the statement and the same retry feedback. Below 900px
+both layouts stack rather than being squeezed into columns.
+
+`F` toggles **focus mode**, which hides the header and gives the problem the
+whole window. `Escape` leaves it. Panel sizes and focus mode are stored under
+`systems-lab/ui/v1`, separate from progress, so a bad value there can never
+cost a solve.
+
+### Attempts, and what an attempt does not reveal
+
+Four things are tracked separately, because conflating them is what makes a
+wrong answer feel like a punishment:
+
+| | |
+| --- | --- |
+| the latest attempt's result | shown, every time |
+| whether the problem is complete | only a correct submission sets it |
+| whether the solution has been disclosed | only a correct submission, or an explicit Reveal with a confirmation |
+| whether a reward has been paid | once per problem, ever |
+
+So a wrong answer leaves every control live, keeps your code, keeps the
+solution shut, and says what was wrong without saying what was right. A failed
+"select all" reports how many of *your* ticks are right and whether something
+is still missing — never how many correct options there are, because with four
+options that is most of the answer. Revealing a solution records **Solution
+reviewed**, not Solved. A previously solved problem can be practised again and
+pays nothing the second time.
+
+Compilation errors, runtime errors, timeouts, an unreachable runner and a rate
+limit are **execution failures**, not wrong answers: nothing is recorded, the
+code is untouched, and the message says which it was.
 
 ## Writing a problem
 
@@ -402,13 +500,27 @@ npm test
 | `tests/grade.test.mjs` | Every grader, driven directly — they are pure for exactly this reason |
 | `tests/runner.test.mjs` | Output comparison, and that a timeout, a crash, a build failure and a wrong answer stay four different things |
 | `tests/judge.test.mjs` | The runner against real toolchains, skipping what this machine lacks |
-| `tests/judge0.test.mjs` | That the Judge0 adapter sends character-for-character the same compiler flags as the local runner; `JUDGE0=1` also probes the live service |
+| `tests/proxy.test.mjs` | The hosted-execution proxy: that it sends character-for-character the same compiler flags as the local runner, refuses caller-supplied flags, clamps every limit and rate-limits per address; `PROXY_LIVE=1` also compiles against a real service |
 | `tests/contrast.test.mjs` | Every text colour against every surface it is used on, for all 8 themes and all 40 theme-and-accent combinations the shop can produce, at WCAG AA |
 | `tests/content.test.mjs` | Every problem and key: the schema, the concept graph, that tracks and weekly entries name problems that exist, that the README matches the catalogue, and that **each key is graded correct by its own grader** and each `code` reference solution actually passes |
 | `tests/browser/app.test.mjs` | The whole journey in jsdom: browse, filter, bookmark, open, read prerequisites, take a hint, answer wrongly, answer rightly, preview a theme, spend the coins |
 | `tests/browser/styles.test.mjs` | That every theme defines every token and can be previewed from it, every `var(--x)` resolves, and `[hidden]` still wins |
 | `tests/browser/states.test.mjs` | The page with nothing solved, part solved, all solved and with the content missing — every view in each — plus keyboard reachability, focus rings and the narrow-screen rules |
-| `tests/browser/runner.test.mjs` | The real browser-to-runner path with the runner up: a passing submission, a compile error, a runtime error, a timeout, a sanitizer trip, and the workspace driven the way a person drives it |
+| `tests/browser/runner.test.mjs` | The real browser-to-runner path with the runner up: a passing submission, a compile error, a runtime error, a timeout and a sanitizer trip |
+
+Two more need a server and are not in `npm test`, because they drive a real
+Chromium against a real site:
+
+| Suite | What it covers |
+| --- | --- |
+| `tests/browser/journeys.test.mjs` (`npm run test:journeys`) | The reported failures as journeys, with real mouse and keyboard: typing, caret placement, Tab, paste, cut, undo, long lines, scrolling, resizing, zoom, per-language drafts across a reload, a wrong MCQ and a wrong multi-select that disclose nothing, reveal-with-confirmation, practising a solved problem, and the layout at 1440×900, 1920×1080 and 390×844 in both themes |
+| `tests/browser/hosted.test.mjs` (`npm run test:hosted`) | The published-site journey with **no local runner**: write C++, Run, Submit, get marked — plus a compile error, a wrong submission then a fix, a timeout, a rate limit, an unreachable runner, and a check that no submission went to localhost |
+| `tests/browser/local.test.mjs` (`npm run test:local`) | The same workspace against the **local runner**, which is the only backend that can produce them: a warning on a successful build, a clickable compiler diagnostic that moves the caret, a build failure, a timeout, and a sanitizer trip on a program whose output is right |
+
+The first two want `npm run serve` and `npm run proxy` up and the local runner
+**stopped** — that is what makes "hosted" mean something. The third wants
+`npm run serve` and `npm run runner` up instead. `SHOTS=1` writes screenshots
+to `_shots/`.
 
 `content.test.mjs` is the one that matters most. Hand-written JSON and a shared
 concept graph will not stay consistent on good intentions, and a broken problem
@@ -434,13 +546,16 @@ js/catalog.js           the index, the concept graph, lazy problem loading
 js/runners/harness.js   output comparison and verdicts — pure, and tested alone
 js/runners/index.js     where each language runs: a Worker here, or the judge
 js/lint.js              brackets locally, the real compiler through the judge
-js/editor.js            highlighting overlay, gutter, diagnostics
+js/editor.js            CodeMirror: mounting, theming, lint gutter, drafts
 js/types/registry.js    the problem-type contract
 js/types/*.js           one file per problem type
 js/problem.js           a problem: its tabs, submitting, the verdict
 js/views.js             dashboard, catalog, reading map, profile, shop, settings
 js/app.js               bootstrap, hash routing, shortcuts
-js/runners/judge0.js    the hosted fallback backend, off by default
+js/runners/hosted.js    the hosted backend, through the proxy
+vendor/codemirror.js    the prebuilt editor bundle (npm run build:editor)
+proxy/handler.mjs       hosted execution: limits, flag table, rate limit
+proxy/worker.mjs        the Cloudflare entry;  proxy/server.mjs the Node one
 judge/                  the local C++/Rust/Python runner (WSL, or Docker)
 judge/run-wsl.sh        the toolchain check and one-command start
 problems/<topic>/*.json one file per problem, no answer in it
@@ -504,10 +619,29 @@ broken commit. Pages is configured with **GitHub Actions** as its source, not
 Jekyll.
 
 CI also checks the two generated files are current — `data/index.json` and the
-counted sections of this README — so neither can drift from the content.
+counted sections of this README — so neither can drift from the content. Two
+more guards run there: `npm run audit:leaks`, which fails if a problem
+statement gives away its own answer without saying so in
+`scripts/leak-allow.json`, and a check that no `judge-token*.json` is in the
+tree, because the deploy job publishes the whole checkout.
 
-The runner is **not** deployed. It is a local service, and the published site
-reaches it on loopback: browsers exempt loopback *addresses* from
-mixed-content blocking, which is why the default is `http://127.0.0.1:2000`
-rather than `localhost`. From a device that cannot reach your machine, the
-Judge0 backend is the answer — see above.
+The runner is **not** deployed, and never should be — it runs arbitrary code
+as you. It is a local service, and the published site reaches it on loopback:
+browsers exempt loopback *addresses* from mixed-content blocking, which is why
+the default is `http://127.0.0.1:2000` rather than `localhost`. From a device
+that cannot reach your machine, hosted execution through the proxy is the
+answer — see above.
+
+### Managing the runner
+
+```bash
+npm run runner          # start it (WSL)
+npm run runner:status   # is it up, and does the token file match it
+npm run runner:stop     # stop it
+```
+
+A second start cannot clobber the first: the token is generated in memory,
+written only once the port is actually bound, and the file carries the pid of
+whoever wrote it so only that process removes it. Starting a second runner
+while one is up now fails on the port with a message saying so, instead of
+overwriting the live instance's credentials and then dying.

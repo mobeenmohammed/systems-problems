@@ -43,8 +43,19 @@ check('one of two, nothing wrong',       m([0], [0, 2]).score, 0.5);
 check('both right plus one wrong',       m([0, 2, 3], [0, 2]).score, 2 / 3);
 check('nothing right scores 0',          m([1], [0, 2]).score, 0);
 check('a wrong tick is never correct',   m([0, 1, 2], [0, 2]).correct, false);
-ok('a missed answer is reported',        m([0], [0, 2]).feedback.includes('1 missed'));
-ok('a wrong tick is reported',           m([0, 1], [0]).feedback.includes('is not'));
+/* Feedback on a failed "select all" must not hand over the combination, and
+   saying "1 of 2 right" hands over half of it: with four options, knowing
+   there are exactly two correct answers is most of the way there. So it
+   reports the ticks the reader made and whether something is still missing,
+   and never how many correct options exist. */
+ok('a miss is signalled without saying how many',
+  /not ticked/i.test(m([0], [0, 2]).feedback));
+ok('and the number of correct options is not disclosed',
+  !/of 2|2 right|All 2/.test(m([0], [0, 2]).feedback));
+ok('a wrong tick is reported against the ticks made',
+  /your \d+ tick|not that one|none of those/i.test(m([0, 1], [0]).feedback));
+ok('a fully correct answer says so without counting',
+  !/\d/.test(m([0, 2], [0, 2]).feedback));
 /* A wrong tick must cost the same as a missed one — otherwise "select all"
    rewards ticking everything. */
 check('over-ticking costs as much as under-ticking',

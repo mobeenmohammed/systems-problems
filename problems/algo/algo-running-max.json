@@ -4,26 +4,49 @@
   "topic": "algo",
   "difficulty": "beginner",
   "type": "code",
-  "tags": ["arrays", "bounds", "sanitizers", "io"],
+  "tags": [
+    "arrays",
+    "bounds",
+    "sanitizers",
+    "io"
+  ],
   "estimate": 15,
   "prereqs": [
-    { "concept": "array-bounds", "why": "The whole problem is written to tempt you one element past the end of the array." },
-    { "concept": "sanitizers", "why": "This problem is built with AddressSanitizer on, and it fails if the sanitizer finds anything — even when the numbers printed are right." }
+    {
+      "concept": "array-bounds",
+      "why": "The whole problem is written to tempt you one element past the end of the array."
+    },
+    {
+      "concept": "sanitizers",
+      "why": "This problem is built with AddressSanitizer on, and it fails if the sanitizer finds anything — even when the numbers printed are right."
+    }
   ],
-  "statement": "Read `n`, then `n` integers. Print the **running maximum**: after each value, the largest seen so far, one per line.\n\n```\ninput          output\n5              3\n3 1 4 1 5      3\n               4\n               4\n               5\n```\n\nRead from standard input, write to standard output.\n\n## This one is checked with the sanitizer\n\nIt is built with `-fsanitize=address,undefined`, and **a run that prints the right answer still fails if the sanitizer reports anything**. That is deliberate: reading one element past the end of an array usually prints the right answer anyway, because the memory just after your array is usually harmless. \"It ran fine\" is not evidence that a program is correct, and this is the cheapest possible demonstration of why.\n\nSo write it so that it is right, not so that it looks right.\n\nC++ and Rust are compiled and run by the judge, which needs Docker. JavaScript runs here in the browser and is always available — but note that the sanitizer requirement only means something for C++.",
+  "statement": "Read `n`, then `n` integers. Print the **running maximum**: after each value, the largest seen so far, one per line.\n\n```\ninput          output\n5              3\n3 1 4 1 5      3\n               4\n               4\n               5\n```\n\nRead from standard input, write to standard output.\n\n## This one is checked with the sanitizer\n\nIt is built with `-fsanitize=address,undefined`, and **a run that prints the right answer still fails if the sanitizer reports anything**. That is deliberate: reading one element past the end of an array usually prints the right answer anyway, because the memory just after your array is usually harmless. \"It ran fine\" is not evidence that a program is correct, and this is the cheapest possible demonstration of why.\n\nSo write it so that it is right, not so that it looks right.\n\nC++ and Rust are compiled and run by a runner — hosted, or one you start locally. JavaScript runs here in the browser and is always available — but note that the sanitizer requirement only means something for C++.",
   "hints": [
     "A loop of the form `for (int i = 0; i <= n; i++)` runs n+1 times. Count the iterations on paper for n = 3.",
     "There are n values and n lines of output. If your loop body prints once, how many times may the loop run?",
     "If the sanitizer is complaining, read the first line of its report: it names the kind of error, and the line of your source it happened on."
   ],
   "payload": {
-    "langs": ["cpp", "rust", "js"],
+    "langs": [
+      "cpp",
+      "rust",
+      "js"
+    ],
     "profile": "sanitize",
     "requireClean": true,
-    "limits": { "runMs": 3000 },
+    "limits": {
+      "runMs": 3000
+    },
     "cases": [
-      { "stdin": "5\n3 1 4 1 5\n", "expect": "3\n3\n4\n4\n5\n" },
-      { "stdin": "1\n42\n", "expect": "42\n" }
+      {
+        "stdin": "5\n3 1 4 1 5\n",
+        "expect": "3\n3\n4\n4\n5\n"
+      },
+      {
+        "stdin": "1\n42\n",
+        "expect": "42\n"
+      }
     ]
   }
 }

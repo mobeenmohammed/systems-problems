@@ -181,6 +181,8 @@ const UNSTYLED_HOOKS = [
   'locate-status',     /* where the locate type writes its verdict */
   'match-status',      /* the same, for match */
   'topic-chip-label',  /* the chip's text, styled by the chip itself */
+  'predict-reveal',    /* marks the node reveal() adds so it can take it back
+                          out again — it is a .case, and looks like one */
 ];
 
 const unstyled = [...appliedCandidates]
@@ -228,81 +230,47 @@ check('a hidden flex container is still none',       display('flexed'), 'none');
 check('a hidden grid container is still none',       display('gridded'), 'none');
 ok('and a visible one is not none',                  display('shown') !== 'none');
 
-/* ---------------- the editor's two layers ----------------
+/* ---------------- the editor ----------------
 
-   The syntax highlighting is a coloured <pre> sitting exactly behind a
-   transparent <textarea>. Anything that can move a glyph by a fraction of a
-   pixel must be identical on both, or the text sits beside its own colour —
-   and the symptom is subtle enough to ship unnoticed.
+   There used to be a long section here checking that a coloured <pre> and a
+   transparent <textarea> declared identical font metrics, because the two
+   layers had to agree to the fraction of a pixel or the text sat beside its
+   own colour. That editor is gone: CodeMirror owns the inside of .ed now, as
+   one scroll container with the gutter inside it.
 
-   So the metrics are declared once, in a rule that targets both, and this
-   checks two things: that the shared rule really does declare all of them,
-   and that no rule targeting just one layer sets any of them afterwards. */
+   The point worth keeping is that the checks never caught the bugs. A
+   stylesheet that passed every one of them still produced a caret in the
+   wrong place, a scrollbar across the middle of the editor and line numbers
+   that drifted. Those are measurements, and they are made in a real browser
+   in tests/browser/journeys.test.mjs. What is checked here is only what CSS
+   alone can settle: that the two-layer editor really is gone, and that the
+   structural fixes are still in the stylesheet rather than having been
+   reverted by a later tidy-up. */
 
-section('the editor overlay has matched metrics');
+section('the two-layer editor is gone');
+ok('no highlight overlay is styled', !styles.includes('.ed-highlight'));
+ok('the only .ed-input left is the fallback textarea',
+  [...styles.matchAll(/\.ed-input/g)].every((_, i, all) => all.length <= 3)
+  && !/\.ed-input\s*\{[^}]*color:\s*transparent/.test(styles));
 
-const METRICS = [
-  'font-family', 'font-size', 'line-height', 'letter-spacing', 'tab-size',
-  'padding', 'margin', 'border', 'white-space', 'text-indent', 'box-sizing',
-  'word-break', 'overflow-wrap', 'text-align',
-];
+section('the editor is bounded by grid rows, not percentage heights');
+/* The measured failure: .ed grew to 1840px inside a 492px flex box, because a
+   flex item with height:100% does not shrink below its content. A
+   minmax(0, 1fr) grid row does. */
+ok('the editor panel is a grid with a bounded row',
+  /\.ws-editor\s*\{[^}]*grid-template-rows:\s*minmax\(0, ?1fr\)/.test(styles));
+ok('and so is the widget inside it',
+  /\.ws-editor \.widget\s*\{[^}]*minmax\(0, ?1fr\)/.test(styles));
+ok('and the editor host inside that',
+  /\.ws-editor \.ed-host\s*\{[^}]*minmax\(0, ?1fr\)/.test(styles));
+ok('.ed itself does not force a height through the chain',
+  /\.ws-editor \.ed\s*\{[^}]*min-height:\s*0/.test(styles));
 
-/* A rule is {selector, declarations}. Good enough for a hand-written
-   stylesheet with no nested at-rules inside these sections. */
-function rules(css) {
-  const out = [];
-  for (const chunk of css.split('}')) {
-    const at = chunk.indexOf('{');
-    if (at < 0) continue;
-    const selector = chunk.slice(0, at).replace(/\/\*[\s\S]*?\*\//g, '').trim();
-    if (!selector || selector.startsWith('@')) continue;
-    out.push({ selector, body: chunk.slice(at + 1) });
-  }
-  return out;
-}
-
-const declares = (body, prop) =>
-  new RegExp('(^|;|\\n)\\s*' + prop.replace('-', '\\-') + '\\s*:', 'i').test(body);
-
-const edRules = rules(styles);
-
-const shared = edRules.find(r => {
-  const parts = r.selector.split(',').map(x => x.trim());
-  return parts.includes('.ed-highlight') && parts.includes('.ed-input');
-});
-ok('a rule targets both layers together', !!shared);
-
-if (shared) {
-  for (const prop of METRICS) {
-    ok(`the shared rule sets ${prop}`, declares(shared.body, prop));
-  }
-}
-
-/* Only rules targeting a layer element itself — not a descendant of it, and
-   not the container. `.ed-highlight code` legitimately zeroes its own padding
-   because the textarea has no equivalent child. */
-const LAYER_ONLY = /^\.ed-(input|highlight)(::?[\w-]+)?$/;
-
-for (const r of edRules) {
-  if (r === shared) continue;
-  const parts = r.selector.split(',').map(x => x.trim());
-  const targetsOneLayer = parts.some(p => LAYER_ONLY.test(p));
-  if (!targetsOneLayer) continue;
-  const sets = METRICS.filter(prop => declares(r.body, prop));
-  if (!check(`"${r.selector}" sets no shared metric`, sets, [])) {
-    console.log('        a metric set on one layer only will misalign the text');
-  }
-}
-
-section('the overlay cannot be clicked, and the input is on top');
-ok('the highlight ignores pointer events',
-  shared && /pointer-events:\s*none/.test(styles.slice(styles.indexOf('.ed-highlight {'))));
-ok('the input text is transparent so the colours show through',
-  /\.ed-input\s*\{[^}]*color:\s*transparent/.test(styles));
-ok('but the caret is not',
-  /\.ed-input\s*\{[^}]*caret-color:/.test(styles));
-ok('and a too-long document falls back to showing the textarea itself',
-  /data-plain="true"[^}]*\}/.test(styles) || styles.includes('data-plain'));
+section('the workspace owns the viewport without scrolling the page');
+ok('the main column is sized to the viewport',
+  /body\[data-workspace="true"\] \.main\s*\{[^}]*height:\s*calc\(100vh/.test(styles));
+ok('and clips rather than letting the page scroll sideways',
+  /body\[data-workspace="true"\] \.main\s*\{[^}]*overflow:\s*hidden/.test(styles));
 
 /* ---------------- the views ---------------- */
 
@@ -339,7 +307,12 @@ section('load order');
    type modules before problem.js asks the registry for one. */
 const idx = src => srcs.indexOf(src);
 ok('the registry loads before the type modules', idx('js/types/registry.js') < idx('js/types/mcq.js'));
-ok('store loads first', idx('js/store.js') === 0);
+/* The CodeMirror bundle defines window.CM and nothing reads it at load time,
+   so it only has to be before js/editor.js. Of our own scripts, store.js is
+   first: every other module reads Store at definition time. */
+ok('the editor bundle loads before the editor', idx('vendor/codemirror.js') < idx('js/editor.js'));
+ok('store is the first of our own scripts',
+  srcs.filter(s2 => s2.startsWith('js/'))[0] === 'js/store.js');
 ok('app loads last', idx('js/app.js') === srcs.length - 1);
 ok('md loads before problem.js, which renders with it', idx('js/md.js') < idx('js/problem.js'));
 ok('highlight loads before md, which calls into it', idx('js/highlight.js') < idx('js/md.js') + 2);

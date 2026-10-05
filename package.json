@@ -7,20 +7,41 @@
   "scripts": {
     "build:index": "node scripts/build-index.mjs",
     "build:readme": "node scripts/build-readme.mjs",
+    "build:editor": "node scripts/build-editor.mjs",
     "check:index": "node scripts/build-index.mjs --check",
+    "audit:leaks": "node scripts/audit-leaks.mjs",
     "test": "npm run test:unit && npm run test:browser",
-    "test:unit": "node tests/store.test.mjs && node tests/md.test.mjs && node tests/contrast.test.mjs && node tests/grade.test.mjs && node tests/runner.test.mjs && node tests/lint.test.mjs && node tests/judge.test.mjs && node tests/judge0.test.mjs && node tests/content.test.mjs",
+    "test:unit": "node tests/store.test.mjs && node tests/md.test.mjs && node tests/contrast.test.mjs && node tests/grade.test.mjs && node tests/runner.test.mjs && node tests/lint.test.mjs && node tests/judge.test.mjs && node tests/proxy.test.mjs && node tests/content.test.mjs",
     "test:browser": "node tests/browser/app.test.mjs && node tests/browser/styles.test.mjs && node tests/browser/states.test.mjs && node tests/browser/runner.test.mjs",
-    "judge:up": "docker compose -f judge/compose.yml up -d",
-    "judge:down": "docker compose -f judge/compose.yml down",
+    "test:journeys": "node tests/browser/journeys.test.mjs",
+    "test:runner": "node tests/browser/runner.test.mjs",
     "serve": "python -m http.server 8000",
+    "proxy": "node proxy/server.mjs",
     "runner": "wsl.exe -d Ubuntu -- bash -lc \"cd \\\"$(wslpath '%cd%')\\\" && ./judge/run-wsl.sh\"",
     "runner:wsl": "./judge/run-wsl.sh",
     "runner:check": "wsl.exe -d Ubuntu -- bash -lc \"cd \\\"$(wslpath '%cd%')\\\" && JUDGE_CHECK_ONLY=1 ./judge/run-wsl.sh\"",
-    "test:runner": "node tests/browser/runner.test.mjs",
-    "test:judge0": "JUDGE0=1 node tests/judge0.test.mjs"
+    "runner:status": "node scripts/runner-status.mjs",
+    "runner:stop": "wsl.exe -d Ubuntu -- bash -lc \"pkill -f 'judge/server.mjs' && echo stopped || echo 'nothing was running'\"",
+    "judge:up": "docker compose -f judge/compose.yml up -d",
+    "judge:down": "docker compose -f judge/compose.yml down",
+    "test:proxy": "PROXY_LIVE=1 node tests/proxy.test.mjs",
+    "test:hosted": "node tests/browser/hosted.test.mjs",
+    "test:local": "node tests/browser/local.test.mjs"
   },
   "devDependencies": {
-    "jsdom": "^29.1.1"
+    "@codemirror/commands": "^6.11.1",
+    "@codemirror/lang-cpp": "^6.0.3",
+    "@codemirror/lang-javascript": "^6.2.5",
+    "@codemirror/lang-python": "^6.2.1",
+    "@codemirror/lang-rust": "^6.0.2",
+    "@codemirror/language": "^6.12.4",
+    "@codemirror/lint": "^6.9.7",
+    "@codemirror/search": "^6.7.2",
+    "@codemirror/state": "^6.7.6",
+    "@codemirror/view": "^6.43.13",
+    "codemirror": "^6.0.2",
+    "esbuild": "^0.28.2",
+    "jsdom": "^29.1.1",
+    "playwright": "^1.63.0"
   }
 }

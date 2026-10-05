@@ -260,10 +260,34 @@
         missing, and then listens on <code>127.0.0.1</code> only.
       </p>
 
+      <!-- Hosted execution is the path for a device with no runner on it,
+           which is every device that opens the published site. It is listed
+           beside the local runner rather than buried, because which of the
+           two is in use decides what every error message means. -->
+      <h4 style="margin:1.3rem 0 .3rem">Hosted execution</h4>
+      <div class="judge-state" id="hostedState" data-state="unchecked">
+        <span class="dot"></span>
+        <span id="hostedStateText">Not configured</span>
+      </div>
+      <label class="small muted" style="display:block;margin-top:.7rem">Hosted runner address<br>
+        <input id="setHosted" style="margin-top:.2rem;width:min(100%,22rem)"
+               placeholder="https://your-proxy.example.workers.dev" spellcheck="false">
+      </label>
+      <div class="row" style="margin-top:.7rem">
+        <button class="btn btn-sm" id="hostedCheck">Check hosted runner</button>
+      </div>
+      <p class="tiny faint prose" style="margin:.45rem 0 0">
+        A small proxy you deploy yourself, which holds the execution credential server-side
+        and applies its own rate limits — <code>proxy/</code> in the repository, with a
+        Cloudflare Worker entry and a Node one. Leave it empty to run nothing but JavaScript
+        unless a local runner is up. Nothing is ever sent to a local address unless the
+        toolbar says <strong>Local</strong>.
+      </p>
+
       <!-- Everything below is for the day something does not work, so it
            starts closed rather than making the common case read like setup
            documentation. -->
-      <details class="advanced">
+      <details class="advanced" style="margin-top:1.1rem">
         <summary>Advanced setup</summary>
 
         <label class="small muted">Runner address<br>
@@ -292,9 +316,9 @@
         <pre class="code-block"><code>docker compose -f judge/compose.yml up -d</code></pre>
 
         <p class="tiny faint prose" style="margin:.6rem 0 0">
-          To run C++ and Rust from a device that cannot reach this machine at all, enable the
-          hosted Judge0 backend in <code>data/config.json</code>. It needs no account and no key;
-          it is slower, and your submission goes to a third party. See the README.
+          A default hosted address can be baked into <code>data/config.json</code> so the
+          published site has one without anybody typing it in. The address above overrides it
+          for this browser.
         </p>
       </details>
     </div>
@@ -345,12 +369,18 @@
 
 <div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
 
+<!-- CodeMirror, vendored rather than fetched so the editor still works on a
+     laptop with no network. Built by scripts/build-editor.mjs; see the note at
+     the top of js/editor.js for why the hand-rolled editor was replaced. If
+     this file is missing, js/editor.js falls back to a plain textarea. -->
+<script src="vendor/codemirror.js"></script>
+
 <script src="js/store.js"></script>
 <script src="js/md.js"></script>
 <script src="js/highlight.js"></script>
 <script src="js/catalog.js"></script>
 <script src="js/runners/harness.js"></script>
-<script src="js/runners/judge0.js"></script>
+<script src="js/runners/hosted.js"></script>
 <script src="js/runners/index.js"></script>
 <script src="js/lint.js"></script>
 <script src="js/editor.js"></script>
