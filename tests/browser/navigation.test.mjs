@@ -56,7 +56,12 @@ const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 page.on('pageerror', e => errors.push('pageerror: ' + e.message));
 page.on('console', m => {
   if (m.type() !== 'error') return;
-  if (/ERR_CONNECTION_REFUSED|Failed to load resource/.test(m.text())) return;
+  /* Two things the browser says that are it working correctly, not the page
+     failing: nothing is listening on the runner's port, and — on the
+     published https site — Chrome refusing the page access to a loopback
+     address until the reader grants Local Network Access. */
+  if (/ERR_CONNECTION_REFUSED|Failed to load resource|loopback/
+    .test(m.text())) return;
   errors.push(m.text());
 });
 

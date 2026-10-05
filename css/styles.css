@@ -1356,6 +1356,13 @@ html[data-focus] .rail { display: none; }
 .pwrap.reading { display: block; }
 .pwrap.reading .pmain { max-width: 68rem; margin: 0 auto; padding: 0 var(--s4) var(--s7); }
 .pwrap.reading .panel > .prose { max-width: 70ch; }
+/* One measure for the whole column. The statement and the options were
+   already held to a readable 68-70ch; the action bar and the verdict were
+   not, so Submit sat at the left end of a bar stretching 500px past the end
+   of the text it belonged to. */
+.pwrap.reading .actions-bar,
+.pwrap.reading .verdict,
+.pwrap.reading .needs-answer { max-width: 70ch; }
 .pwrap.reading .ws-head {
   margin: 0 calc(var(--s4) * -1) var(--s4);
   border-radius: 0;
