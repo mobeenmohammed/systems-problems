@@ -615,9 +615,15 @@ fn main() {
       verdict.cases.forEach((c, i) => { c.stdinShown = (all[i] || {}).stdin || ''; });
 
       if (reply.judgeDown) {
+        /* Name the backend. "The judge is not answering" was written when
+           there was only one, and reading it on the published site — where
+           the judge is a hosted service the reader has never heard of — is
+           no help at all. */
         return {
           correct: false, score: 0, lang: response.lang,
-          feedback: 'The judge is not answering, so this could not be run. Nothing was recorded against the problem.',
+          backend: reply.backend || null,
+          feedback: reply.judgeError
+            || `${reply.backend ? Runners.label(reply.backend) : 'Nothing available'} could not run this.`,
           noAttempt: true, reply, verdict,
         };
       }
