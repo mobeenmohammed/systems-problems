@@ -409,12 +409,28 @@ const Runners = (() => {
     for (const r of ready) (byBackend[r.backend] = byBackend[r.backend] || []).push(r.id);
     const parts = Object.entries(byBackend)
       .map(([b, ids]) => `${BACKEND_LABEL[b]}: ${ids.join(', ')}`);
-    void judge;
-    return {
-      kind: 'ready',
-      text: parts.join(' · ')
-        + (blocked.length ? ` · ${blocked.map(r => r.id).join(', ')} unavailable` : ''),
-    };
+
+    /* "cpp unavailable" is a fact, not advice. If something is blocked, the
+       sentence has to carry the reason and the fix — otherwise the reader is
+       told that C++ does not work and left to guess whose fault it is. */
+    let tail = '';
+    if (blocked.length) {
+      const names = blocked.map(r => r.id.toUpperCase()).join(' and ');
+      tail = ` · ${names} cannot run: `;
+      if (hostedAvailable()) {
+        const h = await Hosted.check();
+        tail += h.up
+          ? 'the hosted runner does not offer it.'
+          : `the hosted runner is not answering${h.error ? ` (${h.error})` : ''}.`;
+      } else if (judge.state === 'unauthed') {
+        tail += 'the local runner refused this page — reload, or paste its token in Settings.';
+      } else {
+        tail += 'there is no runner. Start one with npm run runner, or set a hosted '
+          + 'runner address in Settings.';
+      }
+    }
+
+    return { kind: blocked.length ? 'partial' : 'ready', text: parts.join(' · ') + tail };
   }
 
   /* Runs it, and says who did. */

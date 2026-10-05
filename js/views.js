@@ -1271,6 +1271,18 @@ const UI = (() => {
       }
     } else if (state === 'down') {
       line = `Nothing is listening at ${judge.url}${judge.error ? ` (${judge.error})` : ''}.`;
+      /* Measured against the published site: Chrome now gates a request from
+         an https page to a loopback address behind a Local Network Access
+         permission, and a denied one looks exactly like nothing listening.
+         Worth saying, because the usual advice — "start the runner" — is
+         useless when the runner is already running. */
+      if (location.protocol === 'https:' && /127\.0\.0\.1|\[::1\]|localhost/.test(judge.url)) {
+        note = 'If it *is* running, your browser may be blocking this page from '
+             + 'reaching your own machine: recent Chrome asks permission before an '
+             + 'https page may touch a local address. Allow it when prompted, or '
+             + 'open the site from http://127.0.0.1:8000 instead. Hosted execution '
+             + 'is not affected.';
+      }
     } else if (state === 'unauthed') {
       line = `Running at ${judge.url}, but it refused this page${judge.error ? ` (${judge.error})` : ''}.`;
     }

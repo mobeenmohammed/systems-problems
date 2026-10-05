@@ -382,8 +382,10 @@ const ProblemView = (() => {
     const tabs = widget.querySelector('.lang-tabs');
     const slotFor = bar.querySelector('#langSlot');
     if (tabs && slotFor) slotFor.append(tabs);
-    const exec = widget.querySelector('.judge-state');
-    if (exec) exec.remove();
+    /* The judge-state box stays in the editor panel but is hidden by CSS
+       while everything is fine — the toolbar chip is enough then. When
+       something cannot run it reappears, because "No runner" on its own does
+       not tell anybody which runner or what to do about it. */
 
     repaintMarks(widget);
   }
@@ -749,6 +751,25 @@ const ProblemView = (() => {
       el('p', { html: MD.renderInline(result.feedback || '') }),
       bits.length ? el('p', { class: 'award', text: bits.join(' · ') }) : null,
       el('p', { class: 'tiny faint' }, [next]),
+    ]);
+  }
+
+  /* A submission that never ran. Deliberately not a verdict: it has no
+     score, no award and no "try again, nothing has been revealed", because
+     nothing was judged. Saying "Not right" here would be a lie about the
+     reader's answer, and it is the lie that makes a flaky runner feel like a
+     flaky grader. */
+  function executionFailureNode(blocked) {
+    const where = blocked && blocked.backend
+      ? Runners.label(blocked.backend)
+      : null;
+    return el('div', { class: 'verdict', 'data-kind': 'blocked' }, [
+      el('h4', { text: where ? `Could not run — ${where}` : 'Could not run' }),
+      el('p', { html: MD.renderInline((blocked && blocked.feedback) || 'Nothing could run this.') }),
+      el('p', { class: 'tiny faint' }, [
+        'Nothing was recorded against the problem and your work is still here. '
+        + 'This is not a wrong answer — it is an attempt that never happened.',
+      ]),
     ]);
   }
 

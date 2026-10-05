@@ -85,6 +85,12 @@ ALLOWED_ORIGINS="http://127.0.0.1:8000" npm run proxy
 Then put `http://127.0.0.1:8787` into Settings → Code execution → Hosted
 runner address. The toolbar will say **Hosted**.
 
+Serve the site from `http://127.0.0.1:8000` for this, not from the published
+`https://` URL. Current Chromium gates a request from an `https` page to a
+loopback address behind a Local Network Access permission and denies it
+without one — measured, not assumed; it is why a deployed proxy has to be a
+real public `https` endpoint rather than something on your own machine.
+
 ### On Cloudflare Workers
 
 ```sh

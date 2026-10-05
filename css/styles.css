@@ -860,6 +860,8 @@ pre.code-block[data-lang]::before {
 .verdict[data-kind="right"] { border-left-color: var(--ok); }
 .verdict[data-kind="wrong"] { border-left-color: var(--danger); }
 .verdict[data-kind="part"]  { border-left-color: var(--warn); }
+/* An attempt that never ran. Not red: nothing was wrong with the answer. */
+.verdict[data-kind="blocked"] { border-left-color: var(--text-faint); }
 .verdict h4 { margin: 0 0 .3rem; font-size: 1rem; }
 .verdict p { margin: 0 0 .4rem; }
 .verdict p:last-child { margin-bottom: 0; }
@@ -1243,8 +1245,9 @@ body[data-workspace="true"] #problemHost { height: 100%; min-height: 0; }
 }
 .ws-editor .widget {
   min-height: 0; display: grid;
-  /* editor-head, the editor itself, the tools row, leftover */
-  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  /* the language tabs, the editor, the "what can run" line, the tools row,
+     and whatever is left. Only the editor gets the leftover height. */
+  grid-template-rows: auto minmax(0, 1fr) auto auto auto;
 }
 .ws-editor .ed-host {
   min-height: 0; display: grid;
@@ -1253,6 +1256,9 @@ body[data-workspace="true"] #problemHost { height: 100%; min-height: 0; }
 }
 .ws-editor .ed { min-height: 0; height: auto; }
 .ws-editor .ed-status { padding-top: .3rem; }
+/* Only shown when something is wrong: see mountAnswer in js/problem.js. */
+.ws-editor .judge-state { margin: .4rem 0 0; font-size: .78rem; }
+.ws-editor .judge-state[data-up="true"] { display: none; }
 .ws-editor .ed-problems { max-height: 7rem; overflow: auto; }
 
 .ws-results { display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 0; }

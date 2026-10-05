@@ -96,6 +96,11 @@ section('the page knows where it can run');
   check('labelled for a person', state.rows[0].where, 'Hosted');
   ok('the toolbar sentence names it', /Hosted/.test(state.described.text));
   ok('the proxy reported its languages', state.hosted.languages.includes('cpp'));
+  check('and because everything can run, no explanation is in the way',
+    await page.evaluate(() => {
+      const n = document.querySelector('.judge-state');
+      return n ? getComputedStyle(n).display : 'absent';
+    }), 'none');
 }
 
 section('write C++ and press Run, with no local runner');
@@ -219,9 +224,38 @@ section('an unavailable hosted runner is reported honestly');
   await pasteInto(p2, '#include <iostream>\nint main(){ std::cout << 1; }');
   await p2.locator('#runBtn').click();
   await waitForRun(p2);
+  const why = await p2.evaluate(() => {
+    const n = document.querySelector('.judge-state');
+    return n && getComputedStyle(n).display !== 'none' ? n.textContent : '';
+  });
+  ok(`the editor panel explains which runner and what to do ("${why.trim()}")`,
+    /hosted/i.test(why) && why.length > 20);
+
   ok('the page says it could not run, not that the answer was wrong',
     /could not run|not answering/i.test(
       await p2.evaluate(() => document.getElementById('resultPane').textContent)));
+
+  /* And on Submit, which is a different path: the grader comes back with
+     noAttempt, and the page has to render that as "never ran" rather than as
+     a verdict. This caught a ReferenceError that only fired when every
+     backend was unreachable at once. */
+  await p2.locator('#submitBtn').click();
+  await p2.waitForTimeout(3000);
+  const blocked = await p2.evaluate(() => {
+    const v = document.querySelector('.verdict');
+    return {
+      kind: v && v.dataset.kind,
+      head: v ? v.querySelector('h4').textContent : '',
+      body: v ? v.textContent : '',
+      status: window.SystemsLab.Store.record('algo-running-max').status,
+      source: window.SystemsLab.ProblemTypes.get('code').editor().value,
+    };
+  });
+  check('a submission that never ran is not shown as a verdict', blocked.kind, 'blocked');
+  ok('it says so in as many words', /could not run/i.test(blocked.head));
+  ok('and that nothing was recorded', /not a wrong answer/i.test(blocked.body));
+  check('because nothing was', blocked.status, 'unsolved');
+  ok('the code is still there', blocked.source.length > 10);
   if (process.env.SHOTS) await p2.screenshot({ path: path.join(SHOTS, 'state-unavailable.png') });
   await p2.close();
 }

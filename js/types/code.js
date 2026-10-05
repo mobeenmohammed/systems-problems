@@ -118,17 +118,20 @@ fn main() {
     }
     mount.append(head);
 
-    /* Rendered here, then moved into the workspace toolbar by problem.js so
-       execution status sits beside Run and Submit rather than above the
-       editor. On the reading layout it stays where it is. */
+    const editorHost = el('div', { class: 'ed-host' });
+    mount.append(editorHost);
+
+    /* Under the editor, not above it, and hidden by CSS whenever everything
+       can run — the toolbar chip says Hosted or Local in the ordinary case.
+       This is for when it cannot: "No runner" on its own does not tell
+       anybody which runner, or what to do about it. It is after the editor
+       in the DOM because the editor is the row the workspace grid gives the
+       leftover height to. */
     const judgeBox = el('div', { class: 'judge-state', 'data-up': 'false' }, [
       el('span', { class: 'dot' }),
       el('span', { id: 'codeJudgeText', text: 'Checking what can run…' }),
     ]);
     mount.append(judgeBox);
-
-    const editorHost = el('div', { class: 'ed-host' });
-    mount.append(editorHost);
 
     state.editor = Editor.create(editorHost, {
       value: sourceFor(problem, lang),
@@ -201,18 +204,21 @@ fn main() {
         /* The page may have moved on while the probes were out. */
         if (!state || state.mount !== mount) return;
 
-        const text = document.getElementById('codeJudgeText');
-        if (text) {
-          if (judgeBox) judgeBox.dataset.up = String(said.kind === 'ready');
-          text.textContent = said.text;
-        }
-
         /* The workspace redraws after every run, which remounts this widget,
            so the chip has to be rebuilt from what is known rather than left
            as whatever doRun last wrote into it. Three things it can say, in
            order of what the reader most needs: what just happened, what
            would happen, and that nothing can. */
         const here = rows.find(r => r.id === state.lang);
+
+        const text = document.getElementById('codeJudgeText');
+        if (text) {
+          /* Hidden when the language in front of the reader can run. Another
+             language being unavailable is worth saying somewhere, but not
+             worth a standing notice over the editor of the one that works. */
+          if (judgeBox) judgeBox.dataset.up = String(!!(here && here.ready));
+          text.textContent = said.text;
+        }
         const ran = last.reply && last.reply.lang === state.lang;
         if (ran && last.reply.judgeDown) {
           setExec('blocked', `Could not run — ${Runners.label(last.reply.backend)}`);

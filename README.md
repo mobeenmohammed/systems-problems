@@ -626,11 +626,31 @@ statement gives away its own answer without saying so in
 tree, because the deploy job publishes the whole checkout.
 
 The runner is **not** deployed, and never should be — it runs arbitrary code
-as you. It is a local service, and the published site reaches it on loopback:
-browsers exempt loopback *addresses* from mixed-content blocking, which is why
-the default is `http://127.0.0.1:2000` rather than `localhost`. From a device
-that cannot reach your machine, hosted execution through the proxy is the
-answer — see above.
+as you. It is a local service. The default address is `http://127.0.0.1:2000`
+rather than `localhost` because browsers exempt loopback *addresses* from
+mixed-content blocking and Firefox does not extend that to the name.
+
+**That is no longer the whole story, and it was measured rather than assumed.**
+Driving the published `https://` site against a runner on loopback, current
+Chromium refuses with:
+
+```
+Permission was denied for this request to access the `loopback` address space.
+```
+
+Mixed content is not the gate any more — Local Network Access is. Chrome asks
+the user before an `https` page may touch a local address, and an
+unanswered prompt denies it, which looks from the page exactly like nothing
+listening. So Settings says so when the page is `https` and the address is
+loopback, instead of repeating "start the runner" at somebody whose runner is
+already running.
+
+The practical consequences:
+
+- the runner is best used with the site served locally (`npm run serve`),
+  where both are `http://127.0.0.1` and nothing is cross-space;
+- **hosted execution is the answer for the published site**, and it has to be
+  a real public `https` endpoint — a proxy on loopback hits the same gate.
 
 ### Managing the runner
 
