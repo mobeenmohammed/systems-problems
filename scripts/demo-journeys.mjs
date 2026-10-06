@@ -319,16 +319,17 @@ console.log('  hosted:  cleared');
       + `${b.getAttribute('aria-pressed') === 'true' ? ' <- selected' : ''}`).join(', ')));
   saw('Run disabled right now', await p.evaluate(() =>
     document.getElementById('runBtn').disabled));
-  /* C++ is the one the audit blocked; JavaScript on the same problem is
-     not, which is why Run is not simply switched off. */
-  const cppTab = p.locator('.lang-tab', { hasText: /^C\+\+$/ }).first();
-  if (await cppTab.count()) {
-    await cppTab.click();
-    await p.waitForTimeout(1600);
-    saw('with C++ selected, the chip says', (await look(p)).chip);
-    saw('and Run is disabled', await p.evaluate(() =>
-      document.getElementById('runBtn').disabled));
-  }
+  /* C++ is the one the audit blocked and it is the selected tab, disabled,
+     titled "Nothing available can run this". Run is still clickable, because
+     JavaScript on the same problem can run - so press it and see what it
+     says, which is the thing that actually matters. */
+  await p.locator('#runBtn').click();
+  await p.waitForTimeout(3500);
+  saw('pressing Run anyway says', await p.evaluate(() =>
+    (document.getElementById('resultPane') || {}).textContent
+      .replace(/\s+/g, ' ').trim().slice(0, 420)));
+  saw('and records', await p.evaluate(() =>
+    window.SystemsLab.Store.record('algo-running-max').status));
   saw('what describe() returns', await p.evaluate(async () =>
     JSON.stringify(await window.SystemsLab.Runners
       .describe(['cpp'], 'algo-running-max'))));
@@ -479,9 +480,11 @@ const mlook = p => p.evaluate(() => {
       await p.waitForTimeout(1200);
       saw('Solution tab now open', await p.evaluate(() =>
         !document.querySelector('.tab[data-tab="solution"][data-locked="true"]')));
-      saw('a model proof is on screen', await p.evaluate(() =>
-        `${(document.querySelector('.panel-solution, .solution') || {})
-          .textContent.trim().length} characters`));
+      saw('a model proof is on screen', await p.evaluate(() => {
+        const n = document.querySelector('#panel-solution, .panel[data-panel="solution"]')
+          || [...document.querySelectorAll('.panel')].find(x => !x.hidden);
+        return n ? `${n.textContent.trim().length} characters` : '(not found)';
+      }));
       saw('and the record says', await p.evaluate(() =>
         window.SystemsLab.Store.record('metric-continuity-epsilon-delta').status));
     }

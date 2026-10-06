@@ -200,6 +200,13 @@ select { cursor: pointer; }
   border: 1px solid var(--border);
   border-radius: 999px;
   padding: 3px;
+  /* Shrinks and scrolls inside itself rather than pushing the page
+     sideways. The breakpoint below gives it a row of its own on a narrow
+     window, but a window can also be wide and the text large - a browser
+     set to 19px, say - and no pixel breakpoint can see that. When it fits
+     this changes nothing: there is nothing to scroll. */
+  flex: 0 1 auto; min-width: 0;
+  overflow-x: auto; scrollbar-width: thin;
 }
 .topbar-nav a {
   padding: .3em .8em; border-radius: 999px;

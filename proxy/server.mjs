@@ -12,8 +12,17 @@ import { createServer } from 'node:http';
 import { handle, sweepBuckets, LIMITS } from './handler.mjs';
 
 const PORT = Number(process.env.PORT || 8787);
+
+/* An unset allowlist means "any origin" to the handler - it skips the 403 -
+   but with nothing in the list there is no Access-Control-Allow-Origin
+   header either, so every browser blocked the call and the banner's claim
+   of "(any - development only)" was true of the policy and useless in
+   practice. This is the development entry point, so make the two agree.
+   The Worker keeps the stricter default: deployments set the list. */
+const ORIGINS = process.env.ALLOWED_ORIGINS || '*';
+
 const env = {
-  ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS || '',
+  ALLOWED_ORIGINS: ORIGINS,
   CLIENT_TOKEN: process.env.CLIENT_TOKEN || '',
   JUDGE0_URL: process.env.JUDGE0_URL || '',
   JUDGE0_RAPIDAPI_KEY: process.env.JUDGE0_RAPIDAPI_KEY || '',
@@ -65,7 +74,8 @@ server.listen(PORT, '127.0.0.1', () => {
   console.log('  Systems Lab hosted-execution proxy');
   console.log(`  listening   http://127.0.0.1:${PORT}`);
   console.log(`  upstream    ${upstream}`);
-  console.log(`  origins     ${env.ALLOWED_ORIGINS || '(any — development only)'}`);
+  console.log(`  origins     ${env.ALLOWED_ORIGINS}`
+    + `${process.env.ALLOWED_ORIGINS ? '' : '   (any — development default)'}`);
   console.log(`  client tok  ${env.CLIENT_TOKEN ? 'required' : 'not required'}`);
   console.log(`  limits      ${LIMITS.maxCases} cases, ${LIMITS.cpuSeconds.max}s cpu, `
     + `${LIMITS.bucket.capacity} runs burst / ${LIMITS.bucket.refillPerMinute} per minute`);

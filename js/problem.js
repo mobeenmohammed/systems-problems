@@ -1271,11 +1271,20 @@ const ProblemView = (() => {
   }
 
   async function doReveal() {
-    const ok = confirm(
-      'Reveal the answer?\n\n' +
-      'This problem will score zero and be recorded as read rather than solved. ' +
-      'It stays in your list and you can still come back and work it properly.'
-    );
+    /* On a written proof, revealing is not giving up - it is the step the
+       verdict just told the reader to take, because nothing here can mark a
+       proof and comparing against a model is the whole method. The generic
+       warning ("score zero, recorded as read") reads as a penalty for doing
+       the intended thing, so say what actually happens instead. */
+    const ok = confirm(current.type === 'proof'
+      ? 'Show a model proof?\n\n'
+        + 'Your own attempt stays exactly as you wrote it. Read it against the '
+        + 'rubric first - once you have seen the model proof, recording the '
+        + 'review earns no XP, and the problem is marked Self-reviewed rather '
+        + 'than solved. Nothing here can mark a proof either way.'
+      : 'Reveal the answer?\n\n'
+        + 'This problem will score zero and be recorded as read rather than solved. '
+        + 'It stays in your list and you can still come back and work it properly.');
     if (!ok) return;
     Store.reveal(current);
     solution = await Catalog.solution(current.id);
