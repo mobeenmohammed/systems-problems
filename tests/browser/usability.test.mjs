@@ -182,15 +182,37 @@ for (const [w, h] of [[1920, 1080], [1536, 864], [1440, 900], [1280, 800], [1152
 await page.setViewportSize({ width: 1440, height: 900 });
 
 section('no page-level horizontal overflow anywhere');
-for (const [w, label] of [[1440, 'desktop'], [1024, 'small laptop'], [390, 'phone']]) {
+/* The tablet widths are in here deliberately. The first version of this
+   check sampled 1440, 1024 and 390, and the whole site scrolled sideways
+   by 148px at 768 without anything failing: the top bar was a single
+   nowrap row down to 680, and the brand, the subject switch, seven view
+   links and the purse stopped fitting long before that. */
+for (const [w, label] of [[1440, 'desktop'], [1024, 'small laptop'],
+  [900, 'tablet'], [820, 'tablet'], [768, 'tablet'], [700, 'tablet'],
+  [390, 'phone'], [320, 'narrow phone']]) {
   await page.setViewportSize({ width: w, height: 900 });
   for (const hash of ['#/', '#/problems', '#/tracks', '#/concepts', '#/profile',
-    '#/shop', '#/settings', '#/setup', '#/p/algo-running-max', '#/p/cpp-sizeof-and-types']) {
+    '#/shop', '#/settings', '#/setup', '#/p/algo-running-max', '#/p/cpp-sizeof-and-types',
+    '#/p/metric-three-metrics-compared', '#/p/prob-bayes-screening']) {
     await open(hash, 700);
     const over = await page.evaluate(() =>
       document.documentElement.scrollWidth - window.innerWidth);
-    ok(`${label} ${hash}: no sideways scroll (${over}px)`, over <= 2);
+    ok(`${label} ${w}px ${hash}: no sideways scroll (${over}px)`, over <= 2);
   }
+
+  /* Overflowing nothing is not enough on its own: the view links have to
+     stay reachable. Either they all fit, or the strip itself scrolls. */
+  const nav = await page.evaluate(() => {
+    const n = document.querySelector('#nav');
+    const last = n.querySelector('a:last-child').getBoundingClientRect();
+    return {
+      hidden: n.scrollWidth - n.clientWidth,
+      scrollable: getComputedStyle(n).overflowX !== 'visible',
+      lastInStrip: last.right <= n.getBoundingClientRect().right + 1,
+    };
+  });
+  ok(`${label} ${w}px: every view link is reachable`,
+    nav.hidden <= 1 ? nav.lastInStrip : nav.scrollable);
 }
 await page.setViewportSize({ width: 1440, height: 900 });
 

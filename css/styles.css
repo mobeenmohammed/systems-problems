@@ -376,7 +376,7 @@ pre.code-block[data-lang]::before {
 .rank-name { font-weight: 680; font-size: 1.05rem; color: var(--accent); letter-spacing: -.01em; }
 .rank-next { font-size: .72rem; color: var(--text-faint); font-family: var(--mono); }
 
-.stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); gap: var(--s3); margin-bottom: var(--s5); }
+.stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(8.5rem, 100%), 1fr)); gap: var(--s3); margin-bottom: var(--s5); }
 .stat {
   background: var(--bg-elev); border: 1px solid var(--border);
   border-radius: var(--radius); padding: var(--s3) var(--s4);
@@ -391,7 +391,7 @@ pre.code-block[data-lang]::before {
    fixed position. The eye should find "Continue" in the same place every
    visit. */
 .actions {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(22rem, 100%), 1fr));
   gap: var(--s3); margin-bottom: var(--s5);
 }
 .action {
@@ -427,7 +427,7 @@ pre.code-block[data-lang]::before {
 .action-side .btn { justify-content: center; }
 
 /* topic cards */
-.topic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(15.5rem, 1fr)); gap: var(--s3); }
+.topic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(15.5rem, 100%), 1fr)); gap: var(--s3); }
 .topic-card {
   display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s3);
   align-items: center; padding: var(--s3) var(--s4);
@@ -450,7 +450,7 @@ pre.code-block[data-lang]::before {
    counts land on the same baseline across a row of cards however long each
    description is. Aligning those is the whole reason a row of cards is easier
    to read than a list. */
-.tracks { display: grid; grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr)); gap: var(--s3); }
+.tracks { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(18rem, 100%), 1fr)); gap: var(--s3); }
 .track-card {
   display: grid; grid-template-rows: auto 1fr auto; gap: var(--s2);
   padding: var(--s4);
@@ -895,9 +895,14 @@ pre.code-block[data-lang]::before {
 .readings { display: flex; flex-direction: column; gap: 2px; }
 .reading {
   display: flex; align-items: baseline; gap: .5rem;
+  /* Wraps, because a reading is a checkbox, a kind, a title and a page
+     reference, and on a phone those do not fit on one line. Without this
+     the row pushed the whole page sideways. */
+  flex-wrap: wrap;
   padding: .32rem .5rem; border-radius: var(--radius-s); font-size: .86rem;
   transition: background .12s;
 }
+.reading .title { min-width: 0; overflow-wrap: anywhere; }
 .reading:hover { background: var(--bg-elev-2); }
 .reading input { margin: 0; accent-color: var(--ok); flex: none; position: relative; top: 2px; }
 .reading .kind {
@@ -1017,7 +1022,7 @@ pre.code-block[data-lang]::before {
 }
 .case[data-pass="true"]  > .case-head { border-left: 3px solid var(--ok); }
 .case[data-pass="false"] > .case-head { border-left: 3px solid var(--danger); }
-.case .io { display: grid; grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr)); gap: .6rem; padding: .7rem; }
+.case .io { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(10.5rem, 100%), 1fr)); gap: .6rem; padding: .7rem; }
 .case .io > div { min-width: 0; }
 .case .io h5 { margin: 0 0 .2rem; font-size: .64rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-faint); }
 .case .io pre {
@@ -1078,13 +1083,13 @@ pre.code-block[data-lang]::before {
 [data-frame="frame-etched"] .avatar { border-color: var(--accent); box-shadow: inset 0 0 0 3px var(--bg), inset 0 0 0 4px var(--accent); }
 [data-frame="frame-glow"]   .avatar { border-color: var(--accent); box-shadow: 0 0 20px var(--accent-soft), 0 0 0 1px var(--accent); }
 
-.badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); gap: var(--s2); }
+.badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(12rem, 100%), 1fr)); gap: var(--s2); }
 .badge-card { padding: .7rem .85rem; border-radius: var(--radius-s); background: var(--bg-elev); border: 1px solid var(--border); }
 .badge-card.locked { opacity: .48; }
 .badge-card h4 { margin: 0 0 .1rem; font-size: .9rem; }
 .badge-card p  { margin: 0; font-size: .77rem; color: var(--text-faint); line-height: 1.45; }
 
-.shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: var(--s3); }
+.shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(13rem, 100%), 1fr)); gap: var(--s3); }
 .shop-item {
   padding: var(--s3) var(--s4); border-radius: var(--radius);
   background: var(--bg-elev); border: 1px solid var(--border);
@@ -1528,7 +1533,7 @@ html[data-focus] .rail { display: none; }
 .tp-primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 650; }
 
 /* The shop card, now that it holds a picture and two controls. */
-.shop-grid-themes { grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); }
+.shop-grid-themes { grid-template-columns: repeat(auto-fill, minmax(min(15rem, 100%), 1fr)); }
 .shop-actions { display: flex; gap: var(--s2); align-items: center; margin-top: auto; flex-wrap: wrap; }
 .shop-actions .btn { flex: 0 0 auto; }
 .shop-item.previewing {
@@ -1561,6 +1566,23 @@ html[data-focus] .rail { display: none; }
 
 /* ---------------- responsive ---------------- */
 
+/* The top bar is one row only for as long as one row fits. Between the
+   tablet widths the brand, the subject switch, seven view links and the
+   purse add up to more than the window, and the whole page scrolled
+   sideways because of it. From here down the links take a row of their
+   own - the same width at which the workspace stops being two columns. */
+@media (max-width: 900px) {
+  .topbar {
+    flex-wrap: wrap; height: auto;
+    padding: var(--s2) var(--s4); gap: var(--s2) var(--s3);
+  }
+  .topbar-nav {
+    order: 3; width: 100%; margin-left: 0;
+    overflow-x: auto; scrollbar-width: thin;
+  }
+  .purse { margin-left: auto; }
+}
+
 @media (max-width: 980px) {
   .pwrap { grid-template-columns: minmax(0, 1fr); }
   .rail { position: static; flex-direction: row; flex-wrap: wrap; }
@@ -1573,9 +1595,8 @@ html[data-focus] .rail { display: none; }
 }
 
 @media (max-width: 680px) {
-  .topbar { flex-wrap: wrap; height: auto; padding: var(--s2) var(--s3); gap: var(--s2); }
-  .topbar-nav { order: 3; width: 100%; margin-left: 0; overflow-x: auto; }
-  .purse { margin-left: auto; }
+  /* Tighter still, on top of the 900px wrap above. */
+  .topbar { padding: var(--s2) var(--s3); gap: var(--s2); }
   .plist-head { display: none; }
   /* Flex rather than grid below this width: the fixed columns stop fitting,
      and a wrapping flex row keeps every field on screen - including the XP,
@@ -1613,7 +1634,7 @@ html[data-focus] .rail { display: none; }
 
 .setup-modes {
   display: grid; gap: var(--s3); margin: var(--s4) 0;
-  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
 }
 .setup-mode {
   border: 1px solid var(--border); border-top-width: 3px;
