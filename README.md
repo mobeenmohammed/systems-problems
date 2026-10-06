@@ -200,6 +200,74 @@ anything able to read it already runs as you — the Origin check is.
 
 **Never expose it to a network.** It runs arbitrary code by design.
 
+### C++ in the browser, with nothing installed
+
+The default for C++ is now a **real Clang compiled to WebAssembly**, running
+in a worker in the tab. No account, no key, no server, no Docker, no WSL, and
+nothing leaves the machine.
+
+```
+compiler   Clang/LLVM 20.1.2          ← browsercc, MIT, pinned at 0.1.1
+target     wasm32-unknown-wasi
+standard   C++20, -O2 -Wall -Wextra -fno-exceptions
+library    libc++ and wasi-libc
+runtime    @bjorn3/browser_wasi_shim  ← MIT OR Apache-2.0, pinned at 0.4.2
+```
+
+90 MB of it, in `vendor/cxx/`, fetched the first time somebody presses Run on
+a C++ problem and cached by URL afterwards. The download shows its own byte
+count and **Stop** is live for the whole of it. Measured on this machine: a
+cold first run including the download is about 3 seconds, and a compile after
+that is about one.
+
+The compiler lives in one long-lived worker; **each test case runs in a
+throwaway one**. That is not tidiness — a `while (true) {}` compiled to
+WebAssembly yields to nothing, and terminating the thread is the only way to
+stop it. Terminating a worker that also held the compiler would mean fetching
+it again.
+
+#### What is different from the native runner, and why it matters
+
+Measured, not assumed, and re-measured by `tests/browser/cxx.test.mjs`:
+
+| | browser | native runner |
+| --- | --- | --- |
+| `sizeof(long)`, `sizeof(void*)`, `sizeof(size_t)` | **4** | 8 |
+| `sizeof(int)`, `sizeof(long long)` | 4, 8 | 4, 8 |
+| exceptions | **none at all** | yes |
+| sanitizers | **none** | ASan and UBSan |
+| out-of-bounds read | returns rubbish | traps under ASan |
+| threads, OpenMP, files, signals | none | yes |
+
+The exception situation is absolute rather than partial: `-fno-exceptions`
+rejects `try` and `throw` at compile time, and `-fexceptions` gets as far as
+the linker and fails on `__cxa_throw`, because the sysroot's libc++ has no
+unwinder.
+
+The sanitizer one is the dangerous one. Wasm linear memory starts at address
+zero and is readable, so reading past the end of a vector does not crash
+here — it quietly returns a number. A problem whose entire lesson is "the
+sanitizer catches what the output hides" would have that lesson deleted by
+running it in the browser. **So the flags are never quietly relaxed to make
+a problem fit.**
+
+#### Which problems, and how that was decided
+
+`npm run audit:cxx` compiles **every C++ problem's own reference solution**
+with the browser toolchain and runs it against **that problem's own visible
+and hidden cases**. A problem is certified only if its reference builds, runs
+and gets every case right. The result is `data/cxx-support.json`, CI checks
+it is current, and `tests/content.test.mjs` fails if a problem is in neither
+list or if a sanitizer problem somehow got into the certified one.
+
+<!-- not generated: this is a count of a generated file, and the sentence
+     around it is the part worth reading -->
+**30 of the 31 C++ problems run in the browser.** The one that does not is
+`algo-running-max`, and the reason is the paragraph above: it is graded on
+what AddressSanitizer says. The site says so on the problem itself — "CPP
+needs the native toolchain for this problem" — rather than offering a
+compiler that would mark it passed.
+
 ### The in-site guide
 
 Everything below is also in the site itself, at **#/setup**, reachable from
@@ -587,6 +655,7 @@ Chromium against a real site:
 | `tests/browser/navigation.test.mjs` | Leaving a problem for every other page, thirty times over, plus focus mode, Back/Forward and a drag abandoned mid-navigation. Measures the **destination** page: is anything clipped out of reach, is the navigation there, can you still click and scroll |
 | `tests/browser/resize.test.mjs` | Both dividers, dragged with a real pointer, asserting measured panel widths and heights before and after. Minimum widths, keyboard resizing, every way a drag can end, a split saved on a big screen opened on a small one, and Reset layout |
 | `tests/browser/feedback.test.mjs` | A wrong answer on each of MCQ, select-all and find-the-bug: that the explanation is substantial, that it discloses nothing, and that the verdict is relabelled and the marks cleared the moment the answer changes |
+| `tests/browser/cxx.test.mjs` (`npm run test:cxx`) | C++ in the browser with the runner address pointed at a dead port: the download and its progress bar, a cold first run, submit-wrong-then-correct, a Clang compile error, an infinite loop cut short and a valid program straight afterwards, Stop, the cached second visit, a native-only problem refusing to pretend, and a check that nothing was sent anywhere |
 | `tests/browser/usability.test.mjs` | Buttons after a failure, a run in flight when the problem or language changes, the toolbar at five widths, horizontal overflow on ten routes at three widths, keyboard reach to hints/notes/solution, and the blast radius of a reset |
 
 `npm run test:ui` runs the last four together; they need `npm run serve`.
@@ -626,6 +695,11 @@ js/editor.js            CodeMirror: mounting, theming, lint gutter, drafts
 js/types/registry.js    the problem-type contract
 js/types/*.js           one file per problem type
 js/problem.js           a problem: its tabs, submitting, the verdict
+js/cxx/toolchain.js     Clang-in-WebAssembly: fetch, cache, compile, run
+js/cxx/compile.worker.js  the long-lived compiler worker
+js/cxx/run.worker.js    one throwaway worker per test case
+js/runners/browsercpp.js  the browser C++ backend, with progress and Stop
+vendor/cxx/             90 MB of Clang, wasm-ld and a WASI sysroot
 js/setup.js             the "how do I run C++" guide, and its live probes
 js/views.js             dashboard, catalog, reading map, profile, shop, settings
 js/app.js               bootstrap, hash routing, shortcuts

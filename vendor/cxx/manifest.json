@@ -1,0 +1,78 @@
+{
+  "generatedBy": "scripts/vendor-cxx.mjs",
+  "packages": {
+    "browsercc": "0.1.1",
+    "@bjorn3/browser_wasi_shim": "0.4.2"
+  },
+  "files": {
+    "browsercc/index.js": {
+      "bytes": 5296,
+      "sha256": "0265e7fccbf29fac"
+    },
+    "browsercc/clang.js": {
+      "bytes": 74193,
+      "sha256": "27aeadfcdb71f37f"
+    },
+    "browsercc/lld.js": {
+      "bytes": 71604,
+      "sha256": "b5054c24942687c7"
+    },
+    "browsercc/clang.wasm": {
+      "bytes": 42553880,
+      "sha256": "d574339640a97645"
+    },
+    "browsercc/lld.wasm": {
+      "bytes": 23202572,
+      "sha256": "810bb3be4eec8ad6"
+    },
+    "browsercc/sysroot.tar": {
+      "bytes": 28620800,
+      "sha256": "dbed83f93f0fa695"
+    },
+    "browsercc/LICENSE": {
+      "bytes": 1023,
+      "sha256": "23f18e03dc49df91"
+    },
+    "wasi/index.js": {
+      "bytes": 316,
+      "sha256": "7e2fd52ee3f728bb"
+    },
+    "wasi/fd.js": {
+      "bytes": 1906,
+      "sha256": "9e82e1fc1bfd3e35"
+    },
+    "wasi/fs_mem.js": {
+      "bytes": 12206,
+      "sha256": "85dbc9e0ee784d9f"
+    },
+    "wasi/wasi.js": {
+      "bytes": 16429,
+      "sha256": "168eb977a826f75a"
+    },
+    "wasi/fs_opfs.js": {
+      "bytes": 2280,
+      "sha256": "4b96aaeb5ac5986c"
+    },
+    "wasi/wasi_defs.js": {
+      "bytes": 9027,
+      "sha256": "0db0f42ba330749a"
+    },
+    "wasi/strace.js": {
+      "bytes": 318,
+      "sha256": "ece435d3784d928d"
+    },
+    "wasi/debug.js": {
+      "bytes": 414,
+      "sha256": "a91848ee180529e2"
+    },
+    "wasi/LICENSE-MIT": {
+      "bytes": 1023,
+      "sha256": "23f18e03dc49df91"
+    },
+    "wasi/LICENSE-APACHE": {
+      "bytes": 11357,
+      "sha256": "c71d239df91726fc"
+    }
+  },
+  "totalBytes": 94584644
+}

@@ -1748,3 +1748,17 @@ html[data-focus] .rail { display: none; }
   border-radius: var(--radius-s);
   background: var(--bg-elev); color: var(--text);
 }
+
+/* ---------------- fetching the in-browser C++ compiler ----------------
+
+   90 MB with no feedback is indistinguishable from a page that has hung, so
+   this is a real progress bar with real byte counts, and the Stop button
+   beside Run is live for the whole download. */
+.cxx-dl { display: grid; gap: var(--s2); padding: var(--s3) 0; }
+.cxx-dl .bar { height: 6px; background: var(--bg-inset); border-radius: 999px; overflow: hidden; }
+.cxx-dl .bar i {
+  display: block; height: 100%; background: var(--accent);
+  transition: width .2s linear;
+}
+.ws-stop[hidden] { display: none; }
+.ws-stop { color: var(--warn); }

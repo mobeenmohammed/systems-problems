@@ -450,6 +450,11 @@ const ProblemView = (() => {
           title: 'What it takes to compile C++ and Rust, and what is working now',
         }, ['Set up execution']),
         el('button', {
+          class: 'btn btn-sm btn-ghost ws-stop', type: 'button', id: 'stopBtn', hidden: true,
+          title: 'Stop whatever is running or downloading',
+          onclick: () => { if (impl.stop) impl.stop(); },
+        }, ['Stop']),
+        el('button', {
           class: 'btn btn-sm', type: 'button', id: 'runBtn',
           onclick: () => impl.run && impl.run(false),
         }, ['Run samples']),

@@ -73,7 +73,12 @@ fn main() {
   /* The last run, kept so the Results and Compiler output panes can be
      repainted when the reader switches between them — the panes belong to the
      workspace, the output belongs here. */
-  let last = { verdict: null, reply: null, submission: false };
+  /* `at` is what keeps a Run after a Submit from being overwritten. mark()
+     runs on every redraw and used to re-adopt the submission's result
+     unconditionally, so pressing Run on a solved problem showed the output
+     of the submission before it — including "it built" for a program that
+     had just failed to compile. */
+  let last = { verdict: null, reply: null, submission: false, at: 0 };
 
   function templateFor(problem, lang) {
     const given = (problem.payload.templates || {})[lang];
@@ -98,7 +103,7 @@ fn main() {
        problem is the same — that is what puts "Ran on Hosted" back on the
        chip and the cases back in the pane after a redraw. */
     if (!state || state.problem.id !== problem.id) {
-      last = { verdict: null, reply: null, submission: false };
+      last = { verdict: null, reply: null, submission: false, at: 0 };
     }
     state = { problem, mount, lang, editor: null, out: null, langs, running: false };
 
@@ -200,7 +205,10 @@ fn main() {
 
     setExec('checking', 'Checking…');
 
-    return Promise.all([Runners.available(langs), Runners.describe(langs)])
+    return Promise.all([
+      Runners.available(langs, state.problem.id),
+      Runners.describe(langs, state.problem.id),
+    ])
       .then(([rows, said]) => {
         /* The page may have moved on while the probes were out. */
         if (!state || state.mount !== mount) return;
@@ -251,7 +259,7 @@ fn main() {
     if (!state || state.lang === id) return;
     /* Anything in flight belongs to the language being left. */
     runEpoch += 1;
-    last = { verdict: null, reply: null, submission: false };
+    last = { verdict: null, reply: null, submission: false, at: 0 };
     /* The draft is saved per language, so flipping to C++ to look at the
        template and back does not cost you what you had written. */
     Store.saveDraft(state.problem, state.lang, state.editor.value);
@@ -327,12 +335,30 @@ fn main() {
        from CodeMirror's own document — there is no second copy to be stale. */
     const source = state.editor.value;
 
+    /* Stop is a real button for as long as this takes, which with the
+       in-browser compiler can be a 90 MB download on the first run. */
+    state.abort = new AbortController();
+    showStop(true);
+
+    /* Only subscribe while a run is in flight, and only paint if the
+       toolchain is not already loaded — on every run after the first there
+       is nothing to download and nothing to show. */
+    const unwatch = (typeof BrowserCpp !== 'undefined' && !BrowserCpp.ready)
+      ? BrowserCpp.onProgress(showDownload) : null;
+
     let reply;
     try {
       reply = await Runners.run(lang, source, cases, {
+        problemId: problem.id,
         profile: pay.profile || 'standard',
         compileMs: (pay.limits || {}).compileMs,
         runMs: (pay.limits || {}).runMs,
+        signal: state.abort.signal,
+        onStage: stage => setExec('running', {
+          downloading: 'Fetching the compiler…',
+          compiling: 'Compiling…',
+          running: 'Running…',
+        }[stage] || 'Working…'),
       });
     } catch (err) {
       /* A throw from a backend must not leave Run disabled for ever. */
@@ -347,7 +373,10 @@ fn main() {
     /* Whatever happened, this page is not running anything any more. Done
        before the staleness check and outside any branch, because a Run button
        stuck on "Running…" for ever is worse than any wrong answer. */
-    if (state) state.running = false;
+    if (state) { state.running = false; state.abort = null; }
+    showStop(false);
+    if (unwatch) unwatch();
+    showDownload(null);
     const liveBtn = document.getElementById('runBtn');
     if (liveBtn) { liveBtn.disabled = false; liveBtn.textContent = 'Run samples'; }
 
@@ -357,7 +386,7 @@ fn main() {
     }
 
     const verdict = RunHarness.judgeRun(reply, cases.map(c => c.expect), { requireClean: !!pay.requireClean });
-    last = { verdict, reply, submission: false };
+    last = { verdict, reply, submission: false, at: Date.now() };
     paint(verdict, reply, false);
 
     /* Say where it just ran, every time. A reader who cannot tell Hosted from
@@ -373,6 +402,47 @@ fn main() {
   }
 
   /* ---------------- output ---------------- */
+
+  /* Stop. Only shown while something is actually in flight, because a
+     permanently visible Stop on a page with nothing running is noise — and
+     because the first in-browser compile is a 90 MB download, which is far
+     too long to offer no way out of. */
+  function showStop(on) {
+    const btn = document.getElementById('stopBtn');
+    if (btn) btn.hidden = !on;
+  }
+
+  /* The download, as a bar. 90 MB with no feedback is indistinguishable from
+     a page that has hung. */
+  function showDownload(p) {
+    const host = document.getElementById('runOut') || (state && state.out);
+    if (!host) return;
+    let bar = host.querySelector('.cxx-dl');
+    if (!p) { if (bar) bar.remove(); return; }
+    if (!bar) {
+      bar = el('div', { class: 'cxx-dl' }, [
+        el('p', { class: 'small', id: 'cxxDlText' }, ['']),
+        el('div', { class: 'bar' }, [el('i', { id: 'cxxDlFill', style: 'width:0%' })]),
+        el('p', { class: 'tiny faint' }, [
+          'A real Clang, compiled to WebAssembly. It is fetched once and then '
+          + 'cached, so this happens on the first C++ run and not again.',
+        ]),
+      ]);
+      host.replaceChildren(bar);
+    }
+    const mb = n => (n / 1048576).toFixed(0);
+    const text = bar.querySelector('#cxxDlText');
+    const fill = bar.querySelector('#cxxDlFill');
+    if (p.stage === 'preparing') {
+      text.textContent = 'Preparing the compiler…';
+      fill.style.width = '100%';
+    } else if (p.stage === 'ready') {
+      bar.remove();
+    } else {
+      text.textContent = `Fetching the C++ compiler — ${mb(p.loaded)} of ${mb(p.total)} MB`;
+      fill.style.width = `${p.percent}%`;
+    }
+  }
 
   /* The execution-status chip in the workspace toolbar. */
   function setExec(kind, text) {
@@ -619,6 +689,13 @@ fn main() {
        the editor. The type module still owns running. */
     run: doRun,
 
+    /* Stop. Aborting the controller unwinds whatever stage the run is in —
+       a download, a compile, or a case — and each of those knows how to
+       clean up after itself. */
+    stop() {
+      if (state && state.abort) state.abort.abort();
+    },
+
     /* The workspace owns the panes; this module owns what goes in them. */
     editor: () => (state ? state.editor : null),
 
@@ -633,7 +710,7 @@ fn main() {
       runEpoch += 1;
       try { if (state.editor && state.editor.destroy) state.editor.destroy(); } catch { /* already gone */ }
       state = null;
-      last = { verdict: null, reply: null, submission: false };
+      last = { verdict: null, reply: null, submission: false, at: 0 };
       clearTimeout(savedTimer);
     },
     repaintOutput(into) {
@@ -679,10 +756,15 @@ fn main() {
       const hidden = key.cases || [];
       const all = [...(pay.cases || []), ...hidden];
 
+      /* problemId matters: the in-browser compiler is only offered for
+         problems whose reference solution was verified against it, and
+         leaving it out here meant Run worked and Submit did not. */
       const reply = await Runners.run(response.lang, response.source, all, {
+        problemId: problem.id,
         profile: pay.profile || 'standard',
         compileMs: (pay.limits || {}).compileMs,
         runMs: (pay.limits || {}).runMs,
+        signal: state && state.abort ? state.abort.signal : undefined,
       });
 
       const verdict = RunHarness.judgeRun(reply, all.map(c => c.expect), { requireClean: !!pay.requireClean });
@@ -701,7 +783,7 @@ fn main() {
           backend: reply.backend || null,
           feedback: reply.judgeError
             || `${reply.backend ? Runners.label(reply.backend) : 'Nothing available'} could not run this.`,
-          noAttempt: true, reply, verdict,
+          noAttempt: true, reply, verdict, at: Date.now(),
         };
       }
 
@@ -713,7 +795,7 @@ fn main() {
         /* Passing under the sanitizer with nothing to report is a stronger
            claim than passing, and the profile achievement counts it. */
         sanitized: (pay.profile === 'sanitize') && verdict.correct && !verdict.cases.some(c => c.sanitizer),
-        reply, verdict,
+        reply, verdict, at: Date.now(),
       };
     },
 
@@ -723,8 +805,12 @@ fn main() {
          answer and a timeout all leave the code exactly as written, and the
          next attempt is one keystroke away. */
       state.editor.setReadOnly(false);
-      if (result && result.verdict) {
-        last = { verdict: result.verdict, reply: result.reply || {}, submission: true };
+      /* Only if nothing has happened since. A redraw is not a new result. */
+      if (result && result.verdict && (result.at || 0) >= last.at) {
+        last = {
+          verdict: result.verdict, reply: result.reply || {},
+          submission: true, at: result.at || Date.now(),
+        };
       }
     },
   });

@@ -31,6 +31,10 @@ const SetupGuide = (() => {
   /* The smallest programs that prove a toolchain is really there: both read
      a number from stdin and print it doubled, so a wrong answer is as
      visible as a failure to build. */
+  /* C++ in the browser is only offered for problems the audit certified, so
+     "can this device compile C++" is asked about a problem that it can. */
+  const BROWSER_CPP_PROBE = 'cpp-greet-and-sum';
+
   const PROBES = {
     cpp: {
       label: 'C++',
@@ -100,7 +104,7 @@ const SetupGuide = (() => {
     if (!host) return;
     host.replaceChildren(el('p', { class: 'muted small', text: 'Checking…' }));
 
-    const rows = await Runners.available(['js', 'cpp', 'rust', 'python']);
+    const rows = await Runners.available(['js', 'cpp', 'rust', 'python'], BROWSER_CPP_PROBE);
     const judge = Runners.judge;
     const hosted = typeof Hosted !== 'undefined' ? await Hosted.check() : { up: false };
     const byBackend = id => (rows.find(r => r.id === id) || {}).backend || null;
@@ -141,10 +145,13 @@ const SetupGuide = (() => {
       card({
         name: 'Browser',
         what: 'Execution happens on this device, inside this browser tab. '
-          + 'Nothing is installed and nothing is sent anywhere.',
+          + 'Nothing is installed, nothing is paid for, and nothing is sent anywhere.',
         state: browserLangs.length ? 'ready' : 'off',
         detail: browserLangs.length
-          ? 'Always available. It cannot compile C++ or Rust — there is no compiler in a browser.'
+          ? 'JavaScript runs immediately. C++ compiles here too, with a real Clang '
+            + 'built for WebAssembly — about 90 MB, fetched the first time you press '
+            + 'Run on a C++ problem and cached afterwards. A few problems need the '
+            + 'native toolchain instead and say so; Rust is not available here yet.'
           : 'Unavailable, which should not happen; reload the page.',
         langs: browserLangs,
       }),
@@ -201,14 +208,16 @@ const SetupGuide = (() => {
     const lines = [];
     try {
       for (const [id, probe] of Object.entries(PROBES)) {
-        const where = await Runners.backendFor(id);
+        const where = await Runners.backendFor(id,
+          id === 'cpp' ? BROWSER_CPP_PROBE : null);
         if (!where) {
           lines.push({ lang: probe.label, state: 'none',
             text: 'Nothing available can compile this.' });
           continue;
         }
 
-        const reply = await Runners.run(id, probe.source, [{ stdin: PROBE_IN }], {});
+        const reply = await Runners.run(id, probe.source, [{ stdin: PROBE_IN }],
+          { problemId: id === 'cpp' ? BROWSER_CPP_PROBE : null });
         const label = Runners.label(reply.backend || where);
 
         if (reply.judgeDown) {

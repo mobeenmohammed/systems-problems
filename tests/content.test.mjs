@@ -14,7 +14,7 @@
    Run: node tests/content.test.mjs */
 
 import { loadAll, validate, buildIndex } from '../scripts/build-index.mjs';
-import { loadScripts, section, check, ok, report } from './harness.mjs';
+import { loadScripts, read, section, check, ok, report } from './harness.mjs';
 
 const { grab } = loadScripts([
   'js/md.js',
@@ -260,6 +260,37 @@ for (const p of problems) {
    one piece of authored text that has to be checked for leakage: a note
    attached to the correct option, or to the buggy line, would hand over the
    answer to anyone who guessed once. */
+
+/* ---------------- the in-browser C++ toolchain ---------------- */
+
+section('every C++ problem is classified for the browser compiler');
+{
+  const support = JSON.parse(read('data/cxx-support.json'));
+  const cpp = problems.filter(p => p.type === 'code'
+    && ((p.payload || {}).langs || []).includes('cpp')).map(p => p.id);
+
+  const classified = new Set([...support.browser, ...Object.keys(support.nativeOnly)]);
+  const unclassified = cpp.filter(id => !classified.has(id)).sort();
+  /* A problem that is in neither list has never been tried against the
+     browser toolchain, and would silently fall through to "no runner". */
+  check('none is left unclassified', unclassified, []);
+
+  const stale = [...classified].filter(id => !cpp.includes(id)).sort();
+  check('and none names a problem that no longer exists', stale, []);
+
+  ok('the toolchain is recorded', !!(support.toolchain && support.toolchain.compiler));
+  for (const [id, why] of Object.entries(support.nativeOnly)) {
+    ok(`${id}: being native-only is explained, not just asserted`,
+      String(why).trim().length > 60);
+  }
+
+  /* The one rule that must never be relaxed to make a problem fit. */
+  for (const id of support.browser) {
+    const p = problems.find(x => x.id === id);
+    const pay = p.payload || {};
+    ok(`${id}: is not a sanitizer problem`, !pay.requireClean && pay.profile !== 'sanitize');
+  }
+}
 
 section('feedback after a wrong answer discloses nothing');
 for (const p of problems) {
