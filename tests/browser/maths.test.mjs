@@ -438,6 +438,73 @@ section('a written proof is saved, not marked');
     window.SystemsLab.Store.draft('metric-continuity-epsilon-delta', 'proof'))).length > 20);
 }
 
+/* ---------------- revealing, then finishing the review ---------------- */
+
+section('revealing a model proof does not abandon the review');
+{
+  /* Showing the model switches to the Solution tab. The control that
+     records the review used to live only on the tab the reader came from,
+     so the last step of the path the verdict describes was off screen. */
+  await open('metric-continuity-epsilon-delta');
+  await page.locator('.proof-box').fill(
+    'Let a be a point and eps > 0. Take delta = eps/2 and chase the '
+    + 'coordinates: each difference is at most d2(x,a) < delta.',
+  );
+  await page.waitForTimeout(600);
+  await submit();
+
+  let asked = '';
+  page.once('dialog', async d => { asked = d.message(); await d.accept(); });
+  await page.locator('#showModel').click();
+  await page.waitForTimeout(1200);
+
+  ok('it asks before showing it', /model proof/i.test(asked));
+  ok('and says the review will be Self-reviewed rather than solved',
+    /self-reviewed/i.test(asked) && /no xp/i.test(asked));
+
+  const after = await page.evaluate(() => ({
+    tab: (document.querySelector('.tab[aria-selected="true"]') || {}).textContent,
+    model: ((document.querySelector('.prose') || {}).textContent || '').length,
+    rubric: document.querySelectorAll('.rubric li').length,
+    done: !!document.getElementById('reviewDone'),
+    /* One of each, not two: only the active panel is in the document. */
+    doneCount: document.querySelectorAll('#reviewDone').length,
+    boxIds: [...document.querySelectorAll('.rubric input')].map(i => i.id),
+  }));
+  ok('the model proof is on screen', after.model > 400);
+  ok(`the rubric came with it (${after.rubric} lines)`, after.rubric >= 5);
+  ok('and so did the button that records the review', after.done);
+  check('exactly one of it', after.doneCount, 1);
+  ok('with no duplicated checkbox ids',
+    new Set(after.boxIds).size === after.boxIds.length);
+
+  await page.evaluate(() => {
+    document.querySelectorAll('.rubric input').forEach(c => {
+      c.checked = true;
+      c.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+  });
+  /* Measured as a delta. This problem has already been reviewed once
+     earlier in this file, so the record's own xpEarned is a leftover from
+     that and says nothing about this review. */
+  const xpBefore = await page.evaluate(() => window.SystemsLab.Store.state.xp);
+  await page.locator('#reviewDone').click();
+  await page.waitForFunction(() =>
+    window.SystemsLab.Store.record('metric-continuity-epsilon-delta').status === 'reviewed',
+  { timeout: 10000 });
+  const xpAfter = await page.evaluate(() => window.SystemsLab.Store.state.xp);
+
+  const rec = await record('metric-continuity-epsilon-delta');
+  check('the review can be finished from where it left you', rec.status, 'reviewed');
+  ok('still not solved', rec.status !== 'solved');
+  check('and it is marked revealed', rec.revealed, true);
+  ok(`so the review earned nothing (${xpBefore} xp before, ${xpAfter} after)`,
+    xpAfter === xpBefore);
+  if (process.env.SHOTS) {
+    await page.screenshot({ path: path.join(SHOTS, 'maths-reveal-then-review.png') });
+  }
+}
+
 /* ---------------- figures ---------------- */
 
 section('the figures are labelled, and are not claims');

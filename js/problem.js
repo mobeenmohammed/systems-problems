@@ -1427,13 +1427,19 @@ const ProblemView = (() => {
 
   function drawSolution(panel) {
     if (!disclosed()) {
+      const proof = current.type === 'proof';
       panel.append(el('div', { class: 'empty' }, [
         el('h2', { text: 'Not yet' }),
-        el('p', { class: 'muted' }, [
-          'Solve it, or reveal the answer deliberately — which records it as read rather than ' +
-          'solved, and scores zero.',
-        ]),
-        el('button', { class: 'btn', type: 'button', onclick: doReveal }, ['Reveal the answer…']),
+        el('p', { class: 'muted' }, [proof
+          ? 'Write your proof first and submit it — nothing here can mark a proof, '
+            + 'but comparing against a model you have not tried to write yourself '
+            + 'teaches very little. Showing it is deliberate: the review that '
+            + 'follows earns no XP and is recorded as Self-reviewed.'
+          : 'Solve it, or reveal the answer deliberately — which records it as read rather than '
+            + 'solved, and scores zero.'],
+        ),
+        el('button', { class: 'btn', type: 'button', onclick: doReveal },
+          [proof ? 'Show a model proof…' : 'Reveal the answer…']),
       ]));
       return;
     }
@@ -1445,6 +1451,26 @@ const ProblemView = (() => {
     }
 
     panel.append(el('div', { class: 'prose', html: MD.render(solution.explanation || '') }));
+
+    /* Revealing a model proof switches to this tab, which used to leave the
+       one control that records the review behind on the tab the reader came
+       from - the last step of the intended path, out of sight. Comparing is
+       the reason they are here, so the rubric comes with them. Only the
+       active panel is in the document, so this is a move, not a copy. */
+    if (current.type === 'proof' && reviewing) {
+      const node = rubricNode();
+      if (node) {
+        panel.append(el('div', { class: 'card', style: 'margin-top:1rem' }, [
+          el('h3', { text: 'Now compare' }),
+          el('p', { class: 'tiny faint' }, [
+            'Your own attempt is still on the working tab, exactly as you wrote '
+            + 'it. Read it against each line, tick what it genuinely does, and '
+            + 'record the review.',
+          ]),
+          node,
+        ]));
+      }
+    }
 
     const more = solution.readMore || [];
     if (more.length) {
