@@ -1406,12 +1406,23 @@ html[data-focus] .rail { display: none; }
    on the workspace: a sticky bar over an editor is what used to float across
    the code and swallow clicks halfway down the page. Here there is nothing
    underneath it to swallow. */
+/* Not sticky, deliberately.
+
+   It used to be `position: sticky; bottom: 0; z-index: 5`, to keep Submit
+   on screen while you read a long statement. What that actually did was
+   float the bar up over the answer field directly above it: on
+   metric-three-metrics-compared at 1440x1000, elementFromPoint in the
+   middle of the answer box returned DIV.actions-bar, so the field could
+   not be clicked at all at that scroll position, and the gradient hid
+   what you had typed.
+
+   Submit sits immediately under the answer here, which is where you look
+   after filling it in, so pinning it bought very little and cost the
+   field. */
 .actions-bar {
-  position: sticky; bottom: 0; z-index: 5;
   display: flex; align-items: center; justify-content: space-between;
   gap: var(--s3); flex-wrap: wrap;
-  margin-top: var(--s4); padding: var(--s3) 0;
-  background: linear-gradient(to top, var(--bg) 70%, transparent);
+  margin-top: var(--s4); padding-top: var(--s3);
 }
 .actions-bar-main { display: flex; gap: var(--s2); flex: none; }
 .actions-bar-note { display: flex; gap: var(--s3); flex-wrap: wrap; align-items: center; color: var(--text-faint); }

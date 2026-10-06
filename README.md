@@ -745,7 +745,7 @@ Chromium against a real site:
 | `tests/maths-render.test.mjs` | KaTeX renders, emits MathML, and markdown does not get at the TeX first — `$a_1 + a_2$` must not become `a<em>1 + a</em>2` |
 | `tests/browser/maths.test.mjs` (`npm run test:maths`) | The subject switch, typesetting on the page, every one of the six answer formats, a syntax error costing no attempt, a wrong answer explaining the misconception, progressive hints, the figures, a written proof reaching **Self-reviewed** without ever being marked right, and the review being finishable from wherever revealing the model proof leaves you |
 | `tests/browser/cxx.test.mjs` (`npm run test:cxx`) | C++ in the browser with the runner address pointed at a dead port: the download and its progress bar, a cold first run, submit-wrong-then-correct, a Clang compile error, an infinite loop cut short and a valid program straight afterwards, Stop, the cached second visit, a native-only problem refusing to pretend, and a check that nothing was sent anywhere |
-| `tests/browser/usability.test.mjs` | Buttons after a failure, a run in flight when the problem or language changes, the toolbar at five widths, horizontal overflow on ten routes at three widths, keyboard reach to hints/notes/solution, and the blast radius of a reset |
+| `tests/browser/usability.test.mjs` | Buttons after a failure, a run in flight when the problem or language changes, the toolbar at five widths, every answer control being clickable where it looks, horizontal overflow on twelve routes at eight widths with the view links staying reachable, keyboard reach to hints/notes/solution, and the blast radius of a reset |
 
 `npm run test:ui` runs the last four together; they need `npm run serve`.
 `BROWSER=msedge` runs any of them through the Edge installed on the machine
@@ -819,6 +819,7 @@ scripts/build-index.mjs generate and validate the catalog
 scripts/build-readme.mjs regenerate the counted sections of this file
 scripts/audit-cxx.mjs   compile every C++ reference in the browser toolchain
 scripts/demo-journeys.mjs  narrate both journeys against a deployed site
+scripts/check-responsive.mjs  both themes, ten widths, four root font sizes
 ```
 
 ## Keyboard

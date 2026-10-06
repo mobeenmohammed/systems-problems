@@ -181,6 +181,43 @@ for (const [w, h] of [[1920, 1080], [1536, 864], [1440, 900], [1280, 800], [1152
 }
 await page.setViewportSize({ width: 1440, height: 900 });
 
+section('nothing floats over the answer you are trying to click');
+/* The Submit bar was `position: sticky; bottom: 0`, which floated it up
+   over the answer field directly above it. On a long statement at
+   1440x1000, elementFromPoint in the middle of the answer box returned
+   DIV.actions-bar: the field could not be clicked at all, and the bar's
+   gradient hid what had been typed. A control you can see but not hit is
+   worse than one that is plainly absent. */
+for (const [w, h] of [[1440, 1000], [1440, 900], [1280, 800], [1024, 768], [390, 844]]) {
+  await page.setViewportSize({ width: w, height: h });
+  for (const id of ['metric-three-metrics-compared', 'prob-bayes-screening',
+    'metric-continuity-epsilon-delta', 'cpp-sizeof-and-types']) {
+    await open(`#/p/${id}`, 900);
+    const m = await page.evaluate(() => {
+      const bits = [...document.querySelectorAll(
+        '.maths-answer input, .maths-answer textarea, .proof-box, .opt, #submitBtn')];
+      return bits.map(n => {
+        const r = n.getBoundingClientRect();
+        if (r.width === 0 || r.height === 0) return null;
+        /* Only judge what is actually on screen. */
+        if (r.bottom < 0 || r.top > window.innerHeight) return null;
+        const y = Math.min(Math.max(r.top + r.height / 2, 1), window.innerHeight - 1);
+        const hit = document.elementFromPoint(r.left + r.width / 2, y);
+        return {
+          what: `${n.tagName}.${(n.className || '-').split(' ')[0]}`,
+          ok: !!(hit && (hit === n || n.contains(hit) || hit.contains(n))),
+          covered: hit ? `${hit.tagName}.${(hit.className || '-').split(' ')[0]}` : 'nothing',
+        };
+      }).filter(Boolean);
+    });
+    for (const bit of m) {
+      ok(`${w}x${h} ${id}: ${bit.what} is clickable where it looks`
+        + (bit.ok ? '' : ` — ${bit.covered} is over it`), bit.ok);
+    }
+  }
+}
+await page.setViewportSize({ width: 1440, height: 900 });
+
 section('no page-level horizontal overflow anywhere');
 /* The tablet widths are in here deliberately. The first version of this
    check sampled 1440, 1024 and 390, and the whole site scrolled sideways
