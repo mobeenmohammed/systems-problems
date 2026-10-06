@@ -344,6 +344,24 @@ section('a sanitizer problem is marked native-only rather than quietly relaxed')
   ok('and the reason names the sanitizer', /sanitizer/i.test(state.nativeOnly || ''));
   ok('while the editor stays usable', state.editable);
   if (process.env.SHOTS) await p.screenshot({ path: path.join(SHOTS, 'cxx-native-only.png') });
+
+  /* Pressing Run anyway used to answer with the generic "no runner is
+     listening at 127.0.0.1:2000, start one with npm run runner" - which
+     contradicted the note directly above the editor and buried the reason
+     the exercise needs the native toolchain in the first place. */
+  await p.locator('#runBtn').click();
+  await p.waitForTimeout(3500);
+  const pressed = await p.evaluate(() => ({
+    pane: (document.getElementById('resultPane') || {}).textContent
+      .replace(/\s+/g, ' ').trim(),
+    status: window.SystemsLab.Store.record('algo-running-max').status,
+  }));
+  ok('pressing Run says it is the problem, not a missing runner',
+    /needs the native toolchain/i.test(pressed.pane));
+  ok('and repeats the sanitizer reason there too', /sanitizer/i.test(pressed.pane));
+  ok('without telling anyone to start a local runner for it',
+    !/start one with|npm run runner, or turn on hosted/i.test(pressed.pane));
+  check('and nothing is recorded', pressed.status, 'unsolved');
   await ctx.close();
 }
 

@@ -513,6 +513,26 @@ const Runners = (() => {
 
     /* Nothing can run this. Say so plainly, with the specific reason, and do
        not post the source anywhere on the way to finding that out. */
+
+    /* The reason first, before any talk of runners. On a problem the audit
+       marked native-only, "start a local runner" is not merely unhelpful,
+       it contradicts the note above the editor and hides why the exercise
+       needs the native toolchain at all. */
+    const nativeWhy = lang === 'cpp' && browserCpp() && opts.problemId
+      ? await browserCpp().reasonFor(opts.problemId)
+      : null;
+    if (nativeWhy) {
+      return {
+        lang,
+        backend: null,
+        compile: { ok: false, stdout: '', stderr: '', ms: 0, timedOut: false },
+        cases: [],
+        judgeDown: true,
+        nativeOnly: nativeWhy,
+        judgeError: `This problem needs the native toolchain. ${nativeWhy}`,
+      };
+    }
+
     const judge = await checkJudge();
     let why;
     if (hostedAvailable()) {

@@ -751,6 +751,21 @@ Chromium against a real site:
 `BROWSER=msedge` runs any of them through the Edge installed on the machine
 rather than Playwright's bundled Chromium.
 
+A suite that passes tells you a number. `scripts/demo-journeys.mjs` tells you
+what a person sees: it walks the whole browser-C++ journey and the whole
+mathematics journey in one browser and prints a transcript — the download
+progress line by line, Clang's own diagnostics, the wording of each verdict,
+the misconception feedback, the rubric, the integer sizes the target actually
+has. Point it at the deployed site, which is the only place the claim means
+anything:
+
+```
+BASE=https://mobeenmohammed.github.io/systems-problems BROWSER=msedge \
+  node scripts/demo-journeys.mjs
+```
+
+It asserts nothing, so it cannot pass; read it.
+
 The first two want `npm run serve` and `npm run proxy` up and the local runner
 **stopped** — that is what makes "hosted" mean something. The third wants
 `npm run serve` and `npm run runner` up instead. `SHOTS=1` writes screenshots
@@ -802,6 +817,8 @@ problems/<topic>/*.json one file per problem, no answer in it
 solutions/*.json        keys, explanations and hidden cases
 scripts/build-index.mjs generate and validate the catalog
 scripts/build-readme.mjs regenerate the counted sections of this file
+scripts/audit-cxx.mjs   compile every C++ reference in the browser toolchain
+scripts/demo-journeys.mjs  narrate both journeys against a deployed site
 ```
 
 ## Keyboard

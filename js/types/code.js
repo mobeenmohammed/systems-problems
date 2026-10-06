@@ -457,7 +457,15 @@ fn main() {
      failed: telling a visitor on the public site to run `npm run runner` is
      wrong, and so is telling someone whose own runner died to go and wait for
      a hosted service to recover. */
-  function downAdvice(backend) {
+  function downAdvice(backend, reply) {
+    /* Not a runner that is missing: a problem that is deliberately not run
+       here. Offering to start one would be the wrong advice. */
+    if (reply && reply.nativeOnly) {
+      return 'This is not something Settings can fix. Run it on a real Linux '
+        + 'toolchain with the flags the problem names — npm run runner, with '
+        + 'WSL — or read it and move on; the other problems in this track run '
+        + 'in the browser.';
+    }
     if (backend === 'local') {
       return 'Start it with:\n  npm run runner\n\nThen press Check connection in '
         + `Settings. The address it is trying is ${Store.config.judgeUrl}.`;
@@ -478,7 +486,7 @@ fn main() {
     if (reply.judgeDown) {
       host.append(el('div', { class: 'compile-out', 'data-kind': 'error' }, [
         el('span', { class: 'lbl', text: `could not run — ${reply.backend ? Runners.label(reply.backend) : 'no runner'}` }),
-        `${reply.judgeError || 'no connection'}\n\n${downAdvice(reply.backend)}`,
+        `${reply.judgeError || 'no connection'}\n\n${downAdvice(reply.backend, reply)}`,
       ]));
       return;
     }
