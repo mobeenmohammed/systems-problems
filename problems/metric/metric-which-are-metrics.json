@@ -1,0 +1,38 @@
+{
+  "id": "metric-which-are-metrics",
+  "title": "Which of these are metrics?",
+  "topic": "metric",
+  "difficulty": "beginner",
+  "type": "multi",
+  "tags": [
+    "metric-axioms",
+    "counterexamples"
+  ],
+  "estimate": 10,
+  "prereqs": [
+    {
+      "concept": "metric-axioms",
+      "why": "Each option has to be checked against all four conditions."
+    },
+    {
+      "concept": "metric-examples",
+      "why": "Two of these are standard metrics that are worth recognising on sight."
+    }
+  ],
+  "statement": "Each line below proposes a function $d$ on a set. Select every one that **is** a metric.\n\nChecking one means checking all four axioms; refuting one means producing a single counterexample.",
+  "hints": [
+    "The four axioms again: non-negative, zero exactly on the diagonal, symmetric, and the triangle inequality.",
+    "For the ones you suspect, do not try to prove them — try to break them, with the smallest numbers you can. A counterexample is one line; a proof is four.",
+    "For option 3, ask what $d(x,y) = 0$ means when $d(x,y) = |x^2 - y^2|$ and $x$ is allowed to be negative."
+  ],
+  "payload": {
+    "prompt": "Select every function that is a metric.",
+    "options": [
+      "On $\\R$: $d(x,y) = |x - y|$.",
+      "On any set $X$: $d(x,y) = 0$ if $x = y$, and $1$ otherwise.",
+      "On $\\R$: $d(x,y) = |x^2 - y^2|$.",
+      "On $\\R^2$: $d\\big((x_1,x_2),(y_1,y_2)\\big) = |x_1 - y_1| + |x_2 - y_2|$.",
+      "On $\\R$: $d(x,y) = |x - y|$ if $x \\le y$, and $2|x - y|$ if $x > y$."
+    ]
+  }
+}

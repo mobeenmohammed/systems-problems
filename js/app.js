@@ -169,6 +169,7 @@
     await Store.init();
     UI.applyCosmetics();
     UI.refreshPurse();
+    UI.paintSubjectSwitch();
 
     await Catalog.init();
     if (Catalog.loadError) {
@@ -202,5 +203,9 @@
   }
 
   /* A handle for the tests and the console. */
-  window.SystemsLab = { Store, Catalog, ProblemTypes, ProblemView, UI, route, Runners, Hosted, RunHarness, Lint, Editor };
+  window.SystemsLab = {
+    Store, Catalog, ProblemTypes, ProblemView, UI, route,
+    Runners, Hosted, BrowserCpp, RunHarness, Lint, Editor,
+    MathsExpr, MathsRender,
+  };
 })();

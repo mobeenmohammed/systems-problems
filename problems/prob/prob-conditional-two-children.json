@@ -1,0 +1,34 @@
+{
+  "id": "prob-conditional-two-children",
+  "title": "At least one is a girl",
+  "topic": "prob",
+  "difficulty": "beginner",
+  "type": "exact",
+  "tags": [
+    "conditional-probability",
+    "sample-space"
+  ],
+  "estimate": 10,
+  "prereqs": [
+    {
+      "concept": "conditional-probability",
+      "why": "Conditioning restricts the sample space, and that restriction is the whole answer."
+    },
+    {
+      "concept": "sample-space",
+      "why": "You have to write the four outcomes down before conditioning on anything."
+    }
+  ],
+  "statement": "A family has two children. Assume each child is a girl or a boy with probability $\\tfrac12$, independently, so the four outcomes $BB$, $BG$, $GB$, $GG$ are equally likely (first letter = elder child).\n\nGiven that **at least one** of the children is a girl, what is the probability that **both** are girls?\n\nGive the exact probability.",
+  "hints": [
+    "Write out the four equally likely outcomes, then cross out the ones that are incompatible with what you were told.",
+    "\"At least one is a girl\" rules out exactly one of the four. How many are left, and how many of those have two girls?",
+    "$\\P(A \\mid B) = \\P(A \\cap B)/\\P(B)$. Here $B = \\{BG, GB, GG\\}$ and $A \\cap B = \\{GG\\}$."
+  ],
+  "payload": {
+    "prompt": "The conditional probability that both are girls.",
+    "label": "Probability",
+    "placeholder": "a fraction",
+    "syntax": "A fraction or a decimal. 1/4 and 0.25 are the same answer."
+  }
+}

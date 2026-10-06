@@ -1,0 +1,20 @@
+{
+  "key": {
+    "value": "[0,1)"
+  },
+  "feedback": {
+    "nudge": "A point is in the ball when it is in the space **and** within the radius. Write both conditions down and intersect them, then check each endpoint separately: is it in $X$, and is its distance strictly less than $1$?"
+  },
+  "explanation": "## Working it out\n\n$$B(0,1) = \\{\\, y \\in [0,2] : |y| < 1 \\,\\} = [0,2] \\cap (-1,1) = [0, 1).$$\n\n- $0$ **is** in the ball: it is in $X$, and $d(0,0) = 0 < 1$. It is the centre.\n- $1$ is **not**: $d(0,1) = 1$, and the inequality is strict.\n- Nothing below $0$ is in the ball, because nothing below $0$ is in $X$.\n\n## The point\n\nIn $\\R$ this ball is $(-1,1)$, which is open and symmetric about its centre. In $X = [0,2]$ it is $[0,1)$, which contains its left endpoint and is not symmetric about anything.\n\nAnd $[0,1)$ **is an open set in $X$**, despite the square bracket. Openness in $X$ means every point has a ball *in $X$* around it inside the set, and the point $0$ has $B(0, \\tfrac12) = [0, \\tfrac12)$, which is inside $[0,1)$. There is no room to the left of $0$ because there is no space to the left of $0$.\n\n## The rule this is an instance of\n\nFor a subspace $X \\subseteq Y$, the open sets of $X$ are exactly the sets $U \\cap X$ for $U$ open in $Y$. That is the definition of the **subspace topology**, and the square bracket above is what it looks like in practice.\n\nWhenever you are asked whether a set is open, the only correct first question is **open in what?**",
+  "readMore": [
+    {
+      "concept": "ambient-space",
+      "where": "Sutherland Ch. 5.1"
+    },
+    {
+      "concept": "open-sets",
+      "where": "Rudin Ch. 2.23–2.27"
+    }
+  ],
+  "id": "metric-ball-depends-on-ambient"
+}

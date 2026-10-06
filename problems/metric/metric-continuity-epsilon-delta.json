@@ -1,0 +1,45 @@
+{
+  "id": "metric-continuity-epsilon-delta",
+  "title": "Prove it is continuous",
+  "topic": "metric",
+  "difficulty": "advanced",
+  "type": "proof",
+  "tags": [
+    "continuity-metric",
+    "proof",
+    "epsilon-delta"
+  ],
+  "estimate": 25,
+  "prereqs": [
+    {
+      "concept": "continuity-metric",
+      "why": "The definition you are being asked to verify."
+    },
+    {
+      "concept": "metric-axioms",
+      "why": "The triangle inequality is what turns a bound on one distance into a bound on another."
+    },
+    {
+      "concept": "metric-examples",
+      "why": "The two metrics in the statement are the Euclidean and maximum metrics on the plane."
+    }
+  ],
+  "statement": "Let $f : \\R^2 \\to \\R$ be given by $f(x_1, x_2) = x_1 + x_2$, where $\\R^2$ carries the Euclidean metric $d_2$ and $\\R$ carries $|\\cdot|$.\n\n**Prove that $f$ is continuous at every point.**\n\nRecall the definition: $f$ is continuous at $a$ if for every $\\eps > 0$ there is $\\delta > 0$ such that $d_2(x, a) < \\delta$ implies $|f(x) - f(a)| < \\eps$.\n\nWrite the proof out. Nothing here will mark it — when you submit it you will be given a rubric to check it against, and then a model proof to compare with. The record will say **Self-reviewed**, which is a different thing from Solved.",
+  "hints": [
+    "Start by writing down what you have to control and what you are allowed to assume. You must make $|f(x)-f(a)|$ small; you are allowed to assume $d_2(x,a)$ is as small as you like.",
+    "Expand both. $|f(x) - f(a)| = |(x_1 - a_1) + (x_2 - a_2)|$, and $d_2(x,a) = \\sqrt{(x_1-a_1)^2 + (x_2-a_2)^2}$. You need to bound the first using the second.",
+    "Each coordinate difference is at most $d_2(x,a)$, since $|t| \\le \\sqrt{t^2 + s^2}$. So the triangle inequality gives $|f(x)-f(a)| \\le 2\\,d_2(x,a)$, and $\\delta = \\eps/2$ works. Now write that as a proof, with the quantifiers in the right order."
+  ],
+  "payload": {
+    "starter": "Let a = (a1, a2) be any point of R^2 and let ε > 0.\n\nPut δ = …\n",
+    "rubric": [
+      "It begins by fixing an arbitrary point $a$ and an arbitrary $\\eps > 0$, **before** choosing $\\delta$.",
+      "The $\\delta$ is given explicitly in terms of $\\eps$ (and does not secretly depend on $x$).",
+      "It states the assumption $d_2(x,a) < \\delta$ and derives the conclusion $|f(x)-f(a)| < \\eps$ from it, rather than the other way round.",
+      "Each coordinate difference is bounded by $d_2(x,a)$, with a reason given.",
+      "The triangle inequality is used explicitly where two terms are combined.",
+      "The chain of inequalities actually reaches $\\eps$, with no step left as 'clearly'.",
+      "It ends by saying what has been shown — continuity at $a$, for arbitrary $a$, hence everywhere."
+    ]
+  }
+}

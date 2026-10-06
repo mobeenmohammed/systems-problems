@@ -1,0 +1,34 @@
+{
+  "id": "metric-ball-in-the-integers",
+  "title": "What is in the ball?",
+  "topic": "metric",
+  "difficulty": "beginner",
+  "type": "structured",
+  "tags": [
+    "open-balls",
+    "ambient-space"
+  ],
+  "estimate": 8,
+  "prereqs": [
+    {
+      "concept": "open-balls",
+      "why": "The definition of $B(x,r)$ is the whole of this question."
+    },
+    {
+      "concept": "ambient-space",
+      "why": "The ball is taken in $\\Z$, not in $\\R$, and that is the point."
+    }
+  ],
+  "statement": "Let $X = \\Z$, the integers, with the metric inherited from $\\R$: $d(m,n) = |m - n|$.\n\nThe open ball of radius $r$ about $x$ is\n\n$$B(x, r) = \\{\\, y \\in X : d(x,y) < r \\,\\}.$$\n\nList the elements of $B(2, 2)$.\n\nNote the **strict** inequality, and note that $X$ is $\\Z$ — the only candidates are integers.",
+  "hints": [
+    "Write down the condition the definition gives you: which integers $n$ satisfy $|2 - n| < 2$?",
+    "That inequality says $-2 < n - 2 < 2$, so $0 < n < 4$. Now remember that $n$ has to be an integer.",
+    "The integers strictly between $0$ and $4$ are $1$, $2$ and $3$. Check each against $|2-n| < 2$ before you answer."
+  ],
+  "payload": {
+    "kind": "set",
+    "prompt": "The elements of $B(2,2)$, as a set.",
+    "label": "B(2, 2) =",
+    "placeholder": "{ … }"
+  }
+}

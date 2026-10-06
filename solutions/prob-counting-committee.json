@@ -1,0 +1,37 @@
+{
+  "key": {
+    "value": "120",
+    "alsoAccept": [
+      "C(10,3)"
+    ]
+  },
+  "feedback": {
+    "whenValue": [
+      {
+        "is": "720",
+        "say": "That is $10 \\times 9 \\times 8$, the number of ordered selections. Each committee has been counted several times — once for each order its three members could have been picked in. How many orders is that?"
+      },
+      {
+        "is": "1000",
+        "say": "That is $10^3$, which allows the same person to be chosen more than once. A committee of three needs three different people."
+      },
+      {
+        "is": "30",
+        "say": "That is $10 \\times 3$. Multiplying the two numbers in the question is not a counting argument — try counting the ordered selections first and then correcting for the overcount."
+      },
+      {
+        "is": "45",
+        "say": "That is $\\binom{10}{2}$, the number of *pairs*. Check which of the two numbers goes on top."
+      }
+    ],
+    "nudge": "Count the ordered selections, which is easy, and then divide by the number of orderings of each selection. That ratio is exactly what $\\binom{n}{k}$ means."
+  },
+  "explanation": "## The count\n\n$$\\binom{10}{3} = \\frac{10 \\times 9 \\times 8}{3 \\times 2 \\times 1} = \\frac{720}{6} = \\mathbf{120}.$$\n\n## Where the division comes from\n\nThere are $10 \\times 9 \\times 8 = 720$ ways to pick three people *in order*. Each committee $\\{A,B,C\\}$ appears among those 720 exactly $3! = 6$ times, once per ordering. Dividing by $6$ removes the overcount.\n\nThat is the whole content of the formula:\n\n$$\\binom{n}{k} = \\frac{n!}{k!\\,(n-k)!} = \\frac{\\text{ordered selections}}{\\text{orderings of each}}.$$\n\n## Four questions that look alike\n\n| order matters? | repeats allowed? | count | here |\n| --- | --- | --- | --- |\n| yes | yes | $n^k$ | $1000$ |\n| yes | no | $n!/(n-k)!$ | $720$ |\n| no | no | $\\binom{n}{k}$ | $\\mathbf{120}$ |\n| no | yes | $\\binom{n+k-1}{k}$ | $220$ |\n\nAlmost every counting error is picking the wrong row, and the way to avoid it is to answer the two questions in words before reaching for a formula.\n\n## A useful symmetry\n\n$\\binom{10}{3} = \\binom{10}{7} = 120$. Choosing the three who are *in* is the same as choosing the seven who are *out*, and when $k$ is more than half of $n$ it is usually less work to count the complement.",
+  "readMore": [
+    {
+      "concept": "counting",
+      "where": "Blitzstein & Hwang Ch. 1.4, with the four-way table"
+    }
+  ],
+  "id": "prob-counting-committee"
+}

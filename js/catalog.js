@@ -93,6 +93,11 @@ const Catalog = (() => {
     const terms = q ? q.split(/\s+/) : [];
 
     return index.filter(p => {
+      /* Subject is the coarsest filter and the one the top bar switches.
+         A search term overrides it on purpose: looking for "bayes" while
+         Systems is selected should find it rather than silently returning
+         nothing, and the catalog says when that has happened. */
+      if (filter.subject && !terms.length && p.subject !== filter.subject) return false;
       if (filter.topic      && p.topic      !== filter.topic)      return false;
       if (filter.difficulty && p.difficulty !== filter.difficulty) return false;
       if (filter.type       && p.type       !== filter.type)       return false;
@@ -107,7 +112,8 @@ const Catalog = (() => {
       }
 
       if (terms.length) {
-        const hay = `${p.title} ${p.topic} ${p.type} ${(p.tags || []).join(' ')}`.toLowerCase();
+        const hay = (`${p.title} ${p.topic} ${p.subject || ''} ${p.type} `
+          + `${(p.tags || []).join(' ')}`).toLowerCase();
         if (!terms.every(t => hay.includes(t))) return false;
       }
       return true;
@@ -211,12 +217,21 @@ const Catalog = (() => {
      are dropped rather than rendered as dead rows, so a track can name a
      problem that has not been written yet without breaking the page. */
 
-  function allTracks() {
-    return tracks.map(t => ({
-      ...t,
-      problems: (t.problems || []).filter(id => byId[id]),
-      missing: (t.problems || []).filter(id => !byId[id]).length,
-    }));
+  function allTracks(subject = null) {
+    const rows = tracks.map(t => {
+      const problems = (t.problems || []).filter(id => byId[id]);
+      /* A track's subject is the subject of the problems in it, so there is
+         no field to keep in step with the problem files. A track spanning
+         both would show in both, which is the honest answer. */
+      const subjects = [...new Set(problems.map(id => byId[id].subject))];
+      return {
+        ...t,
+        problems,
+        subjects,
+        missing: (t.problems || []).filter(id => !byId[id]).length,
+      };
+    });
+    return subject ? rows.filter(t => t.subjects.includes(subject)) : rows;
   }
 
   const track = id => allTracks().find(t => t.id === id) || null;

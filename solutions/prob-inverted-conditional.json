@@ -1,0 +1,27 @@
+{
+  "key": {
+    "answer": 0
+  },
+  "feedback": {
+    "options": {
+      "1": "This swaps the two events round. $\\P(A \\mid B)$ and $\\P(B \\mid A)$ are different numbers, and Bayes' theorem is precisely the statement of how far apart they can be — it needs the two base rates, which you were not given.",
+      "2": "This drops the condition entirely. You were told something about licence-holders only; the people without licences could own cars at any rate at all, and nothing here constrains them.",
+      "3": "This confuses a conditional with a joint probability. $\\P(A \\cap B) = \\P(A \\mid B)\\,\\P(B)$, so it would be $0.8$ only if everyone had a licence."
+    },
+    "reconsider": "For each option, ask: which population is it talking about? The given number is about licence-holders. Only one option stays inside that population."
+  },
+  "distractors": {
+    "0": "Correct. For a fixed condition, probabilities of complementary events add to $1$: $\\P(A^c \\mid B) = 1 - \\P(A \\mid B)$. Conditioning on $B$ is an ordinary probability measure on $B$.",
+    "1": "No. This is the inverted conditional, and Bayes shows it depends on $\\P(\\text{licence})$ and $\\P(\\text{car})$, neither of which was given.",
+    "2": "No. Nothing was said about people without licences, so the unconditional rate is not determined.",
+    "3": "No. $\\P(A \\cap B) = \\P(A \\mid B)\\P(B) = 0.8 \\times \\P(\\text{licence})$, which is $0.8$ only if $\\P(\\text{licence}) = 1$."
+  },
+  "explanation": "## The one that holds\n\nFix the condition $B$. Then $\\P(\\cdot \\mid B)$ is itself a probability measure — it satisfies all the usual rules — so\n\n$$\\P(A^c \\mid B) = 1 - \\P(A \\mid B) = 0.2.$$\n\nComplements work **on the left of the bar**, as long as the right-hand side does not move.\n\n## The three that do not\n\n**Swapping the bar.** $\\P(A \\mid B) \\ne \\P(B \\mid A)$ in general, and Bayes says exactly how they relate:\n\n$$\\P(B \\mid A) = \\P(A \\mid B)\\,\\frac{\\P(B)}{\\P(A)}.$$\n\nThe ratio of base rates can be anything, so the two conditionals can be arbitrarily far apart. Nearly every famous probability error in medicine and in law is this swap.\n\n**Dropping the condition.** The law of total probability gives\n\n$$\\P(A) = \\P(A \\mid B)\\P(B) + \\P(A \\mid B^c)\\P(B^c),$$\n\nand the second term is entirely unconstrained here.\n\n**Conditional versus joint.** $\\P(A \\cap B) = \\P(A \\mid B)\\P(B)$, which is at most $\\P(B)$ — a joint probability can never exceed either of its parts.\n\n## The habit that prevents all three\n\nRead $\\P(A \\mid B)$ out loud as *\"among the $B$s, the proportion that are $A$\"*. Then each wrong option becomes obviously about a different group of people: option 2 is about car owners, option 3 about everybody, option 4 about everybody again.",
+  "readMore": [
+    {
+      "concept": "bayes",
+      "where": "Blitzstein & Hwang Ch. 2.3, on the prosecutor's fallacy"
+    }
+  ],
+  "id": "prob-inverted-conditional"
+}

@@ -1,0 +1,30 @@
+{
+  "key": {
+    "value": "6"
+  },
+  "feedback": {
+    "whenValue": [
+      {
+        "is": "16",
+        "say": "That is $7 + 5 + 4$. Check the sign on the middle term — the expression subtracts $d_2$."
+      },
+      {
+        "is": "-2",
+        "say": "That looks like $d_1 - d_2 - d_\\infty$, or like $d_\\infty$ worked out as $3$ rather than $4$. The maximum metric takes the *larger* of the two coordinate differences."
+      },
+      {
+        "is": "5",
+        "say": "Check $d_\\infty$. The maximum of $|0-3| = 3$ and $|0-4| = 4$ is not $3$."
+      }
+    ],
+    "nudge": "Work out all three values first and write them down, then substitute. The coordinate differences are $3$ and $4$ throughout; the three metrics differ only in how they combine them."
+  },
+  "explanation": "## The three values\n\nThe coordinate differences are $|0-3| = 3$ and $|0-4| = 4$.\n\n$$d_2 = \\sqrt{3^2 + 4^2} = \\sqrt{25} = 5, \\qquad d_1 = 3 + 4 = 7, \\qquad d_\\infty = \\max(3,4) = 4.$$\n\nSo $d_1 - d_2 + d_\\infty = 7 - 5 + 4 = \\mathbf{6}$.\n\n## The ordering is not an accident\n\nFor any two points in $\\R^n$,\n\n$$d_\\infty \\;\\le\\; d_2 \\;\\le\\; d_1 \\;\\le\\; n \\, d_\\infty .$$\n\nThe first inequality holds because the largest coordinate difference is one of the terms being squared and summed. The second is the triangle inequality applied coordinate by coordinate. The third holds because each of the $n$ terms of $d_1$ is at most $d_\\infty$.\n\nThose inequalities are the statement that the three metrics are **equivalent**: each is bounded by a constant multiple of the others, so a sequence converging in one converges in all three, and the same sets are open in all three. They give different *numbers* and the same *topology*.\n\n## Where the three come from\n\n$d_1$ is how far a taxi drives on a grid. $d_\\infty$ is how long a crane takes if it can move both axes at once — the slowest axis decides. $d_2$ is the straight line. The fact that they all give the same open sets is why \"converges\" is usually unambiguous in $\\R^n$ without saying which metric.",
+  "readMore": [
+    {
+      "concept": "metric-examples",
+      "where": "Sutherland Ch. 2.2, with the pictures of the balls"
+    }
+  ],
+  "id": "metric-three-metrics-compared"
+}

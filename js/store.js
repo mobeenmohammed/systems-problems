@@ -27,6 +27,17 @@ const Store = (() => {
   const LS_PREFS = 'systems-lab/ui/v1';
   const CONFIG_URL = 'data/config.json';
 
+  /* The coarsest division, and the one the top bar switches between. A
+     subject is a property of the topic, so a problem cannot be filed under
+     one and tagged with the other. */
+  const SUBJECTS = [
+    { id: 'systems', label: 'Systems', short: 'Systems',
+      blurb: 'Low-level systems: C++, Rust, architecture, operating systems and the rest.' },
+    { id: 'maths', label: 'Mathematics', short: 'Maths',
+      blurb: 'Metric spaces and probability, with proofs and worked calculations.' },
+  ];
+  const SUBJECT_BY_ID = Object.fromEntries(SUBJECTS.map(s2 => [s2.id, s2]));
+
   const TOPICS = [
     { id: 'cpp',       label: 'C++',                      blurb: 'The language itself: initialisation, types, scope, linkage, and what the standard does and does not promise.' },
     { id: 'rust',      label: 'Rust',                     blurb: 'Ownership, borrowing, slices, and errors that have to be handled rather than ignored.' },
@@ -39,8 +50,15 @@ const Store = (() => {
     { id: 'fpga',      label: 'FPGAs & Hardware',         blurb: 'LUTs and flops, timing closure, and HDL semantics.' },
     { id: 'algo',      label: 'Algorithms',               blurb: 'The classics, with a bias towards memory behaviour.' },
     { id: 'sysdesign', label: 'System Design',            blurb: 'Latency budgets, capacity, caching, and backpressure.' },
+
+    { id: 'metric',    label: 'Metric Spaces',            subject: 'maths', blurb: 'Distance as an axiom rather than a formula: balls, open sets, convergence, completeness, continuity.' },
+    { id: 'prob',      label: 'Probability',              subject: 'maths', blurb: 'Sample spaces, conditioning, independence, random variables and their expectations.' },
   ];
+  /* Everything without an explicit subject is systems, which is where the
+     site started and what the other eleven topics are. */
+  for (const t of TOPICS) if (!t.subject) t.subject = 'systems';
   const TOPIC_BY_ID = Object.fromEntries(TOPICS.map(t => [t.id, t]));
+  const topicsIn = subject => TOPICS.filter(t => t.subject === subject);
 
   /* Base points per difficulty. An Advanced problem is worth six Beginner
      ones, which is roughly the honest ratio of how long they take. */
@@ -122,7 +140,10 @@ const Store = (() => {
   ];
   const ACHIEVEMENT_BY_ID = Object.fromEntries(ACHIEVEMENTS.map(a => [a.id, a]));
 
-  const STATUSES = ['unsolved', 'attempted', 'solved', 'read'];
+  /* "reviewed" is its own status and not a flavour of "solved", because a
+     written proof the reader has compared against a rubric is real work and
+     is NOT a machine saying the proof is right. Nothing upgrades it. */
+  const STATUSES = ['unsolved', 'attempted', 'solved', 'read', 'reviewed'];
 
   let state  = null;
   let migratedFrom = null;
@@ -201,6 +222,8 @@ const Store = (() => {
     return {
       id,
       status:    STATUSES.includes(r.status) ? r.status : 'unsolved',
+      selfReviewed: !!r.selfReviewed,
+      rubric:    Array.isArray(r.rubric) ? r.rubric.slice() : [],
       attempts:  Math.max(0, Number(r.attempts)  || 0),
       hintsUsed: Math.max(0, Number(r.hintsUsed) || 0),
       revealed:  !!r.revealed,
@@ -419,6 +442,41 @@ const Store = (() => {
     r.reviewOn = days > 0 ? addDays(todayISO(), days) : '';
     save(); emit('review', r);
   }
+  /* A written proof, reviewed by the person who wrote it against the
+     problem's rubric. It pays out like a solve — the site already trusts
+     the reader to tick a reading they have read — and it is recorded under
+     a status of its own, so "I checked my own proof" can never be read back
+     as "a grader verified this". */
+  function selfReview(problem, { rubric = [] } = {}) {
+    const r = touch(problem);
+    const already = r.status === 'solved' || r.status === 'reviewed';
+    r.selfReviewed = true;
+    r.rubric = rubric.slice();
+    r.attempts = (r.attempts || 0) + 1;
+    r.lastAt = todayISO();
+    if (r.status !== 'solved') r.status = 'reviewed';
+
+    let xp = 0;
+    let coins = 0;
+    if (!already && !r.revealed) {
+      xp = potentialXp(problem);
+      coins = Math.max(1, Math.round(xp / 5));
+      state.xp += xp;
+      state.coins += coins;
+      r.xpEarned = xp;
+      const today = todayISO();
+      if (state.streak.lastDay !== today) {
+        const gap = state.streak.lastDay ? daysBetween(state.streak.lastDay, today) : Infinity;
+        state.streak.current = gap === 1 ? state.streak.current + 1 : 1;
+        state.streak.lastDay = today;
+        state.streak.longest = Math.max(state.streak.longest, state.streak.current);
+      }
+    }
+    save();
+    emit('self-review', r);
+    return { xp, coins, alreadyDone: already };
+  }
+
   function saveDraft(problem, lang, source) {
     const r = touch(problem);
     r.draft[lang] = String(source);
@@ -722,6 +780,7 @@ const Store = (() => {
     get migratedFrom() { return migratedFrom; },
     setJudgeUrl, loadJudgeUrl, setJudgeToken, setHostedUrl, pref, setPref,
 
+    SUBJECTS, SUBJECT_BY_ID, topicsIn,
     TOPICS, TOPIC_BY_ID, DIFFICULTIES, DIFF_BY_ID, LANES, LANE_BY_ID, RANKS,
     SHOP, SHOP_BY_ID, SLOTS, ACHIEVEMENTS, ACHIEVEMENT_BY_ID,
     FIRST_TRY_BONUS, HINT_PENALTY,
@@ -729,7 +788,7 @@ const Store = (() => {
     todayISO, addDays, daysBetween,
     record, isSolved, potentialXp, touch,
     openHint, reveal, submit,
-    setNotes, setPerceived, setFlag, toggleFlag, setReview, saveDraft, setLang, draft, dueForReview,
+    setNotes, setPerceived, setFlag, toggleFlag, setReview, saveDraft, setLang, draft, dueForReview, selfReview,
     markReading, hasRead, readingCount,
     rankFor, rankProgress,
     buy, equip, isOwned, earnedTitles,

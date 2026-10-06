@@ -1,0 +1,30 @@
+{
+  "id": "metric-discrete-distances",
+  "title": "Distance in the discrete metric",
+  "topic": "metric",
+  "difficulty": "beginner",
+  "type": "exact",
+  "tags": [
+    "metric-examples",
+    "discrete-metric"
+  ],
+  "estimate": 5,
+  "prereqs": [
+    {
+      "concept": "metric-examples",
+      "why": "This is the discrete metric, and the point is that it ignores everything you know about the numbers."
+    }
+  ],
+  "statement": "Let $X = \\R$ with the **discrete metric**\n\n$$d(x,y) = \\begin{cases} 0 & x = y \\\\ 1 & x \\ne y. \\end{cases}$$\n\nWork out\n\n$$d(0, 1000) + d(7, 7) + d(-2, -2.0) + d\\!\\left(\\tfrac{1}{3}, 0.333\\right).$$",
+  "hints": [
+    "The discrete metric asks one question about a pair of points, and it is not *how far apart are they*. It is *are they the same point*.",
+    "Three of the four terms need you to decide whether two expressions name the same real number. Two of them do.",
+    "$-2$ and $-2.0$ are the same real number written twice. $\\tfrac13$ and $0.333$ are not."
+  ],
+  "payload": {
+    "prompt": "The sum of the four distances.",
+    "label": "The sum",
+    "placeholder": "a whole number",
+    "syntax": "A number. Arithmetic is fine: 1+1 is read as 2."
+  }
+}

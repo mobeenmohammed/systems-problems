@@ -1,0 +1,41 @@
+{
+  "id": "metric-compactness-closed-bounded",
+  "title": "Closed and bounded is not enough",
+  "topic": "metric",
+  "difficulty": "advanced",
+  "type": "mcq",
+  "tags": [
+    "compactness",
+    "completeness"
+  ],
+  "estimate": 12,
+  "prereqs": [
+    {
+      "concept": "compactness",
+      "why": "The definition by open covers is what the options are testing."
+    },
+    {
+      "concept": "closed-sets",
+      "why": "Three of the options describe sets as closed, and that has to be checked in the right space."
+    },
+    {
+      "concept": "metric-examples",
+      "why": "The discrete metric is the counterexample that separates the two conditions."
+    }
+  ],
+  "statement": "A metric space $X$ is **compact** if every open cover of $X$ has a finite subcover.\n\nIn $\\R^n$, the Heine–Borel theorem says this is equivalent to being closed and bounded. That equivalence is a **theorem about $\\R^n$**, not a definition, and it fails elsewhere.\n\nWhich of these spaces is **compact**?",
+  "hints": [
+    "Compactness is about covers. For each option, either produce a finite subcover of an arbitrary cover, or find one cover with no finite subcover.",
+    "For the infinite discrete space, the single-point balls $B(x,\\tfrac12) = \\{x\\}$ form an open cover. How many of them can you throw away?",
+    "Heine–Borel applies to subsets of $\\R^n$ with the usual metric — and to nothing else on this list. Check which option is actually of that form."
+  ],
+  "payload": {
+    "prompt": "Which space is compact?",
+    "options": [
+      "$[0,1]$ with the usual metric.",
+      "$\\Z$ with the discrete metric.",
+      "$(0,1]$ with the usual metric.",
+      "$\\R$ with the metric $\\rho(x,y) = \\min(|x-y|, 1)$, which is bounded by $1$ and in which $\\R$ is closed."
+    ]
+  }
+}

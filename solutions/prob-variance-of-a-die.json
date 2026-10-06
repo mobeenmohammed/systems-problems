@@ -1,0 +1,45 @@
+{
+  "key": {
+    "value": "35/12",
+    "alsoAccept": [
+      "91/6 - (7/2)^2"
+    ]
+  },
+  "feedback": {
+    "whenValue": [
+      {
+        "is": "91/6",
+        "say": "That is $\\E[X^2]$ on its own. The variance subtracts the square of the mean from it — otherwise it would not be zero for a constant."
+      },
+      {
+        "is": "7/2",
+        "say": "That is $\\E[X]$, the mean. The variance is a different quantity: the expected squared distance *from* that mean."
+      },
+      {
+        "is": "49/4",
+        "say": "That is $(\\E[X])^2$. It is the second term of the formula, not the answer — and it is being subtracted, not reported."
+      },
+      {
+        "is": "0",
+        "say": "That would say the die always gives the same value. Check the order of the two terms: $\\E[X^2]$ and $(\\E[X])^2$ are different numbers, and the first is the larger."
+      },
+      {
+        "is": "-35/12",
+        "say": "Right magnitude, wrong sign — the two terms are the other way round. $\\E[X^2] \\ge (\\E[X])^2$ always, by Jensen, so a variance is never negative."
+      }
+    ],
+    "nudge": "Compute $\\E[X]$ and $\\E[X^2]$ separately and write both down. The commonest slip is squaring the average instead of averaging the squares, and those two differ by exactly the variance."
+  },
+  "explanation": "## The calculation\n\n$$\\E[X] = \\frac{1+2+3+4+5+6}{6} = \\frac{21}{6} = \\frac72,$$\n\n$$\\E[X^2] = \\frac{1+4+9+16+25+36}{6} = \\frac{91}{6},$$\n\n$$\\Var(X) = \\E[X^2] - (\\E[X])^2 = \\frac{91}{6} - \\frac{49}{4} = \\frac{182 - 147}{12} = \\mathbf{\\frac{35}{12}} \\approx 2.9167.$$\n\nThe standard deviation is $\\sqrt{35/12} \\approx 1.71$, which is a sensible \"typical distance from $3.5$\" for a die.\n\n## The two formulas\n\n$$\\Var(X) = \\E\\big[(X - \\E X)^2\\big] = \\E[X^2] - (\\E[X])^2.$$\n\nThe first is the definition and says what variance *means*: the average squared distance from the mean. The second is what you compute with, and it follows by expanding the square.\n\n## Averaging the squares is not squaring the average\n\n$\\E[X^2] = \\tfrac{91}{6} \\approx 15.17$ while $(\\E[X])^2 = 12.25$. The gap between them **is** the variance — that is the content of the formula, and it is also Jensen's inequality for the convex function $t \\mapsto t^2$, which is why a variance can never come out negative.\n\n## What it is good for\n\nVariance adds across **independent** variables, unlike expectation which adds across all of them:\n\n$$\\Var(X_1 + \\dots + X_n) = n \\cdot \\tfrac{35}{12} \\quad\\text{for } n \\text{ independent dice}.$$\n\nSo the sum of $n$ dice has standard deviation growing like $\\sqrt n$ while its mean grows like $n$ — the spread becomes small *relative to the total*. That ratio is the law of large numbers in one line.",
+  "readMore": [
+    {
+      "concept": "variance",
+      "where": "Blitzstein & Hwang Ch. 4.6"
+    },
+    {
+      "concept": "expectation",
+      "where": "Grimmett & Welsh Ch. 3.3"
+    }
+  ],
+  "id": "prob-variance-of-a-die"
+}

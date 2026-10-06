@@ -1762,3 +1762,147 @@ html[data-focus] .rail { display: none; }
 }
 .ws-stop[hidden] { display: none; }
 .ws-stop { color: var(--warn); }
+
+/* ---------------- the subject switch ----------------
+
+   Two pills in the top bar. It is a lens rather than an account: everything
+   it hides is still solved, still bookmarked, and still found by search. */
+.subject-switch {
+  display: flex; gap: 2px; padding: 2px;
+  background: var(--bg-inset); border: 1px solid var(--border);
+  border-radius: 999px; flex: none;
+}
+.subject-btn {
+  font: inherit; font-size: .78rem; font-weight: 600;
+  padding: .3em .9em; border: 0; border-radius: 999px; cursor: pointer;
+  background: none; color: var(--text-faint);
+  transition: color .13s, background .13s;
+  white-space: nowrap;
+}
+.subject-btn:hover { color: var(--text); }
+.subject-btn[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
+
+/* ---------------- mathematics ----------------
+
+   KaTeX sets its own type; what is needed here is the space around it and
+   the behaviour of a long expression on a narrow screen. */
+.katex { font-size: 1.04em; }
+.katex-display {
+  margin: var(--s3) 0;
+  /* A long expression scrolls inside itself rather than pushing the page
+     sideways — but silently clipping it would be worse than either, so the
+     scrollbar is left visible rather than hidden until hover. */
+  overflow-x: auto; overflow-y: hidden;
+  padding: .2rem 0 .35rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+.katex-display::-webkit-scrollbar { height: 6px; }
+.katex-display::-webkit-scrollbar-thumb {
+  background: var(--border-strong); border-radius: 3px;
+}
+.katex-display > .katex { text-align: left; }
+/* A long expression scrolls inside itself rather than pushing the page
+   sideways, which is the same rule the code blocks follow. */
+.prose .katex-display { max-width: 100%; }
+
+/* When KaTeX did not load. The source is better than nothing. */
+.math-raw { color: var(--text-dim); font-family: var(--mono); font-size: .9em; }
+.math-bad { color: var(--warn); }
+
+/* ---------------- maths answer fields ---------------- */
+
+.maths-answer { display: grid; gap: .35rem; margin: var(--s3) 0; max-width: 42rem; }
+.maths-input {
+  font-family: var(--mono); font-size: .95rem;
+  padding: .55rem .75rem; width: 100%;
+  background: var(--bg-inset); color: var(--text);
+  border: 1px solid var(--border-strong); border-radius: var(--radius-s);
+}
+.maths-input:focus { border-color: var(--accent); }
+.maths-input[data-mark="wrong"] { border-color: var(--danger); }
+.maths-input:disabled { opacity: .6; }
+.maths-syntax { margin: 0; }
+
+/* The live reading. Most "wrong" answers in a maths tool are the tool
+   reading something other than what was meant, and showing the reading
+   makes that visible before submitting rather than after. */
+.maths-preview { margin: 0; min-height: 1.2em; font-size: .8rem; }
+.maths-preview[data-state="empty"] { visibility: hidden; }
+.maths-preview[data-state="ok"] { color: var(--text-dim); }
+.maths-preview[data-state="bad"] { color: var(--warn); }
+.maths-read { font-family: var(--mono); color: var(--text); }
+.maths-truth { margin: .4rem 0 0; color: var(--ok); }
+
+/* ---------------- proofs ---------------- */
+
+.proof-claim {
+  border-left: 3px solid var(--accent); padding: .1rem 0 .1rem var(--s3);
+  margin-bottom: var(--s4);
+}
+.proof-steps { list-style: decimal; margin: 0; padding-left: 1.6rem; display: grid; gap: var(--s3); }
+.proof-step { padding: .4rem .6rem; border-radius: var(--radius-s); }
+.proof-step[data-mark="wrong"] { background: color-mix(in srgb, var(--danger) 12%, transparent); }
+.proof-step[data-mark="right"] { background: color-mix(in srgb, var(--ok) 12%, transparent); }
+.proof-text > :first-child { margin-top: 0; }
+.proof-text > :last-child { margin-bottom: 0; }
+.proof-why {
+  margin-top: .35rem; width: min(100%, 36rem);
+  font: inherit; font-size: .84rem; padding: .3rem .5rem;
+  background: var(--bg-elev); color: var(--text);
+  border: 1px solid var(--border-strong); border-radius: var(--radius-s);
+}
+
+.proof-box {
+  width: 100%; margin-top: var(--s2);
+  font-family: var(--mono); font-size: .88rem; line-height: 1.6;
+  padding: .7rem .85rem; resize: vertical;
+  background: var(--bg-inset); color: var(--text);
+  border: 1px solid var(--border-strong); border-radius: var(--radius-s);
+}
+.proof-box:focus { border-color: var(--accent); }
+
+.cx-claim {
+  border: 1px solid var(--border-strong); border-left-width: 3px;
+  border-radius: var(--radius-s); padding: var(--s3); margin-bottom: var(--s3);
+  background: var(--bg-elev);
+}
+
+/* ---------------- the self-review pane ---------------- */
+
+.verdict[data-kind="review"] { border-left-color: var(--accent); }
+.review-pane {
+  margin-top: var(--s3); padding-top: var(--s3);
+  border-top: 1px solid var(--border);
+}
+.review-pane h4 { margin: 0 0 .3rem; font-size: .9rem; }
+.rubric { list-style: none; margin: var(--s2) 0 0; padding: 0; display: grid; gap: .45rem; }
+.rubric li { display: flex; gap: .55rem; align-items: flex-start; font-size: .86rem; line-height: 1.5; }
+.rubric input { margin: .25rem 0 0; flex: none; accent-color: var(--ok); }
+
+/* ---------------- figures ----------------
+
+   Inline SVG drawn from the theme's own tokens, so a figure repaints with
+   the theme instead of being a dark-mode picture on a light page. */
+.mfig { margin: var(--s4) 0; }
+.mfig-svg { width: 100%; max-width: 32rem; height: auto; display: block; }
+.mfig figcaption {
+  margin-top: var(--s2); font-size: .8rem; line-height: 1.55;
+  color: var(--text-dim); max-width: 60ch;
+}
+.mfig-axis { stroke: var(--border-strong); stroke-width: 1; }
+.mfig-seg  { stroke: var(--accent); stroke-width: 3; }
+.mfig-tick, .mfig-label { fill: var(--text-dim); font-size: 11px; font-family: var(--mono); }
+.mfig-shape { fill: none; stroke-width: 2; }
+.mfig-one { stroke: var(--diff-beginner); }
+.mfig-two { stroke: var(--accent); }
+.mfig-inf { stroke: var(--diff-advanced); }
+.mfig-dot { fill: var(--bg); stroke: var(--accent); stroke-width: 2; }
+.mfig-dot.mfig-filled { fill: var(--accent); }
+.mfig-node rect { fill: var(--bg-elev); stroke: var(--border-strong); stroke-width: 1; }
+.mfig-node.mfig-hit rect  { stroke: var(--ok); }
+.mfig-node.mfig-miss rect { stroke: var(--danger); }
+.mfig-edge { stroke: var(--border-strong); stroke-width: 1; }
+/* The legend. Set a size here rather than inheriting, so it stays legible
+   when the figure is scaled down on a phone. */
+.mfig-key .mfig-label { font-size: 12px; }

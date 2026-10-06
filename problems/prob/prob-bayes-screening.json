@@ -1,0 +1,36 @@
+{
+  "id": "prob-bayes-screening",
+  "title": "A positive test, and what it is worth",
+  "topic": "prob",
+  "difficulty": "intermediate",
+  "type": "exact",
+  "tags": [
+    "bayes",
+    "conditional-probability",
+    "base-rates"
+  ],
+  "estimate": 14,
+  "prereqs": [
+    {
+      "concept": "bayes",
+      "why": "The whole calculation is one application of the theorem."
+    },
+    {
+      "concept": "conditional-probability",
+      "why": "You need to be fluent in which side of the bar each given number sits on."
+    }
+  ],
+  "statement": "A condition affects $1$ person in $200$. A screening test has:\n\n- **sensitivity $0.99$** — $\\P(\\text{positive} \\mid \\text{has it}) = 0.99$;\n- **specificity $0.95$** — $\\P(\\text{negative} \\mid \\text{does not have it}) = 0.95$.\n\nA person is screened at random and tests **positive**.\n\nWhat is $\\P(\\text{has it} \\mid \\text{positive})$? Give the exact probability.",
+  "hints": [
+    "Write down the four numbers you have been given and which conditional each one is. The answer is a different conditional from any of them, which is the point.",
+    "Imagine $20\\,000$ people. How many have the condition, and of those how many test positive? How many do not have it, and of *those* how many test positive anyway?",
+    "Of $20\\,000$: $100$ have it, and $99$ of them test positive. $19\\,900$ do not, and $5\\%$ of them — $995$ — test positive anyway. So $99$ of $99 + 995$ positives are real."
+  ],
+  "payload": {
+    "prompt": "The probability that a person testing positive really has the condition.",
+    "label": "Probability",
+    "placeholder": "a fraction",
+    "syntax": "A fraction or an expression. You can write it as a quotient of the numbers you computed.",
+    "figure": "screening-tree"
+  }
+}

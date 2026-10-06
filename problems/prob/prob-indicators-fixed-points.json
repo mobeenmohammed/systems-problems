@@ -1,0 +1,35 @@
+{
+  "id": "prob-indicators-fixed-points",
+  "title": "How many people get their own hat back?",
+  "topic": "prob",
+  "difficulty": "intermediate",
+  "type": "exact",
+  "tags": [
+    "indicator-variables",
+    "expectation",
+    "linearity"
+  ],
+  "estimate": 14,
+  "prereqs": [
+    {
+      "concept": "indicator-variables",
+      "why": "The whole trick is writing the count as a sum of indicators."
+    },
+    {
+      "concept": "expectation",
+      "why": "Linearity of expectation is what makes the sum easy, and it does not need independence."
+    }
+  ],
+  "statement": "$n$ people leave their hats at a party. The hats are returned **completely at random**, one to each person.\n\nLet $X$ be the number of people who get their own hat back.\n\nWhat is $\\E[X]$? Give the exact value — it is the same for every $n \\ge 1$, which is part of the point.",
+  "hints": [
+    "Write $X$ as a sum: $X = I_1 + I_2 + \\dots + I_n$, where $I_k$ is $1$ if person $k$ gets their own hat and $0$ otherwise.",
+    "Linearity of expectation says $\\E[X] = \\E[I_1] + \\dots + \\E[I_n]$, and it holds whether or not the $I_k$ are independent. Here they are *not* independent, and it still holds.",
+    "$\\E[I_k] = \\P(\\text{person } k \\text{ gets their own hat})$. By symmetry that is $1/n$ for every $k$. Now add $n$ of them."
+  ],
+  "payload": {
+    "prompt": "The expected number of people who get their own hat.",
+    "label": "$\\E[X] =$",
+    "placeholder": "a number",
+    "syntax": "A number. The answer does not depend on $n$."
+  }
+}

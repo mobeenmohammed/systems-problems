@@ -1,0 +1,34 @@
+{
+  "id": "prob-variance-of-a-die",
+  "title": "The variance of one fair die",
+  "topic": "prob",
+  "difficulty": "intermediate",
+  "type": "exact",
+  "tags": [
+    "variance",
+    "expectation"
+  ],
+  "estimate": 12,
+  "prereqs": [
+    {
+      "concept": "variance",
+      "why": "The computational formula $\\Var(X) = \\E[X^2] - (\\E[X])^2$ is the route."
+    },
+    {
+      "concept": "expectation",
+      "why": "Both terms are expectations and have to be computed separately."
+    }
+  ],
+  "statement": "Let $X$ be the result of one roll of a fair six-sided die, so $X$ takes each of $1, 2, 3, 4, 5, 6$ with probability $\\tfrac16$.\n\nWhat is $\\Var(X)$? Give the exact value as a fraction.",
+  "hints": [
+    "$\\Var(X) = \\E[X^2] - (\\E[X])^2$. Work out the two expectations separately and write both down before subtracting.",
+    "$\\E[X] = \\tfrac16(1+2+3+4+5+6)$. For $\\E[X^2]$, square each value *before* averaging — $\\tfrac16(1+4+9+16+25+36)$.",
+    "$\\E[X] = \\tfrac72$ and $\\E[X^2] = \\tfrac{91}{6}$. Now subtract $(\\tfrac72)^2 = \\tfrac{49}{4}$."
+  ],
+  "payload": {
+    "prompt": "The variance of one fair die.",
+    "label": "$\\Var(X) =$",
+    "placeholder": "a fraction",
+    "syntax": "A fraction or an expression. 91/6 - (7/2)^2 is read and worked out exactly."
+  }
+}

@@ -30,6 +30,7 @@ const ProblemView = (() => {
   let solution = null;    /* its key + explanation, once fetched */
   let answered = null;    /* the last graded result, for re-rendering a tab */
   let previousAttempts = []; /* the ones before it, collapsed */
+  let reviewing = false;  /* a written proof is on screen, waiting to be reviewed */
   let lastBlocked = null; /* a submission that could not be run at all */
   let lastRun = null;     /* the last Run, for the Results pane */
   let solutionShown = false;
@@ -48,6 +49,7 @@ const ProblemView = (() => {
     answered = null;
     previousAttempts = [];
     answerChanged = false;
+    reviewing = false;
     lastBlocked = null;
     solutionShown = false;
     attempting = false;
@@ -112,6 +114,7 @@ const ProblemView = (() => {
     answered = null;
     previousAttempts = [];
     answerChanged = false;
+    reviewing = false;
     lastBlocked = null;
     lastRun = null;
     solutionShown = false;
@@ -407,11 +410,26 @@ const ProblemView = (() => {
     return strip;
   }
 
+  /* The statement, plus the one figure it may name.
+
+     A figure is referenced by name and drawn by js/maths/figures.js rather
+     than being markup in the data file: a drawing in a problem file would
+     be either HTML passed through unescaped or a private little language.
+     A name that nobody drew renders nothing rather than breaking the page. */
+  function statementNode(p) {
+    const wrap = el('div', { class: 'prose statement', html: MD.render(p.statement || '') });
+    const name = (p.payload || {}).figure;
+    if (name && typeof MathsFigures !== 'undefined' && MathsFigures.has(name)) {
+      wrap.append(MathsFigures.node(name));
+    }
+    return wrap;
+  }
+
   function fillLeftPane(pane) {
     if (!pane) return;
     pane.replaceChildren();
     ({
-      problem:  panel => panel.append(el('div', { class: 'prose statement', html: MD.render(current.statement || '') })),
+      problem:  panel => { panel.append(statementNode(current)); },
       prereq:   drawPrereq,
       hints:    drawHints,
       notes:    drawNotes,
@@ -697,7 +715,7 @@ const ProblemView = (() => {
 
     const panel = el('div', { class: 'panel', role: 'tabpanel' });
     if (activeTab === 'problem') {
-      panel.append(el('div', { class: 'prose statement', html: MD.render(p.statement || '') }));
+      panel.append(statementNode(p));
 
       const answer = el('div', { class: 'answer' });
       const widget = el('div', { class: 'widget', id: 'answerWidget' });
@@ -744,6 +762,7 @@ const ProblemView = (() => {
       /* "Read the answer" sounded like a judgement. This is the record saying
          what happened, and what happened is that the solution was reviewed. */
       read:      'Solution reviewed',
+      reviewed:  'Self-reviewed',
     }[r.status] || 'Not started';
   }
 
@@ -951,7 +970,7 @@ const ProblemView = (() => {
   /* ---------------- the problem tab ---------------- */
 
   function verdictNode({ result, award }) {
-    const kind = result.correct ? 'right' : (result.score > 0 ? 'part' : 'wrong');
+    let kind = result.correct ? 'right' : (result.score > 0 ? 'part' : 'wrong');
     const bits = [];
     if (award) {
       if (award.alreadySolved) bits.push('Already solved, so no more points — but good practice.');
@@ -966,14 +985,17 @@ const ProblemView = (() => {
 
     /* What to do next, which depends on which of the four states this is. */
     let next;
-    if (result.correct) next = 'The Solution tab is open now.';
+    if (result.selfReview) next = 'Nothing has marked this. The rubric is below.';
+    else if (result.correct) next = 'The Solution tab is open now.';
     else if (disclosed()) next = 'You can see the solution; try again whenever you like.';
     else next = 'Try again, take a hint, or read the prerequisites. Nothing has been revealed.';
 
+    if (result.selfReview) kind = 'review';
     return el('div', { class: 'verdict', 'data-kind': kind,
       'data-stale': answerChanged ? 'true' : undefined }, [
       el('div', { class: 'verdict-head' }, [
-        el('h4', { text: result.correct ? 'Right' : (result.score > 0 ? 'Partly right' : 'Not right') }),
+        el('h4', { text: result.selfReview ? 'Saved, not marked'
+        : result.correct ? 'Right' : (result.score > 0 ? 'Partly right' : 'Not right') }),
         /* Which attempt this is about. It says "Previous attempt" the moment
            the reader changes anything, so a verdict can never be read as a
            judgement on what is currently selected. */
@@ -983,7 +1005,60 @@ const ProblemView = (() => {
       el('p', { html: MD.renderInline(result.feedback || '') }),
       bits.length ? el('p', { class: 'award', text: bits.join(' · ') }) : null,
       el('p', { class: 'tiny faint' }, [next]),
+      reviewing ? rubricNode() : null,
       attemptHistory(),
+    ]);
+  }
+
+  /* ---------------- reviewing your own proof ----------------
+
+     The one place on the site where the reader marks their own work, and
+     the whole design is about keeping that honest. The rubric is a list of
+     things a proof of THIS statement has to do; the model proof is behind
+     a second, explicit action; and what gets recorded says Self-reviewed,
+     never Solved. */
+  function rubricNode() {
+    const p = current;
+    const pay = p.payload || {};
+    const lines = pay.rubric || [];
+    if (!lines.length) return null;
+
+    const boxes = [];
+    const list = el('ul', { class: 'rubric' }, lines.map((line, i) => {
+      const cb = el('input', { type: 'checkbox', id: `rub-${i}` });
+      boxes.push({ cb, line });
+      cb.addEventListener('change', () => { done.disabled = false; });
+      return el('li', {}, [cb, el('label', { for: `rub-${i}`, html: MD.renderInline(line) })]);
+    }));
+
+    const done = el('button', {
+      class: 'btn btn-primary', type: 'button', id: 'reviewDone',
+      onclick: () => {
+        const ticked = boxes.filter(b => b.cb.checked).map(b => b.line);
+        const award = Store.selfReview(p, { rubric: ticked });
+        reviewing = false;
+        answered = null;
+        if (award.xp > 0) UI.toast(`+${award.xp} XP — recorded as self-reviewed.`, 'good');
+        else UI.toast('Recorded as self-reviewed.', 'info');
+        UI.refreshPurse();
+        draw();
+      },
+    }, ['Record this as self-reviewed']);
+
+    return el('div', { class: 'review-pane' }, [
+      el('h4', { text: 'Check your proof against this' }),
+      el('p', { class: 'tiny faint' }, [
+        'Nothing here has read your proof. Tick what it genuinely does — this is '
+        + 'your own record, and the status it writes is Self-reviewed, not Solved.',
+      ]),
+      list,
+      el('div', { class: 'row', style: 'margin-top:.6rem' }, [
+        done,
+        disclosed() ? null : el('button', {
+          class: 'btn btn-sm btn-ghost', type: 'button', id: 'showModel',
+          onclick: doReveal,
+        }, ['Show a model proof…']),
+      ]),
     ]);
   }
 
@@ -1121,6 +1196,28 @@ const ProblemView = (() => {
         feedback: `The grader failed: ${(err && err.message) || err}. Nothing was `
           + 'recorded, and your answer is still here.',
       };
+      draw();
+      return;
+    }
+
+    /* An answer the grader could not read is not a wrong answer either. A
+       missing bracket in "{1,2" costs nothing: it is said beside the box,
+       the text stays, and no attempt is recorded. */
+    if (result.invalid) {
+      restore();
+      sayNeedsAnswer(result.feedback);
+      impl.restore && impl.restore(widget, response);
+      return;
+    }
+
+    /* A written proof is never marked by a machine. It is saved, and the
+       reader is handed a rubric and — on request — a model proof. */
+    if (result.selfReview) {
+      restore();
+      answered = { response, result, award: null };
+      answerChanged = false;
+      reviewing = true;
+      resultTab = 'results';
       draw();
       return;
     }

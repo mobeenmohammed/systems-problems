@@ -1,0 +1,27 @@
+{
+  "key": {
+    "answer": 3
+  },
+  "feedback": {
+    "options": {
+      "0": "A square of a real number is never negative, so $(x-y)^2 \\ge 0$ always. Axiom 1 holds. Look for the axiom that relates *three* points rather than two.",
+      "1": "$(x-y)^2 = 0$ happens exactly when $x - y = 0$, which is exactly when $x = y$. So axiom 2 holds in both directions. The failing axiom is the only one involving a third point.",
+      "2": "$(x-y)^2$ and $(y-x)^2$ are equal, because $(y-x) = -(x-y)$ and squaring kills the sign. Axiom 3 holds."
+    },
+    "reconsider": "Three of these can be settled by staring at $(x-y)^2$ for a moment. Spend your effort on the one that mentions a middle point, and try to break it with $0$, $1$ and $2$."
+  },
+  "distractors": {
+    "0": "No: a real square is never negative.",
+    "1": "No: $(x-y)^2 = 0 \\iff x = y$.",
+    "2": "No: squaring makes it symmetric.",
+    "3": "Correct. Take $x = 0$, $y = 1$, $z = 2$. Then $d(x,z) = 4$ but $d(x,y) + d(y,z) = 1 + 1 = 2$, and $4 \\not\\le 2$."
+  },
+  "explanation": "## The counterexample\n\nTake $x = 0$, $y = 1$, $z = 2$:\n\n$$d(0,2) = (0-2)^2 = 4, \\qquad d(0,1) + d(1,2) = 1 + 1 = 2.$$\n\nThe triangle inequality demands $4 \\le 2$, which is false.\n\n## Why squaring breaks it\n\nSquaring is *convex*: it grows faster than linearly. Splitting a journey into two halves and squaring each gives $2 \\cdot (n/2)^2 = n^2/2$, which is only half of $n^2$. So going via a midpoint always looks **cheaper** than going directly, which is exactly backwards.\n\nThe same calculation shows what to do about it. $\\sqrt{d}$ fixes it: $|x-y|$ is a metric, and more generally if $d$ is a metric then so is $\\sqrt{d}$, because the square root is concave.\n\n## The one that catches people\n\nAxiom 2 is an **if and only if**, and it is the half that is easy to lose. A function with $d(x,y) = 0$ for some $x \\ne y$ is called a *pseudometric*, and they are genuinely useful — but they are not metrics, and in a pseudometric space limits are no longer unique.",
+  "readMore": [
+    {
+      "concept": "metric-axioms",
+      "where": "Sutherland Ch. 2.1, which does this example"
+    }
+  ],
+  "id": "metric-axioms-which-fails"
+}

@@ -1,0 +1,31 @@
+{
+  "key": {
+    "answer": 0
+  },
+  "feedback": {
+    "options": {
+      "1": "$\\Z$ is closed and — in the discrete metric — bounded, since every distance is at most $1$. So this is a direct test of whether closed and bounded is enough. Try covering it by the balls $B(n, \\tfrac12)$ and ask how many you can discard.",
+      "2": "It is bounded, and the question is whether it is closed and whether that would even settle it. Consider the cover by the sets $(\\tfrac1n, 2)$ for $n = 1, 2, 3, \\dots$ and ask what a finite subcollection could miss.",
+      "3": "Everything the option says is true: $\\rho$ is a metric, it is bounded by $1$, and $\\R$ is closed in itself. That is exactly why it is worth examining — if closed and bounded were enough, this would be compact. Try covering with the balls $B(n, 1)$ for $n \\in \\Z$."
+    },
+    "reconsider": "Heine–Borel is a theorem about subsets of $\\R^n$ *with the usual metric*. For anything else, go back to covers and try to build one with no finite subcover."
+  },
+  "distractors": {
+    "0": "Correct, and the only one. $[0,1]$ is a closed bounded subset of $\\R$ with the usual metric, which is exactly the situation Heine–Borel covers.",
+    "1": "No. The balls $B(n,\\tfrac12) = \\{n\\}$ cover $\\Z$, and no finite collection of singletons covers an infinite set. Closed and bounded, and not compact.",
+    "2": "No. The sets $(\\tfrac1n, 2)$ for $n \\ge 1$ cover $(0,1]$, but any finite subcollection has a largest $n$ and so misses everything in $(0, \\tfrac1n]$. It is also not closed in $\\R$.",
+    "3": "No. $\\rho$ is a genuine bounded metric giving the same open sets as the usual one, so $\\R$ is closed and bounded in it — and the cover $\\{B(n,1) : n \\in \\Z\\}$ has no finite subcover. This is the cleanest demonstration that boundedness is not a topological property."
+  },
+  "explanation": "## Why $[0,1]$ and nothing else\n\n**Heine–Borel** says: a subset of $\\R^n$ *with the usual metric* is compact iff it is closed and bounded. $[0,1]$ qualifies. The other three are chosen to break each part of the misreading.\n\n**$\\Z$ discrete** is closed and bounded and not compact. Cover: $\\{\\,\\{n\\} : n \\in \\Z\\,\\}$, every one of them open, no finite subcollection covering.\n\n**$(0,1]$** is bounded but not closed in $\\R$. Cover: $(\\tfrac1n, 2)$ for $n = 1,2,3,\\dots$. Any finite subfamily has a largest $n$ and misses $(0, \\tfrac1n]$.\n\n**$(\\R, \\rho)$ with $\\rho = \\min(|x-y|,1)$** is the sharpest one. $\\rho$ *is* a metric, and it has exactly the same open sets as the usual metric — so the two spaces are indistinguishable topologically, and compactness is a topological property. Yet in $\\rho$ the whole line is bounded. Conclusion: **boundedness is not topological**, so it cannot by itself be equivalent to anything that is. The cover $\\{B(n,1) : n \\in \\Z\\}$ has no finite subcover.\n\n## What is true in a general metric space\n\n$$\\text{compact} \\iff \\text{sequentially compact} \\iff \\text{complete and totally bounded}.$$\n\n*Totally bounded* — finitely many $\\eps$-balls cover the space, for every $\\eps$ — is the right strengthening of bounded. Each of the three failures above is a failure of exactly one part: $\\Z$ discrete is complete but not totally bounded; $(0,1]$ is totally bounded but not complete; $(\\R,\\rho)$ is complete but not totally bounded.\n\n## The habit\n\nWhen a theorem has a named hypothesis — *in $\\R^n$*, *with the usual metric* — that phrase is doing work. Heine–Borel without it is false, and the counterexamples are a line each.",
+  "readMore": [
+    {
+      "concept": "compactness",
+      "where": "Rudin Ch. 2.31–2.41, with Heine–Borel at 2.41"
+    },
+    {
+      "concept": "completeness",
+      "where": "Sutherland Ch. 13, for compact = complete + totally bounded"
+    }
+  ],
+  "id": "metric-compactness-closed-bounded"
+}

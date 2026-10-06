@@ -1,0 +1,34 @@
+{
+  "key": {
+    "value": "1/3"
+  },
+  "feedback": {
+    "whenValue": [
+      {
+        "is": "1/2",
+        "say": "That is the answer to a *different* question: \"the elder child is a girl, what is the chance the younger one is too?\". Being told *at least one* does not tell you which, and that is what changes the count. Write out the surviving outcomes and count them."
+      },
+      {
+        "is": "1/4",
+        "say": "That is the unconditional $\\P(GG)$ — the answer before you were told anything. Conditioning throws away the outcomes that are now impossible, which makes the denominator smaller."
+      },
+      {
+        "is": "2/3",
+        "say": "Check the numerator rather than the denominator. Three outcomes survive the condition; how many of those three have *two* girls?"
+      }
+    ],
+    "nudge": "List the four outcomes, strike out the ones ruled out, and count what is left. Conditioning changes the sample space, not just the arithmetic."
+  },
+  "explanation": "## The calculation\n\nThe four equally likely outcomes are $BB$, $BG$, $GB$, $GG$. \"At least one girl\" removes $BB$ and leaves three, each still equally likely. Exactly one of those three is $GG$:\n\n$$\\P(GG \\mid \\text{at least one girl}) = \\frac{\\P(GG)}{\\P(\\text{at least one girl})} = \\frac{1/4}{3/4} = \\mathbf{\\tfrac13}.$$\n\n## Why it is not $\\tfrac12$\n\nBecause *at least one* does not name a child. Compare:\n\n| what you are told | surviving outcomes | $\\P(GG \\mid \\cdot)$ |\n| --- | --- | --- |\n| at least one is a girl | $BG, GB, GG$ | $\\tfrac13$ |\n| **the elder** is a girl | $GB, GG$ | $\\tfrac12$ |\n| the elder is a girl, and you were told which | $GB, GG$ | $\\tfrac12$ |\n\nThe second condition is strictly more information, so it is no surprise it gives a different answer. The intuition that says $\\tfrac12$ is answering the second question.\n\n## The general shape\n\n$$\\P(A \\mid B) = \\frac{\\P(A \\cap B)}{\\P(B)}, \\qquad \\P(B) > 0.$$\n\nConditioning on $B$ means working inside $B$: it rescales everything so that $\\P(B \\mid B) = 1$. That is why the denominator shrinks and why the answer so often moves in a direction people do not expect.\n\n## A warning about this particular puzzle\n\nThis question is stated carefully on purpose. Versions that say \"you meet one of the children and she is a girl\" are a **different** problem, because *how you came to know* is part of the model. Specify the procedure that generated the information, or the question does not have a single answer.",
+  "readMore": [
+    {
+      "concept": "conditional-probability",
+      "where": "Blitzstein & Hwang Ch. 2.2"
+    },
+    {
+      "concept": "sample-space",
+      "where": "Grimmett & Welsh Ch. 1.6"
+    }
+  ],
+  "id": "prob-conditional-two-children"
+}

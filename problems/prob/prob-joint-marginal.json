@@ -1,0 +1,39 @@
+{
+  "id": "prob-joint-marginal",
+  "title": "Reading a joint distribution",
+  "topic": "prob",
+  "difficulty": "intermediate",
+  "type": "exact",
+  "tags": [
+    "joint-distributions",
+    "conditional-probability",
+    "independence"
+  ],
+  "estimate": 13,
+  "prereqs": [
+    {
+      "concept": "joint-distributions",
+      "why": "The table is a joint distribution and the question is about reading one."
+    },
+    {
+      "concept": "conditional-probability",
+      "why": "The answer is a conditional, obtained from the joint and a marginal."
+    },
+    {
+      "concept": "independence",
+      "why": "Checking whether the table factorises is the natural follow-up."
+    }
+  ],
+  "statement": "Two random variables $X$ and $Y$ each take the values $0$ and $1$, with this joint distribution:\n\n| $\\P(X=x, Y=y)$ | $y = 0$ | $y = 1$ |\n| --- | --- | --- |\n| $x = 0$ | $1/4$ | $1/8$ |\n| $x = 1$ | $1/8$ | $1/2$ |\n\nCompute $\\P(X = 1 \\mid Y = 1)$, exactly.",
+  "hints": [
+    "A conditional comes from a joint divided by a marginal: $\\P(X=1 \\mid Y=1) = \\P(X=1, Y=1) / \\P(Y=1)$.",
+    "The marginal $\\P(Y=1)$ is the sum of the $y=1$ **column** — both ways $Y$ can equal $1$.",
+    "$\\P(X=1, Y=1) = \\tfrac12$ and $\\P(Y=1) = \\tfrac18 + \\tfrac12 = \\tfrac58$."
+  ],
+  "payload": {
+    "prompt": "The conditional probability $\\P(X=1 \\mid Y=1)$.",
+    "label": "Probability",
+    "placeholder": "a fraction",
+    "syntax": "A fraction or an expression. (1/2)/(5/8) is read and worked out exactly."
+  }
+}

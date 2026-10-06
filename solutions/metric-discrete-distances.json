@@ -1,0 +1,30 @@
+{
+  "key": {
+    "value": "2"
+  },
+  "feedback": {
+    "whenValue": [
+      {
+        "is": "4",
+        "say": "That is what you get by counting every term as 1. Two of the four pairs are the same point written two different ways, and the discrete metric gives those zero."
+      },
+      {
+        "is": "1003",
+        "say": "That is the ordinary distance on the line, not this one. The discrete metric never returns anything except $0$ and $1$, whatever the numbers are."
+      },
+      {
+        "is": "3",
+        "say": "Close. Go back through the four pairs and ask of each one: are these two expressions the same real number? Exactly two of them are."
+      }
+    ],
+    "nudge": "Each term is $0$ or $1$ and nothing else. The only question per term is whether the two sides name the same real number."
+  },
+  "explanation": "## Term by term\n\n| pair | same point? | $d$ |\n| --- | --- | --- |\n| $0, 1000$ | no | $1$ |\n| $7, 7$ | yes | $0$ |\n| $-2, -2.0$ | **yes** — same real number | $0$ |\n| $\\tfrac13, 0.333$ | **no** — $0.333 = \\tfrac{333}{1000}$ | $1$ |\n\nTotal: $\\mathbf{2}$.\n\n## Why this metric matters\n\nThe discrete metric is the standard place to test a claim about metric spaces, because it keeps the axioms and throws away every geometric intuition. In it:\n\n- every subset is open, since $B(x, \\tfrac12) = \\{x\\}$;\n- therefore every subset is closed, since every complement is open;\n- a sequence converges only if it is eventually constant;\n- the space is complete, since a Cauchy sequence must eventually be constant;\n- it is compact only if $X$ is finite.\n\nIf a claim you are trying to prove is false, the discrete metric is often the fastest way to find that out.\n\n## The trap\n\n$\\tfrac13 \\ne 0.333$. The decimal is $\\tfrac{333}{1000}$, which is a different rational number. This is not pedantry in a metric space: the two points are distance 1 apart here, as far apart as it is possible to be.",
+  "readMore": [
+    {
+      "concept": "metric-examples",
+      "where": "Rudin Ch. 2, the examples after definition 2.15"
+    }
+  ],
+  "id": "metric-discrete-distances"
+}

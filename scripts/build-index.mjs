@@ -22,9 +22,22 @@ import { fileURLToPath } from 'node:url';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-export const TOPICS = [
-  'cpp', 'rust', 'arch', 'os', 'linux', 'compilers', 'hpc', 'dist', 'fpga', 'algo', 'sysdesign',
-];
+/* A subject is the coarsest division: the thing a reader is studying, as
+   opposed to the topic within it. It is DERIVED from the topic rather than
+   being a second field on every problem, because two fields that have to
+   agree eventually disagree. */
+export const SUBJECTS = ['systems', 'maths'];
+
+export const TOPIC_SUBJECT = {
+  cpp: 'systems', rust: 'systems', arch: 'systems', os: 'systems',
+  linux: 'systems', compilers: 'systems', hpc: 'systems', dist: 'systems',
+  fpga: 'systems', algo: 'systems', sysdesign: 'systems',
+  metric: 'maths', prob: 'maths',
+};
+
+export const TOPICS = Object.keys(TOPIC_SUBJECT);
+
+export const subjectOf = topic => TOPIC_SUBJECT[topic] || 'systems';
 export const DIFFICULTIES = ['beginner', 'intermediate', 'advanced'];
 
 /* A lane is orthogonal to difficulty. Difficulty says how hard a problem is;
@@ -36,13 +49,18 @@ export const DIFFICULTIES = ['beginner', 'intermediate', 'advanced'];
 export const LANES = ['core', 'optional'];
 export const TYPES = [
   'mcq', 'multi', 'numeric', 'short', 'order', 'match', 'predict', 'locate', 'code',
+  /* Mathematics. `exact` and `approx` are deliberately two types rather than
+     one with a flag: whether an answer is being checked exactly or to a
+     stated tolerance is something the reader must be told, and a type is
+     harder to forget than a field. */
+  'exact', 'approx', 'structured', 'proofsteps', 'counterexample', 'proof',
 ];
 export const LANGS = ['js', 'python', 'cpp', 'rust'];
 export const PROFILES = ['standard', 'sanitize', 'strict', 'parallel'];
 
 /* The fields the catalog needs to list, search and filter. Everything else
    stays in the problem file. */
-const INDEX_FIELDS = ['id', 'title', 'topic', 'difficulty', 'lane', 'type', 'tags', 'estimate'];
+const INDEX_FIELDS = ['id', 'title', 'topic', 'subject', 'difficulty', 'lane', 'type', 'tags', 'estimate'];
 
 /* The two characters a mis-escaped newline leaves behind. Built from a char
    code rather than written as an escape so that there is no backslash in this
@@ -51,6 +69,16 @@ const INDEX_FIELDS = ['id', 'title', 'topic', 'difficulty', 'lane', 'type', 'tag
 const LITERAL_NL = String.fromCharCode(92) + 'n';
 
 const readJson = file => JSON.parse(fs.readFileSync(file, 'utf8'));
+
+/* The real expression engine, loaded the same way the browser loads it, so
+   that an answer key is validated by the thing that will actually grade it
+   rather than by a second implementation that can drift from it. */
+const MATHS = (() => {
+  const src = fs.readFileSync(path.join(ROOT, 'js/maths/expr.js'), 'utf8');
+  // eslint-disable-next-line no-new-func -- our own file, read from disk at
+  // build time; this is not user input and never reaches a browser.
+  return new Function(`${src}; return MathsExpr;`)();
+})();
 
 /* ---------------- loading ---------------- */
 
@@ -243,6 +271,54 @@ function validatePayload(p, err, where) {
       }
       break;
 
+    /* ---- mathematics ---- */
+
+    case 'exact':
+    case 'approx':
+      /* Nothing required: the prompt can live entirely in the statement.
+         The key is where the real checking is. */
+      break;
+
+    case 'structured':
+      if (!['set', 'intervals'].includes(pay.kind)) {
+        err(where, 'structured needs kind "set" or "intervals"');
+      }
+      break;
+
+    case 'proofsteps': {
+      if (!Array.isArray(pay.steps) || pay.steps.length < 3) {
+        err(where, 'proofsteps needs at least three steps');
+      }
+      if (!Array.isArray(pay.choices) || pay.choices.length < 3) {
+        err(where, 'proofsteps needs at least three justifications to choose from');
+      }
+      const blanks = (pay.steps || []).filter(st => st.blank).length;
+      if (blanks < 2) err(where, 'proofsteps needs at least two blanks');
+      /* More choices than blanks, or it is a matching exercise with no
+         decisions left in it by the end. */
+      if ((pay.choices || []).length <= blanks) {
+        err(where, 'proofsteps needs more justifications than blanks, so the last one is not free');
+      }
+      break;
+    }
+
+    case 'counterexample':
+      if (!pay.claim) err(where, 'counterexample needs the claim it is against');
+      if (!Array.isArray(pay.fields) || !pay.fields.length) {
+        err(where, 'counterexample needs fields to fill in');
+      }
+      for (const f of pay.fields || []) {
+        if (!f.id) err(where, 'a counterexample field has no id');
+        if (!f.label) err(where, `counterexample field "${f.id}" has no label`);
+      }
+      break;
+
+    case 'proof':
+      if (!Array.isArray(pay.rubric) || pay.rubric.length < 3) {
+        err(where, 'a proof needs a rubric of at least three things to check');
+      }
+      break;
+
     default:
       break;
   }
@@ -276,6 +352,120 @@ function validateKey(p, sol, err, where) {
       if (k.tol  != null && !(k.tol  >= 0)) err(where, 'tol must be a non-negative number');
       break;
     }
+    /* ---- mathematics ----
+
+       Every key is run through the real engine, in the real grader, at
+       build time. A key the grader cannot read, or one that does not grade
+       itself correct, is a problem nobody can solve — and would be reported
+       to the reader as THEIR mistake. */
+
+    case 'exact': {
+      if (k.value === undefined) err(where, 'exact key needs a value');
+      for (const v of [k.value, ...(k.alsoAccept || [])]) {
+        const r = MATHS.read(String(v));
+        if (!r.ok) err(where, `key value "${v}" cannot be read: ${r.message}`);
+      }
+      if (k.value !== undefined && !MATHS.sameValue(String(k.value), String(k.value))) {
+        err(where, `key value "${k.value}" does not compare equal to itself`);
+      }
+      break;
+    }
+
+    case 'approx': {
+      if (k.value === undefined) err(where, 'approx key needs a value');
+      const r = MATHS.read(String(k.value));
+      if (!r.ok) err(where, `key value "${k.value}" cannot be read: ${r.message}`);
+      if (k.tol === undefined && k.dp === undefined) {
+        err(where, 'an approximate answer must state its tolerance: set tol or dp');
+      }
+      if (k.tol !== undefined && !(Number(k.tol) > 0)) err(where, 'tol must be positive');
+      if (k.dp !== undefined && !Number.isInteger(k.dp)) err(where, 'dp must be a whole number');
+      /* The statement has to SAY it is approximate, or the reader does not
+         know they are allowed to round. */
+      if (!/approx|decimal place|to \d+ d\.?p|round|nearest|tolerance|≈/i.test(String(p.statement))) {
+        err(where, 'an approx problem must say in the statement that the answer is approximate '
+          + 'and to what precision');
+      }
+      break;
+    }
+
+    case 'structured': {
+      const kind = (p.payload || {}).kind;
+      const reader = kind === 'intervals' ? MATHS.readIntervals : MATHS.readSet;
+      const same = kind === 'intervals' ? MATHS.sameIntervals : MATHS.sameSet;
+      if (k.value === undefined) err(where, 'structured key needs a value');
+      for (const v of [k.value, ...(k.alsoAccept || [])]) {
+        const r = reader(String(v));
+        if (!r.ok) err(where, `key value "${v}" cannot be read: ${r.message}`);
+      }
+      if (k.value !== undefined && !same(String(k.value), String(k.value))) {
+        err(where, `key value "${k.value}" does not compare equal to itself`);
+      }
+      break;
+    }
+
+    case 'proofsteps': {
+      const blanks = ((p.payload || {}).steps || []).filter(st => st.blank).length;
+      const choices = ((p.payload || {}).choices || []).length;
+      if (!Array.isArray(k.answers)) err(where, 'proofsteps key needs answers');
+      else {
+        if (k.answers.length !== blanks) {
+          err(where, `key has ${k.answers.length} answers but there are ${blanks} blanks`);
+        }
+        for (const a of k.answers) {
+          if (!Number.isInteger(a) || a < 0 || a >= choices) {
+            err(where, `answer ${a} is not one of the ${choices} justifications`);
+          }
+        }
+        if (new Set(k.answers).size !== k.answers.length) {
+          err(where, 'the same justification is used for two different steps');
+        }
+      }
+      break;
+    }
+
+    case 'counterexample': {
+      if (!Array.isArray(k.checks) || !k.checks.length) {
+        err(where, 'a counterexample key needs at least one check');
+      }
+      const known = ['valuesMatch', 'allDifferent', 'inRange'];
+      const ids = new Set(((p.payload || {}).fields || []).map(f => f.id));
+      for (const c of k.checks || []) {
+        if (!known.includes(c.validator)) {
+          err(where, `unknown validator "${c.validator}" (have: ${known.join(', ')})`);
+        }
+        for (const v of c.values || []) {
+          if (!ids.has(v.field)) err(where, `check names field "${v.field}", which does not exist`);
+          const r = MATHS.read(String(v.is));
+          if (!r.ok) err(where, `check value "${v.is}" cannot be read: ${r.message}`);
+        }
+        for (const f of c.fields || []) {
+          if (!ids.has(f)) err(where, `check names field "${f}", which does not exist`);
+        }
+        for (const r2 of c.ranges || []) {
+          if (!ids.has(r2.field)) err(where, `range names field "${r2.field}", which does not exist`);
+        }
+      }
+      /* A worked example the author has in mind, run through the real
+         validators so a check that can never pass is caught here. */
+      if (k.example) {
+        for (const f of (p.payload || {}).fields || []) {
+          if (k.example[f.id] === undefined) err(where, `the example does not fill in "${f.id}"`);
+        }
+      } else {
+        err(where, 'a counterexample key needs an `example` — one that actually passes its own checks');
+      }
+      break;
+    }
+
+    case 'proof':
+      /* The "key" is the model proof, and there is nothing automatic to
+         check about it except that it is there. */
+      if (!sol.explanation || String(sol.explanation).length < 200) {
+        err(where, 'a proof problem needs a model proof in the explanation');
+      }
+      break;
+
     case 'short': {
       if (!Array.isArray(k.accept) && !k.pattern) err(where, 'short key needs accept or pattern');
       if (k.pattern) {
@@ -368,12 +558,17 @@ export function buildIndex(problems) {
       for (const f of INDEX_FIELDS) if (p[f] !== undefined) row[f] = p[f];
       row.tags = p.tags || [];
       row.lane = p.lane || 'core';
+      /* Derived, never read from the problem file. */
+      row.subject = subjectOf(p.topic);
       /* So the catalog can show a prerequisite count without fetching. */
       row.prereqs = (p.prereqs || []).map(x => x.concept);
       if (p.type === 'code') row.langs = (p.payload || {}).langs || [];
       return row;
     })
     .sort((a, b) =>
+      /* Systems first, then mathematics: the order the site grew in, and
+         the order the subject switch shows them in. */
+      a.subject.localeCompare(b.subject) ||
       a.topic.localeCompare(b.topic) ||
       (ORDER[a.difficulty] ?? 9) - (ORDER[b.difficulty] ?? 9) ||
       a.id.localeCompare(b.id));

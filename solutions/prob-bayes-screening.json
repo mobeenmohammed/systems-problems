@@ -1,0 +1,42 @@
+{
+  "key": {
+    "value": "99/1094"
+  },
+  "feedback": {
+    "whenValue": [
+      {
+        "is": "99/100",
+        "say": "That is the sensitivity, $\\P(\\text{positive} \\mid \\text{has it})$ — which was given to you. The question asks for the reverse conditional, and those two are different numbers whenever the condition is rare."
+      },
+      {
+        "is": "0.99",
+        "say": "That is the sensitivity you were given, $\\P(\\text{positive} \\mid \\text{has it})$. You are being asked for $\\P(\\text{has it} \\mid \\text{positive})$ — the bar has been turned round, and Bayes is what turns it."
+      },
+      {
+        "is": "95/100",
+        "say": "That is the specificity, which is about people who do *not* have the condition. It is one of the inputs, not the answer."
+      },
+      {
+        "is": "1/200",
+        "say": "That is the prevalence — the probability *before* the test. The test must move it somewhat; the question is how far."
+      },
+      {
+        "is": "99/1000",
+        "say": "Close to the right shape. Check the denominator: it has to be the total number of positives, from both the people who have it and the people who do not."
+      }
+    ],
+    "nudge": "The four given numbers are all conditionals pointing the *other* way, or a base rate. Try a population of $20\\,000$ people and count the positives in two groups — the ones who have it and the ones who do not."
+  },
+  "explanation": "## By counting\n\nTake $20{,}000$ people:\n\n| | positive | negative | total |\n| --- | --- | --- | --- |\n| **has it** | $99$ | $1$ | $100$ |\n| **does not** | $995$ | $18{,}905$ | $19{,}900$ |\n| **total** | $1{,}094$ | $18{,}906$ | $20{,}000$ |\n\n$$\\P(\\text{has it} \\mid +) = \\frac{99}{1094} \\approx 0.0905.$$\n\n**About nine percent.** A positive result on a very good test still leaves it more likely than not that you do not have the condition.\n\n## By the theorem\n\n$$\\P(D \\mid +) = \\frac{\\P(+ \\mid D)\\,\\P(D)}{\\P(+ \\mid D)\\P(D) + \\P(+ \\mid D^c)\\P(D^c)} = \\frac{0.99 \\times 0.005}{0.99 \\times 0.005 + 0.05 \\times 0.995} = \\frac{99}{1094}.$$\n\n## Why it is so much lower than $99\\%$\n\nBecause there are two hundred times as many healthy people as affected ones, and $5\\%$ of a very large group outnumbers $99\\%$ of a very small one. $995$ false positives against $99$ true ones.\n\nThis is the **base-rate fallacy**, and the reversal it depends on has a name: $\\P(+ \\mid D)$ and $\\P(D \\mid +)$ are not the same number and are not close. Confusing them is called the *prosecutor's fallacy* when it happens in court — \"the chance of this match if he were innocent is one in a million\" is not \"the chance he is innocent is one in a million\".\n\n## The useful way to hold it\n\nOdds form. Prior odds $1 : 199$. Likelihood ratio $0.99 : 0.05$, which is about $19.8$. Posterior odds $19.8 : 199$, or about $1 : 10$ — roughly a $9\\%$ chance. A test moves your odds by a factor; it does not hand you a probability.\n\n## And the follow-up worth doing\n\nScreen only people with symptoms, so the prevalence is $1$ in $10$ rather than $1$ in $200$, and the same test gives $\\P(D \\mid +) \\approx 0.69$. The test did not change. Who you point it at did.",
+  "readMore": [
+    {
+      "concept": "bayes",
+      "where": "Blitzstein & Hwang Ch. 2.3–2.4, with the same example"
+    },
+    {
+      "concept": "conditional-probability",
+      "where": "Harvard Stat 110, lecture 4"
+    }
+  ],
+  "id": "prob-bayes-screening"
+}

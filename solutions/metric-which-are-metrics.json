@@ -1,0 +1,41 @@
+{
+  "key": {
+    "answers": [
+      0,
+      1,
+      3
+    ]
+  },
+  "feedback": {
+    "misconceptions": [
+      {
+        "picked": [
+          2
+        ],
+        "say": "On the squared one: try $x = -1$ and $y = 1$. Both have the same square, so the distance between two *different* points comes out as zero — and the second axiom is an if-and-only-if."
+      },
+      {
+        "picked": [
+          4
+        ],
+        "say": "On the last one: read it again with the two points swapped. The definition treats $x < y$ and $x > y$ differently, and an axiom says it must not."
+      }
+    ],
+    "nudge": "For each line, try to break it before trying to prove it. Three of the five are standard metrics you will meet again; the other two each fail exactly one axiom, and in both cases a pair of small numbers shows it."
+  },
+  "distractors": {
+    "0": "Yes — the usual metric on the line. The triangle inequality is the ordinary one for absolute values.",
+    "1": "Yes — the **discrete metric**. Every axiom holds trivially except the triangle inequality, and that holds because the left side is at most 1 while the right side is 0 only when both terms are, which forces $x = y = z$.",
+    "2": "No. $d(-1, 1) = |1 - 1| = 0$ with $-1 \\ne 1$, so axiom 2 fails. It is a pseudometric.",
+    "3": "Yes — the **taxicab** (or $\\ell^1$) metric. Each coordinate satisfies the triangle inequality and the sum of the inequalities is the inequality for the sum.",
+    "4": "No. $d(0,1) = 1$ but $d(1,0) = 2$, so it is not symmetric. (It is a *quasi-metric*, and they do get used — for one-way streets.)"
+  },
+  "explanation": "## The three that work\n\n**$|x-y|$ on $\\R$** is the one everything else is measured against.\n\n**The discrete metric** is the one that makes every intuition about distance useless, which is exactly why it is the first place to test a claim. Every point is at distance 1 from every other, so every set is open, every set is closed, and the only convergent sequences are eventually constant.\n\n**The taxicab metric** on $\\R^2$ adds the coordinate distances instead of taking the hypotenuse. It is a genuinely different metric — the balls are diamonds, not discs — but it is *equivalent* to the Euclidean one in the technical sense: the same sets are open.\n\n## The two that fail, and how they fail\n\n$|x^2 - y^2|$ fails the **identity of indiscernibles**, and only that half of it. $d(-1,1) = 0$ with $-1 \\ne 1$. This is the standard shape of the mistake: a function that measures something *about* the points rather than the points themselves, and then cannot tell apart two points that agree on it.\n\nThe asymmetric one fails **symmetry** by construction. Worth noticing that it satisfies the other three, which is why quasi-metrics are a real object and not just a broken definition.\n\n## The habit\n\nTry to break it first. Four axioms is four proofs; one counterexample is one line.",
+  "readMore": [
+    {
+      "concept": "metric-examples",
+      "where": "Sutherland Ch. 2.2 for the standard list"
+    }
+  ],
+  "id": "metric-which-are-metrics"
+}

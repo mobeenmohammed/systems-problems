@@ -1,5 +1,447 @@
 [
   {
+    "id": "metric-axioms-which-fails",
+    "title": "Which axiom does it break?",
+    "topic": "metric",
+    "difficulty": "beginner",
+    "type": "mcq",
+    "tags": [
+      "metric-axioms",
+      "definitions"
+    ],
+    "estimate": 6,
+    "lane": "core",
+    "subject": "maths",
+    "prereqs": [
+      "metric-axioms"
+    ]
+  },
+  {
+    "id": "metric-ball-in-the-integers",
+    "title": "What is in the ball?",
+    "topic": "metric",
+    "difficulty": "beginner",
+    "type": "structured",
+    "tags": [
+      "open-balls",
+      "ambient-space"
+    ],
+    "estimate": 8,
+    "lane": "core",
+    "subject": "maths",
+    "prereqs": [
+      "open-balls",
+      "ambient-space"
+    ]
+  },
+  {
+    "id": "metric-discrete-distances",
+    "title": "Distance in the discrete metric",
+    "topic": "metric",
+    "difficulty": "beginner",
+    "type": "exact",
+    "tags": [
+      "metric-examples",
+      "discrete-metric"
+    ],
+    "estimate": 5,
+    "lane": "core",
+    "subject": "maths",
+    "prereqs": [
+      "metric-examples"
+    ]
+  },
+  {
+    "id": "metric-three-metrics-compared",
+    "title": "Three metrics, one pair of points",
+    "topic": "metric",
+    "difficulty": "beginner",
+    "type": "exact",
+    "tags": [
+      "metric-examples",
+      "euclidean",
+      "maximum-metric"
+    ],
+    "estimate": 8,
+    "lane": "core",
+    "subject": "maths",
+    "prereqs": [
+      "metric-examples"
+    ]
+  },
+  {
+    "id": "metric-which-are-metrics",
+    "title": "Which of these are metrics?",
+    "topic": "metric",
+    "difficulty": "beginner",
+    "type": "multi",
+    "tags": [
+      "metric-axioms",
+      "counterexamples"
+    ],
+    "estimate": 10,
+    "lane": "core",
+    "subject": "maths",
+    "prereqs": [
+      "metric-axioms",
+      "metric-examples"
+    ]
+  },
+  {
+    "id": "metric-ball-depends-on-ambient",
+    "title": "The same ball in two different spaces",
+    "topic": "metric",
+    "difficulty": "intermediate",
+    "type": "structured",
+    "tags": [
+      "open-balls",
+      "ambient-space",
+      "subspace"
+    ],
+    "estimate": 10,
+    "lane": "core",
+    "subject": "maths",
+    "prereqs": [
+      "open-balls",
+      "ambient-space"
+    ]
+  },
+  {
+    "id": "metric-cauchy-without-a-limit",
+    "title": "Cauchy, with nowhere to go",
+    "topic": "metric",
+    "difficulty": "intermediate",
+    "type": "counterexample",
+    "tags": [
+      "cauchy-sequences",
+      "completeness",
+      "counterexamples"
+    ],
+    "estimate": 14,
+    "lane": "core",
+    "subject": "maths",
+    "prereqs": [
+      "cauchy-sequences",
+      "completeness",
+      "ambient-space"
+    ]
+  },
+  {
+    "id": "metric-convergence-discrete",
+    "title": "Which sequences converge here?",
+    "topic": "metric",
+    "difficulty": "intermediate",
+    "type": "mcq",
+    "tags": [
+      "convergence",
+      "discrete-metric"
+    ],
+    "estimate": 9,
+    "lane": "core",
+    "subject": "maths",
+    "prereqs": [
+      "convergence",
+      "metric-examples"
+    ]
+  },
+  {
+    "id": "metric-limits-are-unique",
+    "title": "Why a limit cannot be two things",
+    "topic": "metric",
+    "difficulty": "intermediate",
+    "type": "proofsteps",
+    "tags": [
+      "convergence",
+      "limit-uniqueness",
+      "proof"
+    ],
+    "estimate": 14,
+    "lane": "core",
+    "subject": "maths",
+    "prereqs": [
+      "convergence",
+      "limit-uniqueness",
+      "metric-axioms"
+    ]
+  },
+  {
+    "id": "metric-open-closed-both-neither",
+    "title": "Open, closed, both, or neither",
+    "topic": "metric",
+    "difficulty": "intermediate",
+    "type": "multi",
+    "tags": [
+      "open-sets",
+      "closed-sets"
+    ],
+    "estimate": 12,
+    "lane": "core",
+    "subject": "maths",
+    "prereqs": [
+      "open-sets",
+      "closed-sets"
+    ]
+  },
+  {
+    "id": "metric-compactness-closed-bounded",
+    "title": "Closed and bounded is not enough",
+    "topic": "metric",
+    "difficulty": "advanced",
+    "type": "mcq",
+    "tags": [
+      "compactness",
+      "completeness"
+    ],
+    "estimate": 12,
+    "lane": "core",
+    "subject": "maths",
+    "prereqs": [
+      "compactness",
+      "closed-sets",
+      "metric-examples"
+    ]
+  },
+  {
+    "id": "metric-continuity-epsilon-delta",
+    "title": "Prove it is continuous",
+    "topic": "metric",
+    "difficulty": "advanced",
+    "type": "proof",
+    "tags": [
+      "continuity-metric",
+      "proof",
+      "epsilon-delta"
+    ],
+    "estimate": 25,
+    "lane": "core",
+    "subject": "maths",
+    "prereqs": [
+      "continuity-metric",
+      "metric-axioms",
+      "metric-examples"
+    ]
+  },
+  {
+    "id": "prob-conditional-two-children",
+    "title": "At least one is a girl",
+    "topic": "prob",
+    "difficulty": "beginner",
+    "type": "exact",
+    "tags": [
+      "conditional-probability",
+      "sample-space"
+    ],
+    "estimate": 10,
+    "lane": "core",
+    "subject": "maths",
+    "prereqs": [
+      "conditional-probability",
+      "sample-space"
+    ]
+  },
+  {
+    "id": "prob-counting-committee",
+    "title": "Choosing three from ten",
+    "topic": "prob",
+    "difficulty": "beginner",
+    "type": "exact",
+    "tags": [
+      "counting",
+      "binomial-coefficients"
+    ],
+    "estimate": 7,
+    "lane": "core",
+    "subject": "maths",
+    "prereqs": [
+      "counting",
+      "sample-space"
+    ]
+  },
+  {
+    "id": "prob-sample-space-size",
+    "title": "How many outcomes are there really?",
+    "topic": "prob",
+    "difficulty": "beginner",
+    "type": "exact",
+    "tags": [
+      "sample-space",
+      "counting"
+    ],
+    "estimate": 6,
+    "lane": "core",
+    "subject": "maths",
+    "prereqs": [
+      "sample-space"
+    ]
+  },
+  {
+    "id": "prob-two-aces",
+    "title": "Exactly two aces",
+    "topic": "prob",
+    "difficulty": "beginner",
+    "type": "exact",
+    "tags": [
+      "counting",
+      "cards"
+    ],
+    "estimate": 10,
+    "lane": "core",
+    "subject": "maths",
+    "prereqs": [
+      "counting",
+      "sample-space"
+    ]
+  },
+  {
+    "id": "prob-bayes-screening",
+    "title": "A positive test, and what it is worth",
+    "topic": "prob",
+    "difficulty": "intermediate",
+    "type": "exact",
+    "tags": [
+      "bayes",
+      "conditional-probability",
+      "base-rates"
+    ],
+    "estimate": 14,
+    "lane": "core",
+    "subject": "maths",
+    "prereqs": [
+      "bayes",
+      "conditional-probability"
+    ]
+  },
+  {
+    "id": "prob-continuous-uniform",
+    "title": "A first continuous distribution",
+    "topic": "prob",
+    "difficulty": "intermediate",
+    "type": "approx",
+    "tags": [
+      "continuous-distributions",
+      "density"
+    ],
+    "estimate": 12,
+    "lane": "core",
+    "subject": "maths",
+    "prereqs": [
+      "continuous-distributions",
+      "random-variables"
+    ]
+  },
+  {
+    "id": "prob-independent-not-disjoint",
+    "title": "Independent, or just disjoint?",
+    "topic": "prob",
+    "difficulty": "intermediate",
+    "type": "multi",
+    "tags": [
+      "independence",
+      "misconceptions"
+    ],
+    "estimate": 11,
+    "lane": "core",
+    "subject": "maths",
+    "prereqs": [
+      "independence",
+      "conditional-probability"
+    ]
+  },
+  {
+    "id": "prob-indicators-fixed-points",
+    "title": "How many people get their own hat back?",
+    "topic": "prob",
+    "difficulty": "intermediate",
+    "type": "exact",
+    "tags": [
+      "indicator-variables",
+      "expectation",
+      "linearity"
+    ],
+    "estimate": 14,
+    "lane": "core",
+    "subject": "maths",
+    "prereqs": [
+      "indicator-variables",
+      "expectation"
+    ]
+  },
+  {
+    "id": "prob-inverted-conditional",
+    "title": "Which statement is which?",
+    "topic": "prob",
+    "difficulty": "intermediate",
+    "type": "mcq",
+    "tags": [
+      "conditional-probability",
+      "bayes",
+      "misconceptions"
+    ],
+    "estimate": 8,
+    "lane": "core",
+    "subject": "maths",
+    "prereqs": [
+      "conditional-probability",
+      "bayes"
+    ]
+  },
+  {
+    "id": "prob-joint-marginal",
+    "title": "Reading a joint distribution",
+    "topic": "prob",
+    "difficulty": "intermediate",
+    "type": "exact",
+    "tags": [
+      "joint-distributions",
+      "conditional-probability",
+      "independence"
+    ],
+    "estimate": 13,
+    "lane": "core",
+    "subject": "maths",
+    "prereqs": [
+      "joint-distributions",
+      "conditional-probability",
+      "independence"
+    ]
+  },
+  {
+    "id": "prob-variance-of-a-die",
+    "title": "The variance of one fair die",
+    "topic": "prob",
+    "difficulty": "intermediate",
+    "type": "exact",
+    "tags": [
+      "variance",
+      "expectation"
+    ],
+    "estimate": 12,
+    "lane": "core",
+    "subject": "maths",
+    "prereqs": [
+      "variance",
+      "expectation"
+    ]
+  },
+  {
+    "id": "prob-which-distribution",
+    "title": "Which distribution is this?",
+    "topic": "prob",
+    "difficulty": "intermediate",
+    "type": "mcq",
+    "tags": [
+      "distributions",
+      "random-variables"
+    ],
+    "estimate": 9,
+    "lane": "core",
+    "subject": "maths",
+    "prereqs": [
+      "distributions",
+      "random-variables"
+    ]
+  },
+  {
     "id": "algo-amortised-costs",
     "title": "What does that operation really cost?",
     "topic": "algo",
@@ -12,6 +454,7 @@
     ],
     "estimate": 12,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "amortised-analysis",
       "hash-tables"
@@ -31,6 +474,7 @@
       "implementation"
     ],
     "estimate": 16,
+    "subject": "systems",
     "prereqs": [
       "linear-search",
       "loop-invariants",
@@ -54,6 +498,7 @@
       "implementation"
     ],
     "estimate": 20,
+    "subject": "systems",
     "prereqs": [
       "linear-search",
       "sentinel-values",
@@ -78,6 +523,7 @@
       "bounds"
     ],
     "estimate": 24,
+    "subject": "systems",
     "prereqs": [
       "stack-discipline",
       "cpp-std-vector",
@@ -102,6 +548,7 @@
     ],
     "estimate": 15,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "array-bounds",
       "sanitizers"
@@ -126,6 +573,7 @@
     ],
     "estimate": 12,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "integer-conversions",
       "undefined-behaviour"
@@ -146,6 +594,7 @@
       "implementation"
     ],
     "estimate": 30,
+    "subject": "systems",
     "prereqs": [
       "ring-buffers",
       "stack-discipline",
@@ -171,6 +620,7 @@
       "implementation"
     ],
     "estimate": 32,
+    "subject": "systems",
     "prereqs": [
       "geometric-growth",
       "amortised-analysis",
@@ -195,6 +645,7 @@
       "implementation"
     ],
     "estimate": 30,
+    "subject": "systems",
     "prereqs": [
       "binary-search",
       "loop-invariants",
@@ -219,6 +670,7 @@
     ],
     "estimate": 30,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "hash-tables",
       "linked-structures",
@@ -244,6 +696,7 @@
     ],
     "estimate": 14,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "bit-tricks",
       "memory-hierarchy",
@@ -263,6 +716,7 @@
     ],
     "estimate": 6,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "cache-lines",
       "spatial-locality"
@@ -283,6 +737,7 @@
       "simulation"
     ],
     "estimate": 28,
+    "subject": "systems",
     "prereqs": [
       "byte-order",
       "shifts-and-masks",
@@ -307,6 +762,7 @@
     ],
     "estimate": 8,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "alignment",
       "cache-lines"
@@ -325,6 +781,7 @@
     ],
     "estimate": 10,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "amdahl"
     ]
@@ -343,6 +800,7 @@
     ],
     "estimate": 12,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "pipelining",
       "memory-hierarchy"
@@ -363,6 +821,7 @@
       "memory-hierarchy"
     ],
     "estimate": 30,
+    "subject": "systems",
     "prereqs": [
       "cache-indexing",
       "shifts-and-masks",
@@ -387,6 +846,7 @@
     ],
     "estimate": 15,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "cache-coherence",
       "cache-lines",
@@ -407,6 +867,7 @@
     ],
     "estimate": 25,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "lexing",
       "compilation-pipeline"
@@ -430,6 +891,7 @@
     ],
     "estimate": 9,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "compilation-pipeline"
     ]
@@ -448,6 +910,7 @@
     ],
     "estimate": 15,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "integer-conversions"
     ]
@@ -466,6 +929,7 @@
     ],
     "estimate": 9,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "undefined-behaviour"
     ]
@@ -484,6 +948,7 @@
     ],
     "estimate": 18,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "undefined-behaviour",
       "integer-conversions",
@@ -504,6 +969,7 @@
       "integer-division"
     ],
     "estimate": 15,
+    "subject": "systems",
     "prereqs": [
       "cpp-loops",
       "cpp-integer-types"
@@ -525,6 +991,7 @@
     ],
     "estimate": 11,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "cpp-floating-point"
     ]
@@ -543,6 +1010,7 @@
       "reuse"
     ],
     "estimate": 14,
+    "subject": "systems",
     "prereqs": [
       "cpp-functions",
       "cpp-conditions"
@@ -565,6 +1033,7 @@
       "arithmetic"
     ],
     "estimate": 20,
+    "subject": "systems",
     "prereqs": [
       "cpp-functions",
       "cpp-loops",
@@ -587,6 +1056,7 @@
       "basics"
     ],
     "estimate": 14,
+    "subject": "systems",
     "prereqs": [
       "cpp-conditions",
       "cpp-functions"
@@ -609,6 +1079,7 @@
     ],
     "estimate": 18,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "cpp-functions",
       "cpp-initialisation"
@@ -630,6 +1101,7 @@
     ],
     "estimate": 8,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "cpp-initialisation"
     ]
@@ -648,6 +1120,7 @@
       "conditions"
     ],
     "estimate": 16,
+    "subject": "systems",
     "prereqs": [
       "cpp-loops",
       "cpp-conditions"
@@ -670,6 +1143,7 @@
       "counting"
     ],
     "estimate": 24,
+    "subject": "systems",
     "prereqs": [
       "cpp-std-map",
       "cpp-strings",
@@ -693,6 +1167,7 @@
       "pass-by-reference"
     ],
     "estimate": 20,
+    "subject": "systems",
     "prereqs": [
       "cpp-references",
       "cpp-functions",
@@ -716,6 +1191,7 @@
       "functions"
     ],
     "estimate": 22,
+    "subject": "systems",
     "prereqs": [
       "cpp-references",
       "cpp-std-vector",
@@ -738,6 +1214,7 @@
     ],
     "estimate": 10,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "cpp-scope-linkage"
     ]
@@ -755,6 +1232,7 @@
     ],
     "estimate": 10,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "cpp-fundamental-types"
     ]
@@ -773,6 +1251,7 @@
       "loops"
     ],
     "estimate": 22,
+    "subject": "systems",
     "prereqs": [
       "cpp-strings",
       "cpp-loops",
@@ -797,6 +1276,7 @@
       "ascii"
     ],
     "estimate": 20,
+    "subject": "systems",
     "prereqs": [
       "cpp-strings",
       "cpp-loops",
@@ -820,6 +1300,7 @@
       "sentinel"
     ],
     "estimate": 15,
+    "subject": "systems",
     "prereqs": [
       "cpp-stdin-loop",
       "cpp-loops"
@@ -842,6 +1323,7 @@
     ],
     "estimate": 10,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "cpp-integer-types"
     ]
@@ -860,6 +1342,7 @@
       "indexing"
     ],
     "estimate": 18,
+    "subject": "systems",
     "prereqs": [
       "cpp-std-vector",
       "cpp-loops",
@@ -883,6 +1366,7 @@
     ],
     "estimate": 13,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "cpp-odr",
       "cpp-functions",
@@ -902,6 +1386,7 @@
     ],
     "estimate": 12,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "cpp-enums",
       "cpp-fundamental-types"
@@ -921,6 +1406,7 @@
     ],
     "estimate": 12,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "cpp-preprocessor",
       "cpp-odr"
@@ -939,6 +1425,7 @@
     ],
     "estimate": 12,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "cpp-namespaces"
     ]
@@ -957,6 +1444,7 @@
     ],
     "estimate": 14,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "logical-clocks"
     ]
@@ -975,6 +1463,7 @@
     ],
     "estimate": 7,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "cap-theorem",
       "replication"
@@ -994,6 +1483,7 @@
     ],
     "estimate": 15,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "consensus",
       "replication"
@@ -1013,6 +1503,7 @@
     ],
     "estimate": 14,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "idempotency"
     ]
@@ -1030,6 +1521,7 @@
     ],
     "estimate": 13,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "quorums",
       "replication",
@@ -1050,6 +1542,7 @@
     ],
     "estimate": 12,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "hdl-assignments",
       "fpga-fabric"
@@ -1070,6 +1563,7 @@
     ],
     "estimate": 11,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "fpga-fabric"
     ]
@@ -1088,6 +1582,7 @@
     ],
     "estimate": 14,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "timing-closure",
       "fpga-fabric"
@@ -1107,6 +1602,7 @@
     ],
     "estimate": 22,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "state-machines",
       "hdl-assignments"
@@ -1132,6 +1628,7 @@
       "simulation"
     ],
     "estimate": 32,
+    "subject": "systems",
     "prereqs": [
       "shift-registers",
       "shifts-and-masks",
@@ -1157,6 +1654,7 @@
       "state-table"
     ],
     "estimate": 30,
+    "subject": "systems",
     "prereqs": [
       "finite-state-machines",
       "cpp-std-vector",
@@ -1181,6 +1679,7 @@
     ],
     "estimate": 13,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "pipelining-ii",
       "pipelining"
@@ -1200,6 +1699,7 @@
     ],
     "estimate": 10,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "row-major",
       "cache-lines"
@@ -1218,6 +1718,7 @@
     ],
     "estimate": 12,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "roofline",
       "memory-hierarchy"
@@ -1236,6 +1737,7 @@
     ],
     "estimate": 20,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "prefix-sum"
     ],
@@ -1258,6 +1760,7 @@
     ],
     "estimate": 12,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "collectives"
     ]
@@ -1276,6 +1779,7 @@
     ],
     "estimate": 16,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "tiling",
       "cache-lines",
@@ -1296,6 +1800,7 @@
     ],
     "estimate": 10,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "shell-pipelines"
     ]
@@ -1313,6 +1818,7 @@
     ],
     "estimate": 7,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "file-permissions"
     ]
@@ -1330,6 +1836,7 @@
     ],
     "estimate": 12,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "file-descriptors"
     ]
@@ -1348,6 +1855,7 @@
     ],
     "estimate": 12,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "syscall-tracing",
       "dynamic-linking"
@@ -1367,6 +1875,7 @@
     ],
     "estimate": 16,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "cgroups-oom",
       "virtual-memory"
@@ -1386,6 +1895,7 @@
     ],
     "estimate": 10,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "stdio-buffering",
       "processes-fork"
@@ -1405,6 +1915,7 @@
     ],
     "estimate": 8,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "page-faults",
       "mmu-tlb"
@@ -1424,6 +1935,7 @@
     ],
     "estimate": 12,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "mutual-exclusion"
     ]
@@ -1441,6 +1953,7 @@
     ],
     "estimate": 12,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "scheduling"
     ]
@@ -1460,6 +1973,7 @@
       "virtual-memory"
     ],
     "estimate": 35,
+    "subject": "systems",
     "prereqs": [
       "page-replacement",
       "paging",
@@ -1484,6 +1998,7 @@
       "processes"
     ],
     "estimate": 38,
+    "subject": "systems",
     "prereqs": [
       "scheduling-metrics",
       "scheduling",
@@ -1508,6 +2023,7 @@
     ],
     "estimate": 14,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "copy-on-write",
       "page-faults",
@@ -1528,6 +2044,7 @@
       "vec"
     ],
     "estimate": 30,
+    "subject": "systems",
     "prereqs": [
       "rust-borrowing",
       "rust-ownership",
@@ -1552,6 +2069,7 @@
       "lifetimes"
     ],
     "estimate": 30,
+    "subject": "systems",
     "prereqs": [
       "rust-option",
       "rust-borrowing",
@@ -1575,6 +2093,7 @@
       "string"
     ],
     "estimate": 28,
+    "subject": "systems",
     "prereqs": [
       "rust-ownership",
       "cpp-functions"
@@ -1597,6 +2116,7 @@
       "match"
     ],
     "estimate": 32,
+    "subject": "systems",
     "prereqs": [
       "rust-result",
       "rust-option",
@@ -1620,6 +2140,7 @@
       "vec"
     ],
     "estimate": 32,
+    "subject": "systems",
     "prereqs": [
       "rust-slices",
       "rust-borrowing",
@@ -1644,6 +2165,7 @@
       "enums"
     ],
     "estimate": 40,
+    "subject": "systems",
     "prereqs": [
       "rust-question-mark",
       "rust-result",
@@ -1667,6 +2189,7 @@
     ],
     "estimate": 10,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "latency-numbers",
       "memory-hierarchy"
@@ -1685,6 +2208,7 @@
     ],
     "estimate": 11,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "capacity-estimation"
     ]
@@ -1703,6 +2227,7 @@
     ],
     "estimate": 14,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "delivery-guarantees",
       "idempotency"
@@ -1722,6 +2247,7 @@
     ],
     "estimate": 13,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "cache-policies",
       "memory-hierarchy"
@@ -1740,6 +2266,7 @@
     ],
     "estimate": 28,
     "lane": "core",
+    "subject": "systems",
     "prereqs": [
       "rate-limiting",
       "capacity-estimation"

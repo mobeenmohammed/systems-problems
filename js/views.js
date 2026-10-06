@@ -81,12 +81,13 @@ const UI = (() => {
      columns scan far better than a stack of cards once there are more than a
      dozen rows, which is why this is a table in all but name. */
 
-  const TICK = { solved: '✓', attempted: '◔', read: '◎', unsolved: '' };
+  const TICK = { solved: '✓', attempted: '◔', read: '◎', reviewed: '✎', unsolved: '' };
   const STATUS_LABEL = {
     unsolved: 'Not started',
     attempted: 'Attempted',
     solved: 'Solved',
     read: 'Read the answer',
+    reviewed: 'Self-reviewed',
   };
 
   /* Which weekly problem is current, so the row can be badged. Looked up once
@@ -397,7 +398,7 @@ const UI = (() => {
   /* A short strip of tracks on the dashboard; the full list is its own view. */
   function renderTracksStrip() {
     const host = $('#homeTracks');
-    const tracks = Catalog.allTracks();
+    const tracks = Catalog.allTracks(subject());
     if (!tracks.length) { host.replaceChildren(); return; }
 
     /* Started but unfinished first, then untouched, then complete — which is
@@ -423,14 +424,17 @@ const UI = (() => {
 
   function renderTracks(trackId) {
     const host = $('#trackList');
-    const tracks = Catalog.allTracks();
+    /* Scoped like the catalogue. A track opened by id still opens, whichever
+       subject the switch is on, because a link to one should work. */
+    const tracks = Catalog.allTracks(subject());
 
     const blurb = $('#tracksBlurb');
     if (blurb) {
-      const n = Catalog.counts();
-      blurb.textContent = n.problems
-        ? `${n.tracks} ordered sets of problems that build on each other, so there is `
-          + `always an obvious next one rather than ${n.problems} to choose between.`
+      const label = Store.SUBJECT_BY_ID[subject()].label;
+      blurb.textContent = tracks.length
+        ? `${tracks.length} ordered ${tracks.length === 1 ? 'set' : 'sets'} of `
+          + `${label} problems that build on each other, so there is always an `
+          + 'obvious next one.'
         : 'Ordered sets of problems that build on each other.';
     }
 
@@ -551,10 +555,60 @@ const UI = (() => {
 
   let filter = { q: '', topic: '', difficulty: '', type: '', status: '', lane: '' };
 
+  /* ---------------- the subject switch ----------------
+
+     A view preference, so it lives beside the panel sizes rather than in
+     progress: which subject you are looking at could never be worth a
+     solve. Everything the switch hides is still there, still solved, still
+     bookmarked — it is a lens, not a separate account. */
+
+  const subject = () => {
+    const want = Store.pref('subject', 'systems');
+    return Store.SUBJECT_BY_ID[want] ? want : 'systems';
+  };
+
+  function setSubject(id) {
+    if (!Store.SUBJECT_BY_ID[id] || id === subject()) return;
+    Store.setPref('subject', id);
+    /* The topic filter belongs to the subject that was showing. */
+    filter = { ...filter, topic: '' };
+    paintSubjectSwitch();
+    const view = (document.querySelector('.view:not([hidden])') || {}).id;
+    ({
+      'view-home': renderHome,
+      'view-problems': () => setFilter({ topic: '' }),
+      'view-tracks': () => renderTracks(null),
+      'view-concepts': renderConcepts,
+    }[view] || (() => {}))();
+  }
+
+  function paintSubjectSwitch() {
+    const host = $('#subjectSwitch');
+    if (!host) return;
+    const now = subject();
+    host.replaceChildren(...Store.SUBJECTS.map(sub => el('button', {
+      type: 'button',
+      class: 'subject-btn',
+      'aria-pressed': String(sub.id === now),
+      title: sub.blurb,
+      onclick: () => setSubject(sub.id),
+    }, [sub.short])));
+  }
+
   function fillFilterOptions() {
     const topic = $('#fTopic');
-    if (topic.options.length === 1) {
-      for (const t of Store.TOPICS) topic.append(el('option', { value: t.id, text: t.label }));
+    /* Rebuilt whenever the subject changes: offering "Metric Spaces" in the
+       Systems catalogue would filter to nothing and look broken. */
+    const want = subject();
+    if (topic.dataset.subject !== want) {
+      topic.dataset.subject = want;
+      topic.replaceChildren(el('option', { value: '', text: 'All topics' }));
+      for (const t of Store.topicsIn(want)) {
+        topic.append(el('option', { value: t.id, text: t.label }));
+      }
+      topic.value = filter.topic || '';
+    }
+    if ($('#fDiff').options.length === 1) {
       for (const d of Store.DIFFICULTIES) $('#fDiff').append(el('option', { value: d.id, text: d.label }));
       for (const t of Catalog.TYPES) $('#fType').append(el('option', { value: t.id, text: t.label }));
       for (const l of Store.LANES) $('#fLane').append(el('option', { value: l.id, text: l.label }));
@@ -574,12 +628,20 @@ const UI = (() => {
 
   function renderCatalog() {
     fillFilterOptions();
-    const rows = Catalog.sorted(Catalog.list(filter));
+    const searching = !!String(filter.q || '').trim();
+    const rows = Catalog.sorted(Catalog.list({ ...filter, subject: subject() }));
+    const inSubject = Catalog.all().filter(p => p.subject === subject()).length;
     const total = Catalog.all().length;
 
-    $('#catalogCount').textContent = rows.length === total
-      ? `${total} problems`
-      : `${rows.length} of ${total} problems`;
+    /* Searching deliberately crosses subjects — looking for "bayes" from the
+       Systems side should find it rather than returning nothing — so the
+       count says which population it is counting. */
+    const label = Store.SUBJECT_BY_ID[subject()].label;
+    $('#catalogCount').textContent = searching
+      ? `${rows.length} of ${total} problems, searching every subject`
+      : rows.length === inSubject
+        ? `${inSubject} ${label} problems`
+        : `${rows.length} of ${inSubject} ${label} problems`;
 
     const list = $('#catalogList');
 
@@ -1432,5 +1494,6 @@ const UI = (() => {
     renderHome, renderCatalog, renderConcepts, renderProfile, renderShop, renderSettings,
     renderTracks, renderResources, problemList,
     setFilter, checkJudge, paintJudgeState,
+    subject, setSubject, paintSubjectSwitch,
   };
 })();

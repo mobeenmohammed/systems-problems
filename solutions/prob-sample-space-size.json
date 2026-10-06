@@ -1,0 +1,38 @@
+{
+  "key": {
+    "value": "36"
+  },
+  "feedback": {
+    "whenValue": [
+      {
+        "is": "21",
+        "say": "That is the count of *unordered* pairs — treating red 2, blue 5 as the same outcome as red 5, blue 2. The dice are different colours, so those are two outcomes. ($21 = \\binom{6}{2} + 6$.)"
+      },
+      {
+        "is": "12",
+        "say": "That is $6 + 6$: the number of faces across both dice. An outcome is not a face, it is a pair of faces — one from each die."
+      },
+      {
+        "is": "11",
+        "say": "That is the number of possible *totals*, from $2$ to $12$. Those are events, not outcomes, and they are not equally likely — which is exactly why the sample space is not built from them."
+      },
+      {
+        "is": "30",
+        "say": "That looks like $6 \\times 5$, as though the second die could not repeat the first. The two dice are separate objects and both can show the same number."
+      }
+    ],
+    "nudge": "Write down what a single outcome looks like as a piece of notation, then count how many ways each part of that notation can be filled in."
+  },
+  "explanation": "## The count\n\nAn outcome is an ordered pair $(r, b)$ with $r$ the red die and $b$ the blue. There are $6$ choices for $r$ and, for each, $6$ for $b$:\n\n$$|\\Omega| = 6 \\times 6 = \\mathbf{36}.$$\n\n## Why ordered, and why it matters\n\nThe dice are distinguishable, so $(2,5)$ and $(5,2)$ are different outcomes. If you collapse them you get $21$ outcomes — and crucially they are **not equally likely**: $(2,5)$-or-$(5,2)$ has twice the chance of $(3,3)$.\n\nThat is the reason to build $\\Omega$ out of the most fine-grained outcomes you can. With $36$ equally likely outcomes, every probability is just a count divided by $36$. With $21$ unequal ones, you need a weight for each and you have gained nothing.\n\n## The classic failure\n\nTaking $\\Omega$ to be the eleven totals $\\{2, 3, \\dots, 12\\}$ and treating them as equally likely gives $\\P(\\text{total} = 7) = \\tfrac1{11}$. The right answer is $\\tfrac6{36} = \\tfrac16$. This is said to be the mistake d'Alembert made, and it is the reason the first thing to write down in any probability question is the sample space — not the formula.\n\n## The general rule\n\nIf a procedure is a sequence of $k$ steps with $n_1, n_2, \\dots, n_k$ choices, independent of each other, the number of outcomes is $n_1 n_2 \\cdots n_k$.",
+  "readMore": [
+    {
+      "concept": "sample-space",
+      "where": "Blitzstein & Hwang Ch. 1.2"
+    },
+    {
+      "concept": "counting",
+      "where": "Blitzstein & Hwang Ch. 1.4"
+    }
+  ],
+  "id": "prob-sample-space-size"
+}

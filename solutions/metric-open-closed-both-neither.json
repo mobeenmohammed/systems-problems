@@ -1,0 +1,54 @@
+{
+  "key": {
+    "answers": [
+      0,
+      3,
+      4,
+      6
+    ]
+  },
+  "feedback": {
+    "misconceptions": [
+      {
+        "picked": [
+          1
+        ],
+        "say": "On $[0,1]$: take the point $0$ and ask what $B(0,r)$ contains for *any* $r > 0$. It always reaches below zero, and those points are not in the set."
+      },
+      {
+        "picked": [
+          2
+        ],
+        "say": "On $[0,1)$: it is half-open, and the two halves behave differently. One endpoint has room around it inside the set and the other does not — and the definition has to hold at *every* point."
+      },
+      {
+        "picked": [
+          5
+        ],
+        "say": "On $\\{1,2,3\\}$: a ball in $\\R$ around any point is an interval, and an interval contains infinitely many points. Can a three-element set contain one?"
+      }
+    ],
+    "nudge": "Go point by point rather than looking at the shape. For each set, try to find one point with no room around it — if you can, it is not open, and if you genuinely cannot, it is."
+  },
+  "distractors": {
+    "0": "Open. Any $x \\in (0,1)$ has room: take $r = \\min(x, 1-x) > 0$.",
+    "1": "Not open. At $x = 0$, every ball $B(0,r) = (-r, r)$ contains negative numbers, which are not in $[0,1]$. It is closed.",
+    "2": "Not open, because of $x = 0$ again — and not closed either, because its complement $(-\\infty,0) \\cup [1,\\infty)$ is not open at $1$. This is the \"neither\" case.",
+    "3": "Open: every ball is inside $\\R$ because everything is. It is also closed, because its complement $\\emptyset$ is open.",
+    "4": "Open, vacuously: the condition is \"for every $x \\in \\emptyset$ …\", and there are none. It is also closed.",
+    "5": "Not open. Every ball in $\\R$ is an interval and contains infinitely many points, so no ball fits inside a three-element set. It *is* closed.",
+    "6": "Open. Any $x \\ne 0$ has $r = |x| > 0$ with $B(x,r)$ avoiding $0$. Its complement $\\{0\\}$ is closed."
+  },
+  "explanation": "## The four answers\n\n| set | open? | closed? |\n| --- | --- | --- |\n| $(0,1)$ | **yes** | no |\n| $[0,1]$ | no | **yes** |\n| $[0,1)$ | no | no |\n| $\\R$ | **yes** | **yes** |\n| $\\emptyset$ | **yes** | **yes** |\n| $\\{1,2,3\\}$ | no | **yes** |\n| $\\R \\setminus \\{0\\}$ | **yes** | no |\n\n## The three things worth taking away\n\n**Open and closed are not opposites.** $[0,1)$ is neither. $\\R$ and $\\emptyset$ are both. In a general metric space the sets that are both are exactly the ones that disconnect the space — in a connected space like $\\R$ there are only those two, and in the discrete metric *every* set is both.\n\n**\"Not open\" does not mean \"closed\".** This is the single commonest error in the subject, and it comes from the English words rather than the mathematics. The definition of closed is *the complement is open*, which is a statement about a different set.\n\n**Openness is checked at every point.** One bad point is enough to kill it, which is why $[0,1)$ fails: the point $0$ has no room, even though every other point does.\n\n## Why $\\emptyset$ is open\n\nThe condition is *for every $x \\in \\emptyset$, there is $r > 0$ with …*. There is no such $x$, so there is nothing to check and the statement holds. Vacuous truth is not a trick here — it is what makes the definition behave: the union of no open sets is $\\emptyset$, and unions of open sets must be open.",
+  "readMore": [
+    {
+      "concept": "open-sets",
+      "where": "Sutherland Ch. 3.2"
+    },
+    {
+      "concept": "closed-sets",
+      "where": "Rudin Ch. 2.23, and 2.27 for the both-and-neither cases"
+    }
+  ],
+  "id": "metric-open-closed-both-neither"
+}

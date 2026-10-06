@@ -17,7 +17,11 @@ import { loadAll, validate, buildIndex } from '../scripts/build-index.mjs';
 import { loadScripts, read, section, check, ok, report } from './harness.mjs';
 
 const { grab } = loadScripts([
+  'vendor/katex/katex.min.js',
+  'js/maths/expr.js',
+  'js/maths/render.js',
   'js/md.js',
+  'js/store.js',
   'js/types/registry.js',
   'js/types/mcq.js',
   'js/types/numeric.js',
@@ -25,8 +29,14 @@ const { grab } = loadScripts([
   'js/types/match.js',
   'js/types/predict.js',
   'js/types/locate.js',
+  'js/types/maths.js',
 ]);
 const Types = grab('ProblemTypes');
+const MathsExpr = grab('MathsExpr');
+/* The same macros the page gives KaTeX, so a statement using \R is checked
+   the way it will be rendered rather than failing here and working there. */
+const MathsRender = grab('MathsRender');
+const MACROS = MathsRender.MACROS || {};
 
 const loaded = loadAll();
 const { problems, concepts, solutions } = loaded;
@@ -111,6 +121,15 @@ function idealAnswer(problem, key) {
     case 'match':   return key.pairs;
     case 'predict': return key.output;
     case 'locate':  return key.line;
+    /* Mathematics. The key is the answer as a reader would type it, which is
+       exactly what makes this check worth having: it runs the real parser
+       and the real equality procedure over every authored key. */
+    case 'exact':
+    case 'approx':
+    case 'structured':   return key.value;
+    case 'proofsteps':   return key.answers;
+    case 'counterexample': return key.example;
+    case 'proof':        return undefined;   /* nothing automatic to check */
     default:        return undefined;   /* code is covered by the judge suite */
   }
 }
@@ -137,6 +156,127 @@ for (const p of problems) {
 
 /* The mirror of the check above: a key that calls everything correct would
    pass the first test and be useless. */
+/* ---------------- mathematics, where the grader is the risk ---------------- */
+
+/* The expression engine decides whether somebody's answer is right, so a key
+   that it reads differently from how the author meant it would report the
+   author's mistake as the reader's. Every authored key is parsed here, and
+   every alternative form the author promised to accept is checked against
+   the one that is canonical. */
+
+/* Every maths span in every statement, hint, option, caption and solution,
+   rendered by the real KaTeX with errors turned ON. A lost backslash — and
+   writing these files has eaten several — turns \sqrt into "sqrt" or, worse,
+   turns igl into a backspace character, and both render as something that
+   looks almost right. This catches both, and it is the only check that reads
+   the TeX rather than the JSON around it. */
+
+section('every piece of TeX actually parses');
+{
+  const katex = grab('katex');
+  ok('KaTeX is loaded for this check', !!(katex && katex.renderToString));
+
+  /* Pull the maths spans out of any string. Deliberately the renderer's own
+     function rather than a second copy of the regexes: if the two ever
+     disagreed, this check would be verifying TeX the page never renders. */
+  const spans = text => MathsRender.protect(text).spans.map(s => s.tex);
+
+  /* Every string anywhere in an object, however deeply nested. */
+  const strings = (v, out = []) => {
+    if (typeof v === 'string') out.push(v);
+    else if (Array.isArray(v)) for (const x of v) strings(x, out);
+    else if (v && typeof v === 'object') for (const x of Object.values(v)) strings(x, out);
+    return out;
+  };
+
+  let checked = 0;
+  const broken = [];
+  const controls = [];
+
+  for (const p of problems) {
+    const sol = solutions[p.id];
+    for (const [where, obj] of [[`problems/${p.id}`, p], [`solutions/${p.id}`, sol]]) {
+      if (!obj) continue;
+      for (const text of strings(obj)) {
+        /* A collapsed  or  leaves a real control character behind. */
+        for (const ch of text) {
+          const n = ch.charCodeAt(0);
+          if (n < 32 && n !== 10 && n !== 13 && n !== 9) {
+            controls.push(`${where}: control character U+${n.toString(16).padStart(4, '0')}`);
+          }
+        }
+        for (const tex of spans(text)) {
+          checked += 1;
+          try {
+            katex.renderToString(tex, { throwOnError: true, strict: false, macros: MACROS });
+          } catch (err) {
+            broken.push(`${where}: "${tex.slice(0, 60)}" — ${String(err.message).slice(0, 80)}`);
+          }
+        }
+      }
+    }
+  }
+
+  ok(`there is TeX to check (${checked} expressions)`, checked > 150);
+  if (broken.length) for (const b of broken.slice(0, 8)) console.log(`  --    ${b}`);
+  check('every expression parses', broken.length, 0);
+  if (controls.length) for (const c of controls.slice(0, 5)) console.log(`  --    ${c}`);
+  check('and no string carries a stray control character', controls.length, 0);
+}
+
+section('every mathematical key is readable, and means what it says');
+for (const p of problems) {
+  if (!['exact', 'approx', 'structured'].includes(p.type)) continue;
+  const sol = solutions[p.id];
+  if (!sol || !sol.key) continue;
+
+  const E = MathsExpr;
+  const kind = (p.payload || {}).kind;
+  const reader = p.type !== 'structured' ? E.read
+    : kind === 'intervals' ? E.readIntervals : E.readSet;
+  const same = p.type !== 'structured' ? E.sameValue
+    : kind === 'intervals' ? E.sameIntervals : E.sameSet;
+
+  const main = reader(String(sol.key.value));
+  ok(`${p.id}: the key parses`, main.ok);
+  if (!main.ok) continue;
+
+  for (const alt of sol.key.alsoAccept || []) {
+    const r = reader(String(alt));
+    ok(`${p.id}: the alternative "${alt}" parses`, r.ok);
+    if (p.type === 'approx') continue;
+    ok(`${p.id}: and "${alt}" really is the same answer`,
+      same(String(alt), String(sol.key.value)));
+  }
+
+  /* Every value an authored misconception rule triggers on has to be
+     readable too, or the rule can never fire and the reader silently gets
+     the generic nudge instead of the sentence written for them. */
+  for (const m of ((sol.feedback || {}).whenValue) || []) {
+    const text = m.is !== undefined ? m.is : m.isExpr;
+    const r = E.read(String(text));
+    ok(`${p.id}: the misconception trigger "${text}" parses`, r.ok);
+    /* And it must not be the right answer, or a correct answer would be
+       met with an explanation of a mistake. */
+    if (r.ok && p.type !== 'approx') {
+      ok(`${p.id}: and "${text}" is not the correct answer`,
+        !E.sameValue(String(text), String(sol.key.value)));
+    }
+  }
+}
+
+section('an approximate answer states its tolerance and is reachable');
+for (const p of problems) {
+  if (p.type !== 'approx') continue;
+  const k = solutions[p.id].key;
+  const tol = k.tol !== undefined ? Number(k.tol) : 0.5 * (10 ** -Number(k.dp ?? 2));
+  ok(`${p.id}: the tolerance is positive`, tol > 0);
+  /* The statement must say so, or the reader does not know they may round.
+     build-index enforces this too; it is here because it is content. */
+  ok(`${p.id}: the statement says the answer is approximate`,
+    /approx|decimal place|round|nearest|tolerance|±/i.test(String(p.statement)));
+}
+
 section('a deliberately wrong answer is not graded correct');
 for (const p of problems) {
   const sol = solutions[p.id];
@@ -174,6 +314,31 @@ for (const p of problems) {
     case 'locate':
       wrong = sol.key.line === 1 ? 2 : 1;
       break;
+
+    /* A number that is not the answer, and far enough out to clear any
+       stated tolerance. */
+    case 'exact':
+    case 'approx': {
+      const tol = sol.key.tol !== undefined ? Number(sol.key.tol) : 0.01;
+      wrong = String(`(${sol.key.value}) + ${Math.max(1, tol * 1000)}`);
+      break;
+    }
+    case 'structured':
+      /* A set or interval that is not the answer, and is readable. */
+      wrong = (p.payload || {}).kind === 'intervals' ? '(123,124)' : '{123}';
+      break;
+    case 'proofsteps': {
+      const a = [...sol.key.answers];
+      [a[0], a[1]] = [a[1], a[0]];
+      wrong = a;
+      break;
+    }
+    case 'counterexample': {
+      /* Every field filled in, readable, and not the worked example. */
+      wrong = {};
+      for (const f of (p.payload || {}).fields || []) wrong[f.id] = '987654';
+      break;
+    }
     default:
       continue;
   }

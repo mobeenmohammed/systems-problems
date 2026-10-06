@@ -2341,5 +2341,567 @@
         "url": "https://doc.rust-lang.org/rust-by-example/error/multiple_error_types.html"
       }
     ]
+  },
+  "metric-axioms": {
+    "name": "The metric axioms",
+    "topic": "metric",
+    "oneLine": "A metric is any function of two points satisfying four conditions — non-negativity, identity of indiscernibles, symmetry and the triangle inequality — and everything else about distance is deduced from those and not from the picture.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "Introduction to Metric and Topological Spaces (Sutherland)",
+        "kind": "book",
+        "where": "Ch. 2.1",
+        "url": "https://global.oup.com/academic/product/introduction-to-metric-and-topological-spaces-9780199563081"
+      },
+      {
+        "title": "Principles of Mathematical Analysis (Rudin)",
+        "kind": "book",
+        "where": "Ch. 2, definition 2.15",
+        "url": "https://archive.org/details/principlesofmath00rudi"
+      },
+      {
+        "title": "MIT 18.02 / 18.100 notes on metric spaces",
+        "kind": "course",
+        "where": "the metric space notes",
+        "url": "https://ocw.mit.edu/courses/18-100a-real-analysis-fall-2020/"
+      }
+    ]
+  },
+  "metric-examples": {
+    "name": "Metrics other than the usual one",
+    "topic": "metric",
+    "oneLine": "The Euclidean metric is one metric on R^n, not the meaning of distance: the discrete, maximum and taxicab metrics are all genuine metrics and they disagree about which points are close.",
+    "needs": [
+      "metric-axioms"
+    ],
+    "readings": [
+      {
+        "title": "Introduction to Metric and Topological Spaces (Sutherland)",
+        "kind": "book",
+        "where": "Ch. 2.2",
+        "url": "https://global.oup.com/academic/product/introduction-to-metric-and-topological-spaces-9780199563081"
+      },
+      {
+        "title": "Principles of Mathematical Analysis (Rudin)",
+        "kind": "book",
+        "where": "Ch. 2, examples after 2.15",
+        "url": "https://archive.org/details/principlesofmath00rudi"
+      }
+    ]
+  },
+  "open-balls": {
+    "name": "Open balls",
+    "topic": "metric",
+    "oneLine": "B(x, r) is every point strictly within r of x, and what it looks like depends on the metric and on the space it is drawn in — the same formula gives a disc, a square, or a single point.",
+    "needs": [
+      "metric-axioms",
+      "metric-examples"
+    ],
+    "readings": [
+      {
+        "title": "Introduction to Metric and Topological Spaces (Sutherland)",
+        "kind": "book",
+        "where": "Ch. 3.1",
+        "url": "https://global.oup.com/academic/product/introduction-to-metric-and-topological-spaces-9780199563081"
+      },
+      {
+        "title": "Principles of Mathematical Analysis (Rudin)",
+        "kind": "book",
+        "where": "Ch. 2.18",
+        "url": "https://archive.org/details/principlesofmath00rudi"
+      }
+    ]
+  },
+  "ambient-space": {
+    "name": "The ambient space",
+    "topic": "metric",
+    "oneLine": "Open, closed and ball are never properties of a set alone: they are properties of a set inside a particular space, and the same set changes its answer when the surrounding space does.",
+    "needs": [
+      "open-balls"
+    ],
+    "readings": [
+      {
+        "title": "Introduction to Metric and Topological Spaces (Sutherland)",
+        "kind": "book",
+        "where": "Ch. 5.1, on subspaces",
+        "url": "https://global.oup.com/academic/product/introduction-to-metric-and-topological-spaces-9780199563081"
+      },
+      {
+        "title": "Analysis II (Tao)",
+        "kind": "book",
+        "where": "Ch. 1.4",
+        "url": "https://link.springer.com/book/10.1007/978-981-10-1804-6"
+      }
+    ]
+  },
+  "open-sets": {
+    "name": "Open sets",
+    "topic": "metric",
+    "oneLine": "A set is open when every point of it has a ball around it that stays inside — which makes openness a statement about having room to move, not about the shape of the boundary.",
+    "needs": [
+      "open-balls",
+      "ambient-space"
+    ],
+    "readings": [
+      {
+        "title": "Introduction to Metric and Topological Spaces (Sutherland)",
+        "kind": "book",
+        "where": "Ch. 3.2",
+        "url": "https://global.oup.com/academic/product/introduction-to-metric-and-topological-spaces-9780199563081"
+      },
+      {
+        "title": "Principles of Mathematical Analysis (Rudin)",
+        "kind": "book",
+        "where": "Ch. 2.23–2.27",
+        "url": "https://archive.org/details/principlesofmath00rudi"
+      }
+    ]
+  },
+  "closed-sets": {
+    "name": "Closed sets",
+    "topic": "metric",
+    "oneLine": "Closed means the complement is open, which is not the opposite of open: a set can be both, or neither, and most sets are neither.",
+    "needs": [
+      "open-sets"
+    ],
+    "readings": [
+      {
+        "title": "Introduction to Metric and Topological Spaces (Sutherland)",
+        "kind": "book",
+        "where": "Ch. 3.3",
+        "url": "https://global.oup.com/academic/product/introduction-to-metric-and-topological-spaces-9780199563081"
+      },
+      {
+        "title": "Principles of Mathematical Analysis (Rudin)",
+        "kind": "book",
+        "where": "Ch. 2.23",
+        "url": "https://archive.org/details/principlesofmath00rudi"
+      }
+    ]
+  },
+  "convergence": {
+    "name": "Convergence in a metric space",
+    "topic": "metric",
+    "oneLine": "A sequence converges to x when the distances to x eventually stay below any epsilon you name — so convergence is about the distances, and changes when the metric does.",
+    "needs": [
+      "metric-axioms"
+    ],
+    "readings": [
+      {
+        "title": "Introduction to Metric and Topological Spaces (Sutherland)",
+        "kind": "book",
+        "where": "Ch. 4.1",
+        "url": "https://global.oup.com/academic/product/introduction-to-metric-and-topological-spaces-9780199563081"
+      },
+      {
+        "title": "Principles of Mathematical Analysis (Rudin)",
+        "kind": "book",
+        "where": "Ch. 3.1",
+        "url": "https://archive.org/details/principlesofmath00rudi"
+      }
+    ]
+  },
+  "limit-uniqueness": {
+    "name": "Limits are unique",
+    "topic": "metric",
+    "oneLine": "A sequence in a metric space has at most one limit, and the proof is one line of the triangle inequality — which is also why it fails in spaces that are not metric.",
+    "needs": [
+      "convergence"
+    ],
+    "readings": [
+      {
+        "title": "Introduction to Metric and Topological Spaces (Sutherland)",
+        "kind": "book",
+        "where": "Ch. 4.1",
+        "url": "https://global.oup.com/academic/product/introduction-to-metric-and-topological-spaces-9780199563081"
+      },
+      {
+        "title": "Principles of Mathematical Analysis (Rudin)",
+        "kind": "book",
+        "where": "Ch. 3.2",
+        "url": "https://archive.org/details/principlesofmath00rudi"
+      }
+    ]
+  },
+  "cauchy-sequences": {
+    "name": "Cauchy sequences",
+    "topic": "metric",
+    "oneLine": "A Cauchy sequence is one whose terms get arbitrarily close to each other, which is a condition you can check without knowing the limit — and is strictly weaker than converging.",
+    "needs": [
+      "convergence"
+    ],
+    "readings": [
+      {
+        "title": "Introduction to Metric and Topological Spaces (Sutherland)",
+        "kind": "book",
+        "where": "Ch. 7.1",
+        "url": "https://global.oup.com/academic/product/introduction-to-metric-and-topological-spaces-9780199563081"
+      },
+      {
+        "title": "Principles of Mathematical Analysis (Rudin)",
+        "kind": "book",
+        "where": "Ch. 3.8–3.11",
+        "url": "https://archive.org/details/principlesofmath00rudi"
+      }
+    ]
+  },
+  "completeness": {
+    "name": "Completeness",
+    "topic": "metric",
+    "oneLine": "A space is complete when every Cauchy sequence actually converges in it; completeness is a property of the space, and removing a single point can destroy it.",
+    "needs": [
+      "cauchy-sequences"
+    ],
+    "readings": [
+      {
+        "title": "Introduction to Metric and Topological Spaces (Sutherland)",
+        "kind": "book",
+        "where": "Ch. 7.2",
+        "url": "https://global.oup.com/academic/product/introduction-to-metric-and-topological-spaces-9780199563081"
+      },
+      {
+        "title": "Principles of Mathematical Analysis (Rudin)",
+        "kind": "book",
+        "where": "Ch. 3.11",
+        "url": "https://archive.org/details/principlesofmath00rudi"
+      },
+      {
+        "title": "Analysis II (Tao)",
+        "kind": "book",
+        "where": "Ch. 1.4",
+        "url": "https://link.springer.com/book/10.1007/978-981-10-1804-6"
+      }
+    ]
+  },
+  "continuity-metric": {
+    "name": "Continuity between metric spaces",
+    "topic": "metric",
+    "oneLine": "Continuity has three equivalent faces — epsilon–delta, preimages of open sets being open, and preservation of limits of sequences — and which one to reach for is most of the skill.",
+    "needs": [
+      "open-sets",
+      "convergence"
+    ],
+    "readings": [
+      {
+        "title": "Introduction to Metric and Topological Spaces (Sutherland)",
+        "kind": "book",
+        "where": "Ch. 5.2–5.3",
+        "url": "https://global.oup.com/academic/product/introduction-to-metric-and-topological-spaces-9780199563081"
+      },
+      {
+        "title": "Principles of Mathematical Analysis (Rudin)",
+        "kind": "book",
+        "where": "Ch. 4.8",
+        "url": "https://archive.org/details/principlesofmath00rudi"
+      }
+    ]
+  },
+  "compactness": {
+    "name": "Compactness",
+    "topic": "metric",
+    "oneLine": "Compact means every open cover has a finite subcover; in R^n that is exactly closed and bounded, and in a general metric space it is exactly sequential compactness — but those are theorems, not definitions.",
+    "needs": [
+      "open-sets",
+      "closed-sets",
+      "convergence"
+    ],
+    "readings": [
+      {
+        "title": "Introduction to Metric and Topological Spaces (Sutherland)",
+        "kind": "book",
+        "where": "Ch. 13",
+        "url": "https://global.oup.com/academic/product/introduction-to-metric-and-topological-spaces-9780199563081"
+      },
+      {
+        "title": "Principles of Mathematical Analysis (Rudin)",
+        "kind": "book",
+        "where": "Ch. 2.31–2.41",
+        "url": "https://archive.org/details/principlesofmath00rudi"
+      },
+      {
+        "title": "Analysis II (Tao)",
+        "kind": "book",
+        "where": "Ch. 1.5",
+        "url": "https://link.springer.com/book/10.1007/978-981-10-1804-6"
+      }
+    ]
+  },
+  "sample-space": {
+    "name": "Sample spaces and events",
+    "topic": "prob",
+    "oneLine": "A probability model is a set of outcomes, a collection of events which are subsets of it, and a measure on those — and most mistakes are made before any arithmetic, by writing down the wrong set.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "Introduction to Probability (Blitzstein & Hwang)",
+        "kind": "book",
+        "where": "Ch. 1.2",
+        "url": "https://projects.iq.harvard.edu/stat110/home"
+      },
+      {
+        "title": "Probability: An Introduction (Grimmett & Welsh)",
+        "kind": "book",
+        "where": "Ch. 1.1–1.3",
+        "url": "https://global.oup.com/academic/product/probability-9780198709978"
+      },
+      {
+        "title": "Harvard Stat 110 lectures",
+        "kind": "course",
+        "where": "Lecture 1",
+        "url": "https://projects.iq.harvard.edu/stat110/youtube"
+      }
+    ]
+  },
+  "counting": {
+    "name": "Counting",
+    "topic": "prob",
+    "oneLine": "When outcomes are equally likely a probability is a ratio of counts, so the work is combinatorial: multiplication, permutations, and binomial coefficients for choices where order does not matter.",
+    "needs": [
+      "sample-space"
+    ],
+    "readings": [
+      {
+        "title": "Introduction to Probability (Blitzstein & Hwang)",
+        "kind": "book",
+        "where": "Ch. 1.4",
+        "url": "https://projects.iq.harvard.edu/stat110/home"
+      },
+      {
+        "title": "Harvard Stat 110 lectures",
+        "kind": "course",
+        "where": "Lectures 1–2",
+        "url": "https://projects.iq.harvard.edu/stat110/youtube"
+      }
+    ]
+  },
+  "conditional-probability": {
+    "name": "Conditional probability",
+    "topic": "prob",
+    "oneLine": "P(A|B) is the probability of A in a world restricted to B, which is why conditioning changes the sample space and not merely the arithmetic.",
+    "needs": [
+      "sample-space"
+    ],
+    "readings": [
+      {
+        "title": "Introduction to Probability (Blitzstein & Hwang)",
+        "kind": "book",
+        "where": "Ch. 2.2",
+        "url": "https://projects.iq.harvard.edu/stat110/home"
+      },
+      {
+        "title": "Probability: An Introduction (Grimmett & Welsh)",
+        "kind": "book",
+        "where": "Ch. 1.6",
+        "url": "https://global.oup.com/academic/product/probability-9780198709978"
+      },
+      {
+        "title": "Harvard Stat 110 lectures",
+        "kind": "course",
+        "where": "Lecture 4",
+        "url": "https://projects.iq.harvard.edu/stat110/youtube"
+      }
+    ]
+  },
+  "bayes": {
+    "name": "Bayes' theorem",
+    "topic": "prob",
+    "oneLine": "Bayes turns P(B|A) into P(A|B) by weighting with the prior, and the whole content of it is that those two conditionals are different numbers.",
+    "needs": [
+      "conditional-probability"
+    ],
+    "readings": [
+      {
+        "title": "Introduction to Probability (Blitzstein & Hwang)",
+        "kind": "book",
+        "where": "Ch. 2.3–2.4",
+        "url": "https://projects.iq.harvard.edu/stat110/home"
+      },
+      {
+        "title": "Harvard Stat 110 lectures",
+        "kind": "course",
+        "where": "Lecture 4",
+        "url": "https://projects.iq.harvard.edu/stat110/youtube"
+      }
+    ]
+  },
+  "independence": {
+    "name": "Independence",
+    "topic": "prob",
+    "oneLine": "Independent means P(A and B) = P(A)P(B) — a statement about a product, which has nothing to do with the events being disjoint and is usually the opposite of it.",
+    "needs": [
+      "conditional-probability"
+    ],
+    "readings": [
+      {
+        "title": "Introduction to Probability (Blitzstein & Hwang)",
+        "kind": "book",
+        "where": "Ch. 2.5",
+        "url": "https://projects.iq.harvard.edu/stat110/home"
+      },
+      {
+        "title": "Probability: An Introduction (Grimmett & Welsh)",
+        "kind": "book",
+        "where": "Ch. 1.5",
+        "url": "https://global.oup.com/academic/product/probability-9780198709978"
+      }
+    ]
+  },
+  "random-variables": {
+    "name": "Discrete random variables",
+    "topic": "prob",
+    "oneLine": "A random variable is a function from the sample space to the numbers, and its distribution is what you get when you forget the sample space and keep only the probabilities of its values.",
+    "needs": [
+      "sample-space"
+    ],
+    "readings": [
+      {
+        "title": "Introduction to Probability (Blitzstein & Hwang)",
+        "kind": "book",
+        "where": "Ch. 3.1–3.2",
+        "url": "https://projects.iq.harvard.edu/stat110/home"
+      },
+      {
+        "title": "Probability: An Introduction (Grimmett & Welsh)",
+        "kind": "book",
+        "where": "Ch. 2.1",
+        "url": "https://global.oup.com/academic/product/probability-9780198709978"
+      }
+    ]
+  },
+  "distributions": {
+    "name": "Named discrete distributions",
+    "topic": "prob",
+    "oneLine": "Bernoulli, binomial, geometric and Poisson are not separate topics but four answers to four different questions about repeated trials, and picking the wrong one is picking the wrong question.",
+    "needs": [
+      "random-variables",
+      "counting"
+    ],
+    "readings": [
+      {
+        "title": "Introduction to Probability (Blitzstein & Hwang)",
+        "kind": "book",
+        "where": "Ch. 3.3–3.5, 4.7",
+        "url": "https://projects.iq.harvard.edu/stat110/home"
+      },
+      {
+        "title": "Harvard Stat 110 lectures",
+        "kind": "course",
+        "where": "Lectures 5–7",
+        "url": "https://projects.iq.harvard.edu/stat110/youtube"
+      }
+    ]
+  },
+  "expectation": {
+    "name": "Expectation",
+    "topic": "prob",
+    "oneLine": "The expectation is the probability-weighted average of the values, and it is linear whether or not anything is independent — which is the single most useful fact in the subject.",
+    "needs": [
+      "random-variables"
+    ],
+    "readings": [
+      {
+        "title": "Introduction to Probability (Blitzstein & Hwang)",
+        "kind": "book",
+        "where": "Ch. 4.1–4.2",
+        "url": "https://projects.iq.harvard.edu/stat110/home"
+      },
+      {
+        "title": "Probability: An Introduction (Grimmett & Welsh)",
+        "kind": "book",
+        "where": "Ch. 3.1",
+        "url": "https://global.oup.com/academic/product/probability-9780198709978"
+      }
+    ]
+  },
+  "indicator-variables": {
+    "name": "Indicator variables",
+    "topic": "prob",
+    "oneLine": "An indicator is 1 when an event happens and 0 when it does not, so its expectation is the probability of the event — which turns awkward counting problems into sums of easy ones.",
+    "needs": [
+      "expectation"
+    ],
+    "readings": [
+      {
+        "title": "Introduction to Probability (Blitzstein & Hwang)",
+        "kind": "book",
+        "where": "Ch. 4.4",
+        "url": "https://projects.iq.harvard.edu/stat110/home"
+      },
+      {
+        "title": "Harvard Stat 110 lectures",
+        "kind": "course",
+        "where": "Lecture 9",
+        "url": "https://projects.iq.harvard.edu/stat110/youtube"
+      }
+    ]
+  },
+  "variance": {
+    "name": "Variance",
+    "topic": "prob",
+    "oneLine": "Variance is the expected squared distance from the mean, computed as E[X^2] - (E[X])^2, and unlike expectation it only adds across independent variables.",
+    "needs": [
+      "expectation"
+    ],
+    "readings": [
+      {
+        "title": "Introduction to Probability (Blitzstein & Hwang)",
+        "kind": "book",
+        "where": "Ch. 4.6",
+        "url": "https://projects.iq.harvard.edu/stat110/home"
+      },
+      {
+        "title": "Probability: An Introduction (Grimmett & Welsh)",
+        "kind": "book",
+        "where": "Ch. 3.3",
+        "url": "https://global.oup.com/academic/product/probability-9780198709978"
+      }
+    ]
+  },
+  "joint-distributions": {
+    "name": "Joint distributions",
+    "topic": "prob",
+    "oneLine": "A joint distribution says how two random variables behave together; the marginals are what is left when one is summed away, and they do not determine the joint unless the variables are independent.",
+    "needs": [
+      "random-variables",
+      "independence"
+    ],
+    "readings": [
+      {
+        "title": "Introduction to Probability (Blitzstein & Hwang)",
+        "kind": "book",
+        "where": "Ch. 7.1",
+        "url": "https://projects.iq.harvard.edu/stat110/home"
+      },
+      {
+        "title": "Probability: An Introduction (Grimmett & Welsh)",
+        "kind": "book",
+        "where": "Ch. 2.4",
+        "url": "https://global.oup.com/academic/product/probability-9780198709978"
+      }
+    ]
+  },
+  "continuous-distributions": {
+    "name": "Continuous distributions",
+    "topic": "prob",
+    "oneLine": "A continuous random variable has a density rather than a probability at each point, so P(X = x) is zero and probabilities come from integrating over an interval.",
+    "needs": [
+      "random-variables",
+      "expectation"
+    ],
+    "readings": [
+      {
+        "title": "Introduction to Probability (Blitzstein & Hwang)",
+        "kind": "book",
+        "where": "Ch. 5.1–5.3",
+        "url": "https://projects.iq.harvard.edu/stat110/home"
+      },
+      {
+        "title": "Probability: An Introduction (Grimmett & Welsh)",
+        "kind": "book",
+        "where": "Ch. 4.1–4.2",
+        "url": "https://global.oup.com/academic/product/probability-9780198709978"
+      }
+    ]
   }
 }

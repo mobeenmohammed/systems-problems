@@ -1,0 +1,40 @@
+{
+  "key": {
+    "answers": [
+      0,
+      1,
+      3,
+      4
+    ]
+  },
+  "feedback": {
+    "misconceptions": [
+      {
+        "picked": [
+          2
+        ],
+        "say": "On disjointness implying independence: test it with numbers. Let $A$ and $B$ be disjoint with $\\P(A) = \\P(B) = \\tfrac12$. Then $\\P(A \\cap B) = 0$ but $\\P(A)\\P(B) = \\tfrac14$. The two conditions are not just different, they are nearly opposite."
+      }
+    ],
+    "nudge": "Independence is an equation, $\\P(A \\cap B) = \\P(A)\\P(B)$; disjointness is a statement about sets. Check each option by substituting into the equation, and when you suspect one is false, look for two events with nice round probabilities that break it."
+  },
+  "distractors": {
+    "0": "True. Divide $\\P(A \\cap B) = \\P(A)\\P(B)$ by $\\P(B)$. This is the form that explains the name: $B$ tells you nothing about $A$.",
+    "1": "True, and it is the heart of the matter. Disjoint means $\\P(A \\cap B) = 0$, while independence would need $\\P(A)\\P(B) > 0$. So disjoint events with positive probability are always *dependent* — strongly so.",
+    "2": "False, and it is the commonest confusion in the subject. Disjointness says $B$ happening rules $A$ out, which is maximal information, not none.",
+    "3": "True. $\\P(A \\cap B^c) = \\P(A) - \\P(A \\cap B) = \\P(A) - \\P(A)\\P(B) = \\P(A)(1 - \\P(B)) = \\P(A)\\P(B^c)$.",
+    "4": "True, and slightly degenerate: $\\P(A \\cap B) \\le \\P(A) = 0$ and $\\P(A)\\P(B) = 0$, so the equation holds for every $B$. The same is true for $\\P(A) = 1$."
+  },
+  "explanation": "## The confusion, and why it is so persistent\n\nThe words pull in opposite directions from the mathematics. *Mutually exclusive* sounds like the events have nothing to do with each other — which is what *independent* means informally. In fact:\n\n> Disjoint events with positive probability are about as **dependent** as two events can be.\n\nIf $A$ and $B$ are disjoint and $B$ happens, then $A$ definitely did not: $\\P(A \\mid B) = 0$. That is not \"no information\", it is complete information.\n\n## The two definitions, side by side\n\n| | definition | what it says |\n| --- | --- | --- |\n| independent | $\\P(A \\cap B) = \\P(A)\\P(B)$ | knowing one tells you nothing about the other |\n| mutually exclusive | $A \\cap B = \\emptyset$ | they cannot both happen |\n\nThe only way to be both is for one of them to have probability zero.\n\n## Independence survives complements\n\nIf $A \\perp B$ then $A \\perp B^c$, $A^c \\perp B$ and $A^c \\perp B^c$. The computation is in the distractor note above, and it is worth doing once: independence is a statement about the *information*, and complementing an event does not change what it tells you.\n\n## What independence is not\n\n**Not pairwise-implies-mutual.** Three events can be independent in every pair and not jointly: toss two fair coins, let $A$ = first is heads, $B$ = second is heads, $C$ = the two agree. Every pair is independent, yet $\\P(A \\cap B \\cap C) = \\tfrac14 \\ne \\tfrac18$.\n\n**Not a property you can see.** Independence depends on the probability measure, not on the sets. The same two sets can be independent under one distribution and dependent under another.",
+  "readMore": [
+    {
+      "concept": "independence",
+      "where": "Blitzstein & Hwang Ch. 2.5"
+    },
+    {
+      "concept": "conditional-probability",
+      "where": "Grimmett & Welsh Ch. 1.5"
+    }
+  ],
+  "id": "prob-independent-not-disjoint"
+}

@@ -1,0 +1,32 @@
+{
+  "id": "metric-three-metrics-compared",
+  "title": "Three metrics, one pair of points",
+  "topic": "metric",
+  "difficulty": "beginner",
+  "type": "exact",
+  "tags": [
+    "metric-examples",
+    "euclidean",
+    "maximum-metric"
+  ],
+  "estimate": 8,
+  "prereqs": [
+    {
+      "concept": "metric-examples",
+      "why": "The three metrics being compared are the Euclidean, taxicab and maximum metrics."
+    }
+  ],
+  "statement": "On $\\R^2$, write $x = (0, 0)$ and $y = (3, 4)$, and take the three standard metrics\n\n$$d_2(x,y) = \\sqrt{(x_1-y_1)^2 + (x_2-y_2)^2}$$\n\n$$d_1(x,y) = |x_1-y_1| + |x_2-y_2|$$\n\n$$d_\\infty(x,y) = \\max\\bigl(|x_1-y_1|,\\, |x_2-y_2|\\bigr)$$\n\nGive the value of\n\n$$d_1(x,y) - d_2(x,y) + d_\\infty(x,y).$$",
+  "hints": [
+    "Compute the three separately before combining them. The coordinate differences are $3$ and $4$ in every case; only what you do with them changes.",
+    "$d_2$ is the hypotenuse of a 3–4–5 triangle, so it comes out whole. $d_1$ adds, and $d_\\infty$ takes the larger.",
+    "$d_1 = 7$, $d_2 = 5$, $d_\\infty = 4$."
+  ],
+  "payload": {
+    "prompt": "The value of $d_1 - d_2 + d_\\infty$.",
+    "label": "Your answer",
+    "placeholder": "e.g. 12",
+    "syntax": "A number. You can write arithmetic and roots: 7 - sqrt(25) + 4.",
+    "figure": "unit-balls"
+  }
+}

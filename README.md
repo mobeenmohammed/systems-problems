@@ -21,13 +21,13 @@ serves it directly.
 ## What is in it
 
 <!-- generated:counts -->
-**85 problems** across 11 topics, 37 of them compiled and run in C++, Rust, Python, JavaScript. **91 concepts** carry **263 readings** between them, every one naming a book and a chapter or a specific page, with 33 more for learning a topic from scratch. **9 tracks** order subsets of the problems so there is always an obvious next one, and the weekly schedule runs to 2027-04-05.
+**109 problems** across 13 topics, 37 of them compiled and run in C++, Rust, Python, JavaScript. **115 concepts** carry **316 readings** between them, every one naming a book and a chapter or a specific page, with 33 more for learning a topic from scratch. **11 tracks** order subsets of the problems so there is always an obvious next one, and the weekly schedule runs to 2027-04-05.
 
 ```
-Topics        cpp · rust · arch · os · linux · compilers · hpc · dist · fpga · algo · sysdesign
+Topics        cpp · rust · arch · os · linux · compilers · hpc · dist · fpga · algo · sysdesign · metric · prob
 Difficulty    Beginner · Intermediate · Advanced
-Types         mcq · multi · numeric · short · order · match · predict · locate · code
-Total time    about 25 hours at the stated estimates
+Types         mcq · multi · numeric · short · order · match · predict · locate · code · approx · counterexample · exact · proof · proofsteps · structured
+Total time    about 29 hours at the stated estimates
 ```
 <!-- /generated:counts -->
 
@@ -50,7 +50,91 @@ across ten topics" by hand, and both numbers were wrong within a day.
 | **FPGAs & Hardware** | 7 — 2 / 4 / 1 by difficulty | 3 | ~2 h |
 | **Algorithms** | 11 — 5 / 5 / 1 by difficulty | 8 | ~4 h |
 | **System Design** | 5 — 2 / 2 / 1 by difficulty | 1 | ~1 h |
+| **Metric Spaces** | 12 — 5 / 5 / 2 by difficulty | 0 | ~2 h |
+| **Probability** | 12 — 4 / 8 / 0 by difficulty | 0 | ~2 h |
 <!-- /generated:topics -->
+
+## Two subjects
+
+The top bar switches between **Systems** and **Mathematics**. It is a lens
+rather than a separate account: progress, bookmarks, the weekly problem and
+search are all shared, and searching deliberately crosses subjects — looking
+for "bayes" from the Systems side finds it, and the catalogue says that is
+what happened.
+
+A problem's subject is **derived from its topic** rather than being a second
+field on every file, because two fields that have to agree eventually
+disagree.
+
+### Mathematics
+
+Twenty-four problems to start, in prerequisite order, across two topics.
+
+**Metric spaces** — the axioms and what breaks them, the Euclidean, discrete
+and maximum metrics, open balls and the ambient space, open and closed sets
+(including the ones that are both and the ones that are neither), convergence
+and the uniqueness of limits, Cauchy sequences and completeness, continuity,
+and a first look at compactness.
+
+**Probability** — sample spaces and counting, conditional probability and
+Bayes, independence against mutual exclusivity, discrete distributions,
+indicator variables, variance, joint distributions, and a first continuous
+one.
+
+Both are tracks, so there is an obvious next problem rather than twenty-four
+to choose from.
+
+Everything is typeset with **KaTeX** (`vendor/katex`, MIT, 605 KB with the
+non-woff2 faces dropped) — statements, hints, options, feedback and solutions.
+Every expression also emits a hidden MathML copy, which is what a screen
+reader actually reads.
+
+### Six answer formats for mathematics, and what each will and will not claim
+
+| type | checked how |
+| --- | --- |
+| `exact` | an exact value. `3/8`, `0.375`, `6/16` and `C(4,2)/16` are one answer |
+| `approx` | to a tolerance **stated in the question** — a separate type, so it cannot be forgotten |
+| `structured` | a set or a union of intervals, compared as the thing it is |
+| `proofsteps` | a proof with its justifications removed; put each one back |
+| `counterexample` | built field by field, with the parts that can be checked, checked |
+| `proof` | written out. **Saved, never marked.** |
+
+#### How equality is decided
+
+`js/maths/expr.js` is a tokeniser, a parser and an evaluator over an exact
+value domain: numbers of the form $p + q\sqrt{d}$ with $p, q$ rational and
+$d$ square-free. That field is closed under $+ - 	imes \div$, so comparing
+two answers is a **decision procedure** and not a guess.
+
+Three things it deliberately does not do:
+
+- **No `eval`.** The grammar is written out, production by production. An
+  answer box wired to `eval()` is a remote code execution hole in a learning
+  site, and `tests/maths-expr.test.mjs` fires eleven injection attempts at it.
+- **No sampling.** Agreeing at a few points is not equality. A grader that
+  thinks it is will one day accept $x^2-1$ for $(x-1)^2$.
+- **No pretending.** $\pi$, $e$, logs, trigonometry and $\sqrt2 + \sqrt3$ are
+  outside the domain, and the box says so in those words rather than guessing.
+  A problem needing any of them is authored as `approx` with a stated
+  tolerance, which is an honest claim about what is being checked.
+
+#### A syntax error is not a wrong answer
+
+`{1,2` is a missing brace. `99/` is an unfinished expression. Neither is a
+mathematical mistake, so neither produces a verdict, records an attempt or
+costs a first-try bonus — the message appears beside the box and the text
+stays. Every answer field also shows a **live reading** of what was typed
+("read as 3/8 (0.375)"), because most wrong answers in a maths tool are the
+tool reading something other than what the person meant.
+
+#### Written proofs are never marked
+
+There is no automatic certification of a written proof here, no AI marker,
+and no keyword search pretending to be a reading. What there is: a box that
+autosaves, a rubric for *this* statement, a model proof behind an explicit
+reveal, and a status of its own — **Self-reviewed**, which is recorded
+separately from Solved and is never upgraded into it.
 
 ### The nine problem types
 
@@ -428,6 +512,8 @@ it up:
 | **How memory really behaves** | 8 | Alignment, cache lines, locality, virtual memory and the page-fault path — the thread that runs from sizeof all the way to a 4.5x slowdown from a loop order. |
 | **What the standard does not promise** | 7 | Signed overflow, integer promotions, out-of-bounds reads, and the optimiser deleting a check you wrote. |
 | **Problems you write code for** | 7 | Every code problem on the site, easiest first. |
+| **Metric spaces, from the axioms up** | 12 | Distance as four conditions rather than a formula, and then everything that follows from them: balls, open and closed sets, convergence, completeness, continuity and a first look at compactness. |
+| **Probability, in the order it makes sense** | 12 | Sample spaces and counting first, because most errors are made before any arithmetic; then conditioning, independence, random variables, expectation and variance, and a first continuous distribution. |
 <!-- /generated:tracks -->
 
 ### The workspace
@@ -655,6 +741,9 @@ Chromium against a real site:
 | `tests/browser/navigation.test.mjs` | Leaving a problem for every other page, thirty times over, plus focus mode, Back/Forward and a drag abandoned mid-navigation. Measures the **destination** page: is anything clipped out of reach, is the navigation there, can you still click and scroll |
 | `tests/browser/resize.test.mjs` | Both dividers, dragged with a real pointer, asserting measured panel widths and heights before and after. Minimum widths, keyboard resizing, every way a drag can end, a split saved on a big screen opened on a small one, and Reset layout |
 | `tests/browser/feedback.test.mjs` | A wrong answer on each of MCQ, select-all and find-the-bug: that the explanation is substantial, that it discloses nothing, and that the verdict is relabelled and the marks cleared the moment the answer changes |
+| `tests/maths-expr.test.mjs` | The expression engine on its own: equal values comparing equal however they are written, unequal ones never comparing equal, syntax errors and unsupported expressions reported as *different kinds* of failure from a wrong answer, and eleven injection attempts refused |
+| `tests/maths-render.test.mjs` | KaTeX renders, emits MathML, and markdown does not get at the TeX first — `$a_1 + a_2$` must not become `a<em>1 + a</em>2` |
+| `tests/browser/maths.test.mjs` (`npm run test:maths`) | The subject switch, typesetting on the page, every one of the six answer formats, a syntax error costing no attempt, a wrong answer explaining the misconception, progressive hints, the figures, and a written proof reaching **Self-reviewed** without ever being marked right |
 | `tests/browser/cxx.test.mjs` (`npm run test:cxx`) | C++ in the browser with the runner address pointed at a dead port: the download and its progress bar, a cold first run, submit-wrong-then-correct, a Clang compile error, an infinite loop cut short and a valid program straight afterwards, Stop, the cached second visit, a native-only problem refusing to pretend, and a check that nothing was sent anywhere |
 | `tests/browser/usability.test.mjs` | Buttons after a failure, a run in flight when the problem or language changes, the toolbar at five widths, horizontal overflow on ten routes at three widths, keyboard reach to hints/notes/solution, and the blast radius of a reset |
 

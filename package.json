@@ -13,12 +13,14 @@
     "audit:cxx": "node scripts/audit-cxx.mjs",
     "check:cxx": "node scripts/audit-cxx.mjs --check",
     "vendor:cxx": "node scripts/vendor-cxx.mjs",
+    "vendor:katex": "node scripts/vendor-katex.mjs",
     "test:cxx": "node tests/browser/cxx.test.mjs",
+    "test:maths": "node tests/browser/maths.test.mjs",
     "test": "npm run test:unit && npm run test:browser",
-    "test:unit": "node tests/store.test.mjs && node tests/md.test.mjs && node tests/contrast.test.mjs && node tests/grade.test.mjs && node tests/runner.test.mjs && node tests/lint.test.mjs && node tests/judge.test.mjs && node tests/proxy.test.mjs && node tests/content.test.mjs",
+    "test:unit": "node tests/maths-expr.test.mjs && node tests/maths-render.test.mjs && node tests/store.test.mjs && node tests/md.test.mjs && node tests/contrast.test.mjs && node tests/grade.test.mjs && node tests/runner.test.mjs && node tests/lint.test.mjs && node tests/judge.test.mjs && node tests/proxy.test.mjs && node tests/content.test.mjs",
     "test:browser": "node tests/browser/app.test.mjs && node tests/browser/styles.test.mjs && node tests/browser/states.test.mjs && node tests/browser/runner.test.mjs",
     "test:journeys": "node tests/browser/journeys.test.mjs",
-    "test:ui": "node tests/browser/navigation.test.mjs && node tests/browser/resize.test.mjs && node tests/browser/feedback.test.mjs && node tests/browser/usability.test.mjs",
+    "test:ui": "node tests/browser/navigation.test.mjs && node tests/browser/resize.test.mjs && node tests/browser/feedback.test.mjs && node tests/browser/usability.test.mjs && node tests/browser/maths.test.mjs",
     "test:runner": "node tests/browser/runner.test.mjs",
     "serve": "python -m http.server 8000",
     "proxy": "node proxy/server.mjs",
@@ -49,6 +51,7 @@
     "codemirror": "^6.0.2",
     "esbuild": "^0.28.2",
     "jsdom": "^29.1.1",
+    "katex": "^0.19.0",
     "playwright": "^1.63.0"
   }
 }

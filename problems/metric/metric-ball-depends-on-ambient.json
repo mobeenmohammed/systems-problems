@@ -1,0 +1,35 @@
+{
+  "id": "metric-ball-depends-on-ambient",
+  "title": "The same ball in two different spaces",
+  "topic": "metric",
+  "difficulty": "intermediate",
+  "type": "structured",
+  "tags": [
+    "open-balls",
+    "ambient-space",
+    "subspace"
+  ],
+  "estimate": 10,
+  "prereqs": [
+    {
+      "concept": "open-balls",
+      "why": "You need the definition of the ball to apply it twice."
+    },
+    {
+      "concept": "ambient-space",
+      "why": "The entire content of this problem is that the answer depends on the surrounding space."
+    }
+  ],
+  "statement": "Take the usual metric $d(x,y) = |x-y|$, and consider the space\n\n$$X = [0, 2],$$\n\nthe closed interval, with that metric. Inside $X$, work out\n\n$$B(0, 1) = \\{\\, y \\in X : |0 - y| < 1 \\,\\}.$$\n\nGive your answer as an interval. In $\\R$ the same ball would be $(-1, 1)$ — but $X$ is not $\\R$.",
+  "hints": [
+    "Write down the two conditions a point has to satisfy: it must be in $X$, **and** it must be within $1$ of $0$.",
+    "The second condition gives $-1 < y < 1$. The first gives $0 \\le y \\le 2$. You want the points satisfying both.",
+    "Intersect $(-1,1)$ with $[0,2]$. Be careful about $0$ itself: is it in $X$, and is it within $1$ of $0$?"
+  ],
+  "payload": {
+    "kind": "intervals",
+    "prompt": "The ball $B(0,1)$ taken inside $X = [0,2]$.",
+    "label": "B(0, 1) =",
+    "placeholder": "e.g. (0,1] or [0,1)"
+  }
+}

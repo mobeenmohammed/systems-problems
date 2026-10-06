@@ -1,0 +1,63 @@
+{
+  "id": "metric-cauchy-without-a-limit",
+  "title": "Cauchy, with nowhere to go",
+  "topic": "metric",
+  "difficulty": "intermediate",
+  "type": "counterexample",
+  "tags": [
+    "cauchy-sequences",
+    "completeness",
+    "counterexamples"
+  ],
+  "estimate": 14,
+  "prereqs": [
+    {
+      "concept": "cauchy-sequences",
+      "why": "The example has to be Cauchy, which is a condition on the terms and not on a limit."
+    },
+    {
+      "concept": "completeness",
+      "why": "The point of the example is that completeness is a property of the space."
+    },
+    {
+      "concept": "ambient-space",
+      "why": "The same sequence of numbers is convergent in one space and not in another."
+    }
+  ],
+  "statement": "**Claim.** *In any metric space, every Cauchy sequence converges.*\n\nThis is false, and the usual counterexample lives in the space\n\n$$X = (0, 1] \\quad\\text{with}\\quad d(x,y) = |x-y|.$$\n\nBuild the standard counterexample by giving three terms of a sequence $x_n = 1/n$ and the number it is trying to converge to.\n\nThe sequence $1/n$ is Cauchy — its terms get arbitrarily close to each other — but the point it approaches has been removed from the space.",
+  "hints": [
+    "Cauchy is a condition on pairs of *terms*: for every $\\eps$ there is $N$ with $d(x_m,x_n) < \\eps$ whenever $m,n \\ge N$. Notice it never mentions a limit.",
+    "The sequence $1/n$ is $1, \\tfrac12, \\tfrac13, \\tfrac14, \\dots$. Every one of those is in $(0,1]$. Where is it heading?",
+    "It is heading for $0$ — and $0$ is not in $X$. That is the whole counterexample: nothing in the space is close to all the late terms."
+  ],
+  "payload": {
+    "claim": "In any metric space, every Cauchy sequence converges.",
+    "guidance": "Fill in three terms of $x_n = 1/n$ and the value it approaches in $\\R$. The checker will confirm the terms really are $1/n$, that they are distinct, and that the limit lies outside $X = (0,1]$.",
+    "fields": [
+      {
+        "id": "x1",
+        "label": "The first term, $x_1$",
+        "placeholder": "1",
+        "syntax": "A number or a fraction."
+      },
+      {
+        "id": "x10",
+        "label": "The tenth term, $x_{10}$",
+        "placeholder": "a fraction",
+        "syntax": "A number or a fraction. 1/10 and 0.1 are the same answer."
+      },
+      {
+        "id": "x100",
+        "label": "The hundredth term, $x_{100}$",
+        "placeholder": "a fraction",
+        "syntax": "A number or a fraction."
+      },
+      {
+        "id": "limit",
+        "label": "The value the sequence approaches in $\\R$",
+        "placeholder": "a number",
+        "syntax": "A number."
+      }
+    ]
+  }
+}

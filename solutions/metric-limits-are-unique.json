@@ -1,0 +1,27 @@
+{
+  "key": {
+    "answers": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
+  },
+  "feedback": {
+    "nudge": "Read down from the top. Steps 2 and 3 are the same move applied to the two different limits. Step 5 is the only one relating three points. The last two are the two halves of the second metric axiom."
+  },
+  "explanation": "## The proof, with its reasons\n\nThe shape is worth remembering because it recurs everywhere: **assume two of them, get the distance between them below every $\\eps$, conclude it is zero.**\n\n1. Let $\\eps > 0$.\n2. $\\exists N_1 : d(x_n, a) < \\eps/2$ for $n \\ge N_1$ — *definition of $x_n \\to a$, with $\\eps/2$*.\n3. $\\exists N_2 : d(x_n, b) < \\eps/2$ for $n \\ge N_2$ — *definition of $x_n \\to b$, with $\\eps/2$*.\n4. Take $N = \\max(N_1,N_2)$ and $n \\ge N$.\n5. $d(a,b) \\le d(a,x_n) + d(x_n,b)$ — *triangle inequality*.\n6. $< \\eps/2 + \\eps/2 = \\eps$ — *symmetry, then the two bounds*.\n7. $d(a,b) = 0$ — *a non-negative number below every positive number is zero*.\n8. $a = b$ — *the identity of indiscernibles*.\n\n## Why $\\eps/2$\n\nNot a trick, and not magic: you work backwards. The target is $d(a,b) < \\eps$, the triangle inequality gives you two terms, so each one needs to be under $\\eps/2$. The definition of convergence lets you choose the tolerance, so you choose that one. The same move with three terms uses $\\eps/3$.\n\n## What the unused option was doing there\n\n\"Every convergent sequence is bounded\" is **true**, and it is irrelevant here. Being true is not the same as being a reason for the line above it, and a proof that cites a true but unrelated fact is not a proof.\n\n## Where this fails\n\nBoth of the last two steps lean on metric axioms. In a *pseudometric* space, where $d(a,b) = 0$ is allowed for $a \\ne b$, step 7 still holds and step 8 does not — and limits genuinely are not unique. That is the precise sense in which the identity of indiscernibles is the axiom that makes limits well defined.",
+  "readMore": [
+    {
+      "concept": "limit-uniqueness",
+      "where": "Rudin Ch. 3.2(b)"
+    },
+    {
+      "concept": "metric-axioms",
+      "where": "Sutherland Ch. 2.1"
+    }
+  ],
+  "id": "metric-limits-are-unique"
+}

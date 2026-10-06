@@ -1,0 +1,38 @@
+{
+  "id": "prob-independent-not-disjoint",
+  "title": "Independent, or just disjoint?",
+  "topic": "prob",
+  "difficulty": "intermediate",
+  "type": "multi",
+  "tags": [
+    "independence",
+    "misconceptions"
+  ],
+  "estimate": 11,
+  "prereqs": [
+    {
+      "concept": "independence",
+      "why": "Independence is a statement about a product, and that is what each option has to be tested against."
+    },
+    {
+      "concept": "conditional-probability",
+      "why": "The equivalent form $\\P(A \\mid B) = \\P(A)$ is often the quicker test."
+    }
+  ],
+  "statement": "$A$ and $B$ are **independent** when $\\P(A \\cap B) = \\P(A)\\,\\P(B)$.\n\nThey are **mutually exclusive** (disjoint) when $A \\cap B = \\emptyset$.\n\nSelect every statement below that is **true in general**.",
+  "hints": [
+    "Independence is an equation about a product; disjointness is a statement that an intersection is empty. Try writing each option as an equation and see whether it follows.",
+    "If $A$ and $B$ are disjoint and both have positive probability, what is $\\P(A \\mid B)$? Compare it with $\\P(A)$.",
+    "Knowing a disjoint event occurred tells you a great deal — it tells you the other one did *not*. That is the opposite of telling you nothing."
+  ],
+  "payload": {
+    "prompt": "Select every statement that is true in general.",
+    "options": [
+      "If $A$ and $B$ are independent then $\\P(A \\mid B) = \\P(A)$, provided $\\P(B) > 0$.",
+      "If $A$ and $B$ are mutually exclusive and both have positive probability, they are **not** independent.",
+      "If $A$ and $B$ are mutually exclusive then they are independent.",
+      "If $A$ and $B$ are independent then so are $A$ and $B^{c}$.",
+      "If $\\P(A) = 0$ then $A$ is independent of every event."
+    ]
+  }
+}

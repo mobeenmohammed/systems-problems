@@ -1,0 +1,41 @@
+{
+  "key": {
+    "value": "4/5",
+    "alsoAccept": [
+      "(1/2)/(5/8)"
+    ]
+  },
+  "feedback": {
+    "whenValue": [
+      {
+        "is": "1/2",
+        "say": "That is the *joint* probability $\\P(X=1, Y=1)$, straight out of the table. A conditional divides it by the probability of what you conditioned on."
+      },
+      {
+        "is": "5/8",
+        "say": "That is a marginal — $\\P(X=1)$ or $\\P(Y=1)$, which happen to be equal here. The answer is the joint divided by one of them."
+      },
+      {
+        "is": "4/5*0+1/2/(5/8)*0+8/5",
+        "say": "That looks like the division done the wrong way up. A probability cannot exceed $1$."
+      },
+      {
+        "is": "5/4",
+        "say": "The division is upside down: the marginal goes on the bottom. A probability can never be greater than $1$, which is a useful check on every answer."
+      }
+    ],
+    "nudge": "Write the definition out first: $\\P(A \\mid B) = \\P(A \\cap B)/\\P(B)$. Then read $\\P(A \\cap B)$ out of one cell and get $\\P(B)$ by summing the row or column you conditioned on."
+  },
+  "explanation": "## The calculation\n\n$$\\P(Y=1) = \\P(X=0,Y=1) + \\P(X=1,Y=1) = \\tfrac18 + \\tfrac12 = \\tfrac58,$$\n\n$$\\P(X=1 \\mid Y=1) = \\frac{\\P(X=1, Y=1)}{\\P(Y=1)} = \\frac{1/2}{5/8} = \\mathbf{\\tfrac45}.$$\n\n## The three things in a table\n\n**Joint** — one cell. $\\P(X=1,Y=1) = \\tfrac12$.\n\n**Marginal** — a row or column sum, so called because they used to be written in the margin. $\\P(X=1) = \\tfrac18 + \\tfrac12 = \\tfrac58$, and $\\P(Y=1) = \\tfrac58$.\n\n**Conditional** — a cell divided by its margin. Conditioning on $Y=1$ means keeping only that column and rescaling it to sum to $1$: $\\tfrac18 : \\tfrac12$ becomes $\\tfrac15 : \\tfrac45$.\n\n## Are they independent?\n\nNo, and that is worth checking. Independence would need every cell to be the product of its margins:\n\n$$\\P(X=1)\\P(Y=1) = \\tfrac58 \\times \\tfrac58 = \\tfrac{25}{64} \\ne \\tfrac12 = \\P(X=1,Y=1).$$\n\nYou can also see it in the conditional: $\\P(X=1 \\mid Y=1) = \\tfrac45$ while $\\P(X=1) = \\tfrac58$. Knowing $Y$ moved the probability, so $Y$ carries information about $X$.\n\n## Marginals do not determine the joint\n\nA table with the same margins $\\tfrac58, \\tfrac38$ on both sides could have been\n\n| | $y=0$ | $y=1$ |\n| --- | --- | --- |\n| $x=0$ | $9/64$ | $15/64$ |\n| $x=1$ | $15/64$ | $25/64$ |\n\nwhich is the independent one. Same marginals, different joint, different answer to the question. The joint is strictly more information, and it is only recoverable from the marginals when the variables are independent — which is really what independence *is*.",
+  "readMore": [
+    {
+      "concept": "joint-distributions",
+      "where": "Blitzstein & Hwang Ch. 7.1"
+    },
+    {
+      "concept": "independence",
+      "where": "Grimmett & Welsh Ch. 2.4"
+    }
+  ],
+  "id": "prob-joint-marginal"
+}

@@ -1,0 +1,16 @@
+{
+  "key": {
+    "value": "{1,2,3}"
+  },
+  "feedback": {
+    "nudge": "Two things decide this: the inequality is **strict**, and the space is $\\Z$. Write out $|2-n| < 2$ as a range, then keep only the integers in it."
+  },
+  "explanation": "## Working it out\n\n$|2 - n| < 2$ is the same as $0 < n < 4$. The integers in that open range are $1, 2, 3$, so\n\n$$B(2,2) = \\{1, 2, 3\\}.$$\n\n## The two traps\n\n**The inequality is strict.** $n = 0$ and $n = 4$ are both at distance exactly $2$, and the open ball excludes them. The set $\\{\\, y : d(x,y) \\le r \\,\\}$ is the *closed* ball, and here it would be $\\{0,1,2,3,4\\}$.\n\n**The ambient space is $\\Z$.** In $\\R$ the same formula gives the interval $(0,4)$, which is an uncountable set. The ball is a property of the point, the radius *and the space*.\n\n## Why that second one matters later\n\nIn $\\Z$, $B(2, \\tfrac12) = \\{2\\}$: a single point is an open ball, so every subset of $\\Z$ is open. $\\Z$ with this metric behaves exactly like a discrete space, even though it inherited its metric from $\\R$, where nothing is like that.\n\nThis is the first appearance of a fact that causes a lot of confusion later: **open, closed, ball, convergent and compact are never properties of a set on its own.** They are properties of a set *inside a space*, and the same set gives different answers inside different spaces.",
+  "readMore": [
+    {
+      "concept": "ambient-space",
+      "where": "Sutherland Ch. 5.1 on subspaces"
+    }
+  ],
+  "id": "metric-ball-in-the-integers"
+}

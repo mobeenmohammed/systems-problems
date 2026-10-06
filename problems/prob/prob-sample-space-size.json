@@ -1,0 +1,30 @@
+{
+  "id": "prob-sample-space-size",
+  "title": "How many outcomes are there really?",
+  "topic": "prob",
+  "difficulty": "beginner",
+  "type": "exact",
+  "tags": [
+    "sample-space",
+    "counting"
+  ],
+  "estimate": 6,
+  "prereqs": [
+    {
+      "concept": "sample-space",
+      "why": "The whole question is what the set of outcomes is before any probability is computed."
+    }
+  ],
+  "statement": "Two fair six-sided dice are rolled, **one red and one blue**, and the pair of numbers is recorded.\n\nHow many outcomes are in the sample space $\\Omega$?\n\nBe careful: the dice are distinguishable, so $(\\text{red } 2, \\text{blue } 5)$ and $(\\text{red } 5, \\text{blue } 2)$ are different outcomes.",
+  "hints": [
+    "An outcome here is a *pair*: what the red die shows and what the blue die shows. Write one down and count how much freedom each part has.",
+    "The red die has six possibilities. For each of those, how many does the blue die have?",
+    "This is the multiplication principle: independent choices multiply. $6$ choices followed by $6$ choices."
+  ],
+  "payload": {
+    "prompt": "The number of outcomes in $\\Omega$.",
+    "label": "$|\\Omega| =$",
+    "placeholder": "a whole number",
+    "syntax": "A whole number. Arithmetic is fine: 6*6 is read as 36."
+  }
+}

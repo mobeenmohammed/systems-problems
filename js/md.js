@@ -167,6 +167,25 @@ const MD = (() => {
   /* For the places that want one line of markdown without a <p> around it. */
   const renderInline = src => inline(escapeHtml(String(src || '')));
 
-  return { render, renderInline, escapeHtml, safeHref };
+  /* Mathematics is lifted out before any of the above runs and put back
+     after, because `$a_1 + a_2$` has two underscores in it and the emphasis
+     rule would otherwise hand KaTeX `a<em>1 + a</em>2`. See
+     js/maths/render.js. When that module is not loaded — the unit tests
+     drive md.js on its own — these are the plain renderers. */
+  const withMaths = fn => src => (typeof MathsRender === 'undefined'
+    ? fn(src)
+    : MathsRender.wrap(src, fn));
+
+  return {
+    /* withMaths(renderInline), NOT withMaths(inline): renderInline is the
+       one that escapes first, and inline() on its own trusts its input. */
+    render: withMaths(render),
+    renderInline: withMaths(renderInline),
+    /* The renderers without the maths pass, for callers that have already
+       done it or deliberately want the raw behaviour. */
+    renderPlain: render,
+    renderInlinePlain: renderInline,
+    escapeHtml, safeHref,
+  };
 })();
 

@@ -1,0 +1,57 @@
+{
+  "key": {
+    "checks": [
+      {
+        "validator": "valuesMatch",
+        "values": [
+          {
+            "field": "x1",
+            "is": "1",
+            "label": "The first term of $1/n$"
+          },
+          {
+            "field": "x10",
+            "is": "1/10",
+            "label": "The tenth term of $1/n$"
+          },
+          {
+            "field": "x100",
+            "is": "1/100",
+            "label": "The hundredth term of $1/n$"
+          },
+          {
+            "field": "limit",
+            "is": "0",
+            "label": "The value $1/n$ approaches"
+          }
+        ]
+      },
+      {
+        "validator": "allDifferent",
+        "fields": [
+          "x1",
+          "x10",
+          "x100"
+        ]
+      }
+    ],
+    "example": {
+      "x1": "1",
+      "x10": "1/10",
+      "x100": "1/100",
+      "limit": "0"
+    }
+  },
+  "explanation": "## The counterexample\n\nIn $X = (0,1]$ take $x_n = 1/n$. Every term is in $X$.\n\n**It is Cauchy.** Given $\\eps > 0$ choose $N > 2/\\eps$. For $m, n \\ge N$,\n\n$$|x_m - x_n| \\le \\tfrac1m + \\tfrac1n < \\tfrac{\\eps}{2} + \\tfrac{\\eps}{2} = \\eps.$$\n\n**It does not converge in $X$.** Suppose $x_n \\to L$ for some $L \\in (0,1]$. Then $L > 0$, so take $\\eps = L/2$. For all large $n$ we would need $|1/n - L| < L/2$, hence $1/n > L/2$, hence $n < 2/L$ — which fails for every large $n$. So no $L$ in $X$ works.\n\n## What is actually going on\n\nNothing is wrong with the sequence. It is heading for $0$ perfectly well; $0$ has simply been deleted from the space. **Completeness is a property of the space, not of the sequence.**\n\nThe same sequence inside $\\R$ converges, because $\\R$ still contains the point it wants. Remove one point and the same sequence has nowhere to go.\n\n## The other standard example\n\n$\\Q$ with the usual metric. Take the decimal truncations of $\\sqrt2$: $1, 1.4, 1.41, 1.414, \\dots$. Each is rational, the sequence is Cauchy, and the limit is irrational — so it does not converge *in $\\Q$*. This one is the motivation for constructing $\\R$ at all: $\\R$ is, in a precise sense, $\\Q$ with exactly the missing limits added.\n\n## Why \"Cauchy\" is worth having as a separate word\n\nThe definition of Cauchy never mentions a limit, so you can check it without knowing what the answer is. That is the whole point: it is the condition that lets you say *this sequence is trying to converge* before you know whether there is anything for it to converge to.",
+  "readMore": [
+    {
+      "concept": "completeness",
+      "where": "Sutherland Ch. 7.2"
+    },
+    {
+      "concept": "cauchy-sequences",
+      "where": "Rudin Ch. 3.8–3.11"
+    }
+  ],
+  "id": "metric-cauchy-without-a-limit"
+}

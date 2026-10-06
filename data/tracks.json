@@ -142,5 +142,45 @@
       "algo-lru-cache",
       "sysdesign-token-bucket"
     ]
+  },
+  {
+    "id": "metric-spaces",
+    "title": "Metric spaces, from the axioms up",
+    "blurb": "Distance as four conditions rather than a formula, and then everything that follows from them: balls, open and closed sets, convergence, completeness, continuity and a first look at compactness.",
+    "goal": "Finish this and the definitions stop being things you look up and start being things you reason with — including the ones where the answer depends on which space you are standing in.",
+    "problems": [
+      "metric-axioms-which-fails",
+      "metric-which-are-metrics",
+      "metric-discrete-distances",
+      "metric-three-metrics-compared",
+      "metric-ball-in-the-integers",
+      "metric-ball-depends-on-ambient",
+      "metric-open-closed-both-neither",
+      "metric-convergence-discrete",
+      "metric-limits-are-unique",
+      "metric-cauchy-without-a-limit",
+      "metric-continuity-epsilon-delta",
+      "metric-compactness-closed-bounded"
+    ]
+  },
+  {
+    "id": "probability-foundations",
+    "title": "Probability, in the order it makes sense",
+    "blurb": "Sample spaces and counting first, because most errors are made before any arithmetic; then conditioning, independence, random variables, expectation and variance, and a first continuous distribution.",
+    "goal": "Finish this and the two mistakes that cause most of the damage — reversing a conditional, and treating disjoint as independent — are ones you can see coming.",
+    "problems": [
+      "prob-sample-space-size",
+      "prob-counting-committee",
+      "prob-two-aces",
+      "prob-conditional-two-children",
+      "prob-bayes-screening",
+      "prob-inverted-conditional",
+      "prob-independent-not-disjoint",
+      "prob-which-distribution",
+      "prob-indicators-fixed-points",
+      "prob-variance-of-a-die",
+      "prob-joint-marginal",
+      "prob-continuous-uniform"
+    ]
   }
 ]

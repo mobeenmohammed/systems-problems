@@ -1,0 +1,38 @@
+{
+  "id": "prob-inverted-conditional",
+  "title": "Which statement is which?",
+  "topic": "prob",
+  "difficulty": "intermediate",
+  "type": "mcq",
+  "tags": [
+    "conditional-probability",
+    "bayes",
+    "misconceptions"
+  ],
+  "estimate": 8,
+  "prereqs": [
+    {
+      "concept": "conditional-probability",
+      "why": "The whole question is reading which event is being conditioned on."
+    },
+    {
+      "concept": "bayes",
+      "why": "Bayes is what relates the two conditionals, and why they differ."
+    }
+  ],
+  "statement": "In a large population, $\\P(\\text{owns a car} \\mid \\text{has a driving licence}) = 0.8$.\n\nWhich **one** of the following must also be true?",
+  "hints": [
+    "Read each option as a sentence about who is in the restricted population. $\\P(A \\mid B)$ is about the $B$ people only.",
+    "Three of the options claim something about $\\P(\\text{licence} \\mid \\text{car})$ or about unconditional probabilities. Could those be computed from the one number you were given?",
+    "You were told one conditional. Its complement *within the same condition* is forced; anything that changes which side of the bar an event is on is not."
+  ],
+  "payload": {
+    "prompt": "Which must be true?",
+    "options": [
+      "$\\P(\\text{does not own a car} \\mid \\text{has a licence}) = 0.2$",
+      "$\\P(\\text{has a licence} \\mid \\text{owns a car}) = 0.8$",
+      "$80\\%$ of the population owns a car.",
+      "$\\P(\\text{owns a car and has a licence}) = 0.8$"
+    ]
+  }
+}

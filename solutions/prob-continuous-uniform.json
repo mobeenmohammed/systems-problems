@@ -1,0 +1,35 @@
+{
+  "key": {
+    "value": "0.25",
+    "tol": 0.005
+  },
+  "feedback": {
+    "whenValue": [
+      {
+        "is": "0.05",
+        "say": "That is the value of the *density* $f(t) = \\tfrac1{20}$, not a probability. A density is not a probability — it has units of probability per minute, and you have to multiply by a width to get one."
+      },
+      {
+        "is": "4",
+        "say": "That looks like $20/5$. The probability is the fraction of the interval you are waiting through, so the five goes on top."
+      },
+      {
+        "is": "0.5",
+        "say": "Check the width of the region. You are asking about the first $5$ minutes out of $20$, not out of $10$."
+      }
+    ],
+    "nudge": "The density is flat, so the probability is just the proportion of the interval covered. Draw the rectangle: its width is the time you are willing to wait and its height is the density."
+  },
+  "explanation": "## The calculation\n\n$$\\P(T \\le 5) = \\int_0^5 \\frac{1}{20}\\,\\d t = \\frac{5}{20} = 0.25.$$\n\nFor a uniform distribution the density is flat, so the integral is just a rectangle: width $5$, height $\\tfrac1{20}$.\n\n## What changes when a variable is continuous\n\n**$\\P(T = t) = 0$ for every single $t$.** There are uncountably many possible arrival times, and a single one has no width, so no area. This is not a technicality to be waved past: it is why a continuous variable needs a *density* rather than a list of probabilities.\n\n**A density is not a probability.** $f(t) = \\tfrac1{20}$ is probability *per minute*. Multiply by a width to get a probability. A density can exceed $1$ — a uniform on $[0, \\tfrac12]$ has density $2$ — and nothing is wrong when it does.\n\n**Endpoints stop mattering.** $\\P(T \\le 5) = \\P(T < 5)$, because the difference is $\\P(T=5) = 0$. For a discrete variable that distinction is the whole answer; here it is nothing.\n\n## Why this one is checked approximately\n\nIt is not: $0.25$ is exact here. The problem is marked as approximate because it *asks for a decimal rounded to two places*, and it would be dishonest to demand two decimal places and then insist on an exact value. The tolerance is stated in the question so you know what you are being held to — which is the rule for every approximate answer on this site.\n\n## The general uniform\n\nFor $T \\sim \\mathrm{Unif}(a,b)$:\n\n$$f(t) = \\frac{1}{b-a} \\text{ on } [a,b], \\qquad \\P(c \\le T \\le d) = \\frac{d-c}{b-a}, \\qquad \\E[T] = \\frac{a+b}{2}, \\qquad \\Var(T) = \\frac{(b-a)^2}{12}.$$\n\nHere the expected wait is $10$ minutes and the variance is $400/12 \\approx 33.3$.",
+  "readMore": [
+    {
+      "concept": "continuous-distributions",
+      "where": "Blitzstein & Hwang Ch. 5.1–5.3"
+    },
+    {
+      "concept": "random-variables",
+      "where": "Grimmett & Welsh Ch. 4.1"
+    }
+  ],
+  "id": "prob-continuous-uniform"
+}

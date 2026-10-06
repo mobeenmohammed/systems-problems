@@ -1,0 +1,31 @@
+{
+  "key": {
+    "answer": 1
+  },
+  "feedback": {
+    "options": {
+      "0": "In the usual metric $\\tfrac1n \\to 0$, and that is the answer this is reaching for. But here: $\\tfrac1n \\ne 0$ for every $n$, so $d(x_n, 0) = 1$ for every $n$, and $1 < \\eps$ fails as soon as $\\eps \\le 1$. Try $\\eps = \\tfrac12$ and see what the definition demands.",
+      "2": "The same issue as the first option, with a different candidate limit. The terms get closer to $2$ in the ordinary sense, but ask what $d(x_n, 2)$ actually *is* in this metric when $x_n \\ne 2$.",
+      "3": "This is the claim worth testing rather than believing. Convergence is defined through $d$, so changing $d$ changes which sequences converge — and the first option in this list is a counterexample to it."
+    },
+    "reconsider": "Put $\\eps = \\tfrac12$ into the definition and ask what $d(x_n, x) < \\tfrac12$ can possibly mean when $d$ only ever outputs $0$ and $1$."
+  },
+  "distractors": {
+    "0": "No. $d(\\tfrac1n, 0) = 1$ for every $n$, since $\\tfrac1n \\ne 0$ always. Taking $\\eps = \\tfrac12$ shows it fails.",
+    "1": "Correct. A constant sequence has $d(x_n, 3) = 0$ for every $n$, which is below every $\\eps$.",
+    "2": "No. $x_n \\ne 2$ for every $n$, so every distance is $1$.",
+    "3": "No — this is exactly the thing the discrete metric is a counterexample to. $\\tfrac1n$ converges in the usual metric and not in this one."
+  },
+  "explanation": "## What convergence means here\n\nTake $\\eps = \\tfrac12$. Since $d$ only ever returns $0$ or $1$, the requirement $d(x_n, x) < \\tfrac12$ is the requirement $d(x_n, x) = 0$, which is the requirement $x_n = x$.\n\nSo in the discrete metric, **$x_n \\to x$ exactly when the sequence is eventually constant and equal to $x$.** Nothing else converges, however fast it would converge in the usual metric.\n\n## Convergence is not a property of the sequence\n\n$\\tfrac1n$ converges to $0$ in $(\\R, |\\cdot|)$ and does not converge at all in $(\\R, d_{\\text{discrete}})$. Same set, same sequence, different metric, different answer. Whenever you write $x_n \\to x$ you are making a claim about a *space*.\n\n## Two more things the discrete metric settles\n\nIt is **complete**: a Cauchy sequence must eventually be constant (take $\\eps = \\tfrac12$ again), and a constant sequence converges.\n\nIt is **not compact** when $X$ is infinite: the balls $B(x, \\tfrac12) = \\{x\\}$ form an open cover with no finite subcover. Which is a quick way to see that \"closed and bounded implies compact\" is a fact about $\\R^n$ and not about metric spaces — in this metric every set is closed, and every set is bounded by $1$.",
+  "readMore": [
+    {
+      "concept": "convergence",
+      "where": "Sutherland Ch. 4.1"
+    },
+    {
+      "concept": "completeness",
+      "where": "Sutherland Ch. 7.2, where the discrete metric is the first example"
+    }
+  ],
+  "id": "metric-convergence-discrete"
+}

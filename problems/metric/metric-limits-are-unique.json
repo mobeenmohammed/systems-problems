@@ -1,0 +1,77 @@
+{
+  "id": "metric-limits-are-unique",
+  "title": "Why a limit cannot be two things",
+  "topic": "metric",
+  "difficulty": "intermediate",
+  "type": "proofsteps",
+  "tags": [
+    "convergence",
+    "limit-uniqueness",
+    "proof"
+  ],
+  "estimate": 14,
+  "prereqs": [
+    {
+      "concept": "convergence",
+      "why": "Every step uses the definition of convergence directly."
+    },
+    {
+      "concept": "limit-uniqueness",
+      "why": "This is the proof of it."
+    },
+    {
+      "concept": "metric-axioms",
+      "why": "The triangle inequality and the identity of indiscernibles are the two axioms that do the work."
+    }
+  ],
+  "statement": "Below is a complete proof that a sequence in a metric space has **at most one** limit. The lines are in the right order; what has been removed is the reason each one follows.\n\nChoose the justification for each gap. One justification in the list is not used.",
+  "hints": [
+    "Each step is either *the definition of convergence applied to one of the two limits*, *an axiom*, or *arithmetic*. Decide which of those three a line is before looking at the options.",
+    "Steps 3 and 4 are the same move made twice, once for $a$ and once for $b$. The number $\\eps/2$ is chosen so that the two halves add to $\\eps$.",
+    "The last step is where the metric axioms earn their place: a distance that is smaller than every positive number must be zero, and a distance of zero means the points are equal."
+  ],
+  "payload": {
+    "claim": "**Claim.** Let $(X,d)$ be a metric space and let $(x_n)$ be a sequence in $X$. If $x_n \\to a$ and $x_n \\to b$, then $a = b$.",
+    "steps": [
+      {
+        "text": "Suppose $x_n \\to a$ and $x_n \\to b$. Let $\\eps > 0$ be arbitrary."
+      },
+      {
+        "text": "There is $N_1$ such that $d(x_n, a) < \\eps/2$ for all $n \\ge N_1$.",
+        "blank": true
+      },
+      {
+        "text": "There is $N_2$ such that $d(x_n, b) < \\eps/2$ for all $n \\ge N_2$.",
+        "blank": true
+      },
+      {
+        "text": "Put $N = \\max(N_1, N_2)$ and fix any $n \\ge N$. Then both bounds hold at once."
+      },
+      {
+        "text": "$d(a,b) \\le d(a, x_n) + d(x_n, b)$.",
+        "blank": true
+      },
+      {
+        "text": "$d(a, x_n) = d(x_n, a)$, so $d(a,b) < \\eps/2 + \\eps/2 = \\eps$.",
+        "blank": true
+      },
+      {
+        "text": "Since $\\eps > 0$ was arbitrary, $d(a,b) < \\eps$ for every $\\eps > 0$, so $d(a,b) = 0$.",
+        "blank": true
+      },
+      {
+        "text": "Therefore $a = b$.",
+        "blank": true
+      }
+    ],
+    "choices": [
+      "by the definition of $x_n \\to a$, applied with $\\eps/2$ in place of $\\eps$",
+      "by the definition of $x_n \\to b$, applied with $\\eps/2$ in place of $\\eps$",
+      "by the triangle inequality",
+      "by symmetry of $d$, and then the two bounds from steps 2 and 3",
+      "because a non-negative number smaller than every positive number must be zero",
+      "by the axiom that $d(a,b) = 0$ only when $a = b$",
+      "because every convergent sequence is bounded"
+    ]
+  }
+}

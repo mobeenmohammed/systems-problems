@@ -1,0 +1,17 @@
+{
+  "key": {
+    "model": true
+  },
+  "explanation": "## A model proof\n\n**Claim.** $f(x_1,x_2) = x_1 + x_2$ is continuous at every $a \\in \\R^2$.\n\n**Proof.** Let $a = (a_1, a_2) \\in \\R^2$ be arbitrary and let $\\eps > 0$ be arbitrary. Put\n\n$$\\delta = \\frac{\\eps}{2} > 0.$$\n\nSuppose $x = (x_1, x_2)$ satisfies $d_2(x, a) < \\delta$. For each coordinate,\n\n$$|x_1 - a_1| = \\sqrt{(x_1-a_1)^2} \\le \\sqrt{(x_1-a_1)^2 + (x_2-a_2)^2} = d_2(x,a),$$\n\nand identically $|x_2 - a_2| \\le d_2(x,a)$. Hence, by the triangle inequality for $|\\cdot|$,\n\n$$|f(x) - f(a)| = |(x_1 - a_1) + (x_2 - a_2)| \\le |x_1-a_1| + |x_2-a_2| \\le 2\\,d_2(x,a) < 2\\delta = \\eps.$$\n\nSo for every $\\eps > 0$ there is $\\delta > 0$ with $d_2(x,a) < \\delta \\implies |f(x)-f(a)| < \\eps$; that is, $f$ is continuous at $a$. Since $a$ was arbitrary, $f$ is continuous on $\\R^2$. $\\blacksquare$\n\n## What to look for in your own\n\n**The order of the quantifiers is the proof.** $\\eps$ comes first and is arbitrary; $\\delta$ is chosen in response to it and may depend on $\\eps$ (and on $a$, though here it does not). A proof that picks $\\delta$ first, or that lets $\\delta$ depend on $x$, has not proved continuity — it has written the symbols in the wrong order and the statement is different.\n\n**The direction of the implication.** You assume the input is close and deduce the output is close. Starting from $|f(x)-f(a)| < \\eps$ and working towards $\\delta$ is useful *scratch work*, and it is not the proof; the written proof runs the other way.\n\n**$\\delta$ does not have to be the best possible.** Any $\\delta$ that works, works. $\\eps/2$ is fine, $\\eps/3$ is fine, and spending effort on the largest valid $\\delta$ is spending it on nothing.\n\n## A remark worth having\n\nBecause $\\delta$ here depends only on $\\eps$ and not on $a$, this proof shows something stronger than continuity: $f$ is **uniformly continuous**. Noticing when your $\\delta$ happened not to use $a$ is a free upgrade, and it is the difference between $x \\mapsto x$ and $x \\mapsto x^2$ on $\\R$.\n\n## The other two definitions\n\nContinuity in metric spaces has three equivalent forms, and knowing which to reach for saves a lot of work:\n\n- **$\\eps$–$\\delta$**, as above: best when you have an explicit formula.\n- **Preimages of open sets are open**: best for proving general theorems, and the definition that survives into topology where there is no metric.\n- **$x_n \\to a \\implies f(x_n) \\to f(a)$**: best for *dis*proving continuity, because one bad sequence is enough.",
+  "readMore": [
+    {
+      "concept": "continuity-metric",
+      "where": "Sutherland Ch. 5.2, and 5.3 for the open-sets version"
+    },
+    {
+      "concept": "metric-axioms",
+      "where": "Rudin Ch. 4.8"
+    }
+  ],
+  "id": "metric-continuity-epsilon-delta"
+}

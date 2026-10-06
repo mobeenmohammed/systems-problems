@@ -1,0 +1,27 @@
+{
+  "key": {
+    "answer": 2
+  },
+  "feedback": {
+    "options": {
+      "0": "A Bernoulli variable takes only the values $0$ and $1$ — it records whether a single trial succeeded. $X$ here can be $5$, or $50$. Ask what values $X$ can actually take.",
+      "1": "A binomial counts successes in a **fixed** number of trials. Here the number of trials is not fixed — it is the thing being counted, and it has no upper bound.",
+      "3": "A Poisson counts events in a fixed interval of time or space, and it can be $0$. Can $X$ be $0$ here? And is there an interval in this question?"
+    },
+    "reconsider": "Write down the set of values $X$ can take, and whether the number of trials is fixed in advance or is itself the random thing. Those two questions separate all four options."
+  },
+  "distractors": {
+    "0": "No. Bernoulli takes values in $\\{0,1\\}$ only.",
+    "1": "No. Binomial fixes $n$ in advance and counts successes; here $n$ is what we are counting.",
+    "2": "Correct. $\\P(X = k) = (1-p)^{k-1}p = (1/2)^k$ for $k = 1, 2, 3, \\dots$, with $\\E[X] = 1/p = 2$.",
+    "3": "No. Poisson is supported on $\\{0,1,2,\\dots\\}$ and models counts in an interval; $X \\ge 1$ always, and there is no interval here."
+  },
+  "explanation": "## The answer\n\n$X$ is **geometric** with $p = \\tfrac12$:\n\n$$\\P(X = k) = (1-p)^{k-1}p = \\left(\\tfrac12\\right)^{k}, \\qquad k = 1,2,3,\\dots$$\n\nand $\\E[X] = 1/p = 2$. On average two tosses, which matches intuition.\n\n## Four questions, four distributions\n\n| the question | distribution | support |\n| --- | --- | --- |\n| did this one trial succeed? | Bernoulli($p$) | $\\{0,1\\}$ |\n| how many successes in $n$ trials? | Binomial($n,p$) | $\\{0,\\dots,n\\}$ |\n| how many trials until the first success? | Geometric($p$) | $\\{1,2,\\dots\\}$ |\n| how many events in a fixed interval? | Poisson($\\lambda$) | $\\{0,1,2,\\dots\\}$ |\n\nNaming the distribution is identifying the question, and the fastest way to do it is to write down the **support** — the set of values the variable can take. Here $X \\ge 1$ with no upper bound, which eliminates three of the four immediately.\n\n## The convention to watch\n\n\"Geometric\" is used for two different variables: the number of **trials** including the success (support $1,2,3,\\dots$, mean $1/p$) and the number of **failures** before it (support $0,1,2,\\dots$, mean $(1-p)/p$). They differ by one. Textbooks disagree, so say which you mean — this problem says it in the option text for exactly that reason.\n\n## The property that makes it geometric\n\nIt is **memoryless**: $\\P(X > m + n \\mid X > m) = \\P(X > n)$. Ten tails in a row do not make a head more likely next. The geometric is the only discrete distribution with that property, and the exponential is the only continuous one.",
+  "readMore": [
+    {
+      "concept": "distributions",
+      "where": "Blitzstein & Hwang Ch. 4.3 for geometric, Ch. 3.3–3.4 for the others"
+    }
+  ],
+  "id": "prob-which-distribution"
+}

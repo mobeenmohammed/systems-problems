@@ -121,9 +121,10 @@ section('classes and rules agree');
 const sources = [read('index.html'), ...[
   'js/views.js', 'js/problem.js', 'js/editor.js', 'js/catalog.js', 'js/app.js',
   'js/highlight.js', 'js/md.js', 'js/lint.js', 'js/setup.js',
+  'js/maths/render.js', 'js/maths/figures.js',
   'js/types/registry.js', 'js/types/mcq.js', 'js/types/numeric.js',
   'js/types/order.js', 'js/types/match.js', 'js/types/predict.js',
-  'js/types/locate.js', 'js/types/code.js',
+  'js/types/locate.js', 'js/types/code.js', 'js/types/maths.js',
 ].map(read)].join('\n');
 
 /* Candidates come from the obvious forms; membership is then decided by plain
@@ -200,6 +201,10 @@ const unapplied = [...styled]
   .filter(c => ![...prefixes].some(pre => c.startsWith(pre)))
   /* Produced by the markdown renderer rather than written in a renderer. */
   .filter(c => !['table-wrap'].includes(c))
+  /* Emitted by KaTeX itself. The stylesheet styles them deliberately — a
+     long expression has to scroll inside itself rather than push the page
+     sideways — but no renderer here writes the name. */
+  .filter(c => !c.startsWith('katex'))
   .sort();
 if (unapplied.length) console.log(`  --    styled but never applied: ${unapplied.join(', ')}`);
 check('no rule targets a class nothing applies', unapplied, []);

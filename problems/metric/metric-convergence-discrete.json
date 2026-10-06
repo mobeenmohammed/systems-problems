@@ -1,0 +1,37 @@
+{
+  "id": "metric-convergence-discrete",
+  "title": "Which sequences converge here?",
+  "topic": "metric",
+  "difficulty": "intermediate",
+  "type": "mcq",
+  "tags": [
+    "convergence",
+    "discrete-metric"
+  ],
+  "estimate": 9,
+  "prereqs": [
+    {
+      "concept": "convergence",
+      "why": "Convergence is about the distances going to zero, and the metric decides what those distances are."
+    },
+    {
+      "concept": "metric-examples",
+      "why": "The discrete metric is the one being used, and it is the reason the answer is surprising."
+    }
+  ],
+  "statement": "Let $X = \\R$ with the **discrete metric**: $d(x,y) = 0$ if $x = y$ and $1$ otherwise.\n\nA sequence $(x_n)$ converges to $x$ when: for every $\\eps > 0$ there is $N$ such that $d(x_n, x) < \\eps$ for all $n \\ge N$.\n\nWhich of these sequences converges **in this space**?",
+  "hints": [
+    "The definition says *for every* $\\eps$. Try a very small one — smaller than every non-zero distance this metric can produce.",
+    "Take $\\eps = \\tfrac12$. What does $d(x_n, x) < \\tfrac12$ force, given that $d$ only ever returns $0$ or $1$?",
+    "$d(x_n,x) < \\tfrac12$ forces $d(x_n,x) = 0$, which forces $x_n = x$. So convergence here means the sequence is eventually *equal* to its limit."
+  ],
+  "payload": {
+    "prompt": "Which one converges in $(\\R, d_{\\text{discrete}})$?",
+    "options": [
+      "$x_n = \\tfrac{1}{n}$",
+      "$x_n = 3$ for every $n$",
+      "$x_n = 2 + \\tfrac{(-1)^n}{n}$",
+      "Every sequence that converges in the usual metric also converges here."
+    ]
+  }
+}

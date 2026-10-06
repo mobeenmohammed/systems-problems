@@ -1,0 +1,37 @@
+{
+  "id": "prob-which-distribution",
+  "title": "Which distribution is this?",
+  "topic": "prob",
+  "difficulty": "intermediate",
+  "type": "mcq",
+  "tags": [
+    "distributions",
+    "random-variables"
+  ],
+  "estimate": 9,
+  "prereqs": [
+    {
+      "concept": "distributions",
+      "why": "The four named distributions are the four options."
+    },
+    {
+      "concept": "random-variables",
+      "why": "You have to identify what the random variable actually counts before naming its distribution."
+    }
+  ],
+  "statement": "A fair coin is tossed repeatedly until the **first head** appears. Let $X$ be the number of tosses made, including the one that gave the head.\n\nWhat is the distribution of $X$?",
+  "hints": [
+    "Say out loud what $X$ counts. Is it a number of successes in a fixed number of trials, or a number of trials until something happens?",
+    "The number of tosses is not bounded above: $X$ could be $1$, or $7$, or $100$. Which of the four options allows that?",
+    "$\\P(X = k)$ is the probability of $k-1$ tails followed by a head, which is $(1/2)^{k-1} \\cdot (1/2)$."
+  ],
+  "payload": {
+    "prompt": "The distribution of $X$.",
+    "options": [
+      "Bernoulli with $p = \\tfrac12$.",
+      "Binomial with $n = 2$, $p = \\tfrac12$.",
+      "Geometric with $p = \\tfrac12$, counting the number of trials up to and including the first success.",
+      "Poisson with $\\lambda = \\tfrac12$."
+    ]
+  }
+}

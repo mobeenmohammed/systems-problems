@@ -1,0 +1,41 @@
+{
+  "id": "metric-open-closed-both-neither",
+  "title": "Open, closed, both, or neither",
+  "topic": "metric",
+  "difficulty": "intermediate",
+  "type": "multi",
+  "tags": [
+    "open-sets",
+    "closed-sets"
+  ],
+  "estimate": 12,
+  "prereqs": [
+    {
+      "concept": "open-sets",
+      "why": "You need the definition — every point has a ball inside the set — rather than a picture of a boundary."
+    },
+    {
+      "concept": "closed-sets",
+      "why": "Closed is defined as \"the complement is open\", which is not the negation of open."
+    }
+  ],
+  "statement": "Work in $\\R$ with the usual metric. Select every set below that is **open in $\\R$**.\n\nRemember that open and closed are not opposites: a set can be both, and most sets are neither.",
+  "hints": [
+    "A set $U$ is open when for every $x \\in U$ there is some $r > 0$ with $B(x,r) \\subseteq U$. Apply that literally, point by point, and pay attention to endpoints.",
+    "For each set, the question is whether there is a point with *no room around it*. One such point is enough to stop the set being open.",
+    "$\\R$ itself and $\\emptyset$ are both open — and both closed. For the finite set, ask what $B(x,r)$ looks like around one of its points."
+  ],
+  "payload": {
+    "prompt": "Select every set that is open in $\\R$.",
+    "options": [
+      "$(0, 1)$",
+      "$[0, 1]$",
+      "$[0, 1)$",
+      "$\\R$",
+      "$\\emptyset$",
+      "$\\{1, 2, 3\\}$",
+      "$\\R \\setminus \\{0\\}$"
+    ],
+    "figure": "interval-kinds"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "id": "metric-axioms-which-fails",
+  "title": "Which axiom does it break?",
+  "topic": "metric",
+  "difficulty": "beginner",
+  "type": "mcq",
+  "tags": [
+    "metric-axioms",
+    "definitions"
+  ],
+  "estimate": 6,
+  "prereqs": [
+    {
+      "concept": "metric-axioms",
+      "why": "The whole question is which of the four conditions is violated, so you need them written down."
+    }
+  ],
+  "statement": "A metric on a set $X$ is a function $d : X \\times X \\to \\R$ with, for all $x, y, z \\in X$:\n\n1. $d(x,y) \\ge 0$\n2. $d(x,y) = 0$ **if and only if** $x = y$\n3. $d(x,y) = d(y,x)$\n4. $d(x,z) \\le d(x,y) + d(y,z)$\n\nDefine $d$ on $\\R$ by\n\n$$d(x,y) = (x - y)^2.$$\n\nExactly one of the four fails. Which?",
+  "hints": [
+    "Axiom 4 is the triangle inequality: the direct route is never longer than a detour. Write down what it says for this $d$.",
+    "Try to break it with the simplest numbers you can. Take $y$ exactly halfway between $x$ and $z$.",
+    "With $x = 0$, $y = 1$, $z = 2$: the left-hand side is $d(0,2) = 4$, and the right-hand side is $d(0,1) + d(1,2)$. Work out that sum."
+  ],
+  "payload": {
+    "prompt": "Which axiom fails?",
+    "options": [
+      "Axiom 1: $d$ can be negative.",
+      "Axiom 2: there are distinct $x \\ne y$ with $d(x,y) = 0$.",
+      "Axiom 3: $d$ is not symmetric.",
+      "Axiom 4: the triangle inequality fails."
+    ]
+  }
+}

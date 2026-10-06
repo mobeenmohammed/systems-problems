@@ -1,0 +1,33 @@
+{
+  "key": {
+    "value": "2162/54145",
+    "alsoAccept": [
+      "C(4,2)*C(48,3)/C(52,5)"
+    ]
+  },
+  "feedback": {
+    "whenValue": [
+      {
+        "is": "C(4,2)*C(48,3)/C(52,5)*0+C(4,2)/C(52,5)",
+        "say": "The numerator has to count *whole hands*, not just the aces. After choosing which two aces are in the hand there are still three more cards to choose."
+      },
+      {
+        "is": "6/C(52,5)",
+        "say": "The numerator counts only the choice of aces. A hand has five cards — the other three still have to be chosen, from the 48 non-aces."
+      },
+      {
+        "is": "C(4,2)*C(50,3)/C(52,5)",
+        "say": "Check the second factor. If exactly two aces are wanted, the other three cards must avoid the remaining aces — so they come from the non-aces only."
+      }
+    ],
+    "nudge": "Numerator and denominator must count the same kind of object: whole five-card hands. Build a qualifying hand in two steps and multiply the number of ways to do each."
+  },
+  "explanation": "## The calculation\n\n$$\\P(\\text{exactly two aces}) = \\frac{\\binom{4}{2}\\binom{48}{3}}{\\binom{52}{5}} = \\frac{6 \\times 17296}{2598960} = \\mathbf{\\tfrac{2162}{54145}} \\approx 0.0399.$$\n\n## Why the numerator is a product\n\nA hand with exactly two aces is built by two independent choices:\n\n- **which two of the four aces** — $\\binom42 = 6$ ways;\n- **which three of the forty-eight non-aces** — $\\binom{48}{3} = 17{,}296$ ways.\n\nEvery such hand arises exactly once from exactly one pair of choices, so the counts multiply.\n\n## The two things that go wrong\n\n**Counting only part of the hand.** $\\binom42 / \\binom{52}{5}$ compares a count of ace-pairs with a count of hands. The numerator and denominator must count the same kind of object.\n\n**Forgetting \"exactly\".** Using $\\binom{50}{3}$ for the other three cards allows a third ace, so it counts *at least* two. Here is the difference:\n\n$$\\P(\\ge 2 \\text{ aces}) = \\frac{\\binom42\\binom{48}{3} + \\binom43\\binom{48}{2} + \\binom44\\binom{48}{1}}{\\binom{52}{5}} \\approx 0.0417.$$\n\n## Why order never appears\n\nDealing is sequential, so you could count ordered deals instead: $\\binom52\\cdot 4\\cdot 3\\cdot 48\\cdot 47\\cdot 46$ over $52\\cdot 51\\cdot 50\\cdot 49\\cdot 48$. It gives the same answer. Order cancels, as long as you are consistent on both sides of the fraction — and the unordered count is less work.",
+  "readMore": [
+    {
+      "concept": "counting",
+      "where": "Blitzstein & Hwang Ch. 1.4, the poker examples"
+    }
+  ],
+  "id": "prob-two-aces"
+}

@@ -6,6 +6,7 @@
 <title>Systems Lab</title>
 <meta name="description" content="A personal problems site for the knowledge every low-level systems developer should know.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#9638;</text></svg>">
+<link rel="stylesheet" href="vendor/katex/katex.min.css">
 <link rel="stylesheet" href="css/styles.css">
 <link rel="stylesheet" href="css/themes.css">
 <script>
@@ -39,6 +40,11 @@
       <p>Problems for low-level systems</p>
     </div>
   </div>
+
+  <!-- The coarsest switch on the site: which subject you are studying. It
+       filters the catalogue, the tracks and the reading map, and it does not
+       touch progress, bookmarks or the weekly problem, which are shared. -->
+  <div class="subject-switch" id="subjectSwitch" role="group" aria-label="Subject"></div>
 
   <nav class="topbar-nav" id="nav" aria-label="Views">
     <a href="#/" data-route="home">Dashboard</a>
@@ -415,7 +421,11 @@
      this file is missing, js/editor.js falls back to a plain textarea. -->
 <script src="vendor/codemirror.js"></script>
 
+<script src="vendor/katex/katex.min.js"></script>
 <script src="js/store.js"></script>
+<script src="js/maths/expr.js"></script>
+<script src="js/maths/render.js"></script>
+<script src="js/maths/figures.js"></script>
 <script src="js/md.js"></script>
 <script src="js/highlight.js"></script>
 <script src="js/catalog.js"></script>
@@ -432,6 +442,7 @@
 <script src="js/types/match.js"></script>
 <script src="js/types/predict.js"></script>
 <script src="js/types/locate.js"></script>
+<script src="js/types/maths.js"></script>
 <script src="js/types/code.js"></script>
 <script src="js/problem.js"></script>
 <script src="js/setup.js"></script>

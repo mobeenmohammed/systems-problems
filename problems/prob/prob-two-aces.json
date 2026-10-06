@@ -1,0 +1,34 @@
+{
+  "id": "prob-two-aces",
+  "title": "Exactly two aces",
+  "topic": "prob",
+  "difficulty": "beginner",
+  "type": "exact",
+  "tags": [
+    "counting",
+    "cards"
+  ],
+  "estimate": 10,
+  "prereqs": [
+    {
+      "concept": "counting",
+      "why": "The answer is a ratio of two binomial coefficients and you need both."
+    },
+    {
+      "concept": "sample-space",
+      "why": "The denominator is the size of the sample space, and choosing it wrongly is the usual error."
+    }
+  ],
+  "statement": "Five cards are dealt from a well-shuffled standard deck of $52$, without replacement.\n\nWhat is the probability that the hand contains **exactly two** aces?\n\nGive the exact probability. A fraction is fine, and so is an expression such as `C(4,2)*C(48,3)/C(52,5)`.",
+  "hints": [
+    "All $\\binom{52}{5}$ hands are equally likely, so the probability is (number of hands with exactly two aces) divided by that.",
+    "Build such a hand in two independent steps: choose which aces are in it, then choose the rest from the non-aces.",
+    "There are $\\binom{4}{2}$ ways to choose the two aces and $\\binom{48}{3}$ ways to fill the other three places from the $48$ non-aces. Multiply, then divide by $\\binom{52}{5}$."
+  ],
+  "payload": {
+    "prompt": "The probability of exactly two aces.",
+    "label": "Probability",
+    "placeholder": "a fraction",
+    "syntax": "A fraction or an expression. C(4,2)*C(48,3)/C(52,5) is read and worked out exactly."
+  }
+}

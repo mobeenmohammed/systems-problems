@@ -1,0 +1,34 @@
+{
+  "id": "prob-continuous-uniform",
+  "title": "A first continuous distribution",
+  "topic": "prob",
+  "difficulty": "intermediate",
+  "type": "approx",
+  "tags": [
+    "continuous-distributions",
+    "density"
+  ],
+  "estimate": 12,
+  "prereqs": [
+    {
+      "concept": "continuous-distributions",
+      "why": "This is the first problem where probabilities come from an area rather than a sum."
+    },
+    {
+      "concept": "random-variables",
+      "why": "The variable is continuous, which changes what a distribution even is."
+    }
+  ],
+  "statement": "A bus arrives at a time $T$ **uniformly distributed** on the interval $[0, 20]$ minutes after you arrive. Its density is\n\n$$f(t) = \\begin{cases} \\tfrac1{20} & 0 \\le t \\le 20 \\\\ 0 & \\text{otherwise.} \\end{cases}$$\n\nYou give up and leave if the bus has not come within $5$ minutes.\n\nWhat is $\\P(T \\le 5)$?\n\nGive your answer as a **decimal, rounded to two decimal places** — this one is checked approximately, to a tolerance of $\\pm 0.005$, rather than exactly.",
+  "hints": [
+    "For a continuous variable, a probability is the area under the density over the region you care about — not a sum of probabilities of individual values.",
+    "The density is flat at $\\tfrac1{20}$ between $0$ and $20$. The region you want is $0 \\le t \\le 5$, which is a rectangle.",
+    "Area $=$ width $\\times$ height $= 5 \\times \\tfrac1{20}$."
+  ],
+  "payload": {
+    "prompt": "The probability that the bus arrives within five minutes.",
+    "label": "$\\P(T \\le 5) =$",
+    "placeholder": "e.g. 0.42",
+    "syntax": "A decimal, to two decimal places. Checked to within ±0.005."
+  }
+}
