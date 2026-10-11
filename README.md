@@ -892,7 +892,20 @@ Chromium against a real site:
 | `tests/browser/cxx.test.mjs` (`npm run test:cxx`) | C++ in the browser with the runner address pointed at a dead port: the download and its progress bar, a cold first run, submit-wrong-then-correct, a Clang compile error, an infinite loop cut short and a valid program straight afterwards, Stop, the cached second visit, a native-only problem refusing to pretend, and a check that nothing was sent anywhere |
 | `tests/browser/usability.test.mjs` | Buttons after a failure, a run in flight when the problem or language changes, the toolbar at five widths, every answer control being clickable where it looks, horizontal overflow on twelve routes at eight widths with the view links staying reachable, keyboard reach to hints/notes/solution, and the blast radius of a reset |
 
-`npm run test:ui` runs the last four together; they need `npm run serve`.
+Everything under `tests/browser/` is one of two quite different things,
+and the difference matters:
+
+- **jsdom** — `app`, `styles`, `states`, `runner`. No server, no browser;
+  they load the site's scripts into a sandbox. These are in `npm test`, and
+  CI runs them.
+- **Playwright** — `complete`, `navigation`, `resize`, `feedback`,
+  `usability`, `maths`, `learn`, `cxx`, `python`, `journeys`, `hosted`,
+  `local`. A real browser against a served site, so they need
+  `npm run serve`. `npm run test:ui` runs the first seven; the rest want
+  something else up as well and are listed below.
+
+Putting a Playwright suite into `npm test` is how CI came to fail with "the
+site is not being served" — the group names are the contract.
 `BROWSER=msedge` runs any of them through the Edge installed on the machine
 rather than Playwright's bundled Chromium.
 
