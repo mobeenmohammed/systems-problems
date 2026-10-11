@@ -41,7 +41,7 @@
       "runMs": 3000
     },
     "templates": {
-      "cpp": "#include <iostream>\n#include <vector>\n\nbool clampTo(int& v, int lo, int hi)\n{\n    return false;   // <- replace; modify v through the reference\n}\n\nint main()\n{\n    int lo{}, hi{}, n{};\n    std::cin >> lo >> hi >> n;\n\n    std::vector<int> v;\n    for (int i = 0; i < n; ++i)\n    {\n        int x{};\n        std::cin >> x;\n        v.push_back(x);\n    }\n\n    int changed{};\n    // for (int& x : v) if (clampTo(x, lo, hi)) ++changed;\n\n    // One line, single spaces, no trailing space.\n\n    std::cout << \"changed \" << changed << \"\\n\";\n\n    return 0;\n}\n"
+      "cpp": "#include <iostream>\n#include <vector>\n\nbool clampTo(int& v, int lo, int hi)\n{\n    return false;   // your code here — clamp v through the reference, and say whether it moved\n}\n\nint main()\n{\n    int lo{}, hi{}, n{};\n    std::cin >> lo >> hi >> n;\n\n    std::vector<int> v;\n    for (int i = 0; i < n; ++i)\n    {\n        int x{};\n        std::cin >> x;\n        v.push_back(x);\n    }\n\n    int changed{};\n    // your code here — for (int& x : v) if (clampTo(x, lo, hi)) ++changed;\n    // then the values on one line, single spaces, no trailing space\n\n    std::cout << \"changed \" << changed << \"\\n\";\n\n    return 0;\n}\n"
     },
     "cases": [
       {

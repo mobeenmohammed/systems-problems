@@ -42,7 +42,7 @@
       "runMs": 3000
     },
     "templates": {
-      "cpp": "#include <iostream>\n#include <string>\n\nint main()\n{\n    std::string line;\n    std::getline(std::cin, line);\n\n    int letters{};\n    int digits{};\n    int other{};\n    std::string up;\n\n    // for (char c : line) { classify, and append to up }\n\n    std::cout << \"letters \" << letters << \"\\n\";\n    std::cout << \"digits \" << digits << \"\\n\";\n    std::cout << \"other \" << other << \"\\n\";\n    std::cout << \"upper [\" << up << \"]\\n\";\n\n    return 0;\n}\n"
+      "cpp": "#include <iostream>\n#include <string>\n\nint main()\n{\n    std::string line;\n    std::getline(std::cin, line);\n\n    int letters{};\n    int digits{};\n    int other{};\n    std::string up;\n\n    // your code here — for (char c : line) { classify it, and append to up }\n\n    std::cout << \"letters \" << letters << \"\\n\";\n    std::cout << \"digits \" << digits << \"\\n\";\n    std::cout << \"other \" << other << \"\\n\";\n    std::cout << \"upper [\" << up << \"]\\n\";\n\n    return 0;\n}\n"
     },
     "cases": [
       {

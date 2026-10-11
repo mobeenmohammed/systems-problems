@@ -43,8 +43,8 @@
       "runMs": 3000
     },
     "templates": {
-      "cpp": "#include <cstdint>\n#include <iomanip>\n#include <iostream>\n#include <vector>\n\nint main()\n{\n    int n{};\n    std::cin >> n;\n\n    std::vector<std::uint32_t> bytes;\n    for (int i = 0; i < n; ++i)\n    {\n        unsigned int b{};\n        std::cin >> b;\n        bytes.push_back(static_cast<std::uint32_t>(b & 0xFFu));\n    }\n\n    for (std::size_t i = 0; i + 3 < bytes.size(); i += 4)\n    {\n        // Assemble le and be with shifts, then print both lines.\n    }\n\n    return 0;\n}\n",
-      "python": "import sys\n\ndef signed32(u):\n    return u - (1 << 32) if u >= (1 << 31) else u\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    pos = 0\n    n = int(data[pos]); pos += 1\n    b = [int(data[pos + i]) & 0xFF for i in range(n)]; pos += n\n\n    for i in range(0, len(b) - 3, 4):\n        # assemble le and be, then print both lines\n        pass\n\nmain()\n"
+      "cpp": "#include <cstdint>\n#include <iomanip>\n#include <iostream>\n#include <vector>\n\nint main()\n{\n    int n{};\n    std::cin >> n;\n\n    std::vector<std::uint32_t> bytes;\n    for (int i = 0; i < n; ++i)\n    {\n        unsigned int b{};\n        std::cin >> b;\n        bytes.push_back(static_cast<std::uint32_t>(b & 0xFFu));\n    }\n\n    for (std::size_t i = 0; i + 3 < bytes.size(); i += 4)\n    {\n        // your code here — assemble le and be with shifts, then print both lines\n    }\n\n    return 0;\n}\n",
+      "python": "import sys\n\ndef signed32(u):\n    return u - (1 << 32) if u >= (1 << 31) else u\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    pos = 0\n    n = int(data[pos]); pos += 1\n    b = [int(data[pos + i]) & 0xFF for i in range(n)]; pos += n\n\n    for i in range(0, len(b) - 3, 4):\n        # your code here — assemble le and be, then print both lines\n        pass\n\nmain()\n"
     },
     "cases": [
       {

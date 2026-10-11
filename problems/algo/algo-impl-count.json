@@ -42,8 +42,8 @@
       "runMs": 3000
     },
     "templates": {
-      "cpp": "#include <iostream>\n#include <vector>\n\nint main()\n{\n    int n{};\n    std::cin >> n;\n\n    std::vector<int> v;\n    for (int i = 0; i < n; ++i)\n    {\n        int x{};\n        std::cin >> x;\n        v.push_back(x);\n    }\n\n    int q{};\n    std::cin >> q;\n    for (int i = 0; i < q; ++i)\n    {\n        int target{};\n        std::cin >> target;\n\n        // Three counters, reset for each query, one pass over v.\n\n        // print \"<target> less <l> equal <e> greater <g>\"\n    }\n\n    return 0;\n}\n",
-      "python": "import sys\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    pos = 0\n    n = int(data[pos]); pos += 1\n    v = [int(data[pos + i]) for i in range(n)]; pos += n\n    q = int(data[pos]); pos += 1\n    for _ in range(q):\n        target = int(data[pos]); pos += 1\n        # three counters, one pass, then print the line\n\nmain()\n"
+      "cpp": "#include <iostream>\n#include <vector>\n\nint main()\n{\n    int n{};\n    std::cin >> n;\n\n    std::vector<int> v;\n    for (int i = 0; i < n; ++i)\n    {\n        int x{};\n        std::cin >> x;\n        v.push_back(x);\n    }\n\n    int q{};\n    std::cin >> q;\n    for (int i = 0; i < q; ++i)\n    {\n        int target{};\n        std::cin >> target;\n\n        // your code here — three counters, reset for each query, one pass over v,\n        // then print \"<target> less <l> equal <e> greater <g>\"\n    }\n\n    return 0;\n}\n",
+      "python": "import sys\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    pos = 0\n    n = int(data[pos]); pos += 1\n    v = [int(data[pos + i]) for i in range(n)]; pos += n\n    q = int(data[pos]); pos += 1\n    for _ in range(q):\n        target = int(data[pos]); pos += 1\n        # your code here — three counters, one pass, then print the line for this query\n\nmain()\n"
     },
     "cases": [
       {

@@ -41,7 +41,7 @@
       "runMs": 3000
     },
     "templates": {
-      "cpp": "#include <iostream>\n#include <map>\n#include <string>\n\nint main()\n{\n    std::map<std::string, int> count;\n\n    std::string word;\n    while (std::cin >> word)\n    {\n        // lowercase word, then ++count[word];\n    }\n\n    std::cout << \"distinct \" << count.size() << \"\\n\";\n\n    // One line per entry, then the winner.\n\n    return 0;\n}\n"
+      "cpp": "#include <iostream>\n#include <map>\n#include <string>\n\nint main()\n{\n    std::map<std::string, int> count;\n\n    std::string word;\n    while (std::cin >> word)\n    {\n        // your code here — lowercase word, then ++count[word];\n    }\n\n    std::cout << \"distinct \" << count.size() << \"\\n\";\n\n    // your code here — one line per entry, then the winner\n\n    return 0;\n}\n"
     },
     "cases": [
       {

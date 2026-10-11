@@ -30,6 +30,8 @@ const { grab } = loadScripts([
   'js/types/predict.js',
   'js/types/locate.js',
   'js/types/maths.js',
+  /* For TEMPLATE: the starters a problem gets when it supplies none. */
+  'js/types/code.js',
 ]);
 const Types = grab('ProblemTypes');
 const MathsExpr = grab('MathsExpr');
@@ -533,6 +535,102 @@ for (const p of problems) {
 }
 
 /* ---------------- code problems are actually solvable ---------------- */
+
+/* ---------------- where your code goes ----------------
+
+   A template is scaffolding, and scaffolding with no marked hole is a file
+   you have to read twice before you can start: the reader cannot tell what
+   was given from what is missing. Every template says where the work goes,
+   in that language's comment syntax, and says what goes there rather than
+   only "your code here" - a marker that could be moved to another problem
+   unchanged is not telling anybody anything. */
+section('every template says where your code goes, and what goes there');
+{
+  const impl = Types.get('code');
+  const GENERIC = (impl && impl.TEMPLATE) || {};
+  check('the generic starters are reachable from here', Object.keys(GENERIC).length, 4);
+
+  const COMMENT = { cpp: '//', rust: '//', js: '//', python: '#' };
+  const MARK = /your code here/i;
+
+  /* Lines of a reference solution that a marker is allowed to contain. Each
+     one is a loop header or a call site handed to a beginner on purpose -
+     the exercise is the body, or the function being called - and each was in
+     the template before the markers were. Anything else appearing here is an
+     accident, and the leak audit cannot catch it: it treats every template
+     line as given. */
+  const GIVEN = {
+    'cpp-function-prime-count': 'the loop header is given; writing isPrime is the exercise',
+    'cpp-loop-multiples': 'the loop header is the syntax being taught; the body is the exercise',
+    'cpp-reference-clamp': 'the call site is given; writing clampTo through a reference is the exercise',
+    'cpp-sum-until-zero': 'the read-until-zero idiom is the syntax being taught',
+  };
+
+  const norm = x => String(x).replace(/\s+/g, ' ').trim();
+  const NOISE = [
+    /^\s*#include/, /^\s*using\s+namespace/, /^\s*\/\//, /^\s*#/,
+    /^\s*int\s+main\s*\(/, /^\s*fn\s+main\s*\(/, /^\s*import\s/, /^\s*def\s+main\s*\(/,
+  ];
+  const isNoise = l => NOISE.some(re => re.test(l)) || l.trim().length < 20;
+
+  let pairs = 0;
+  let generic = 0;
+  const unmarked = [];
+  const wrongComment = [];
+  const silent = [];
+  const leaks = [];
+
+  for (const p of problems.filter(x => x.type === 'code')) {
+    const pay = p.payload || {};
+    const own = pay.templates || {};
+    const sol = solutions[p.id] || {};
+    const refs = (sol.key && sol.key.reference) || {};
+
+    for (const lang of pay.langs || []) {
+      pairs += 1;
+      const src = own[lang] != null ? own[lang] : GENERIC[lang];
+      if (own[lang] == null) generic += 1;
+      if (src == null) { unmarked.push(`${p.id} [${lang}]: no template at all`); continue; }
+
+      const marks = src.split('\n').filter(l => MARK.test(l));
+      if (!marks.length) { unmarked.push(`${p.id} [${lang}]`); continue; }
+
+      for (const line of marks) {
+        const at = line.search(MARK);
+        const before = line.slice(0, at);
+        /* The marker has to be a comment, in this language's syntax - a bare
+           sentence in the middle of a C++ file does not compile, and a //
+           in a Python file is a syntax error rather than a note. */
+        if (!new RegExp(`${COMMENT[lang] === '#' ? '#' : '//'}\\s*$`).test(before)) {
+          wrongComment.push(`${p.id} [${lang}]: ${norm(line).slice(0, 60)}`);
+        }
+        /* And it has to say what goes there. */
+        const says = norm(line.slice(at + 'your code here'.length)).replace(/^[—:-]\s*/, '');
+        if (says.length < 12) silent.push(`${p.id} [${lang}]: ${norm(line).slice(0, 60)}`);
+
+        /* A marker that quotes a line of the answer is a marker that solves
+           the problem for you. */
+        if (GIVEN[p.id]) continue;
+        for (const l of String(refs[lang] || '').split('\n').filter(x => !isNoise(x)).map(norm)) {
+          if (norm(line).includes(l)) leaks.push(`${p.id} [${lang}]: "${l}"`);
+        }
+      }
+    }
+  }
+
+  ok(`every problem and language has a template (${pairs} pairs, ${generic} generic)`,
+    pairs > 50);
+  check(`every one of them marks where your code goes${unmarked.length ? `: ${unmarked[0]}` : ''}`,
+    unmarked.length, 0);
+  check(`in that language's comment syntax${wrongComment.length ? `: ${wrongComment[0]}` : ''}`,
+    wrongComment.length, 0);
+  check(`and says what goes there${silent.length ? `: ${silent[0]}` : ''}`,
+    silent.length, 0);
+  check(`without quoting the answer${leaks.length ? `: ${leaks[0]}` : ''}`,
+    leaks.length, 0);
+  ok(`${Object.keys(GIVEN).length} problems hand over a line on purpose, each with a reason`,
+    Object.values(GIVEN).every(why => why.length > 20));
+}
 
 /* The strongest check in the suite: each reference solution is compiled and
    run against the problem's own visible and hidden cases, in every language

@@ -41,7 +41,7 @@
       "runMs": 3000
     },
     "templates": {
-      "cpp": "#include <iostream>\n\nbool isPrime(int n)\n{\n    return false;   // <- replace\n}\n\nint main()\n{\n    int a{}, b{};\n    std::cin >> a >> b;\n\n    int count{};\n    int largest{};\n\n    // for (int n = a; n <= b; ++n) ... isPrime(n) ...\n\n    std::cout << \"count \" << count << \"\\n\";\n    // \"largest none\" when there were no primes.\n\n    return 0;\n}\n"
+      "cpp": "#include <iostream>\n\nbool isPrime(int n)\n{\n    return false;   // your code here — true when n is prime; 1 and anything below it are not\n}\n\nint main()\n{\n    int a{}, b{};\n    std::cin >> a >> b;\n\n    int count{};\n    int largest{};\n\n    // your code here — for (int n = a; n <= b; ++n) ... isPrime(n) ...\n\n    std::cout << \"count \" << count << \"\\n\";\n    // your code here — the largest line; \"largest none\" when there were no primes\n\n    return 0;\n}\n"
     },
     "cases": [
       {

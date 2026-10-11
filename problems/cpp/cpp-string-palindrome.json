@@ -41,7 +41,7 @@
       "runMs": 3000
     },
     "templates": {
-      "cpp": "#include <iostream>\n#include <string>\n\nint main()\n{\n    std::string line;\n    std::getline(std::cin, line);\n\n    std::string clean;\n    // Keep ASCII letters (lowercased) and digits.\n\n    bool pal{ true };\n    // Two indices walking inwards.\n\n    std::cout << \"clean [\" << clean << \"]\\n\";\n    std::cout << \"palindrome \" << (pal ? \"yes\" : \"no\") << \"\\n\";\n\n    return 0;\n}\n"
+      "cpp": "#include <iostream>\n#include <string>\n\nint main()\n{\n    std::string line;\n    std::getline(std::cin, line);\n\n    std::string clean;\n    // your code here — keep ASCII letters (lowercased) and digits\n\n    bool pal{ true };\n    // your code here — two indices walking inwards\n\n    std::cout << \"clean [\" << clean << \"]\\n\";\n    std::cout << \"palindrome \" << (pal ? \"yes\" : \"no\") << \"\\n\";\n\n    return 0;\n}\n"
     },
     "cases": [
       {

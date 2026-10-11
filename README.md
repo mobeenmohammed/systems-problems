@@ -799,6 +799,51 @@ can click to jump the caret there, with the compiler's own words kept
 underneath — the caret diagrams and the template backtraces are sometimes
 exactly what you need.
 
+### What a result says
+
+A list of eight rows answers *which one failed*. The question you have the
+moment a run finishes is *did it pass*, so that is the summary above them:
+the fraction, the word for it, how long it took, and three counts. The first
+failure's reason is at the top as well, because finding it by opening rows
+one at a time is the thing the summary is for.
+
+A build failure never reaches it — the compiler's output stands on its own,
+and "0 of 7 passed" about a program that never ran would be a statement
+about output nobody obtained. Passing with the sanitizer still complaining
+is its own line: the output is right and the program is not.
+
+Each case below is a row that opens, and the rows are **buttons**, so they
+can be reached with the keyboard; they used to be `div`s with a click
+handler, which the keyboard could not reach at all. A failing case opens
+itself and a passing one stays shut. The row shows the input that produced
+it, too — Run used to say `stdin (none)` on every row, which is not "we did
+not keep it" but a claim about the case.
+
+A submission is described as what it is: *7 cases: the samples and the
+hidden ones*. The old wording was "7 hidden cases passed", which was never
+true of a submission — it runs the visible ones as well.
+
+### Where your code goes
+
+Every template marks the hole, in that language's comment syntax, and says
+what belongs in it:
+
+```cpp
+bool isPrime(int n)
+{
+    return false;   // your code here — true when n is prime; 1 and anything below it are not
+}
+```
+
+A marker that could be moved to another problem unchanged tells nobody
+anything, so `tests/content.test.mjs` holds all 61 problem-and-language
+pairs to both halves of that rule: there is a marker, it is a comment in the
+right language, and it says something beyond "your code here". It also
+checks that no marker quotes a line of the reference solution — which the
+leak audit cannot do for itself, because it treats every template line as
+deliberately given. Four beginner C++ problems do hand over a loop header or
+a call site on purpose; each is named with its reason.
+
 ### Submissions
 
 The record used to keep `attempts` as a count, which answers "how many times"
@@ -998,6 +1043,7 @@ Chromium against a real site:
 
 | Suite | What it covers |
 | --- | --- |
+| `tests/browser/results.test.mjs` (`npm run test:results`) | The Results pane, through real runs of a JavaScript problem: the summary's fraction, badge, three counts and first-failure banner; a run that passes everything saying so with no banner; the rows' status, reason and time; a failing case opening itself and a passing one staying shut; opening a row from the keyboard; the input being shown rather than claimed absent; a submission described as samples-and-hidden; and the summary holding its shape at four widths |
 | `tests/browser/submissions.test.mjs` (`npm run test:subs`) | The Submissions tab, through real submissions of a JavaScript problem — so it needs the site served and nothing else: that Run adds no row and Submit does; that a near miss reads as 1 of 7 rather than as "wrong"; that a build failure is not stored as a wrong answer; newest first with the program in it; loading one back, including the confirmation and the language switch; surviving a reload; a row whose code was dropped saying so; and a 1,700-character line scrolling inside its own box at four widths |
 | `tests/browser/journeys.test.mjs` (`npm run test:journeys`) | The reported failures as journeys, with real mouse and keyboard: typing, caret placement, Tab, paste, cut, undo, long lines, scrolling, resizing, zoom, per-language drafts across a reload, a wrong MCQ and a wrong multi-select that disclose nothing, reveal-with-confirmation, practising a solved problem, and the layout at 1440×900, 1920×1080 and 390×844 in both themes |
 | `tests/browser/hosted.test.mjs` (`npm run test:hosted`) | The published-site journey with **no local runner**: write C++, Run, Submit, get marked — plus a compile error, a wrong submission then a fix, a timeout, a rate limit, an unreachable runner, and a check that no submission went to localhost |

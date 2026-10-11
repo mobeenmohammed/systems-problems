@@ -36,7 +36,7 @@
       "runMs": 3000
     },
     "templates": {
-      "cpp": "#include <iostream>\n\nint main()\n{\n    int score{};\n    std::cin >> score;\n\n    // One else-if chain. Highest band first.\n\n    return 0;\n}\n"
+      "cpp": "#include <iostream>\n\nint main()\n{\n    int score{};\n    std::cin >> score;\n\n    // your code here — one else-if chain, highest band first\n\n    return 0;\n}\n"
     },
     "cases": [
       {

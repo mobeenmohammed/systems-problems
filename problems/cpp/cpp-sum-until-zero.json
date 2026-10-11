@@ -37,7 +37,7 @@
       "runMs": 3000
     },
     "templates": {
-      "cpp": "#include <iostream>\n\nint main()\n{\n    int total{};\n    int count{};\n    int x{};\n\n    // while (std::cin >> x && x != 0) { ... }\n\n    std::cout << \"sum \" << total << \"\\n\";\n    std::cout << \"count \" << count << \"\\n\";\n\n    return 0;\n}\n"
+      "cpp": "#include <iostream>\n\nint main()\n{\n    int total{};\n    int count{};\n    int x{};\n\n    // your code here — while (std::cin >> x && x != 0) { ... }\n\n    std::cout << \"sum \" << total << \"\\n\";\n    std::cout << \"count \" << count << \"\\n\";\n\n    return 0;\n}\n"
     },
     "cases": [
       {

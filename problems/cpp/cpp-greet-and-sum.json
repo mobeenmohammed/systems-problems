@@ -36,7 +36,7 @@
       "runMs": 3000
     },
     "templates": {
-      "cpp": "#include <iostream>\n#include <string>\n\n/* Given, and finished. Read it, call it, do not rewrite it. */\nint add(int a, int b)\n{\n    return a + b;\n}\n\n/* Yours. It returns the line rather than printing it. */\nstd::string greeting(const std::string& name)\n{\n    return \"\";   // <- replace this\n}\n\nint main()\n{\n    std::string name{};\n    int a{};\n    int b{};\n\n    // Read the name, then the two numbers.\n\n    // Print greeting(name), then the sum line using add(a, b).\n\n    return 0;\n}\n"
+      "cpp": "#include <iostream>\n#include <string>\n\n/* Given, and finished. Read it, call it, do not rewrite it. */\nint add(int a, int b)\n{\n    return a + b;\n}\n\n/* Yours. It returns the line rather than printing it. */\nstd::string greeting(const std::string& name)\n{\n    return \"\";   // your code here — build the greeting line and return it\n}\n\nint main()\n{\n    std::string name{};\n    int a{};\n    int b{};\n\n    // your code here — read the name, then the two numbers,\n    // then print greeting(name) and the sum line using add(a, b)\n\n    return 0;\n}\n"
     },
     "cases": [
       {

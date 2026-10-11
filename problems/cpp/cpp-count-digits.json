@@ -37,7 +37,7 @@
       "runMs": 3000
     },
     "templates": {
-      "cpp": "#include <iostream>\n\nint main()\n{\n    int n{};\n    std::cin >> n;\n\n    int digits{};\n    int sum{};\n\n    // Absolute value, then peel digits with % and /.\n\n    std::cout << \"digits \" << digits << \"\\n\";\n    std::cout << \"sum \" << sum << \"\\n\";\n\n    return 0;\n}\n"
+      "cpp": "#include <iostream>\n\nint main()\n{\n    int n{};\n    std::cin >> n;\n\n    int digits{};\n    int sum{};\n\n    // your code here — take the absolute value, then peel digits off with % and /\n\n    std::cout << \"digits \" << digits << \"\\n\";\n    std::cout << \"sum \" << sum << \"\\n\";\n\n    return 0;\n}\n"
     },
     "cases": [
       {

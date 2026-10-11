@@ -41,7 +41,7 @@
       "runMs": 3000
     },
     "templates": {
-      "cpp": "#include <iostream>\n#include <vector>\n\nint main()\n{\n    int n{};\n    std::cin >> n;\n\n    std::vector<int> v;\n    // Read n values into v.\n\n    // min, max, sum, then the count above the mean.\n\n    return 0;\n}\n"
+      "cpp": "#include <iostream>\n#include <vector>\n\nint main()\n{\n    int n{};\n    std::cin >> n;\n\n    std::vector<int> v;\n    // your code here — read n values into v\n\n    // your code here — min, max, sum, then how many are above the mean\n\n    return 0;\n}\n"
     },
     "cases": [
       {

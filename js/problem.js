@@ -1662,5 +1662,9 @@ const ProblemView = (() => {
   return {
     open, leave, toggleFocus, setSplit, splitFraction, setVSplit, vSplitFraction,
     showResults, resetLayout,
+    /* The code type paints the results pane and wants to say how long a run
+       took in the same words the submissions list uses. One formatter, so
+       the two cannot drift into "0 ms" and "<1 ms" for the same number. */
+    duration,
   };
 })();

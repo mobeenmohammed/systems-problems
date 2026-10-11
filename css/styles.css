@@ -1006,12 +1006,92 @@ pre.code-block[data-lang]::before {
 .compile-out[data-kind="warn"]  { border-left: 3px solid var(--warn); }
 .compile-out .lbl { display: block; font-size: .66rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-faint); margin-bottom: .3rem; }
 
+/* The summary above the cases: did it pass, how many, how long, and what
+   went wrong first. The border carries the answer so it is readable before
+   a word of it is. */
+.rsum {
+  border: 1px solid var(--border); border-left: 3px solid var(--text-faint);
+  border-radius: var(--radius-s); background: var(--bg-elev);
+  padding: .6rem .75rem; display: flex; flex-direction: column; gap: .55rem;
+}
+.rsum[data-kind="passed"] { border-left-color: var(--ok); }
+.rsum[data-kind="failed"] { border-left-color: var(--danger); }
+.rsum-head { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+.rsum-head h4 { margin: 0; font-size: .95rem; }
+.rsum-frac { font-family: var(--mono); color: var(--text-dim); font-weight: 600; }
+.rsum-badge {
+  font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+  padding: .12rem .45rem; border-radius: 4px; border: 1px solid var(--border);
+}
+.rsum-badge[data-kind="passed"] {
+  color: var(--ok); border-color: color-mix(in srgb, var(--ok) 40%, var(--border));
+  background: color-mix(in srgb, var(--ok) 12%, transparent);
+}
+.rsum-badge[data-kind="failed"] {
+  color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, var(--border));
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+}
+/* Pushed right, because it is the least important thing on the row. */
+.rsum-when {
+  margin-left: auto; font-family: var(--mono); font-size: .74rem; color: var(--text-faint);
+}
+.rsum-tiles {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .4rem;
+}
+.rtile {
+  display: flex; flex-direction: column; gap: .1rem; min-width: 0;
+  padding: .4rem .5rem; border-radius: var(--radius-s);
+  background: var(--bg-inset); border: 1px solid var(--border);
+}
+.rtile-label {
+  font-size: .6rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint);
+}
+.rtile-value { font-family: var(--mono); font-size: 1.05rem; font-weight: 600; }
+.rtile[data-kind="passed"] .rtile-value { color: var(--ok); }
+.rtile[data-kind="failed"] .rtile-value { color: var(--danger); }
+/* Zero failures should not be shouted in red. */
+.rsum[data-kind="passed"] .rtile[data-kind="failed"] .rtile-value { color: var(--text-faint); }
+.rsum-why {
+  margin: 0; font-size: .82rem; padding: .4rem .55rem; border-radius: var(--radius-s);
+  border: 1px solid var(--border); background: var(--bg-inset);
+}
+.rsum-why[data-kind="failed"] {
+  color: var(--danger); border-color: color-mix(in srgb, var(--danger) 35%, var(--border));
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+}
+.rsum-why[data-kind="warn"] {
+  color: var(--warn); border-color: color-mix(in srgb, var(--warn) 35%, var(--border));
+  background: color-mix(in srgb, var(--warn) 10%, transparent);
+}
+.rsum-note { margin: 0; font-size: .72rem; color: var(--text-faint); }
+
 .case { border: 1px solid var(--border); border-radius: var(--radius-s); background: var(--bg-elev); overflow: hidden; }
 .case > .case-head {
   display: flex; align-items: center; gap: .6rem;
   padding: .45rem .7rem; font-size: .82rem; cursor: pointer;
   background: var(--bg-elev-2);
 }
+/* The results rows are buttons so they can be reached with the keyboard;
+   the sample-case rows next door are plain headings. Both have to look the
+   same, so the button is stripped back to the div it replaced. */
+button.case-head {
+  width: 100%; text-align: left; border: 0; font: inherit; color: inherit;
+  font-size: .82rem;
+}
+button.case-head::before {
+  content: "\203A"; display: inline-block; flex: none;
+  color: var(--text-faint); transition: transform .15s;
+}
+button.case-head[aria-expanded="true"]::before { transform: rotate(90deg); }
+.case-name { font-weight: 600; flex: none; }
+.case-why { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.case-ms { margin-left: auto; flex: none; }
+.case-status {
+  flex: none; font-size: .64rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .05em;
+}
+.case-status[data-pass="true"]  { color: var(--ok); }
+.case-status[data-pass="false"] { color: var(--danger); }
 .case[data-pass="true"]  > .case-head { border-left: 3px solid var(--ok); }
 .case[data-pass="false"] > .case-head { border-left: 3px solid var(--danger); }
 .case .io { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(10.5rem, 100%), 1fr)); gap: .6rem; padding: .7rem; }

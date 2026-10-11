@@ -37,7 +37,7 @@
       "runMs": 3000
     },
     "templates": {
-      "rust": "use std::io::{self, Read, Write};\n\nfn consume(s: String) -> usize {\n    0 // <- replace\n}\n\nfn shout(mut s: String) -> String {\n    s // <- uppercase it first\n}\n\nfn measure(s: &String) -> usize {\n    0 // <- replace\n}\n\nfn main() {\n    let mut input = String::new();\n    io::stdin().read_to_string(&mut input).unwrap();\n\n    let stdout = io::stdout();\n    let mut out = io::BufWriter::new(stdout.lock());\n\n    for line in input.lines() {\n        let word = line.trim().to_string();\n        if word.is_empty() {\n            continue;\n        }\n\n        // measure twice, then shout, then consume.\n        let _ = &word;\n        let _ = &mut out;\n    }\n}\n"
+      "rust": "use std::io::{self, Read, Write};\n\nfn consume(s: String) -> usize {\n    0 // your code here — the length of s, which this function owns\n}\n\nfn shout(mut s: String) -> String {\n    s // your code here — uppercase it first\n}\n\nfn measure(s: &String) -> usize {\n    0 // your code here — the length of s, borrowed rather than owned\n}\n\nfn main() {\n    let mut input = String::new();\n    io::stdin().read_to_string(&mut input).unwrap();\n\n    let stdout = io::stdout();\n    let mut out = io::BufWriter::new(stdout.lock());\n\n    for line in input.lines() {\n        let word = line.trim().to_string();\n        if word.is_empty() {\n            continue;\n        }\n\n        // your code here — measure twice, then shout, then consume\n        let _ = &word;\n        let _ = &mut out;\n    }\n}\n"
     },
     "cases": [
       {

@@ -27,12 +27,14 @@
     js: `// Read with readStdin() or readLines(); write with print().
 const lines = readLines();
 
+// your code here — the line below only shows how to print.
 print(lines[0]);
 `,
     python: `import sys
 
 data = sys.stdin.read().split()
 
+# your code here — the line below only shows how to print.
 print(data[0])
 `,
     cpp: `#include <iostream>
@@ -46,6 +48,7 @@ int main() {
     int n;
     std::cin >> n;
 
+    // your code here — the lines around it only show how to read and write.
     std::cout << n << "\\n";
     return 0;
 }
@@ -58,6 +61,8 @@ fn main() {
     let mut it = input.split_whitespace();
 
     let n: i64 = it.next().unwrap().parse().unwrap();
+
+    // your code here — the lines around it only show how to read and write.
 
     let stdout = io::stdout();
     let mut out = stdout.lock();
@@ -389,6 +394,11 @@ fn main() {
     }
 
     const verdict = RunHarness.judgeRun(reply, cases.map(c => c.expect), { requireClean: !!pay.requireClean });
+    /* The judge does not echo the input back, so a failing row showed
+       "stdin (none)" on every Run - which is not "we did not keep it", it
+       is a claim that the case had no input. Submit has always stashed it;
+       Run never did. */
+    verdict.cases.forEach((c, i) => { c.stdinShown = (cases[i] || {}).stdin || ''; });
     last = { verdict, reply, submission: false, at: Date.now() };
     paint(verdict, reply, false);
 
@@ -519,10 +529,7 @@ fn main() {
 
     if (!verdict.built) return;
 
-    host.append(el('p', { class: 'small muted' }, [
-      `${verdict.passed} of ${verdict.cases.length} ` +
-      `${isSubmission ? 'hidden ' : 'sample '}${verdict.cases.length === 1 ? 'case' : 'cases'} passed.`,
-    ]));
+    host.append(resultSummary(verdict, reply, isSubmission));
 
     verdict.cases.forEach((c, i) => {
       const open = !c.pass;
@@ -542,20 +549,86 @@ fn main() {
       ]);
       body.hidden = !open;
 
-      const node = el('div', { class: 'case', 'data-pass': String(c.pass) }, [
-        el('div', {
-          class: 'case-head',
-          onclick: () => { body.hidden = !body.hidden; },
-        }, [
-          el('span', { text: c.pass ? '✓' : '✗' }),
-          el('span', { text: `Case ${i + 1}` }),
-          el('span', { class: 'faint tiny', text: c.why }),
-          el('span', { class: 'faint tiny mono', style: 'margin-left:auto', text: `${c.ms} ms` }),
-        ]),
-        body,
+      /* A button, not a clickable div: these rows are the one part of a
+         result you have to open, and reaching them with the keyboard was
+         not possible at all. */
+      const head = el('button', {
+        class: 'case-head', type: 'button', 'aria-expanded': String(open),
+        onclick: () => {
+          body.hidden = !body.hidden;
+          head.setAttribute('aria-expanded', String(!body.hidden));
+        },
+      }, [
+        el('span', { class: 'case-name', text: `Case ${i + 1}` }),
+        el('span', { class: 'faint tiny case-why', text: c.why }),
+        el('span', { class: 'faint tiny mono case-ms', text: dur(c.ms) }),
+        el('span', { class: 'case-status', 'data-pass': String(c.pass),
+          text: c.pass ? 'Passed' : 'Failed' }),
       ]);
+
+      const node = el('div', { class: 'case', 'data-pass': String(c.pass) }, [head, body]);
       host.append(node);
     });
+  }
+
+  /* How long something took, in the words the rest of the page uses. */
+  const dur = ms => (typeof ProblemView !== 'undefined' && ProblemView.duration
+    ? ProblemView.duration(ms)
+    : `${Math.round(ms)} ms`);
+
+  /* ---------------- the summary above the cases ----------------
+
+     A list of eight rows answers "which one failed". It does not answer "did
+     it pass", which is the question you actually have the moment a run
+     finishes, and which used to be one sentence in the same grey as
+     everything else.
+
+     So: the fraction, the word for it, the three counts, and — the part
+     worth most — the first failure's reason at the top, rather than left to
+     be found by opening rows one at a time. */
+  function resultSummary(verdict, reply, isSubmission) {
+    const cases = verdict.cases || [];
+    const total = cases.length;
+    const passed = cases.filter(c => c.pass).length;
+    const failed = total - passed;
+    const kind = failed ? 'failed' : 'passed';
+    const ms = ((reply.compile && reply.compile.ms) || 0)
+      + cases.reduce((n, c) => n + (c.ms || 0), 0);
+
+    const first = cases.find(c => !c.pass);
+    /* Passing with the sanitizer complaining is its own outcome: the output
+       is right and the program is not. */
+    const dirty = !first && cases.some(c => c.sanitizer);
+
+    return el('div', { class: 'rsum', 'data-kind': kind }, [
+      el('div', { class: 'rsum-head' }, [
+        el('h4', {}, ['Result ', el('span', { class: 'rsum-frac', text: `(${passed}/${total})` })]),
+        el('span', { class: 'rsum-badge', 'data-kind': kind, text: failed ? 'Failed' : 'Passed' }),
+        el('span', { class: 'rsum-when', text: `${isSubmission ? 'Submission' : 'Run'} · ${dur(ms)}` }),
+      ]),
+
+      el('div', { class: 'rsum-tiles' }, [
+        ['Total', total, ''],
+        ['Passed', passed, 'passed'],
+        ['Failed', failed, 'failed'],
+      ].map(([label, n, k]) => el('div', { class: 'rtile', 'data-kind': k || undefined }, [
+        el('span', { class: 'rtile-label', text: label }),
+        el('span', { class: 'rtile-value', text: String(n) }),
+      ]))),
+
+      first ? el('p', { class: 'rsum-why', 'data-kind': 'failed' },
+        [`Case ${cases.indexOf(first) + 1}: ${first.why}`]) : null,
+      dirty ? el('p', { class: 'rsum-why', 'data-kind': 'warn' }, [
+        'Every case passed and the sanitizer still had something to say. The '
+        + 'output is right; the program is not.',
+      ]) : null,
+
+      /* What actually ran. "7 hidden cases passed" was never true of a
+         submission: it runs the samples and the hidden ones together. */
+      el('p', { class: 'rsum-note', text: isSubmission
+        ? `${total} ${total === 1 ? 'case' : 'cases'}: the samples and the hidden ones.`
+        : `${total} sample ${total === 1 ? 'case' : 'cases'}. Submit also runs the hidden ones.` }),
+    ]);
   }
 
   /* ---------------- readable diagnostics ----------------
@@ -730,6 +803,11 @@ fn main() {
     /* The language names, so the Submissions tab can say "C++" without a
        fourth copy of the same four words. */
     LANG_LABEL: LABEL,
+
+    /* The starters a problem gets when it supplies none of its own. Exported
+       so the content suite can hold them to the same rule as the ones in the
+       problem files: say where the reader's code goes. */
+    TEMPLATE,
 
     /* Putting an old submission back in the editor. The language is switched
        first, because highlighting, linting and completion all follow it and a

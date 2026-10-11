@@ -37,7 +37,7 @@
       "runMs": 3000
     },
     "templates": {
-      "cpp": "#include <iostream>\n\nint min2(int a, int b)\n{\n    return 0;   // <- replace\n}\n\nint min3(int a, int b, int c)\n{\n    return 0;   // <- replace, using min2\n}\n\nint main()\n{\n    int a{}, b{}, c{}, d{}, e{}, f{};\n    std::cin >> a >> b >> c >> d >> e >> f;\n\n    // Print the three lines.\n\n    return 0;\n}\n"
+      "cpp": "#include <iostream>\n\nint min2(int a, int b)\n{\n    return 0;   // your code here — the smaller of a and b\n}\n\nint min3(int a, int b, int c)\n{\n    return 0;   // your code here — the smallest of the three, using min2\n}\n\nint main()\n{\n    int a{}, b{}, c{}, d{}, e{}, f{};\n    std::cin >> a >> b >> c >> d >> e >> f;\n\n    // your code here — print the three lines\n\n    return 0;\n}\n"
     },
     "cases": [
       {
