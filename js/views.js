@@ -23,6 +23,7 @@ const UI = (() => {
   }
 
   function refreshPurse() {
+    paintMe();
     const s = Store.state;
     $('#purseXp').textContent = s.xp.toLocaleString();
     $('#purseCoins').textContent = s.coins.toLocaleString();
@@ -181,65 +182,175 @@ const UI = (() => {
 
   /* ---------------- dashboard ---------------- */
 
-  function renderHome() {
+  /* ---------------- the profile menu ----------------
+
+     Everything about you, behind one button, with the ring around it
+     showing progress to the next rank. A real menu: Escape closes it, a
+     click outside closes it, and the button says whether it is open. */
+
+  function paintMe() {
     const st = Store.stats(Catalog.all());
-    const n = Catalog.counts();
+    const s = Store.state;
+    const avatar = Store.SHOP_BY_ID[s.equipped.avatar];
 
-    $('#homeBlurb').textContent = n.problems
-      ? `${n.problems} problems across ${n.topics} topics and ${n.difficulties} difficulties, `
-        + `with ${n.readings} readings attached to them — so a thing you cannot do yet `
-        + `comes with the chapter that fixes that.`
-      : 'No problems are loaded yet.';
+    const glyph = $('#meGlyph');
+    if (glyph) glyph.textContent = (avatar && avatar.glyph) || '▚';
 
-    $('#homeRank').textContent = st.rank.current.label;
-    $('#homeRankNext').textContent = st.rank.next
-      ? `${st.rank.into} / ${st.rank.span} to ${st.rank.next.label}`
-      : 'top rank';
-    $('#homeRankBar').style.width = `${Math.round(st.rank.fraction * 100)}%`;
-    $('#homeStreakLine').textContent = st.streak.current
-      ? `${st.streak.current}-day streak · longest ${st.streak.longest}`
-      : 'No streak yet — solve something today to start one.';
+    const name = $('#meName');
+    if (name) name.textContent = s.profile.name || 'Anonymous';
 
-    $('#homeStats').replaceChildren(
-      statPill(`${st.solved}/${st.total}`, 'solved'),
-      statPill(st.attempted, 'in progress'),
-      statPill(st.xp.toLocaleString(), 'xp'),
-      statPill(st.coins.toLocaleString(), 'coins'),
-      statPill(st.readings, 'readings read'),
-    );
-
-    renderActions();
-    renderTracksStrip();
-
-    /* Anything flagged or due — the dashboard is the only place this would
-       ever be noticed, so it goes above the topics. */
-    const due = Store.dueForReview();
-    const review = $('#homeReview');
-    if (due.length) {
-      const metas = due.slice(0, 6).map(r => Catalog.meta(r.id)).filter(Boolean);
-      review.replaceChildren(
-        el('div', { class: 'section-head' }, [el('h2', { text: 'Worth revisiting' })]),
-        problemList(metas),
-      );
-    } else {
-      review.replaceChildren();
+    const rank = $('#meRank');
+    if (rank) {
+      rank.textContent = st.rank.next
+        ? `${st.rank.current.label} · ${st.rank.next.at - st.xp} to ${st.rank.next.label}`
+        : st.rank.current.label;
     }
 
-    const grid = $('#homeTopics');
-    grid.replaceChildren(...Store.TOPICS.map(t => {
-      const b = st.perTopic[t.id] || { total: 0, solved: 0 };
-      const fraction = b.total ? b.solved / b.total : 0;
-      return el('a', { class: 'topic-card', href: `#/problems?topic=${t.id}` }, [
-        el('div', {}, [
-          el('h3', { text: t.label }),
-          el('p', { text: t.blurb }),
-          el('div', { class: 'count', text: `${b.solved} of ${b.total} solved` }),
-        ]),
-        ring(fraction, `${b.solved}/${b.total}`),
-      ]);
-    }));
+    /* pathLength="100" on the circle, so the dash array is just a
+       percentage and nobody has to think about 2*pi*r. */
+    const ring = $('#meRing');
+    if (ring) {
+      const pct = Math.max(0, Math.min(100, Math.round(st.rank.fraction * 100)));
+      ring.setAttribute('stroke-dasharray', `${pct} 100`);
+    }
+  }
 
-    renderHeat($('#homeHeat'), st.days);
+  function closeMe() {
+    const btn = $('#meBtn');
+    const menu = $('#meMenu');
+    if (!btn || !menu) return;
+    menu.hidden = true;
+    btn.setAttribute('aria-expanded', 'false');
+  }
+
+  function wireMe() {
+    const btn = $('#meBtn');
+    const menu = $('#meMenu');
+    if (!btn || !menu) return;
+
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const open = menu.hidden;
+      menu.hidden = !open;
+      btn.setAttribute('aria-expanded', String(open));
+      if (open) {
+        paintMe();
+        const first = menu.querySelector('[role="menuitem"]');
+        if (first) first.focus();
+      }
+    });
+
+    /* A link inside it is still a link; it just shuts the menu on the way. */
+    menu.addEventListener('click', e => {
+      if (e.target.closest('[role="menuitem"]')) closeMe();
+    });
+
+    document.addEventListener('click', e => {
+      if (menu.hidden) return;
+      if (!e.target.closest('#me')) closeMe();
+    });
+
+    document.addEventListener('keydown', e => {
+      if (e.key !== 'Escape' || menu.hidden) return;
+      closeMe();
+      btn.focus();
+    });
+  }
+
+  /* ---------------- the landing page ----------------
+
+     It used to be a dashboard: rank, five stat pills, a streak line, a
+     topic grid and a year of activity, above the two things anybody
+     actually came to click. All of that is about how you are doing, which
+     is a question with its own page, and none of it is about what to open
+     next.
+
+     So: one thing to carry on with, and four doors. The numbers moved to
+     Profile, the weekly problem moved to Problems, and anything due for
+     review went with it. */
+
+  function renderHome() {
+    const n = Catalog.counts();
+    const st = Store.stats(Catalog.all());
+
+    $('#landingBlurb').textContent = n.problems
+      ? `${n.problems} problems across ${n.topics} topics, with ${n.readings} readings `
+        + 'attached to them — so a thing you cannot do yet comes with the chapter '
+        + 'that fixes that.'
+      : 'No problems are loaded yet.';
+
+    $('#landingContinue').replaceChildren(...[continueCard()].filter(Boolean));
+    $('#landingGrid').replaceChildren(...doors(st));
+  }
+
+  /* The four doors. Each carries the one number that says whether it is
+     worth opening, counted from the catalogue rather than written down. */
+  function doors(st) {
+    const all = Catalog.all();
+    const solvedIn = rows => rows.filter(p => {
+      const r = Store.record(p.id).status;
+      return r === 'solved' || r === 'reviewed';
+    }).length;
+
+    const questions = all.filter(p => p.type !== 'code');
+    const coding = all.filter(p => p.type === 'code');
+    const tracks = Catalog.allTracks();
+    const concepts = Catalog.allConcepts().length;
+    const owned = (Store.state.owned || []).length;
+
+    const card = ({ href, title, blurb, done, total, foot }) => {
+      const pct = total ? Math.round((done / total) * 100) : 0;
+      return el('a', { class: 'door', href }, [
+        el('div', { class: 'door-top' }, [
+          el('h3', { text: title }),
+          total ? el('span', { class: 'door-count tiny faint', text: `${done} / ${total}` }) : null,
+        ]),
+        el('p', { class: 'door-blurb', text: blurb }),
+        total
+          ? el('div', { class: 'bar', title: `${pct}%` }, [el('i', { style: `width:${pct}%` })])
+          : null,
+        el('div', { class: 'door-foot tiny faint', text: foot }),
+      ]);
+    };
+
+    return [
+      card({
+        href: '#/problems?kind=questions',
+        title: 'Questions',
+        blurb: 'Multiple choice, select-all, find-the-line, predict the output, '
+          + 'order the steps, and the written mathematics.',
+        done: solvedIn(questions),
+        total: questions.length,
+        foot: 'Answer, get told why, try again',
+      }),
+      card({
+        href: '#/problems?kind=code',
+        title: 'Coding exercises',
+        blurb: 'Write C++, Rust, Python or JavaScript against real test cases. '
+          + 'C++ and Python run in this tab with nothing installed.',
+        done: solvedIn(coding),
+        total: coding.length,
+        foot: 'Run the samples, then submit',
+      }),
+      card({
+        href: '#/learn',
+        title: 'Learn',
+        blurb: 'Every track as a tree of what it rests on. Pick a node for what '
+          + 'to read and what to try next.',
+        done: tracks.filter(t => Catalog.trackProgress(t).state === 'completed').length,
+        total: tracks.length,
+        foot: `${concepts} concepts, in prerequisite order`,
+      }),
+      card({
+        href: '#/shop',
+        title: 'Shop',
+        blurb: 'Themes, accents, avatars and frames, bought with coins you earned. '
+          + 'Cosmetics only — nothing here makes a problem easier.',
+        done: owned,
+        total: Store.SHOP.length,
+        foot: `${st.coins.toLocaleString()} coins`,
+      }),
+    ];
   }
 
   /* ---------------- the dashboard's two main actions ----------------
@@ -346,10 +457,6 @@ const UI = (() => {
     });
   }
 
-  function renderActions() {
-    $('#homeActions').replaceChildren(...[continueCard(), weeklyCard()].filter(Boolean));
-  }
-
   /* ---------------- track cards ----------------
 
      One renderer for the dashboard strip and the tracks view, so the two
@@ -393,31 +500,6 @@ const UI = (() => {
         ]),
       ]),
     ]);
-  }
-
-  /* A short strip of tracks on the dashboard; the full list is its own view. */
-  function renderTracksStrip() {
-    const host = $('#homeTracks');
-    const tracks = Catalog.allTracks();
-    if (!tracks.length) { host.replaceChildren(); return; }
-
-    /* Started but unfinished first, then untouched, then complete — which is
-       the order they are worth looking at. */
-    const RANK = { attempted: 0, 'not-started': 1, completed: 2, empty: 3 };
-    const ranked = tracks
-      .map(t => ({ t, p: Catalog.trackProgress(t) }))
-      .sort((a, b) => (RANK[a.p.state] ?? 9) - (RANK[b.p.state] ?? 9)
-                   || b.p.fraction - a.p.fraction)
-      .slice(0, 3);
-
-    host.replaceChildren(
-      el('div', { class: 'section-head' }, [
-        el('h2', { text: 'Tracks' }),
-        el('a', { class: 'more', href: '#/tracks', text: 'All tracks →' }),
-      ]),
-      el('div', { class: 'tracks' }, ranked.map(({ t, p }) => trackCard(t, p))),
-      el('div', { style: 'height:var(--s2)' }),
-    );
   }
 
   /* ---------------- learn ----------------
@@ -758,13 +840,19 @@ const UI = (() => {
 
     mount.replaceChildren(...cells);
 
-    const months = $('#homeHeatMonths');
+    /* Found relative to the grid rather than by a fixed id: the heatmap
+       moved from the dashboard to Profile, and a renderer that knows the
+       id of the one page it used to live on moves badly. */
+    const wrap = mount.closest('.heat-wrap');
+    const card = mount.closest('.card') || (wrap && wrap.parentElement);
+
+    const months = wrap && wrap.querySelector('.heat-months');
     if (months) {
       months.style.gridTemplateColumns = `repeat(${HEAT_WEEKS}, var(--heat-cell))`;
       months.replaceChildren(...labels);
     }
 
-    const caption = $('#homeHeatCaption');
+    const caption = card && card.querySelector('.heat-caption');
     if (caption) {
       caption.textContent = solved
         ? `${solved} solved over ${HEAT_WEEKS} weeks, on ${activeDays} `
@@ -775,7 +863,7 @@ const UI = (() => {
 
   /* ---------------- catalog ---------------- */
 
-  let filter = { q: '', subject: '', topic: '', difficulty: '', type: '', status: '', lane: '' };
+  let filter = { q: '', subject: '', kind: '', topic: '', difficulty: '', type: '', status: '', lane: '' };
 
   /* ---------------- subject ----------------
 
@@ -832,6 +920,7 @@ const UI = (() => {
     }
     $('#fSearch').value = filter.q;
     $('#fSubject').value = filter.subject;
+    $('#fKind').value = filter.kind;
     $('#fTopic').value  = filter.topic;
     $('#fDiff').value   = filter.difficulty;
     $('#fType').value   = filter.type;
@@ -840,8 +929,46 @@ const UI = (() => {
     if (!silent) renderCatalog();
   }
 
+  /* ---------------- the rail beside the catalogue ----------------
+
+     The weekly problem and anything due for revision. Both used to be on
+     the dashboard, which was the only place they would ever be noticed —
+     and the dashboard was the page you left fastest. They belong next to
+     the list of problems, because they are problems. */
+
+  function renderRail() {
+    const host = $('#catalogRail');
+    if (!host) return;
+
+    const parts = [];
+
+    const weekly = weeklyCard();
+    if (weekly) {
+      parts.push(el('h2', { class: 'rail-head', text: 'This week' }));
+      parts.push(weekly);
+    }
+
+    const due = Store.dueForReview();
+    if (due.length) {
+      const metas = due.slice(0, 5).map(r => Catalog.meta(r.id)).filter(Boolean);
+      if (metas.length) {
+        parts.push(el('h2', { class: 'rail-head', text: 'Worth revisiting' }));
+        parts.push(el('div', { class: 'rail-list' }, metas.map(m => el('a', {
+          class: 'rail-row', href: `#/p/${m.id}`,
+        }, [
+          el('span', { class: 'rail-row-title', text: m.title }),
+          el('span', { class: 'tiny faint', text: Store.DIFF_BY_ID[m.difficulty]?.label || '' }),
+        ]))));
+      }
+    }
+
+    host.replaceChildren(...parts);
+    host.hidden = !parts.length;
+  }
+
   function renderCatalog() {
     fillFilterOptions();
+    renderRail();
     const searching = !!String(filter.q || '').trim();
     const rows = Catalog.sorted(Catalog.list(filter));
     const total = Catalog.all().length;
@@ -850,14 +977,20 @@ const UI = (() => {
        "bayes" with Systems selected should find it rather than returning
        nothing — so when it does, the count says so. */
     const label = filter.subject ? Store.SUBJECT_BY_ID[filter.subject].label : '';
-    const pool = filter.subject
-      ? Catalog.all().filter(p => p.subject === filter.subject).length
+    const inPool = p => (!filter.subject || p.subject === filter.subject)
+      && (!filter.kind
+        || (filter.kind === 'code' ? p.type === 'code' : p.type !== 'code'));
+    const pool = (filter.subject || filter.kind)
+      ? Catalog.all().filter(inPool).length
       : total;
+    /* A noun, not an adjective: "72 question problems" is not English. */
+    const noun = filter.kind === 'code' ? 'coding exercises'
+      : filter.kind === 'questions' ? 'questions' : 'problems';
     $('#catalogCount').textContent = searching
       ? `${rows.length} of ${total} problems, searching every subject`
       : rows.length === pool
-        ? `${pool}${label ? ` ${label}` : ''} problems`
-        : `${rows.length} of ${pool}${label ? ` ${label}` : ''} problems`;
+        ? `${pool}${label ? ` ${label}` : ''} ${noun}`
+        : `${rows.length} of ${pool}${label ? ` ${label}` : ''} ${noun}`;
 
     const list = $('#catalogList');
 
@@ -898,13 +1031,14 @@ const UI = (() => {
       t = setTimeout(() => { filter.q = v; renderCatalog(); }, 120);
     });
     $('#fSubject').addEventListener('change', e => setFilter({ subject: e.target.value }));
+    $('#fKind').addEventListener('change',   e => setFilter({ kind: e.target.value }));
     $('#fTopic').addEventListener('change',  e => setFilter({ topic: e.target.value }));
     $('#fDiff').addEventListener('change',   e => setFilter({ difficulty: e.target.value }));
     $('#fType').addEventListener('change',   e => setFilter({ type: e.target.value }));
     $('#fStatus').addEventListener('change', e => setFilter({ status: e.target.value }));
     $('#fLane').addEventListener('change',   e => setFilter({ lane: e.target.value }));
     $('#fClear').addEventListener('click', () =>
-      setFilter({ q: '', subject: '', topic: '', difficulty: '', type: '', status: '', lane: '' }));
+      setFilter({ q: '', subject: '', kind: '', topic: '', difficulty: '', type: '', status: '', lane: '' }));
   }
 
   /* ---------------- reading map ---------------- */
@@ -1189,6 +1323,17 @@ const UI = (() => {
     $('#profXp').textContent = st.rank.next
       ? `${st.xp.toLocaleString()} XP · ${st.rank.next.at - st.xp} to ${st.rank.next.label}`
       : `${st.xp.toLocaleString()} XP`;
+
+    $('#profRankName').textContent = st.rank.current.label;
+    $('#profRankNext').textContent = st.rank.next
+      ? `${st.rank.into} / ${st.rank.span} to ${st.rank.next.label}`
+      : 'top rank';
+    $('#profRankBar').style.width = `${Math.round(st.rank.fraction * 100)}%`;
+    $('#profStreakLine').textContent = st.streak.current
+      ? `${st.streak.current}-day streak · longest ${st.streak.longest}`
+      : 'No streak yet — solve something today to start one.';
+
+    renderHeat($('#profHeat'), st.days);
 
     $('#profStats').replaceChildren(
       statPill(st.solved, 'solved'),
@@ -1736,6 +1881,7 @@ const UI = (() => {
   /* ---------------- wiring, called once ---------------- */
 
   function wire() {
+    wireMe();
     wireCatalog();
     wireConcepts();
     wireShop();
@@ -1745,6 +1891,7 @@ const UI = (() => {
   return {
     toast, refreshPurse, applyCosmetics, wire, endPreview,
     renderHome, renderCatalog, renderConcepts, renderProfile, renderShop, renderSettings,
+    paintMe, closeMe,
     renderTracks, renderLearn, renderResources, problemList,
     setFilter, checkJudge, paintJudgeState,
   };

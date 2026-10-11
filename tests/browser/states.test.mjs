@@ -142,15 +142,24 @@ const fresh = await boot();
 await sweep('fresh', fresh);
 
 await go(fresh.window, '#/');
-ok('the dashboard still offers something to do',
-  fresh.document.querySelector('#homeActions .action .btn') !== null);
+ok('the landing page still offers something to do',
+  fresh.document.querySelector('#landingContinue .action .btn') !== null);
+ok('every door reads zero without reading as broken',
+  [...fresh.document.querySelectorAll('#landingGrid .door-count')]
+    .every(n => /^\s*\d+\s*\/\s*\d+\s*$/.test(n.textContent)));
+
+await go(fresh.window, '#/profile');
 ok('the heatmap says there is nothing yet',
-  /nothing solved/i.test(fresh.document.getElementById('homeHeatCaption').textContent));
+  /nothing solved/i.test(fresh.document.getElementById('profHeatCaption').textContent));
+
+await go(fresh.window, '#/learn');
 ok('no track claims to be in progress',
-  [...fresh.document.querySelectorAll('#homeTracks .track-card')]
+  [...fresh.document.querySelectorAll('#learnTracks .track-card')]
     .every(c => c.dataset.state === 'not-started'));
-ok('no problem in the revisit strip claims to be worth nothing yet',
-  [...fresh.document.querySelectorAll('#homeReview .worth')].every(n => !/^0 XP$/.test(n.textContent)));
+
+await go(fresh.window, '#/problems');
+ok('no problem in the revisit rail claims to be worth nothing yet',
+  [...fresh.document.querySelectorAll('#catalogRail .worth')].every(n => !/^0 XP$/.test(n.textContent)));
 
 await go(fresh.window, '#/concepts');
 ok('reading reports nothing read yet',
@@ -202,15 +211,23 @@ const partway = await boot({
 await sweep('part way', partway);
 
 await go(partway.window, '#/');
-ok('the dashboard offers to pick something up',
-  /continue learning/i.test(partway.document.querySelector('#homeActions .eyebrow').textContent));
+ok('the landing page offers to pick something up',
+  /continue learning/i.test(partway.document.querySelector('#landingContinue .eyebrow').textContent));
+ok('a door bar has moved off zero',
+  [...partway.document.querySelectorAll('#landingGrid .bar i')]
+    .some(i => i.style.width && i.style.width !== '0%'));
+
+await go(partway.window, '#/learn');
 ok('some track is now Attempted',
-  [...partway.document.querySelectorAll('#homeTracks .track-card')]
+  [...partway.document.querySelectorAll('#learnTracks .track-card')]
     .some(c => c.dataset.state === 'attempted'));
 ok('a bar has moved off zero',
-  [...partway.document.querySelectorAll('#homeTracks .bar i')]
+  [...partway.document.querySelectorAll('#learnTracks .bar i')]
     .some(i => i.style.width && i.style.width !== '0%'));
-ok('anything due is surfaced', partway.document.querySelector('#homeReview .prow') !== null);
+
+await go(partway.window, '#/problems');
+ok('anything due is surfaced in the rail',
+  partway.document.querySelector('#catalogRail .rail-row') !== null);
 
 await go(partway.window, '#/problems');
 const statuses = new Set([...partway.document.querySelectorAll('#catalogList .prow')]
@@ -247,10 +264,11 @@ const done = await boot({
 await sweep('all done', done);
 
 await go(done.window, '#/');
-ok('the dashboard says there is nothing left rather than pointing at nothing',
-  /everything is solved/i.test(done.document.querySelector('#homeActions .action h2').textContent));
+ok('the landing page says there is nothing left rather than pointing at nothing',
+  /everything is solved/i.test(done.document.querySelector('#landingContinue .action h2').textContent));
+await go(done.window, '#/learn');
 ok('every track reads Completed',
-  [...done.document.querySelectorAll('#homeTracks .track-card')]
+  [...done.document.querySelectorAll('#learnTracks .track-card')]
     .every(c => c.dataset.state === 'completed'));
 await go(done.window, '#/tracks');
 ok('and so does every card on the tracks page',
@@ -259,9 +277,10 @@ ok('and so does every card on the tracks page',
 await go(done.window, `#/tracks/${JSON.parse(read('data/tracks.json'))[0].id}`);
 ok('a finished track shows Complete rather than a dead button',
   done.document.querySelector('#trackList .track-summary .pill') !== null);
+await go(done.window, '#/profile');
 ok('the top rank is reported without a next one',
-  /top rank/i.test(done.document.getElementById('homeRankNext').textContent) ||
-  done.document.getElementById('homeRankNext').textContent.length > 0);
+  /top rank/i.test(done.document.getElementById('profRankNext').textContent) ||
+  done.document.getElementById('profRankNext').textContent.length > 0);
 
 /* ---------------- the content is not there ---------------- */
 
@@ -277,10 +296,10 @@ ok('rather than rendering an empty frame',
   emptyCatalog.textContent.trim().length > 30);
 
 await go(broken.window, '#/');
-ok('the dashboard does not claim a catalogue it does not have',
-  /no problems are loaded/i.test(broken.document.getElementById('homeBlurb').textContent));
-ok('and its main action says so too',
-  /nothing loaded/i.test(broken.document.querySelector('#homeActions .action h2').textContent));
+ok('the landing page does not claim a catalogue it does not have',
+  /no problems are loaded/i.test(broken.document.getElementById('landingBlurb').textContent));
+ok('and the one thing it offers says so too',
+  /nothing loaded/i.test(broken.document.querySelector('#landingContinue .action h2').textContent));
 
 await go(broken.window, '#/concepts');
 ok('reading says there is nothing to read',

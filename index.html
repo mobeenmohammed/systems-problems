@@ -48,81 +48,75 @@
     </div>
   </div>
 
+  <!-- Two entries. The brand goes home, and everything about *you* is
+       behind the avatar on the right, which is where every site that has
+       an account puts it. -->
   <nav class="topbar-nav" id="nav" aria-label="Views">
-    <a href="#/" data-route="home">Dashboard</a>
     <a href="#/problems" data-route="problems">Problems</a>
     <a href="#/learn" data-route="learn">Learn</a>
-    <a href="#/profile" data-route="profile">Profile</a>
-    <a href="#/shop" data-route="shop">Shop</a>
-    <a href="#/settings" data-route="settings">Settings</a>
   </nav>
 
-  <div class="purse" id="purse" aria-live="polite">
-    <span class="xp" title="Total XP — permanent, and what sets your rank">
-      <b id="purseXp">0</b> xp
-    </span>
-    <span class="coin" title="Coins — spend these in the shop">
-      <b id="purseCoins">0</b> ◉
-    </span>
-    <span class="streak tiny" id="purseStreak" hidden></span>
+  <!-- The ring around the avatar is progress towards the next rank, which
+       is the one number worth seeing from every page. The rest — XP, coins,
+       streak, and the way to Profile, Shop and Settings — is one click
+       away rather than permanently in the way. -->
+  <div class="me" id="me">
+    <button class="me-btn" id="meBtn" type="button"
+            aria-haspopup="menu" aria-expanded="false" aria-label="You">
+      <svg class="me-ring" viewBox="0 0 36 36" aria-hidden="true">
+        <circle class="me-ring-track" cx="18" cy="18" r="16" pathLength="100"/>
+        <circle class="me-ring-fill" id="meRing" cx="18" cy="18" r="16" pathLength="100"/>
+      </svg>
+      <span class="me-glyph" id="meGlyph">▚</span>
+    </button>
+
+    <div class="me-menu" id="meMenu" role="menu" aria-labelledby="meBtn" hidden>
+      <div class="me-head">
+        <span class="me-name" id="meName">Anonymous</span>
+        <span class="tiny faint" id="meRank">Userland</span>
+      </div>
+      <div class="purse" id="purse" aria-live="polite">
+        <span class="xp" title="Total XP — permanent, and what sets your rank">
+          <b id="purseXp">0</b> xp
+        </span>
+        <span class="coin" title="Coins — spend these in the shop">
+          <b id="purseCoins">0</b> ◉
+        </span>
+        <span class="streak tiny" id="purseStreak" hidden></span>
+      </div>
+      <a role="menuitem" href="#/profile" data-route="profile">Profile</a>
+      <a role="menuitem" href="#/shop" data-route="shop">Shop</a>
+      <a role="menuitem" href="#/settings" data-route="settings">Settings</a>
+    </div>
   </div>
 </header>
 
 <main class="main" id="main">
 
   <!-- ---------------- dashboard ---------------- -->
+  <!-- ---------------- landing ----------------
+
+       Not a dashboard. A dashboard answers "how am I doing", which is a
+       question for the Profile page; this answers "what do I open", which
+       is the one you actually have on arriving. One thing to carry on
+       with, and four doors. -->
   <section id="view-home" class="view" hidden>
-    <div class="hero">
-      <div>
-        <h1>Every low-level thing, one problem at a time</h1>
-        <!-- Filled from the catalogue: a sentence with a number in it is a
-             sentence that goes stale the next time a topic is added. -->
-        <p class="muted" id="homeBlurb"></p>
-      </div>
-      <div class="card rank-card">
-        <div class="rank-head">
-          <span class="rank-name" id="homeRank">Userland</span>
-          <span class="rank-next" id="homeRankNext"></span>
-        </div>
-        <div class="bar"><i id="homeRankBar" style="width:0%"></i></div>
-        <p class="tiny faint" style="margin:.5rem 0 0" id="homeStreakLine"></p>
-      </div>
+    <div class="landing-hero">
+      <h1>Metric spaces to memory hierarchies, one problem at a time</h1>
+      <p class="muted" id="landingBlurb"></p>
     </div>
 
-    <!-- The two things the dashboard is for: carry on, or do this week's. -->
-    <div class="actions" id="homeActions"></div>
+    <div id="landingContinue"></div>
 
-    <div class="stat-row" id="homeStats"></div>
-
-    <div id="homeReview"></div>
-
-    <div id="homeTracks"></div>
-
-    <div class="section-head">
-      <h2>Topics</h2>
-      <a class="more" href="#/problems">All problems →</a>
-    </div>
-    <div class="topic-grid" id="homeTopics"></div>
-
-    <div class="section-head"><h2>Activity</h2></div>
-    <div class="card">
-      <div class="heat-wrap">
-        <div class="heat-months" id="homeHeatMonths" aria-hidden="true"></div>
-        <div class="heat-days" aria-hidden="true"><span>Mon</span><span>Wed</span><span>Fri</span></div>
-        <div class="heat" id="homeHeat" role="img" aria-labelledby="homeHeatCaption"></div>
-      </div>
-      <div class="heat-foot">
-        <p class="tiny faint" id="homeHeatCaption"></p>
-        <div class="heat-key tiny faint" aria-hidden="true">
-          <span>less</span><i data-n="0"></i><i data-n="1"></i><i data-n="2"></i><i data-n="3"></i><i data-n="4"></i><span>more</span>
-        </div>
-      </div>
-    </div>
+    <h2 class="landing-head">Where to</h2>
+    <div class="landing-grid" id="landingGrid"></div>
   </section>
 
   <!-- ---------------- catalog ---------------- -->
   <section id="view-problems" class="view" hidden>
     <h1>Problems</h1>
+    <div class="plist-wrap">
+    <div class="plist-main">
     <div class="filters">
       <input type="search" id="fSearch" placeholder="Search titles and tags…" aria-label="Search problems" autocomplete="off">
       <!-- Subject is a filter like any other now, rather than a switch in the
@@ -130,6 +124,15 @@
            side by side unless you ask for one of them. -->
       <label>Subject
         <select id="fSubject"><option value="">All subjects</option></select>
+      </label>
+      <!-- The coarse split the landing page links to. Type, below, is the
+           fine one: this is "do I write code or answer a question". -->
+      <label>Kind
+        <select id="fKind">
+          <option value="">Questions and code</option>
+          <option value="questions">Questions</option>
+          <option value="code">Coding exercises</option>
+        </select>
       </label>
       <label>Topic
         <select id="fTopic"><option value="">All topics</option></select>
@@ -157,6 +160,13 @@
     </div>
     <p class="small muted" id="catalogCount"></p>
     <div class="plist" id="catalogList"></div>
+    </div>
+
+    <!-- The weekly problem lives here rather than on the landing page: it
+         is a problem, and this is where you come looking for one. Anything
+         due for review joins it, for the same reason. -->
+    <aside class="plist-rail" id="catalogRail" aria-label="This week and revision"></aside>
+    </div>
   </section>
 
   <!-- ---------------- one problem ---------------- -->
@@ -255,7 +265,31 @@
       </div>
     </div>
 
+    <div class="card rank-card" style="margin-bottom:1rem">
+      <div class="rank-head">
+        <span class="rank-name" id="profRankName">Userland</span>
+        <span class="rank-next" id="profRankNext"></span>
+      </div>
+      <div class="bar"><i id="profRankBar" style="width:0%"></i></div>
+      <p class="tiny faint" style="margin:.5rem 0 0" id="profStreakLine"></p>
+    </div>
+
     <div class="stat-row" id="profStats"></div>
+
+    <h2>Activity</h2>
+    <div class="card" style="margin-bottom:1.5rem">
+      <div class="heat-wrap">
+        <div class="heat-months" id="profHeatMonths" aria-hidden="true"></div>
+        <div class="heat-days" aria-hidden="true"><span>Mon</span><span>Wed</span><span>Fri</span></div>
+        <div class="heat" id="profHeat" role="img" aria-labelledby="profHeatCaption"></div>
+      </div>
+      <div class="heat-foot">
+        <p class="tiny faint heat-caption" id="profHeatCaption"></p>
+        <div class="heat-key tiny faint" aria-hidden="true">
+          <span>less</span><i data-n="0"></i><i data-n="1"></i><i data-n="2"></i><i data-n="3"></i><i data-n="4"></i><span>more</span>
+        </div>
+      </div>
+    </div>
 
     <h2>Per topic</h2>
     <div class="card stack" id="profTopics" style="margin-bottom:1.5rem"></div>

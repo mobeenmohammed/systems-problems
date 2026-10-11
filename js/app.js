@@ -62,6 +62,7 @@
       case 'problems':
         show('problems');
         UI.setFilter({
+          kind: query.kind || '',
           topic: query.topic || '',
           difficulty: query.diff || query.difficulty || '',
           type: query.type || '',

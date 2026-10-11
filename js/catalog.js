@@ -98,6 +98,16 @@ const Catalog = (() => {
          Systems is selected should find it rather than silently returning
          nothing, and the catalog says when that has happened. */
       if (filter.subject && !terms.length && p.subject !== filter.subject) return false;
+
+      /* The coarse split the landing page links to: do you write code, or
+         answer a question. Like subject, a search overrides it — looking
+         for something by name should find it whichever door you came
+         through. */
+      if (filter.kind && !terms.length) {
+        const isCode = p.type === 'code';
+        if (filter.kind === 'code' && !isCode) return false;
+        if (filter.kind === 'questions' && isCode) return false;
+      }
       if (filter.topic      && p.topic      !== filter.topic)      return false;
       if (filter.difficulty && p.difficulty !== filter.difficulty) return false;
       if (filter.type       && p.type       !== filter.type)       return false;

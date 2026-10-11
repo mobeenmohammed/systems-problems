@@ -642,11 +642,58 @@ flat list of one track's problems, linked from the top of every tree, and
 index. Neither has a tab of its own any more, and both keep the Learn tab
 lit while you are in them.
 
+## The landing page, and where the dashboard went
+
+`#/` used to be a dashboard: rank, five stat pills, a streak line, a topic
+grid and half a year of activity, stacked *above* the two things anyone had
+actually come to click. All of that answers "how am I doing", which is a
+question with its own page, and none of it answers "what do I open", which
+is the one you have on arriving.
+
+So the landing page is one thing to carry on with and **four doors** —
+Questions, Coding exercises, Learn, Shop — each carrying the one number that
+says whether it is worth opening, counted from the catalogue rather than
+written down. Everything else moved to where it is actually useful:
+
+| was on the dashboard | is now on |
+| --- | --- |
+| Rank, the bar, the streak line | **Profile** |
+| Five stat pills | **Profile** |
+| The activity heatmap, with its legend | **Profile** |
+| The topic grid | gone — Problems filters by subject and topic |
+| **This week** | the rail beside **Problems** |
+| Anything due for revision | the rail beside **Problems** |
+| A strip of three tracks | the Learn door, which has all eleven |
+
+The weekly problem is a *problem*, so it belongs where you go looking for
+one. The rail sits beside the catalogue above 1100px and drops under it
+below.
+
+### Questions and Coding exercises
+
+The two problem doors are the one catalogue, split: `kind=questions` is
+everything that is not a coding exercise (72), `kind=code` is everything
+that is (37), and together they are all 109. It is a filter like any other
+— a **Kind** select sits beside Subject — and like Subject, a search
+overrides it, because looking for something by name should find it whichever
+door you came in through.
+
+### You, in the top right
+
+The top bar is down to two entries. Everything about you is behind the
+avatar: XP, coins, streak, and the way to Profile, Shop and Settings. The
+ring around it is progress to the next rank, which is the one number worth
+seeing from every page.
+
+It is a real menu rather than a hover trick — `aria-expanded` on the button,
+`role="menu"` on the panel, focus moves in on open, Escape closes it and
+puts focus back on the button, and a click anywhere outside closes it too.
+
 ## Tracks, the weekly problem, and resources
 
-With this many problems the hard part is choosing one, so the dashboard answers
-that twice — **Continue learning** and **This week** — and three data files back
-it up:
+With this many problems the hard part is choosing one, so the site answers
+that twice — **Continue learning** on the landing page and **This week** in
+the rail beside the catalogue — and three data files back it up:
 
 - **`data/tracks.json`** — ordered sets of problems that build on each other.
   Each card reports Not started, Attempted or Completed, and an untouched track
@@ -906,6 +953,7 @@ Chromium against a real site:
 | `tests/browser/maths.test.mjs` (`npm run test:maths`) | Subject as a filter over one catalogue, typesetting on the page, every one of the six answer formats, a syntax error costing no attempt, a wrong answer explaining the misconception, progressive hints, the figures, a written proof reaching **Self-reviewed** without ever being marked right, and the review being finishable from wherever revealing the model proof leaves you |
 | `tests/complete.test.mjs` | The C++ word lists driven directly: headers on `#include`, the header beside every `std::` name, declarations a regex can read and the ones it cannot, a known receiver getting only its own members, an unknown one getting every member labelled with its type, and staying quiet on one character |
 | `tests/browser/complete.test.mjs` | The same thing through real keystrokes, Rust included, plus the switch (off stops the popup but Ctrl+Space still works; one language can be off while another is on) and the keys it could have broken: Enter still Enter, Tab still indenting, Ctrl+Enter still running with a popup open, and the first Escape closing the popup without throwing you out of the editor |
+| `tests/browser/landing.test.mjs` (`npm run test:landing`) | The four doors and the numbers on them, a door landing on the catalogue already filtered, Kind and Subject narrowing together with search overriding both, the profile menu opening and closing by mouse, keyboard and Escape with focus going where it should, the rank ring moving, the weekly card in the rail at four widths, and every number that left the dashboard turning up on Profile |
 | `tests/browser/python.test.mjs` (`npm run test:py`) | Python in the browser with the runner address pointed at a dead port: the download and its progress, the platform differences stated above measured rather than asserted, a traceback that is the reader's and not the harness's, truncation of a flood of output, an infinite loop cut short and a valid program straight afterwards, Stop, a fresh namespace per case, a recorded solve, and a check that nothing was sent anywhere |
 | `tests/browser/learn.test.mjs` (`npm run test:learn`) | The track trees: that every node is drawn below everything it needs, across all eleven tracks; that the extra DAG edges are named rather than dropped and the node still drawn once; that a node lists exactly the problems resting on it; that a node is a shareable address; that ticking a reading there is the same tick as everywhere else; and that the old addresses still land somewhere |
 | `tests/browser/cxx.test.mjs` (`npm run test:cxx`) | C++ in the browser with the runner address pointed at a dead port: the download and its progress bar, a cold first run, submit-wrong-then-correct, a Clang compile error, an infinite loop cut short and a valid program straight afterwards, Stop, the cached second visit, a native-only problem refusing to pretend, and a check that nothing was sent anywhere |
@@ -982,7 +1030,7 @@ js/cxx/run.worker.js    one throwaway worker per test case
 js/runners/browsercpp.js  the browser C++ backend, with progress and Stop
 vendor/cxx/             90 MB of Clang, wasm-ld and a WASI sysroot
 js/setup.js             the "how do I run C++" guide, and its live probes
-js/views.js             dashboard, catalog, reading map, profile, shop, settings
+js/views.js             landing, catalog, learn, reading map, profile, shop, settings
 js/app.js               bootstrap, hash routing, shortcuts
 js/runners/hosted.js    the hosted backend, through the proxy
 vendor/codemirror.js    the prebuilt editor bundle (npm run build:editor)
@@ -1004,7 +1052,7 @@ scripts/check-responsive.mjs  both themes, ten widths, four root font sizes
 | Key | Action |
 | --- | --- |
 | `/` | Search the problems |
-| `g` | Dashboard |
+| `g` | The landing page |
 | `p` | Problems |
 | `r` | The concept index |
 | `l` | Learn (`t` still works) |

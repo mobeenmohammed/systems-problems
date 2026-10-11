@@ -70,8 +70,16 @@ const open = async hash => {
   await page.goto(`${BASE}/${hash}`, { waitUntil: 'networkidle' });
   await settle(900);
 };
+/* Profile, Shop and Settings live behind the avatar button now, so
+   clicking one means opening the menu first — which is what a person
+   does too. */
 const navClick = async href => {
-  await page.locator(`.topbar a[href="${href}"]`).first().click();
+  const link = page.locator(`.topbar a[href="${href}"]`).first();
+  if (await link.evaluate(a => !!a.closest('#meMenu'))) {
+    await page.locator('#meBtn').click();
+    await page.waitForTimeout(150);
+  }
+  await link.click();
   await settle();
 };
 
