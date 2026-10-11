@@ -619,22 +619,49 @@ already in the data, spread across two pages that did not know about each
 other: `data/tracks.json` listed the problems, every problem named the
 concepts it needs, and every concept named what it needs in turn.
 
-**Learn** joins them up. Pick a track and you get that closure as a tree,
-built by `Catalog.trackTree` rather than written down, so adding a problem to
-a track adds whatever it rests on to the tree. Pick a node and you get the
-two things you actually want in one place: **Read** — its readings, with the
-same checkboxes and the same stored progress as the concept index — and
-**Then try** — every problem that rests on it, with the ones outside this
-track folded away.
+**Learn** joins them up. The index is a card per track with what it is made
+of — **Resources**, **Questions**, **Problems**, each as done-of-total,
+counted over the track's whole concept closure so the card and the tree
+cannot disagree. A count of zero is left off rather than shown as `0 / 0`,
+which would imply there might be some.
+
+Pick a track and you get that closure as a **canvas**: boxes placed by
+`js/learn/layout.js`, edges drawn in SVG behind them, and one transform for
+pan and zoom so nothing reflows at a new scale. Drag to move, two buttons to
+zoom, Recenter to fit. The wheel is deliberately not bound — a canvas that
+eats the scroll wheel is a canvas you cannot scroll past, and this one sits
+in the middle of a page.
+
+Pick a node and a panel slides over the right of the canvas with the two
+things you actually want: a **Resources** table (tag, resource, section,
+done — the same checkboxes and the same stored progress as the concept
+index) and a **Questions** table (name, difficulty, and how hard it *felt*,
+which is your own figure from the problem page rather than a guess at it).
+
+### The layout, and what it claims
+
+One column per prerequisite depth, left to right. Everything in column 2
+rests on something in column 1 or earlier — that is the whole claim the
+picture makes, and `tests/learn-layout.test.mjs` checks it on all eleven
+real tracks as arithmetic, with no browser involved. Within a column the
+order comes from the usual barycentre sweep, two passes each way; it is a
+heuristic, not an optimum, because minimising crossings exactly is NP-hard
+and nobody needs it for twenty-two boxes.
 
 It is a DAG, not a tree: twelve of the 115 concepts have more than one
-prerequisite. Each node hangs under its **deepest** prerequisite, which
-guarantees everything a node needs is drawn above it, and the edges that did
-not become the parent are named on the node — *"Also rests on Open sets,
-Convergence in a metric space — drawn elsewhere in this tree"* — rather than
-deleted. A clean tree with the awkward edges removed would be a nicer picture
-and a false one. `tests/browser/learn.test.mjs` checks the ordering claim
-across all eleven tracks by reading depths out of the DOM.
+prerequisite. **Every** prerequisite edge is drawn, with the ones that are
+not the node's spine dashed rather than deleted, so a node with two parents
+has two lines going into it instead of one line and a footnote.
+
+### It had to stay keyboard-navigable
+
+There is no plainer list to fall back to — the canvas replaced it — so the
+canvas itself carries the keyboard and the screen reader. The boxes are real
+`<button>`s in a `role="tree"` with `aria-level` for the column, a roving
+tabindex so exactly one is tabbable, and arrow keys that walk it: up and down
+within a column, left to a prerequisite, right to something that rests on
+this. Each box's `aria-label` says its progress in words, because the bar
+under the name is three pixels tall and a screen reader cannot see it.
 
 The old pages are still there and still reachable: `#/tracks/<id>` is the
 flat list of one track's problems, linked from the top of every tree, and
@@ -955,7 +982,8 @@ Chromium against a real site:
 | `tests/browser/complete.test.mjs` | The same thing through real keystrokes, Rust included, plus the switch (off stops the popup but Ctrl+Space still works; one language can be off while another is on) and the keys it could have broken: Enter still Enter, Tab still indenting, Ctrl+Enter still running with a popup open, and the first Escape closing the popup without throwing you out of the editor |
 | `tests/browser/landing.test.mjs` (`npm run test:landing`) | The four doors and the numbers on them, a door landing on the catalogue already filtered, Kind and Subject narrowing together with search overriding both, the profile menu opening and closing by mouse, keyboard and Escape with focus going where it should, the rank ring moving, the weekly card in the rail at four widths, and every number that left the dashboard turning up on Profile |
 | `tests/browser/python.test.mjs` (`npm run test:py`) | Python in the browser with the runner address pointed at a dead port: the download and its progress, the platform differences stated above measured rather than asserted, a traceback that is the reader's and not the harness's, truncation of a flood of output, an infinite loop cut short and a valid program straight afterwards, Stop, a fresh namespace per case, a recorded solve, and a check that nothing was sent anywhere |
-| `tests/browser/learn.test.mjs` (`npm run test:learn`) | The track trees: that every node is drawn below everything it needs, across all eleven tracks; that the extra DAG edges are named rather than dropped and the node still drawn once; that a node lists exactly the problems resting on it; that a node is a shareable address; that ticking a reading there is the same tick as everywhere else; and that the old addresses still land somewhere |
+| `tests/learn-layout.test.mjs` | The canvas layout as arithmetic, no browser: a chain runs left to right, siblings stack without overlapping, every prerequisite is in an earlier column, the DAG edges are drawn and never drawn twice, a node reached twice is one box, the barycentre sweep untangles what it can, and all eleven real tracks lay out legally and identically on a second run |
+| `tests/browser/learn.test.mjs` (`npm run test:learn`) | The same claim read out of the DOM; the dashed extra edges and the lit ones; pan, zoom and Recenter; walking it with the arrow keys with one box tabbable at a time; the node panel's two tables and its columns; closing it without leaving the track; ticking a reading being the same tick as everywhere else; and that the old addresses still land somewhere |
 | `tests/browser/cxx.test.mjs` (`npm run test:cxx`) | C++ in the browser with the runner address pointed at a dead port: the download and its progress bar, a cold first run, submit-wrong-then-correct, a Clang compile error, an infinite loop cut short and a valid program straight afterwards, Stop, the cached second visit, a native-only problem refusing to pretend, and a check that nothing was sent anywhere |
 | `tests/browser/usability.test.mjs` | Buttons after a failure, a run in flight when the problem or language changes, the toolbar at five widths, every answer control being clickable where it looks, horizontal overflow on twelve routes at eight widths with the view links staying reachable, keyboard reach to hints/notes/solution, and the blast radius of a reset |
 
@@ -1031,6 +1059,7 @@ js/runners/browsercpp.js  the browser C++ backend, with progress and Stop
 vendor/cxx/             90 MB of Clang, wasm-ld and a WASI sysroot
 js/setup.js             the "how do I run C++" guide, and its live probes
 js/views.js             landing, catalog, learn, reading map, profile, shop, settings
+js/learn/layout.js      where each box goes on the Learn canvas
 js/app.js               bootstrap, hash routing, shortcuts
 js/runners/hosted.js    the hosted backend, through the proxy
 vendor/codemirror.js    the prebuilt editor bundle (npm run build:editor)

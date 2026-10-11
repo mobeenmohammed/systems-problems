@@ -523,20 +523,44 @@ const UI = (() => {
     detail.hidden = !tree;
     if (!tree) { renderLearnIndex(); return; }
 
-    $('#learnCrumb').textContent = tree.track.title;
     $('#learnTitle').textContent = tree.track.title;
     $('#learnGoal').textContent = tree.track.goal || tree.track.blurb || '';
     $('#learnProblems').href = `#/tracks/${tree.track.id}`;
 
-    /* Picking the first node by default, so the panel is never an empty
-       box next to a tree you have not clicked yet. */
+    /* Nothing is selected until something is clicked. The panel covers
+       most of the canvas, and opening it over the picture before the
+       reader has picked anything hides the thing they came to look at. */
     const flat = [];
     (function walk(ns) { for (const n of ns) { flat.push(n); walk(n.children); } })(tree.roots);
-    const picked = flat.find(n => n.id === conceptId) || flat[0] || null;
+    const picked = conceptId ? flat.find(n => n.id === conceptId) || null : null;
+
+    /* Read everything the track covers, not just the selected branch, so
+       the figure means the same thing as the one on the track card. */
+    const whole = flat.reduce((acc, n) => {
+      const p = nodeProgress(n);
+      return { done: acc.done + p.done, total: acc.total + p.total };
+    }, { done: 0, total: 0 });
+    $('#learnProgress').textContent = whole.total
+      ? `Progress ${Math.round((whole.done / whole.total) * 100)}%`
+      : 'Nothing to track yet';
 
     drawTree(tree, picked);
     drawNode(tree, picked);
+
+    /* Fit the graph the first time this track is drawn, and whenever the
+       reader lands straight on a node — but not on a redraw caused by
+       ticking a reading, which would throw away wherever they had
+       panned to. */
+    if (lastTrack !== tree.track.id) {
+      lastTrack = tree.track.id;
+      recenter();
+    }
+    if (picked) reveal(placed.nodes.find(n => n.id === picked.id));
   }
+
+  /* Which track the canvas is currently showing, so a redraw of the same
+     one does not reset the view. */
+  let lastTrack = null;
 
   function renderLearnIndex() {
     const host = $('#learnTracks');
@@ -574,6 +598,7 @@ const UI = (() => {
       el('div', { class: 'tracks' }, g.rows.map(t => {
         const prog = Catalog.trackProgress(t);
         const tree = Catalog.trackTree(t.id);
+        const counts = Catalog.trackCounts(t.id);
         const pct = Math.round(prog.fraction * 100);
         return el('a', {
           class: 'track-card', href: `#/learn/${t.id}`, 'data-state': prog.state,
@@ -589,79 +614,286 @@ const UI = (() => {
               el('span', { text: `${prog.done} of ${prog.total} solved` }),
               el('span', { class: 'faint', text: `${tree ? tree.size : 0} concepts` }),
             ]),
+            counts ? el('div', { class: 'track-counts' }, [
+              ['Resources', counts.resources],
+              ['Questions', counts.questions],
+              ['Problems', counts.problems],
+            ]
+              /* A 0 / 0 tile says there might be some. No mathematics
+                 problem is a coding exercise, so that one is left off
+                 those cards rather than shown empty. */
+              .filter(([, c]) => c.total > 0)
+              .map(([label, c]) => el('div', { class: 'track-count' }, [
+                el('span', { class: 'track-count-label', text: label }),
+                el('span', { class: 'track-count-value', text: `${c.done} / ${c.total}` }),
+              ]))) : null,
           ]),
         ]);
       })),
     ])));
   }
 
-  /* The tree. Nested lists, because that is what it is — a screen reader
-     gets the nesting for free and the indentation is not load-bearing. */
-  function drawTree(tree, picked) {
-    const host = $('#learnTreeHost');
+  /* ---------------- the canvas ----------------
 
-    const node = n => {
-      const prog = Catalog.treeProgress(n);
-      const mine = Catalog.readProgress(n.id);
-      const solvedHere = n.problems.filter(pr => {
-        const st = Store.record(pr.id).status;
-        return st === 'solved' || st === 'reviewed';
-      }).length;
+     Boxes where js/learn/layout.js put them, edges in an SVG behind
+     them, and one transform on the wrapper for pan and zoom so nothing
+     reflows when the scale changes.
 
-      /* Done means read everything and solved everything here, which is
-         the only claim the data can actually support. */
-      const state = !n.problems.length && !mine.total ? 'empty'
-        : (mine.read >= mine.total && solvedHere >= n.problems.length) ? 'done'
-          : (mine.read || solvedHere) ? 'started' : 'fresh';
+     Wheel is deliberately not bound. A canvas that eats the scroll
+     wheel is a canvas you cannot scroll past, and this one sits in the
+     middle of a page. Drag, the two buttons and the keyboard are
+     enough. */
 
-      const btn = el('button', {
-        type: 'button',
-        class: `tnode${n.id === (picked || {}).id ? ' on' : ''}`,
-        'data-state': state,
-        'data-concept': n.id,
-        'aria-current': n.id === (picked || {}).id ? 'true' : null,
-        onclick: () => { location.hash = `#/learn/${tree.track.id}/${n.id}`; },
-      }, [
-        el('span', { class: 'tnode-name', text: n.name }),
-        el('span', { class: 'tnode-counts tiny faint' }, [
-          mine.total ? el('span', { title: 'readings ticked' , text: `${mine.read}/${mine.total} read` }) : null,
-          n.problems.length ? el('span', { title: 'problems solved', text: `${solvedHere}/${n.problems.length} solved` }) : null,
-        ]),
-      ]);
+  const ZOOM = { min: 0.4, max: 1.6, step: 0.2 };
+  let view = { x: 0, y: 0, z: 1 };
+  let placed = null;
 
-      return el('li', { class: 'tbranch' }, [
-        btn,
-        n.children.length
-          ? el('ul', { class: 'tkids' }, n.children.map(node))
-          : null,
-      ]);
-    };
-
-    host.replaceChildren(el('ul', { class: 'ttree' }, tree.roots.map(node)));
+  function applyView() {
+    const pan = $('#learnPan');
+    if (pan) pan.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.z})`;
   }
 
-  function drawNode(tree, n) {
-    const host = $('#learnNodeHost');
-    if (!n) {
-      host.replaceChildren(el('div', { class: 'empty' }, [
-        el('p', { class: 'muted', text: 'This track rests on nothing that has been written up yet.' }),
-      ]));
-      return;
+  /* Centre the whole graph, or as much of it as fits. Also the answer to
+     "I have dragged it somewhere silly and cannot find it again". */
+  function recenter() {
+    const canvas = $('#learnCanvas');
+    if (!canvas || !placed || !placed.width) return;
+    const box = canvas.getBoundingClientRect();
+    const fit = Math.min(1, (box.width - 24) / placed.width, (box.height - 24) / placed.height);
+    view.z = Math.max(ZOOM.min, Math.min(ZOOM.max, fit || 1));
+    view.x = Math.max(0, (box.width - placed.width * view.z) / 2);
+    view.y = Math.max(0, (box.height - placed.height * view.z) / 2);
+    applyView();
+  }
+
+  function zoomBy(delta) {
+    const canvas = $('#learnCanvas');
+    if (!canvas) return;
+    const box = canvas.getBoundingClientRect();
+    const next = Math.max(ZOOM.min, Math.min(ZOOM.max, view.z + delta));
+    /* About the middle of what is on screen, so the thing you were
+       looking at stays roughly where it was. */
+    const cx = box.width / 2;
+    const cy = box.height / 2;
+    view.x = cx - ((cx - view.x) / view.z) * next;
+    view.y = cy - ((cy - view.y) / view.z) * next;
+    view.z = next;
+    applyView();
+  }
+
+  /* Bring a box into view without moving anything already visible —
+     what the arrow keys need. */
+  function reveal(pos) {
+    const canvas = $('#learnCanvas');
+    if (!canvas || !pos) return;
+    const box = canvas.getBoundingClientRect();
+    const pad = 24;
+    const left = pos.x * view.z + view.x;
+    const top = pos.y * view.z + view.y;
+    const right = left + pos.w * view.z;
+    const bottom = top + pos.h * view.z;
+
+    if (left < pad) view.x += pad - left;
+    else if (right > box.width - pad) view.x -= right - (box.width - pad);
+    if (top < pad) view.y += pad - top;
+    else if (bottom > box.height - pad) view.y -= bottom - (box.height - pad);
+    applyView();
+  }
+
+  function nodeProgress(n) {
+    const read = Catalog.readProgress(n.id);
+    const solved = n.problems.filter(pr => {
+      const st = Store.record(pr.id).status;
+      return st === 'solved' || st === 'reviewed';
+    }).length;
+    const total = read.total + n.problems.length;
+    const done = read.read + solved;
+    return { read, solved, total, done, pct: total ? Math.round((done / total) * 100) : 0 };
+  }
+
+  function drawTree(tree, picked) {
+    const nodesHost = $('#learnNodes');
+    const svg = $('#learnEdges');
+    if (!nodesHost || !svg) return;
+
+    placed = LearnLayout.layout(tree);
+
+    svg.setAttribute('width', placed.width);
+    svg.setAttribute('height', placed.height);
+    svg.setAttribute('viewBox', `0 0 ${placed.width} ${placed.height}`);
+    svg.replaceChildren(...placed.edges.map(e => {
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', e.path);
+      path.dataset.from = e.from;
+      path.dataset.to = e.to;
+      if (e.extra) path.dataset.extra = 'true';
+      return path;
+    }));
+
+    nodesHost.style.width = `${placed.width}px`;
+    nodesHost.style.height = `${placed.height}px`;
+
+    const chosen = (picked || {}).id;
+    nodesHost.replaceChildren(...placed.nodes.map(pos => {
+      const n = pos.node;
+      const p = nodeProgress(n);
+      return el('button', {
+        type: 'button',
+        class: 'lnode',
+        role: 'treeitem',
+        'aria-level': String(pos.col + 1),
+        'aria-selected': String(n.id === chosen),
+        'data-concept': n.id,
+        'data-state': p.total && p.done >= p.total ? 'done' : 'open',
+        /* The numbers in words: the bar is three pixels tall and a
+           screen reader cannot see it at all. */
+        'aria-label': `${n.name}. ${p.read.read} of ${p.read.total} readings read, `
+          + `${p.solved} of ${n.problems.length} problems solved.`,
+        tabindex: n.id === chosen ? '0' : '-1',
+        style: `left:${pos.x}px; top:${pos.y}px; width:${pos.w}px; height:${pos.h}px`,
+        onclick: () => { location.hash = `#/learn/${tree.track.id}/${n.id}`; },
+      }, [
+        el('span', { class: 'lnode-name', text: n.name }),
+        p.total ? el('div', { class: 'bar' }, [el('i', { style: `width:${p.pct}%` })]) : null,
+      ]);
+    }));
+
+    litEdges(chosen);
+  }
+
+  /* The edges into and out of the selected box, so what you picked shows
+     what it rests on without anyone reading the panel. */
+  function litEdges(id) {
+    const svg = $('#learnEdges');
+    if (!svg) return;
+    for (const path of svg.querySelectorAll('path')) {
+      if (id && (path.dataset.from === id || path.dataset.to === id)) path.dataset.lit = 'true';
+      else delete path.dataset.lit;
+    }
+  }
+
+  /* ---------------- walking it with the keyboard ----------------
+
+     Up and down move within a column, left and right across them, which
+     is what the picture looks like it should do. Left goes to a
+     prerequisite rather than to whatever happens to be alongside,
+     because that is the more useful answer and the one the arrow points
+     at. */
+
+  function neighbour(from, key) {
+    if (!placed) return null;
+    const here = placed.nodes.find(n => n.id === from);
+    if (!here) return null;
+
+    const sameCol = placed.nodes.filter(n => n.col === here.col)
+      .sort((a, b) => a.row - b.row);
+    const at = sameCol.indexOf(here);
+
+    if (key === 'ArrowDown') return sameCol[at + 1] || null;
+    if (key === 'ArrowUp') return sameCol[at - 1] || null;
+    if (key === 'Home') return placed.nodes.filter(n => n.col === 0)[0] || null;
+    if (key === 'End') {
+      const last = Math.max(...placed.nodes.map(n => n.col));
+      return placed.nodes.filter(n => n.col === last)[0] || null;
     }
 
+    const step = key === 'ArrowLeft' ? 'to' : key === 'ArrowRight' ? 'from' : null;
+    if (!step) return null;
+    const other = step === 'to' ? 'from' : 'to';
+    return placed.edges
+      .filter(e => e[step] === here.id)
+      .map(e => placed.nodes.find(n => n.id === e[other]))
+      .filter(Boolean)
+      .sort((a, b) => Math.abs(a.row - here.row) - Math.abs(b.row - here.row))[0] || null;
+  }
+
+  function focusNode(id) {
+    const btn = document.querySelector(`.lnode[data-concept="${id}"]`);
+    if (!btn) return;
+    for (const other of document.querySelectorAll('.lnode')) other.tabIndex = -1;
+    btn.tabIndex = 0;
+    btn.focus();
+    reveal(placed.nodes.find(n => n.id === id));
+  }
+
+  function wireCanvas() {
+    const canvas = $('#learnCanvas');
+    const nodes = $('#learnNodes');
+    if (!canvas || !nodes) return;
+
+    $('#learnZoomIn').addEventListener('click', () => zoomBy(ZOOM.step));
+    $('#learnZoomOut').addEventListener('click', () => zoomBy(-ZOOM.step));
+    $('#learnRecenter').addEventListener('click', () => recenter());
+
+    /* Pan. Pointer events, so a trackpad, a mouse and a finger all
+       behave the same, and capture so a drag that leaves the canvas
+       still ends when the button comes up. */
+    let dragging = null;
+    canvas.addEventListener('pointerdown', e => {
+      if (e.target.closest('.lnode, .learn-zoom, .learn-panel')) return;
+      dragging = { id: e.pointerId, x: e.clientX - view.x, y: e.clientY - view.y };
+      canvas.setPointerCapture(e.pointerId);
+      canvas.dataset.dragging = 'true';
+    });
+    canvas.addEventListener('pointermove', e => {
+      if (!dragging || e.pointerId !== dragging.id) return;
+      view.x = e.clientX - dragging.x;
+      view.y = e.clientY - dragging.y;
+      applyView();
+    });
+    const stop = e => {
+      if (!dragging || e.pointerId !== dragging.id) return;
+      dragging = null;
+      delete canvas.dataset.dragging;
+    };
+    canvas.addEventListener('pointerup', stop);
+    canvas.addEventListener('pointercancel', stop);
+
+    nodes.addEventListener('keydown', e => {
+      const btn = e.target.closest('.lnode');
+      if (!btn) return;
+      const next = neighbour(btn.dataset.concept, e.key);
+      if (!next) return;
+      e.preventDefault();
+      focusNode(next.id);
+    });
+  }
+
+  /* ---------------- the node panel ---------------- */
+
+  /* How hard it felt, which is the reader's own figure from the problem
+     page rather than a guess at it. */
+  const FELT = ['Easy', 'Fine', 'Work', 'Hard', 'Brutal'];
+
+  function drawNode(tree, n) {
+    const host = $('#learnPanel');
+    if (!host) return;
+
+    if (!n) {
+      host.hidden = true;
+      host.replaceChildren();
+      return;
+    }
+    host.hidden = false;
+    host.className = 'learn-panel lpanel';
+
     const topic = Store.TOPIC_BY_ID[n.topic];
+    const p = nodeProgress(n);
+
     const parts = [
-      el('div', { class: 'lnode-head' }, [
+      el('div', { class: 'lpanel-head' }, [
         el('h2', { text: n.name }),
-        topic ? el('a', {
-          class: 'chip-link tiny', href: `#/problems?topic=${n.topic}`, text: topic.label,
-        }) : null,
+        el('button', {
+          class: 'lpanel-close', type: 'button', 'aria-label': 'Close',
+          onclick: () => { location.hash = `#/learn/${tree.track.id}`; },
+        }, ['×']),
       ]),
-      n.oneLine ? el('p', { class: 'muted', html: MD.renderInline(n.oneLine) }) : null,
+      topic ? el('a', {
+        class: 'chip-link tiny', href: `#/problems?topic=${n.topic}`, text: topic.label,
+      }) : null,
+      n.oneLine ? el('p', { class: 'muted small', html: MD.renderInline(n.oneLine) }) : null,
     ];
 
-    /* The edges that did not become this node's parent in the tree. Saying
-       so is the honest alternative to drawing a tree that is not one. */
     if (n.alsoNeeds.length) {
       parts.push(el('p', { class: 'tiny faint' }, [
         'Also rests on ',
@@ -669,21 +901,35 @@ const UI = (() => {
           i ? ', ' : '',
           el('a', { href: `#/learn/${tree.track.id}/${a.id}`, text: a.name }),
         ]),
-        ' — drawn elsewhere in this tree.',
+        '.',
       ]));
     }
 
-    /* ---- readings ---- */
-    parts.push(el('h3', { class: 'lnode-sub', text: 'Read' }));
+    parts.push(el('div', { class: 'lpanel-sub' }, [
+      el('span', { text: 'Resources' }),
+      el('span', { text: `${p.read.read}/${p.read.total}` }),
+    ]));
+
     if (!n.readings.length) {
       parts.push(el('p', { class: 'tiny faint', text: 'Nothing listed for this one yet.' }));
     } else {
-      const list = el('div', { class: 'readings' });
-      n.readings.forEach((rd, i) => {
-        const done = Store.hasRead(n.id, i);
-        list.append(el('label', { class: `reading${done ? ' done' : ''}` }, [
-          el('input', {
-            type: 'checkbox', checked: done,
+      parts.push(el('table', {}, [
+        el('thead', {}, [el('tr', {}, [
+          el('th', { text: 'Tag' }), el('th', { text: 'Resource' }),
+          el('th', { text: 'Section' }), el('th', { text: 'Done' }),
+        ])]),
+        el('tbody', {}, n.readings.map((rd, i) => el('tr', {}, [
+          el('td', {}, [rd.kind ? el('span', { class: 'kind', text: rd.kind }) : null]),
+          el('td', {}, [rd.url
+            ? el('a', {
+              href: MD.safeHref(rd.url), target: '_blank',
+              rel: 'noopener noreferrer', text: rd.title,
+            })
+            : el('span', { text: rd.title })]),
+          el('td', { class: 'tiny faint', text: rd.where || '' }),
+          el('td', {}, [el('input', {
+            type: 'checkbox', checked: Store.hasRead(n.id, i) || undefined,
+            'aria-label': `Read: ${rd.title}`,
             onchange: e => {
               for (const a of Store.markReading(n.id, i, e.target.checked)) {
                 toast(`Unlocked: ${a.label}`, 'good');
@@ -691,37 +937,42 @@ const UI = (() => {
               renderLearn(tree.track.id, n.id);
               refreshPurse();
             },
-          }),
-          rd.kind ? el('span', { class: 'kind', text: rd.kind }) : null,
-          rd.url
-            ? el('a', {
-              class: 'title', href: MD.safeHref(rd.url),
-              target: '_blank', rel: 'noopener noreferrer', text: rd.title,
-            })
-            : el('span', { class: 'title', text: rd.title }),
-          rd.where ? el('span', { class: 'where', text: rd.where }) : null,
-        ]));
-      });
-      parts.push(list);
+          })]),
+        ]))),
+      ]));
     }
 
-    /* ---- problems ---- */
-    const own = new Set(tree.track.problems);
-    const here = n.problems.filter(pr => own.has(pr.id));
-    const elsewhere = n.problems.filter(pr => !own.has(pr.id));
+    parts.push(el('div', { class: 'lpanel-sub' }, [
+      el('span', { text: 'Questions' }),
+      el('span', { text: `${p.solved}/${n.problems.length}` }),
+    ]));
 
-    parts.push(el('h3', { class: 'lnode-sub', text: 'Then try' }));
     if (!n.problems.length) {
       parts.push(el('p', { class: 'tiny faint', text: 'No problem rests on this one yet.' }));
     } else {
-      if (here.length) parts.push(el('div', { class: 'plist tight' }, here.map(pr => problemRow(pr))));
-      if (elsewhere.length) {
-        parts.push(el('details', { class: 'lnode-more' }, [
-          el('summary', { class: 'tiny faint',
-            text: `${elsewhere.length} more outside this track` }),
-          el('div', { class: 'plist tight' }, elsewhere.map(pr => problemRow(pr))),
-        ]));
-      }
+      const own = new Set(tree.track.problems);
+      const rows = [...n.problems]
+        .sort((a, b) => (own.has(b.id) ? 1 : 0) - (own.has(a.id) ? 1 : 0));
+      parts.push(el('table', {}, [
+        el('thead', {}, [el('tr', {}, [
+          el('th', { text: 'Name' }), el('th', { text: 'Difficulty' }),
+          el('th', { text: 'Felt' }),
+        ])]),
+        el('tbody', {}, rows.map(pr => {
+          const r = Store.record(pr.id);
+          const diff = Store.DIFF_BY_ID[pr.difficulty];
+          return el('tr', { 'data-status': r.status }, [
+            el('td', {}, [
+              el('a', { href: `#/p/${pr.id}`, text: pr.title }),
+              own.has(pr.id) ? null : el('span', { class: 'tiny faint', text: ' · elsewhere' }),
+            ]),
+            el('td', {}, [el('span', {
+              class: `diff diff-${pr.difficulty}`, text: (diff || {}).label || '',
+            })]),
+            el('td', { class: 'tiny faint', text: r.perceived ? FELT[r.perceived - 1] : '—' }),
+          ]);
+        })),
+      ]));
     }
 
     host.replaceChildren(...parts.filter(Boolean));
@@ -1882,6 +2133,7 @@ const UI = (() => {
 
   function wire() {
     wireMe();
+    wireCanvas();
     wireCatalog();
     wireConcepts();
     wireShop();

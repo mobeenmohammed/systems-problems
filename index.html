@@ -194,21 +194,38 @@
     </div>
 
     <div id="learnTrack" hidden>
-      <nav class="crumbs" aria-label="Breadcrumb">
-        <a href="#/learn">Learn</a>
-        <span aria-hidden="true">/</span>
-        <span id="learnCrumb"></span>
-      </nav>
-      <div class="learn-head">
-        <div>
-          <h1 id="learnTitle"></h1>
-          <p class="muted" id="learnGoal"></p>
-        </div>
+      <div class="learn-bar">
+        <a class="btn btn-sm btn-ghost" href="#/learn">&larr; Back</a>
+        <button class="btn btn-sm btn-ghost" type="button" id="learnRecenter">Recenter</button>
+        <h1 id="learnTitle"></h1>
+        <span class="learn-progress" id="learnProgress"></span>
         <a class="btn btn-sm" id="learnProblems" href="#/problems">All its problems</a>
       </div>
-      <div class="learn-wrap">
-        <div class="learn-tree card" id="learnTreeHost" role="tree" aria-label="Prerequisites"></div>
-        <div class="learn-node card" id="learnNodeHost" aria-live="polite"></div>
+      <p class="muted small learn-goal" id="learnGoal"></p>
+
+      <!-- The canvas. The boxes are real buttons in a role="tree", so the
+           picture is also a list you can walk with the arrow keys — there
+           is no second, plainer view to fall back to, so this one has to
+           carry the keyboard and the screen reader itself. -->
+      <div class="learn-canvas" id="learnCanvas">
+        <div class="learn-pan" id="learnPan">
+          <svg class="learn-edges" id="learnEdges" aria-hidden="true"
+               xmlns="http://www.w3.org/2000/svg"></svg>
+          <div class="learn-nodes" id="learnNodes" role="tree"
+               aria-label="What this track rests on"></div>
+        </div>
+        <p class="learn-hint tiny faint" id="learnHint">
+          Drag to move. Arrow keys walk the tree; Enter opens a node.
+        </p>
+        <div class="learn-zoom">
+          <button class="btn btn-sm" type="button" id="learnZoomOut" aria-label="Zoom out">&minus;</button>
+          <button class="btn btn-sm" type="button" id="learnZoomIn" aria-label="Zoom in">+</button>
+        </div>
+
+        <!-- Inside the canvas, so it is positioned against it and clipped
+             by it: a panel that escapes its own frame ends up behind the
+             top bar, which is exactly what happened first time. -->
+        <aside class="learn-panel" id="learnPanel" aria-label="Concept" hidden></aside>
       </div>
     </div>
   </section>
@@ -528,6 +545,7 @@
 <script src="js/maths/figures.js"></script>
 <script src="js/md.js"></script>
 <script src="js/highlight.js"></script>
+<script src="js/learn/layout.js"></script>
 <script src="js/catalog.js"></script>
 <script src="js/runners/harness.js"></script>
 <script src="js/runners/hosted.js"></script>

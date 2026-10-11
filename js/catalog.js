@@ -428,6 +428,46 @@ const Catalog = (() => {
     return treeCache[trackId];
   }
 
+  /* What a track is made of, for its card: readings, questions and
+     coding exercises, each as done-of-total.
+
+     Counted over the track's whole concept closure rather than its
+     problem list, because that is what the tree shows and the two
+     numbers disagreeing on the same page would be worse than either. */
+  function trackCounts(trackId) {
+    const tree = trackTree(trackId);
+    if (!tree) return null;
+
+    const seen = new Set();
+    const out = {
+      resources: { done: 0, total: 0 },
+      questions: { done: 0, total: 0 },
+      problems: { done: 0, total: 0 },
+    };
+
+    (function walk(nodes) {
+      for (const n of nodes) {
+        const r = readProgress(n.id);
+        out.resources.done += r.read;
+        out.resources.total += r.total;
+
+        for (const pr of n.problems) {
+          /* A problem resting on two concepts in the same track is one
+             problem, not two. */
+          if (seen.has(pr.id)) continue;
+          seen.add(pr.id);
+          const bucket = pr.type === 'code' ? out.problems : out.questions;
+          bucket.total += 1;
+          const st = Store.record(pr.id).status;
+          if (st === 'solved' || st === 'reviewed') bucket.done += 1;
+        }
+        walk(n.children);
+      }
+    })(tree.roots);
+
+    return out;
+  }
+
   /* Readings ticked and problems solved beneath a node, itself included.
      Walked rather than stored, because both move as you work. */
   function treeProgress(node) {
@@ -557,7 +597,7 @@ const Catalog = (() => {
     init, all, meta, list, sorted, get, solution,
     concept, allConcepts, chain, prereqsFor, readProgress,
     allTracks, track, trackProgress, thisWeek, topicResources, allResources,
-    counts, nextUp, problemsForConcept, readStatus, trackTree, treeProgress,
+    counts, nextUp, problemsForConcept, readStatus, trackTree, treeProgress, trackCounts,
     TYPES, TYPE_BY_ID, TRACK_STATE_LABEL, READ_STATE_LABEL,
     get loadError() { return loadError; },
   };
