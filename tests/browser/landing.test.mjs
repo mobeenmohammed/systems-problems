@@ -41,68 +41,237 @@ const open = async (hash, wait = 1100) => {
   await page.waitForTimeout(wait);
 };
 
-/* ---------------- the landing page ---------------- */
+/* ---------------- the front page ---------------- */
 
-section('the landing page is doors, not a dashboard');
+section('the front page introduces the site rather than listing it');
 await open('#/');
 {
   const m = await page.evaluate(() => ({
-    doors: [...document.querySelectorAll('#landingGrid .door')].map(d => ({
-      title: d.querySelector('h3').textContent,
-      href: d.getAttribute('href'),
-      count: (d.querySelector('.door-count') || {}).textContent || '',
-      blurb: (d.querySelector('.door-blurb') || {}).textContent || '',
+    title: (document.querySelector('.hero-title') || {}).textContent || '',
+    sub: (document.querySelector('.hero-sub') || {}).textContent || '',
+    strands: [...document.querySelectorAll('.hero-strands li')].map(l => l.textContent.trim()),
+    cta: [...document.querySelectorAll('#homeCta .btn')]
+      .map(b => ({ text: b.textContent.trim(), href: b.getAttribute('href') })),
+    tiles: [...document.querySelectorAll('.htile')].map(t => ({
+      title: t.querySelector('h3').textContent,
+      href: t.getAttribute('href'),
+      blurb: t.querySelector('p').textContent,
+      art: !!t.querySelector('.htile-art svg'),
     })),
-    carryOn: !!document.querySelector('#landingContinue .action'),
-    /* The things that moved out. */
-    gone: ['homeRank', 'homeStats', 'homeHeat', 'homeTopics', 'homeActions', 'homeTracks']
+    steps: [...document.querySelectorAll('.home-steps h3')].map(h => h.textContent),
+    feats: [...document.querySelectorAll('.feat h3')].map(h => h.textContent),
+    /* The things this page is not. A list of problems on it would be the
+       catalogue arriving a page early, which is what it replaced. */
+    rows: document.querySelectorAll('#view-home .prow').length,
+    doors: document.querySelectorAll('#view-home .door').length,
+    gone: ['landingGrid', 'landingContinue', 'homeRank', 'homeStats', 'homeHeat']
       .filter(id => document.getElementById(id)),
-    nav: [...document.querySelectorAll('#nav a')].map(a => a.textContent.trim()),
   }));
 
-  check('four doors', m.doors.length, 4);
-  check('Questions, Coding exercises, Learn, Shop',
-    m.doors.map(d => d.title).join(', '),
-    'Questions, Coding exercises, Learn, Shop');
-  ok('each goes somewhere real', m.doors.every(d => /^#\//.test(d.href)));
-  ok('each says how far through it you are',
-    m.doors.every(d => /\d+\s*\/\s*\d+/.test(d.count)));
-  ok('and each says what it is for', m.doors.every(d => d.blurb.length > 40));
-  ok('one thing to carry on with', m.carryOn);
-  check('nothing from the dashboard was left behind', m.gone, []);
-  check('and the top bar is down to two entries', m.nav.join(', '), 'Problems, Learn');
-  if (process.env.SHOTS) await page.screenshot({ path: path.join(SHOTS, 'landing.png') });
+  ok(`it leads with what the site is ("${m.title.trim().slice(0, 40)}…")`, m.title.length > 20);
+  ok('and a line under it saying what you get', m.sub.length > 60);
+  check('four strands named', m.strands.length, 4);
+  ok('mathematics among them', m.strands.some(x => /Mathematics/i.test(x)));
+
+  check('two things to press', m.cta.length, 2);
+  ok('one of them starts you solving',
+    m.cta.some(b => /^#\/(problems|p\/)/.test(b.href || '')));
+  ok('the other goes to the tracks', m.cta.some(b => b.href === '#/learn'));
+
+  check('four drawings of what is inside', m.tiles.length, 4);
+  ok('each is drawn rather than described', m.tiles.every(t => t.art));
+  ok('each says what it stands for', m.tiles.every(t => t.blurb.length > 60));
+  ok('and each is a door to the real thing', m.tiles.every(t => /^#\//.test(t.href || '')));
+
+  check('three steps, in the order they happen', m.steps.length, 3);
+  ok('three things it claims to do', m.feats.length === 3);
+
+  check('no problem list on it', m.rows, 0);
+  check('and none of the doors it replaced', m.doors, 0);
+  check('nothing from the old landing page was left behind', m.gone, []);
+  if (process.env.SHOTS) {
+    await page.screenshot({ path: path.join(SHOTS, 'landing.png'), fullPage: true });
+  }
 }
 
-section('the two problem doors are the catalogue, split');
+section('the numbers on it are counted, not written down');
 {
-  const counts = await page.evaluate(() => {
-    const all = window.SystemsLab.Catalog.all();
-    const door = t => [...document.querySelectorAll('#landingGrid .door')]
-      .find(d => d.querySelector('h3').textContent === t);
-    const total = d => Number((d.querySelector('.door-count').textContent.split('/')[1] || '').trim());
+  const m = await page.evaluate(() => {
+    const n = window.SystemsLab.Catalog.counts();
+    const facts = [...document.querySelectorAll('#homeFacts .fact')].map(f => ({
+      value: Number(f.querySelector('.fact-n').textContent.replace(/[^0-9]/g, '')),
+      label: f.querySelector('.fact-k').textContent,
+    }));
+    return { facts, real: n };
+  });
+  const by = word => (m.facts.find(f => f.label.includes(word)) || {}).value;
+  check('problems', by('problem'), m.real.problems);
+  check('topics', by('topics'), m.real.topics);
+  check('concepts', by('concepts'), m.real.concepts);
+  check('readings', by('readings'), m.real.readings);
+  check('languages', by('languages'), m.real.languages);
+  ok('every one of them is a real number',
+    m.facts.length === 5 && m.facts.every(f => Number.isFinite(f.value) && f.value > 0));
+}
+
+section('the main button knows whether you have been here before');
+{
+  const fresh = await page.evaluate(() => {
+    const b = document.querySelector('#homeCta .btn-primary');
+    return { text: b.textContent.trim(), href: b.getAttribute('href') };
+  });
+  check('a first visit is offered a beginning', fresh.text, 'Start solving');
+  check('into the catalogue', fresh.href, '#/problems');
+
+  /* One problem left part-finished. Written straight into the store and
+     reloaded, because page.goto to the hash the page is already on is a
+     same-document navigation: the live store would paint over it. */
+  const seeded = await page.evaluate(() => {
+    const t = window.SystemsLab.Catalog.allTracks().find(x => (x.problems || []).length > 1);
+    const id = t.problems[0];
+    localStorage.setItem('invariant/state/v1',
+      JSON.stringify({ progress: { [id]: { status: 'attempted' } } }));
+    return id;
+  });
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForTimeout(900);
+
+  const back = await page.evaluate(() => {
+    const b = document.querySelector('#homeCta .btn-primary');
+    const note = document.querySelector('#homeCta .hero-cta-note a');
     return {
-      questions: total(door('Questions')),
-      coding: total(door('Coding exercises')),
-      realQuestions: all.filter(p => p.type !== 'code').length,
-      realCoding: all.filter(p => p.type === 'code').length,
+      text: b.textContent.trim(), href: b.getAttribute('href'),
+      note: note ? note.textContent.trim() : '',
     };
   });
-  check('Questions counts the non-code problems', counts.questions, counts.realQuestions);
-  check('Coding exercises counts the code ones', counts.coding, counts.realCoding);
-  ok('and together they are the whole catalogue',
-    counts.questions + counts.coding === await page.evaluate(
-      () => window.SystemsLab.Catalog.all().length));
+  check(`a returning one is offered the thing they left (${seeded})`, back.text, 'Carry on');
+  ok(`and it points at a problem (${back.href})`, /^#\/p\/.+/.test(back.href));
+  ok(`named, so it is a promise about something (${back.note})`, back.note.length > 3);
+
+  await page.evaluate(() => localStorage.clear());
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForTimeout(700);
 }
 
-section('a door lands on the catalogue already filtered');
+section('carrying on moved to the catalogue, where the problems are');
+await open('#/problems');
 {
-  for (const [title, kind, want] of [
-    ['Questions', 'questions', p => p.type !== 'code'],
-    ['Coding exercises', 'code', p => p.type === 'code'],
-  ]) {
+  const m = await page.evaluate(() => ({
+    heads: [...document.querySelectorAll('#catalogRail .rail-head')].map(h => h.textContent),
+    cards: document.querySelectorAll('#catalogRail .action').length,
+  }));
+  ok(`the rail still has this week's problem (${m.heads.join(', ')})`,
+    m.heads.includes('This week'));
+  ok('and the rail is where the carry-on card went', m.cards >= 1);
+}
+
+/* ---------------- the Content menu ---------------- */
+
+section('one entry in the bar, and it opens on everything');
+await open('#/');
+{
+  const shut = await page.evaluate(() => ({
+    links: [...document.querySelectorAll('#nav > a')].length,
+    buttons: [...document.querySelectorAll('#nav button')].map(b => b.textContent.trim()),
+    hidden: document.getElementById('contentPanel').hidden,
+    expanded: document.getElementById('contentBtn').getAttribute('aria-expanded'),
+  }));
+  check('no bare links left in the bar itself', shut.links, 0);
+  check('one button, and it is Content', shut.buttons.join(','), 'Content');
+  ok('the panel starts closed', shut.hidden);
+  check('and says so', shut.expanded, 'false');
+
+  await page.hover('#contentBtn');
+  await page.waitForTimeout(400);
+  const open1 = await page.evaluate(() => ({
+    hidden: document.getElementById('contentPanel').hidden,
+    expanded: document.getElementById('contentBtn').getAttribute('aria-expanded'),
+    cols: [...document.querySelectorAll('.navmenu-col-head')].map(h => h.textContent),
+    items: [...document.querySelectorAll('.navmenu-item')].map(a => ({
+      label: a.querySelector('.navmenu-title').childNodes[0].textContent.trim(),
+      href: a.getAttribute('href'),
+      blurb: a.querySelector('.navmenu-blurb').textContent,
+      icon: !!a.querySelector('.navmenu-icon'),
+    })),
+  }));
+  ok('hovering opens it', !open1.hidden);
+  check('and says so', open1.expanded, 'true');
+  check('three columns', open1.cols.length, 3);
+  ok(`grouped (${open1.cols.join(', ')})`, open1.cols.join(',') === 'Practice,Guided,You');
+  ok(`every place the site goes is in it (${open1.items.length})`, open1.items.length >= 8);
+  ok('each has a line saying what it is for',
+    open1.items.every(i => i.blurb.length > 10));
+  ok('each has an icon', open1.items.every(i => i.icon));
+  ok('each goes somewhere real', open1.items.every(i => /^#\//.test(i.href || '')));
+  for (const want of ['Problems', 'Questions', 'Coding exercises', 'Learn', 'Reading',
+    'Profile', 'Shop', 'Running code']) {
+    ok(`${want} is in it`, open1.items.some(i => i.label === want));
+  }
+  if (process.env.SHOTS) await page.screenshot({ path: path.join(SHOTS, 'content-menu.png') });
+}
+
+section('the counts beside the entries are the catalogue, not a guess');
+{
+  const m = await page.evaluate(() => {
+    const all = window.SystemsLab.Catalog.all();
+    const n = a => Number((a.querySelector('.navmenu-count') || {}).textContent || NaN);
+    const by = label => [...document.querySelectorAll('.navmenu-item')]
+      .find(a => a.querySelector('.navmenu-title').childNodes[0].textContent.trim() === label);
+    return {
+      problems: n(by('Problems')),
+      questions: n(by('Questions')),
+      coding: n(by('Coding exercises')),
+      realAll: all.length,
+      realQuestions: all.filter(p => p.type !== 'code').length,
+      realCoding: all.filter(p => p.type === 'code').length,
+      concepts: n(by('Reading')),
+      realConcepts: window.SystemsLab.Catalog.allConcepts().length,
+    };
+  });
+  check('Problems counts the catalogue', m.problems, m.realAll);
+  check('Questions counts the non-code ones', m.questions, m.realQuestions);
+  check('Coding exercises counts the code ones', m.coding, m.realCoding);
+  ok('and the two halves are the whole', m.questions + m.coding === m.realAll);
+  check('Reading counts the concepts', m.concepts, m.realConcepts);
+}
+
+section('it can be worked without a mouse');
+{
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(250);
+  await page.locator('#contentBtn').click();
+  await page.waitForTimeout(300);
+  ok('click opens it too', await page.evaluate(() =>
+    !document.getElementById('contentPanel').hidden));
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(250);
+  const afterEsc = await page.evaluate(() => ({
+    hidden: document.getElementById('contentPanel').hidden,
+    focus: document.activeElement.id,
+  }));
+  ok('Escape shuts it', afterEsc.hidden);
+  check('and gives the focus back to the button', afterEsc.focus, 'contentBtn');
+
+  /* Enter on the button, then Tab into the panel: the whole menu has to be
+     reachable, because it is now the only way to the rest of the site. */
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(300);
+  await page.keyboard.press('Tab');
+  const landed = await page.evaluate(() => ({
+    tag: document.activeElement.tagName,
+    inPanel: !!document.activeElement.closest('#contentPanel'),
+    href: document.activeElement.getAttribute('href'),
+  }));
+  ok(`Tab lands inside the panel (${landed.tag} ${landed.href})`, landed.inPanel);
+}
+
+section('a menu entry lands on the catalogue already filtered');
+{
+  for (const [label, kind] of [['Questions', 'questions'], ['Coding exercises', 'code']]) {
     await open('#/');
-    await page.locator('#landingGrid .door', { hasText: title }).first().click();
+    await page.hover('#contentBtn');
+    await page.waitForTimeout(350);
+    await page.locator('.navmenu-item', { hasText: label }).first().click();
     await page.waitForTimeout(900);
     const m = await page.evaluate(k => ({
       hash: location.hash,
@@ -111,13 +280,30 @@ section('a door lands on the catalogue already filtered');
       expected: window.SystemsLab.Catalog.all()
         .filter(p => (k === 'code' ? p.type === 'code' : p.type !== 'code')).length,
       count: document.getElementById('catalogCount').textContent,
+      menuShut: document.getElementById('contentPanel').hidden,
     }), kind);
-    ok(`${title} goes to the catalogue (${m.hash})`, m.hash.includes('kind=' + kind));
-    check(`${title}: the filter is set`, m.sel, kind);
-    check(`${title}: the list is filtered`, m.rows, m.expected);
-    ok(`${title}: and the count says so in English ("${m.count}")`,
+    ok(`${label} goes to the catalogue (${m.hash})`, m.hash.includes('kind=' + kind));
+    check(`${label}: the filter is set`, m.sel, kind);
+    check(`${label}: the list is filtered`, m.rows, m.expected);
+    ok(`${label}: and the count says so in English ("${m.count}")`,
       /\d+ (questions|coding exercises)/.test(m.count));
+    ok(`${label}: the menu does not follow you there`, m.menuShut);
   }
+}
+
+section('the menu says which page you are on');
+{
+  await open('#/learn');
+  await page.hover('#contentBtn');
+  await page.waitForTimeout(350);
+  const m = await page.evaluate(() => ({
+    current: [...document.querySelectorAll('.navmenu-item[aria-current="page"]')]
+      .map(a => a.querySelector('.navmenu-title').childNodes[0].textContent.trim()),
+    btn: document.getElementById('contentBtn').dataset.active,
+  }));
+  check('Learn is marked, and only Learn', m.current.join(','), 'Learn');
+  check('and the button in the bar is lit', m.btn, 'true');
+  await page.keyboard.press('Escape');
 }
 
 section('Kind and Subject narrow together, and search overrides both');

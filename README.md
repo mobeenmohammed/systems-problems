@@ -669,18 +669,22 @@ flat list of one track's problems, linked from the top of every tree, and
 index. Neither has a tab of its own any more, and both keep the Learn tab
 lit while you are in them.
 
-## The landing page, and where the dashboard went
+## The front page, and where the dashboard went
 
 `#/` used to be a dashboard: rank, five stat pills, a streak line, a topic
 grid and half a year of activity, stacked *above* the two things anyone had
-actually come to click. All of that answers "how am I doing", which is a
-question with its own page, and none of it answers "what do I open", which
-is the one you have on arriving.
+actually come to click. Then it was four doors into the catalogue. Both
+answer a question you only have once you are already using the site —
+"how am I doing", "what do I open" — and neither answers the first one
+anybody actually has, which is *what is this*.
 
-So the landing page is one thing to carry on with and **four doors** —
-Questions, Coding exercises, Learn, Shop — each carrying the one number that
-says whether it is worth opening, counted from the catalogue rather than
-written down. Everything else moved to where it is actually useful:
+So `#/` is an introduction now. A headline, the four strands the problems
+are drawn from, two buttons, four drawings of what is inside, three steps
+saying what happens when you use it, three things it claims to do, and a
+strip of numbers. Nothing on it is a control except the buttons, and
+nothing on it is a problem.
+
+Everything that was ever on it moved to where it is actually useful:
 
 | was on the dashboard | is now on |
 | --- | --- |
@@ -688,29 +692,58 @@ written down. Everything else moved to where it is actually useful:
 | Five stat pills | **Profile** |
 | The activity heatmap, with its legend | **Profile** |
 | The topic grid | gone — Problems filters by subject and topic |
+| **Continue learning** | the rail beside **Problems** |
 | **This week** | the rail beside **Problems** |
 | Anything due for revision | the rail beside **Problems** |
-| A strip of three tracks | the Learn door, which has all eleven |
+| The four doors | the **Content** menu in the bar |
 
-The weekly problem is a *problem*, so it belongs where you go looking for
-one. The rail sits beside the catalogue above 1100px and drops under it
-below.
+Carrying on where you left off is a *problem*, so it belongs where you go
+looking for one. The rail sits beside the catalogue above 1100px and drops
+under it below.
+
+Two things on the page are not written in `index.html`, because they are
+counted rather than claimed: the strip of numbers, and the main button —
+which says **Start solving** to somebody who has not been here and **Carry
+on**, naming the problem, to somebody who has. With nothing loaded the
+strip says so and names the fix, rather than reading as five zeroes.
+
+The four drawings are illustrations of what is inside, not screenshots and
+not proofs of anything: each says underneath what it stands for.
+
+### Content: one entry in the bar
+
+Two links could only ever name two of the seven places this site goes, and
+neither *Problems* nor *Learn* explains itself to somebody who has just
+arrived. So the bar has one entry, **Content**, and it opens on all of
+them in three columns — Practice, Guided, You — with a line each saying
+what it is for and a count beside the ones that can be counted. The counts
+come from the catalogue at the moment the panel opens.
+
+It opens on hover and a click pins it open; the pin is the fix for the
+pointer firing `pointerenter` before `click`, which otherwise shut a menu
+the reader had just opened by arriving at it. Hover alone would put the
+whole site behind a gesture a keyboard cannot make, so Enter opens it,
+Tab walks it, Escape closes it and puts focus back on the button, and a
+click outside closes it. Which page you are on is marked inside the panel
+rather than on the button, because *Questions* and *Coding exercises* are
+the same view with a different filter.
 
 ### Questions and Coding exercises
 
-The two problem doors are the one catalogue, split: `kind=questions` is
+Two of the entries are the one catalogue, split: `kind=questions` is
 everything that is not a coding exercise (72), `kind=code` is everything
 that is (37), and together they are all 109. It is a filter like any other
 — a **Kind** select sits beside Subject — and like Subject, a search
 overrides it, because looking for something by name should find it whichever
-door you came in through.
+way you came in.
 
 ### You, in the top right
 
-The top bar is down to two entries. Everything about you is behind the
-avatar: XP, coins, streak, and the way to Profile, Shop and Settings. The
-ring around it is progress to the next rank, which is the one number worth
-seeing from every page.
+Everything about you is behind the avatar: XP, coins, streak, and the way
+to Profile, Shop and Settings. The ring around it is progress to the next
+rank, which is the one number worth seeing from every page. Those three
+are in the Content menu as well — it is supposed to list everywhere the
+site goes — but the avatar is where they live.
 
 It is a real menu rather than a hover trick — `aria-expanded` on the button,
 `role="menu"` on the panel, focus moves in on open, Escape closes it and
@@ -719,8 +752,8 @@ puts focus back on the button, and a click anywhere outside closes it too.
 ## Tracks, the weekly problem, and resources
 
 With this many problems the hard part is choosing one, so the site answers
-that twice — **Continue learning** on the landing page and **This week** in
-the rail beside the catalogue — and three data files back it up:
+that twice — **Continue learning** and **This week**, both in the rail
+beside the catalogue — and three data files back it up:
 
 - **`data/tracks.json`** — ordered sets of problems that build on each other.
   Each card reports Not started, Attempted or Completed, and an untouched track
@@ -1056,7 +1089,7 @@ Chromium against a real site:
 | `tests/browser/maths.test.mjs` (`npm run test:maths`) | Subject as a filter over one catalogue, typesetting on the page, every one of the six answer formats, a syntax error costing no attempt, a wrong answer explaining the misconception, progressive hints, the figures, a written proof reaching **Self-reviewed** without ever being marked right, and the review being finishable from wherever revealing the model proof leaves you |
 | `tests/complete.test.mjs` | The C++ word lists driven directly: headers on `#include`, the header beside every `std::` name, declarations a regex can read and the ones it cannot, a known receiver getting only its own members, an unknown one getting every member labelled with its type, and staying quiet on one character |
 | `tests/browser/complete.test.mjs` | The same thing through real keystrokes, Rust included, plus the switch (off stops the popup but Ctrl+Space still works; one language can be off while another is on) and the keys it could have broken: Enter still Enter, Tab still indenting, Ctrl+Enter still running with a popup open, and the first Escape closing the popup without throwing you out of the editor |
-| `tests/browser/landing.test.mjs` (`npm run test:landing`) | The four doors and the numbers on them, a door landing on the catalogue already filtered, Kind and Subject narrowing together with search overriding both, the profile menu opening and closing by mouse, keyboard and Escape with focus going where it should, the rank ring moving, the weekly card in the rail at four widths, and every number that left the dashboard turning up on Profile |
+| `tests/browser/landing.test.mjs` (`npm run test:landing`) | The front page introducing the site rather than listing it, its numbers matching the catalogue, the main button changing for somebody who has been here before, the Content menu opening by hover, click, Enter and Tab and closing on Escape with focus going back, its counts and its current-page mark, an entry landing on the catalogue already filtered, Kind and Subject narrowing together with search overriding both, the profile menu by mouse and keyboard, the rank ring moving, the rail at four widths, and every number that left the dashboard turning up on Profile |
 | `tests/browser/python.test.mjs` (`npm run test:py`) | Python in the browser with the runner address pointed at a dead port: the download and its progress, the platform differences stated above measured rather than asserted, a traceback that is the reader's and not the harness's, truncation of a flood of output, an infinite loop cut short and a valid program straight afterwards, Stop, a fresh namespace per case, a recorded solve, and a check that nothing was sent anywhere |
 | `tests/learn-layout.test.mjs` | The canvas layout as arithmetic, no browser: a chain runs left to right, siblings stack without overlapping, every prerequisite is in an earlier column, the DAG edges are drawn and never drawn twice, a node reached twice is one box, the barycentre sweep untangles what it can, and all eleven real tracks lay out legally and identically on a second run |
 | `tests/browser/learn.test.mjs` (`npm run test:learn`) | The same claim read out of the DOM; the dashed extra edges and the lit ones; pan, zoom and Recenter; walking it with the arrow keys with one box tabbable at a time; the node panel's two tables and its columns; closing it without leaving the track; ticking a reading being the same tick as everywhere else; and that the old addresses still land somewhere |
@@ -1134,7 +1167,7 @@ js/cxx/run.worker.js    one throwaway worker per test case
 js/runners/browsercpp.js  the browser C++ backend, with progress and Stop
 vendor/cxx/             90 MB of Clang, wasm-ld and a WASI sysroot
 js/setup.js             the "how do I run C++" guide, and its live probes
-js/views.js             landing, catalog, learn, reading map, profile, shop, settings
+js/views.js             front page, catalog, learn, reading map, profile, shop, settings
 js/learn/layout.js      where each box goes on the Learn canvas
 js/app.js               bootstrap, hash routing, shortcuts
 js/runners/hosted.js    the hosted backend, through the proxy
@@ -1157,7 +1190,7 @@ scripts/check-responsive.mjs  both themes, ten widths, four root font sizes
 | Key | Action |
 | --- | --- |
 | `/` | Search the problems |
-| `g` | The landing page |
+| `g` | The front page |
 | `p` | Problems |
 | `r` | The concept index |
 | `l` | Learn (`t` still works) |

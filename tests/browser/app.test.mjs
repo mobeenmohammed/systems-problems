@@ -105,18 +105,19 @@ ok('the catalog loaded', window.SystemsLab.Catalog.all().length >= 3);
 check('the landing page is showing', document.getElementById('view-home').hidden, false);
 check('and the others are not', document.getElementById('view-problems').hidden, true);
 
-/* It is a landing page, not a dashboard: one thing to carry on with, and
-   four doors. The rank, the stats and the activity grid are on Profile,
-   and the weekly problem is on Problems — see the sections for those. */
-ok('there is something to carry on with',
-  document.querySelector('#landingContinue .action') !== null);
-check('four doors', document.querySelectorAll('#landingGrid .door').length, 4);
-ok('each goes somewhere',
-  [...document.querySelectorAll('#landingGrid .door')]
+/* It is an introduction, not a dashboard and not the catalogue arriving a
+   page early: what the site is, what happens when you use it, and one
+   button. Everything about how you are doing is on Profile, and every
+   problem is on Problems — see the sections for those. */
+ok('it leads with what the site is',
+  (document.querySelector('.hero-title') || {}).textContent.length > 20);
+check('four drawings of what is inside', document.querySelectorAll('.htile').length, 4);
+ok('each is a door to the real thing',
+  [...document.querySelectorAll('.htile')]
     .every(d => /^#\//.test(d.getAttribute('href'))));
-ok('and each says how far through it you are',
-  [...document.querySelectorAll('#landingGrid .door')]
-    .every(d => /\d+\s*\/\s*\d+/.test(d.textContent)));
+ok('there is something to press',
+  document.querySelector('#homeCta .btn-primary') !== null);
+check('no problem list on it', document.querySelectorAll('#view-home .prow').length, 0);
 ok('no rank, stats or heatmap left on it',
   document.getElementById('homeRank') === null
   && document.getElementById('homeStats') === null
@@ -481,24 +482,27 @@ check('and clears the search box', document.getElementById('cSearch').value, '')
    week's problem is in the rail beside the catalogue, which is where you
    are when you are looking for a problem. */
 
-section('the landing page offers one thing to carry on with');
-await go(window, '#/');
-const continueCard = document.querySelector('#landingContinue .action');
+section('carrying on is offered where the problems are');
+await go(window, '#/problems');
+const continueCard = document.querySelector('#catalogRail .action');
 ok('it is there', continueCard !== null);
+ok('under a heading that says what it is',
+  /carry on/i.test(document.querySelector('#catalogRail .rail-head').textContent));
 ok('it is Continue learning', /continue learning/i.test(continueCard.querySelector('.eyebrow').textContent));
 ok('it is the one styled as primary', continueCard.classList.contains('action-primary'));
 ok('it names a real problem',
   window.SystemsLab.Catalog.meta(continueCard.querySelector('h2 a').getAttribute('href').replace('#/p/', '')) !== null);
 ok('and offers a way in', continueCard.querySelector('.action-side a.btn') !== null);
-check('with no second card beside it',
-  document.querySelectorAll('#landingContinue .action').length, 1);
+ok('and the front page is not also carrying a problem',
+  (await go(window, '#/'), document.querySelectorAll('#view-home .action').length === 0));
 
-section("the week's problem is in the rail beside the catalogue");
+section("the week's problem is in the rail too");
 await go(window, '#/problems');
-const weekly = document.querySelector('#catalogRail .action');
+const weekly = [...document.querySelectorAll('#catalogRail .action')].pop();
 ok('it is there', weekly !== null);
 ok('under a heading that says what it is',
-  /this week/i.test(document.querySelector('#catalogRail .rail-head').textContent));
+  [...document.querySelectorAll('#catalogRail .rail-head')]
+    .some(h => /this week/i.test(h.textContent)));
 ok('it names a real problem',
   window.SystemsLab.Catalog.meta(weekly.querySelector('h2 a').getAttribute('href').replace('#/p/', '')) !== null);
 ok('it says why this one', weekly.querySelector('p') !== null);
@@ -506,12 +510,14 @@ ok('it shows the difficulty', weekly.querySelector('.diff') !== null);
 ok('and offers a way in', weekly.querySelector('.action-side a.btn') !== null);
 await go(window, '#/');
 
-/* The hero sentence used to say "Nine topics" in the markup. */
+/* The hero sentence used to say "Nine topics" in the markup. The strip of
+   numbers that replaced it is counted the same way. */
 section('counts come from the catalogue');
-const blurb = document.getElementById('landingBlurb').textContent;
+const facts = [...document.querySelectorAll('#homeFacts .fact')]
+  .map(f => f.querySelector('.fact-n').textContent.replace(/[^0-9]/g, ''));
 const n = window.SystemsLab.Catalog.counts();
-ok(`the hero names ${n.problems} problems`, blurb.includes(String(n.problems)));
-ok(`and ${n.topics} topics`, blurb.includes(String(n.topics)));
+ok(`the front page names ${n.problems} problems`, facts.includes(String(n.problems)));
+ok(`and ${n.topics} topics`, facts.includes(String(n.topics)));
 ok('no view hard-codes a count in the markup',
   !/Nine topics|forty-five|nine topics/i.test(document.body.innerHTML));
 
@@ -536,10 +542,13 @@ check('the latest started week is the one chosen', week.weekOf, started[started.
 /* ---------------- tracks ---------------- */
 
 section('tracks');
-/* The dashboard used to carry a strip of three. The landing page has a
-   door to Learn instead, which is where all eleven are. */
-ok('the landing page points at Learn',
-  document.querySelector('#landingGrid .door[href="#/learn"]') !== null);
+/* The dashboard used to carry a strip of three. The front page has a
+   drawing of the tree pointing at Learn instead, which is where all
+   eleven are — as does the Content menu in the bar. */
+ok('the front page points at Learn',
+  document.querySelector('.htile[href="#/learn"]') !== null);
+ok('and so does the menu',
+  document.querySelector('.navmenu-item[href="#/learn"]') !== null);
 
 /* The list of tracks lives under Learn now; #/tracks/<id> is still the
    flat list of one track's problems. */
@@ -581,13 +590,19 @@ await go(window, '#/learn');
 const sampleCard = trackCards().find(c => c.getAttribute('href') === `#/learn/${sampleTrack.id}`);
 check('one attempt moves it to Attempted', sampleCard.querySelector('.state').textContent, 'Attempted');
 
-/* And the landing page should now offer to resume that one rather than
-   start something else. */
-await go(window, '#/');
-const resumeEyebrow = document.querySelector('#landingContinue .action .eyebrow').textContent;
-ok('the landing page offers to pick it up', /pick up where you left off/i.test(resumeEyebrow));
+/* And both the rail and the front page's button should now offer to
+   resume that one rather than start something else. */
+await go(window, '#/problems');
+const resumeEyebrow = document.querySelector('#catalogRail .action .eyebrow').textContent;
+ok('the rail offers to pick it up', /pick up where you left off/i.test(resumeEyebrow));
 check('and points at the attempted problem',
-  document.querySelector('#landingContinue .action h2 a').getAttribute('href'),
+  document.querySelector('#catalogRail .action h2 a').getAttribute('href'),
+  `#/p/${sampleTrack.problems[0]}`);
+await go(window, '#/');
+check('the front page button changes with it',
+  document.querySelector('#homeCta .btn-primary').textContent.trim(), 'Carry on');
+check('and points at the same problem',
+  document.querySelector('#homeCta .btn-primary').getAttribute('href'),
   `#/p/${sampleTrack.problems[0]}`);
 
 delete window.SystemsLab.Store.state.progress[sampleTrack.problems[0]];

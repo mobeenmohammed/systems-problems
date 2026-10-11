@@ -142,11 +142,15 @@ const fresh = await boot();
 await sweep('fresh', fresh);
 
 await go(fresh.window, '#/');
-ok('the landing page still offers something to do',
-  fresh.document.querySelector('#landingContinue .action .btn') !== null);
-ok('every door reads zero without reading as broken',
-  [...fresh.document.querySelectorAll('#landingGrid .door-count')]
-    .every(n => /^\s*\d+\s*\/\s*\d+\s*$/.test(n.textContent)));
+ok('the front page offers a beginning rather than a resumption',
+  fresh.document.querySelector('#homeCta .btn-primary').textContent.trim() === 'Start solving');
+ok('and the numbers on it are numbers rather than blanks',
+  [...fresh.document.querySelectorAll('#homeFacts .fact-n')]
+    .every(n => /^\s*[\d,]+\s*$/.test(n.textContent)));
+
+await go(fresh.window, '#/problems');
+ok('the rail still offers something to do',
+  fresh.document.querySelector('#catalogRail .action .btn') !== null);
 
 await go(fresh.window, '#/profile');
 ok('the heatmap says there is nothing yet',
@@ -211,11 +215,12 @@ const partway = await boot({
 await sweep('part way', partway);
 
 await go(partway.window, '#/');
-ok('the landing page offers to pick something up',
-  /continue learning/i.test(partway.document.querySelector('#landingContinue .eyebrow').textContent));
-ok('a door bar has moved off zero',
-  [...partway.document.querySelectorAll('#landingGrid .bar i')]
-    .some(i => i.style.width && i.style.width !== '0%'));
+ok('the front page offers to pick something up',
+  /carry on/i.test(partway.document.querySelector('#homeCta .btn-primary').textContent));
+await go(partway.window, '#/problems');
+ok('and the rail names what that is',
+  /continue learning/i.test(
+    partway.document.querySelector('#catalogRail .action .eyebrow').textContent));
 
 await go(partway.window, '#/learn');
 ok('some track is now Attempted',
@@ -263,9 +268,9 @@ const done = await boot({
 });
 await sweep('all done', done);
 
-await go(done.window, '#/');
-ok('the landing page says there is nothing left rather than pointing at nothing',
-  /everything is solved/i.test(done.document.querySelector('#landingContinue .action h2').textContent));
+await go(done.window, '#/problems');
+ok('the rail says there is nothing left rather than pointing at nothing',
+  /everything is solved/i.test(done.document.querySelector('#catalogRail .action h2').textContent));
 await go(done.window, '#/learn');
 ok('every track reads Completed',
   [...done.document.querySelectorAll('#learnTracks .track-card')]
@@ -296,10 +301,13 @@ ok('rather than rendering an empty frame',
   emptyCatalog.textContent.trim().length > 30);
 
 await go(broken.window, '#/');
-ok('the landing page does not claim a catalogue it does not have',
-  /no problems are loaded/i.test(broken.document.getElementById('landingBlurb').textContent));
-ok('and the one thing it offers says so too',
-  /nothing loaded/i.test(broken.document.querySelector('#landingContinue .action h2').textContent));
+ok('the front page does not count a catalogue it does not have',
+  /no problems are loaded/i.test(broken.document.getElementById('homeFacts').textContent));
+ok('and it names the fix rather than showing five zeroes',
+  /build:index/.test(broken.document.getElementById('homeFacts').textContent));
+await go(broken.window, '#/problems');
+ok('the one thing the rail offers says so too',
+  /nothing loaded/i.test(broken.document.querySelector('#catalogRail .action h2').textContent));
 
 await go(broken.window, '#/concepts');
 ok('reading says there is nothing to read',

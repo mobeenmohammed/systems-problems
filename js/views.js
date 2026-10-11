@@ -257,100 +257,317 @@ const UI = (() => {
     });
   }
 
-  /* ---------------- the landing page ----------------
+  /* ---------------- the Content menu ----------------
 
-     It used to be a dashboard: rank, five stat pills, a streak line, a
-     topic grid and a year of activity, above the two things anybody
-     actually came to click. All of that is about how you are doing, which
-     is a question with its own page, and none of it is about what to open
-     next.
+     Two links in the bar could only ever name two of the seven places
+     this site goes, and "Problems" and "Learn" are not self-explanatory
+     to somebody who has just arrived: one of them is a filterable
+     catalogue, the other is a prerequisite graph. So the bar has one
+     entry, and it opens on a panel that names everything with a line
+     each saying what it is for.
 
-     So: one thing to carry on with, and four doors. The numbers moved to
-     Profile, the weekly problem moved to Problems, and anything due for
-     review went with it. */
+     Built here rather than written into index.html because the count
+     beside each entry is counted from the catalogue. A number somebody
+     typed into the markup once is wrong the week after. */
 
-  function renderHome() {
-    const n = Catalog.counts();
-    const st = Store.stats(Catalog.all());
+  /* 16px line icons, one path set each. Drawn rather than fetched: an
+     icon font would be a dependency and an emoji is a different picture
+     on every platform. */
+  const NAV_ICONS = {
+    problems: '<path d="M2.5 4h11M2.5 8h11M2.5 12h7"/>',
+    questions: '<circle cx="8" cy="8" r="6"/>'
+      + '<path d="M6.3 6.3a1.75 1.75 0 1 1 1.75 1.95v1.1"/>'
+      + '<circle cx="8.05" cy="11.7" r=".75" fill="currentColor" stroke="none"/>',
+    code: '<path d="M5.8 4 2.3 8l3.5 4M10.2 4l3.5 4-3.5 4"/>',
+    learn: '<rect x="5.5" y="1.6" width="5" height="3.4" rx="1"/>'
+      + '<rect x="1" y="11" width="5" height="3.4" rx="1"/>'
+      + '<rect x="10" y="11" width="5" height="3.4" rx="1"/>'
+      + '<path d="M8 5v3.3M3.5 11V8.3h9V11"/>',
+    reading: '<path d="M8 4.4a3 3 0 0 0-2.1-.9H2.4v8.6h3.5A3 3 0 0 1 8 13"/>'
+      + '<path d="M8 4.4a3 3 0 0 1 2.1-.9h3.5v8.6h-3.5A3 3 0 0 0 8 13"/>'
+      + '<path d="M8 4.4V13"/>',
+    run: '<rect x="1.6" y="2.6" width="12.8" height="10.8" rx="1.6"/>'
+      + '<path d="M4.6 6.6 7 8.6l-2.4 2M8.8 10.6h2.8"/>',
+    profile: '<circle cx="8" cy="5.6" r="2.7"/>'
+      + '<path d="M2.9 14c.6-2.8 2.6-4.2 5.1-4.2s4.5 1.4 5.1 4.2"/>',
+    shop: '<path d="M3 5h10l-.8 8.6H3.8z"/><path d="M5.9 5V3.9a2.1 2.1 0 0 1 4.2 0V5"/>',
+    settings: '<path d="M2.5 5h11M2.5 11h11"/><circle cx="6" cy="5" r="1.9"/>'
+      + '<circle cx="10.5" cy="11" r="1.9"/>',
+    week: '<rect x="2" y="3.2" width="12" height="10.8" rx="1.5"/>'
+      + '<path d="M2 6.8h12M5.4 1.8v2.6M10.6 1.8v2.6"/>',
+  };
 
-    $('#landingBlurb').textContent = n.problems
-      ? `${n.problems} problems across ${n.topics} topics, with ${n.readings} readings `
-        + 'attached to them — so a thing you cannot do yet comes with the chapter '
-        + 'that fixes that.'
-      : 'No problems are loaded yet.';
-
-    $('#landingContinue').replaceChildren(...[continueCard()].filter(Boolean));
-    $('#landingGrid').replaceChildren(...doors(st));
+  function navIcon(name) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'navmenu-icon');
+    svg.setAttribute('viewBox', '0 0 16 16');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.innerHTML = NAV_ICONS[name] || '';
+    return svg;
   }
 
-  /* The four doors. Each carries the one number that says whether it is
-     worth opening, counted from the catalogue rather than written down. */
-  function doors(st) {
+  /* What is in the site, in three columns. The counts are read at paint
+     time; the menu is repainted whenever a solve could have changed one. */
+  function contentSections() {
     const all = Catalog.all();
-    const solvedIn = rows => rows.filter(p => {
-      const r = Store.record(p.id).status;
-      return r === 'solved' || r === 'reviewed';
-    }).length;
-
-    const questions = all.filter(p => p.type !== 'code');
-    const coding = all.filter(p => p.type === 'code');
-    const tracks = Catalog.allTracks();
+    const questions = all.filter(p => p.type !== 'code').length;
+    const coding = all.length - questions;
+    const tracks = Catalog.allTracks().length;
     const concepts = Catalog.allConcepts().length;
-    const owned = (Store.state.owned || []).length;
-
-    const card = ({ href, title, blurb, done, total, foot }) => {
-      const pct = total ? Math.round((done / total) * 100) : 0;
-      return el('a', { class: 'door', href }, [
-        el('div', { class: 'door-top' }, [
-          el('h3', { text: title }),
-          total ? el('span', { class: 'door-count tiny faint', text: `${done} / ${total}` }) : null,
-        ]),
-        el('p', { class: 'door-blurb', text: blurb }),
-        total
-          ? el('div', { class: 'bar', title: `${pct}%` }, [el('i', { style: `width:${pct}%` })])
-          : null,
-        el('div', { class: 'door-foot tiny faint', text: foot }),
-      ]);
-    };
+    const week = Catalog.thisWeek();
+    const weekly = week && week.meta;
 
     return [
-      card({
-        href: '#/problems?kind=questions',
-        title: 'Questions',
-        blurb: 'Multiple choice, select-all, find-the-line, predict the output, '
-          + 'order the steps, and the written mathematics.',
-        done: solvedIn(questions),
-        total: questions.length,
-        foot: 'Answer, get told why, try again',
-      }),
-      card({
-        href: '#/problems?kind=code',
-        title: 'Coding exercises',
-        blurb: 'Write C++, Rust, Python or JavaScript against real test cases. '
-          + 'C++ and Python run in this tab with nothing installed.',
-        done: solvedIn(coding),
-        total: coding.length,
-        foot: 'Run the samples, then submit',
-      }),
-      card({
-        href: '#/learn',
-        title: 'Learn',
-        blurb: 'Every track as a tree of what it rests on. Pick a node for what '
-          + 'to read and what to try next.',
-        done: tracks.filter(t => Catalog.trackProgress(t).state === 'completed').length,
-        total: tracks.length,
-        foot: `${concepts} concepts, in prerequisite order`,
-      }),
-      card({
-        href: '#/shop',
-        title: 'Shop',
-        blurb: 'Themes, accents, avatars and frames, bought with coins you earned. '
-          + 'Cosmetics only — nothing here makes a problem easier.',
-        done: owned,
-        total: Store.SHOP.length,
-        foot: `${st.coins.toLocaleString()} coins`,
-      }),
+      {
+        title: 'Practice',
+        items: [
+          {
+            icon: 'problems', label: 'Problems', href: '#/problems',
+            badge: 'Start here', count: all.length,
+            blurb: 'The whole catalogue, filtered by topic, difficulty or what you have left.',
+          },
+          {
+            icon: 'questions', label: 'Questions', href: '#/problems?kind=questions',
+            count: questions,
+            blurb: 'Multiple choice, predict the output, order the steps, and written mathematics.',
+          },
+          {
+            icon: 'code', label: 'Coding exercises', href: '#/problems?kind=code',
+            count: coding,
+            blurb: 'Write a program and run it against the cases. C++ and Python run in this tab.',
+          },
+        ],
+      },
+      {
+        title: 'Guided',
+        items: [
+          {
+            icon: 'learn', label: 'Learn', href: '#/learn', count: tracks,
+            blurb: 'Each track drawn as the tree of what it rests on, in prerequisite order.',
+          },
+          {
+            icon: 'reading', label: 'Reading', href: '#/concepts', count: concepts,
+            blurb: 'Every concept the problems use, with the book or paper that explains it.',
+          },
+          weekly
+            ? {
+              icon: 'week', label: 'This week', href: `#/p/${weekly.id}`,
+              blurb: weekly.title,
+            }
+            : {
+              icon: 'week', label: 'This week', href: '#/problems',
+              blurb: 'One problem is chosen each week. None is set for this one.',
+            },
+        ],
+      },
+      {
+        title: 'You',
+        items: [
+          {
+            icon: 'profile', label: 'Profile', href: '#/profile',
+            blurb: 'Rank, the year of activity, and how far through each topic you are.',
+          },
+          {
+            icon: 'shop', label: 'Shop', href: '#/shop',
+            blurb: 'Themes, accents, avatars and frames, bought with coins you earned.',
+          },
+          {
+            icon: 'run', label: 'Running code', href: '#/setup',
+            blurb: 'What can compile C++ and Rust for you, and which of them works right now.',
+          },
+        ],
+      },
     ];
+  }
+
+  function renderContentMenu() {
+    const panel = $('#contentPanel');
+    if (!panel) return;
+    panel.replaceChildren(...contentSections().map(col => el('div', { class: 'navmenu-col' }, [
+      el('p', { class: 'navmenu-col-head', text: col.title }),
+      ...col.items.filter(Boolean).map(it => el('a', {
+        class: 'navmenu-item', href: it.href, 'data-nav': it.href,
+      }, [
+        navIcon(it.icon),
+        el('div', { class: 'navmenu-text' }, [
+          el('span', { class: 'navmenu-title' }, [
+            it.label,
+            it.badge ? el('span', { class: 'navmenu-badge', text: it.badge }) : null,
+            it.count != null
+              ? el('span', { class: 'navmenu-count tiny faint', text: String(it.count) })
+              : null,
+          ]),
+          el('span', { class: 'navmenu-blurb', text: it.blurb }),
+        ]),
+      ])),
+    ])));
+    markNav();
+  }
+
+  /* Which entry is the page you are on. The button is lit whenever any of
+     them is, so the bar still says where you are with only one entry in
+     it. Matched on the whole hash, because Questions and Coding exercises
+     are the same view with a different filter. */
+  function markNav() {
+    const here = location.hash || '#/';
+    let any = false;
+    for (const a of document.querySelectorAll('.navmenu-item')) {
+      const mine = a.dataset.nav === here
+        || (a.dataset.nav === '#/problems' && here.startsWith('#/p/'));
+      if (mine) { a.setAttribute('aria-current', 'page'); any = true; }
+      else a.removeAttribute('aria-current');
+    }
+    const btn = $('#contentBtn');
+    if (btn) btn.dataset.active = String(any || !(here === '#/' || here === ''));
+  }
+
+  /* Hover opens it and click pins it open. Without the pin, clicking the
+     button after hovering onto it would shut the menu a reader had just
+     opened by arriving — the pointer fires enter before click, so the
+     click would land on an already-open panel and toggle it away. */
+  let contentPinned = false;
+
+  function closeContent(focus = false) {
+    const btn = $('#contentBtn');
+    const panel = $('#contentPanel');
+    contentPinned = false;
+    if (!btn || !panel) return;
+    panel.hidden = true;
+    btn.setAttribute('aria-expanded', 'false');
+    if (focus) btn.focus();
+  }
+
+  function openContent() {
+    const btn = $('#contentBtn');
+    const panel = $('#contentPanel');
+    if (!btn || !panel || !panel.hidden) return;
+    renderContentMenu();
+    panel.hidden = false;
+    btn.setAttribute('aria-expanded', 'true');
+  }
+
+  /* Hover alone would put the whole of the site behind a gesture a
+     keyboard cannot make, so click and Enter open it too and Escape shuts
+     it. The close on leaving is delayed, because the pointer has to cross
+     a gap between the button and the panel to reach it. */
+  function wireContent() {
+    const wrap = $('#navContent');
+    const btn = $('#contentBtn');
+    const panel = $('#contentPanel');
+    if (!wrap || !btn || !panel) return;
+
+    let shutTimer = null;
+    const hold = () => { clearTimeout(shutTimer); shutTimer = null; };
+    const soon = () => {
+      hold();
+      shutTimer = setTimeout(() => { if (!contentPinned) closeContent(); }, 180);
+    };
+
+    wrap.addEventListener('pointerenter', e => {
+      if (e.pointerType === 'touch') return;
+      hold();
+      openContent();
+    });
+    wrap.addEventListener('pointerleave', e => {
+      if (e.pointerType === 'touch') return;
+      soon();
+    });
+
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      if (contentPinned) { closeContent(); return; }
+      openContent();
+      contentPinned = true;
+    });
+
+    panel.addEventListener('click', e => {
+      if (e.target.closest('.navmenu-item')) closeContent();
+    });
+
+    document.addEventListener('click', e => {
+      if (panel.hidden) return;
+      if (!e.target.closest('#navContent')) closeContent();
+    });
+
+    document.addEventListener('keydown', e => {
+      if (e.key !== 'Escape' || panel.hidden) return;
+      closeContent(true);
+    });
+
+    /* Tabbing past the last entry leaves the menu; it should not stay
+       open behind whatever the reader has moved on to. */
+    wrap.addEventListener('focusout', () => {
+      setTimeout(() => {
+        if (!panel.hidden && !wrap.contains(document.activeElement)) closeContent();
+      }, 0);
+    });
+  }
+
+  /* ---------------- the front page ----------------
+
+     It was a dashboard, then it was four doors into the catalogue. Both
+     of those answer a question you only have once you are already using
+     the site. The page somebody actually lands on has to answer the
+     first one — what is this, and what happens if I press the button —
+     so almost all of it is now prose, and lives in index.html.
+
+     Three things cannot be written down there, because they are counted:
+     what the main button says, the strip of numbers, and the same button
+     again at the foot. */
+
+  function renderHome() {
+    const up = Catalog.nextUp();
+    /* "Continue" is a promise about a specific problem, so it is only
+       offered when there is one that has actually been opened. Anything
+       else — including the first problem of a track nobody has started —
+       is a beginning, and says so. */
+    const resuming = up && (up.reason === 'resume' || up.reason === 'next-in-track');
+
+    const cta = (foot) => [
+      el('a', { class: 'btn btn-primary btn-lg', href: resuming ? `#/p/${up.meta.id}` : '#/problems' },
+        [resuming ? 'Carry on' : 'Start solving']),
+      el('a', { class: 'btn btn-lg', href: '#/learn' }, ['Take a track']),
+      resuming && !foot
+        ? el('span', { class: 'hero-cta-note tiny faint' }, [
+          'last: ',
+          el('a', { href: `#/p/${up.meta.id}`, text: up.meta.title }),
+        ])
+        : null,
+    ].filter(Boolean);
+
+    const main = $('#homeCta');
+    if (main) main.replaceChildren(...cta(false));
+    const foot = $('#homeFootCta');
+    if (foot) foot.replaceChildren(...cta(true));
+
+    /* Counted, never written down: a sentence that spells out "nine
+       topics" is wrong the next time a topic is added. */
+    const n = Catalog.counts();
+    const facts = $('#homeFacts');
+    if (!facts) return;
+
+    /* Five zeroes in a row is a page that looks fine and is not. If the
+       index did not load, the strip says that instead of counting it. */
+    if (!n.problems) {
+      facts.replaceChildren(el('p', { class: 'home-empty' }, [
+        'No problems are loaded yet. Run ',
+        el('code', { text: 'npm run build:index' }),
+        ', then serve the folder over HTTP rather than opening index.html off disk.',
+      ]));
+      return;
+    }
+
+    const fact = (value, label) => el('div', { class: 'fact' }, [
+      el('span', { class: 'fact-n', text: value.toLocaleString() }),
+      el('span', { class: 'fact-k', text: label }),
+    ]);
+    facts.replaceChildren(
+      fact(n.problems, n.problems === 1 ? 'problem' : 'problems'),
+      fact(n.topics, 'topics'),
+      fact(n.concepts, 'concepts, in prerequisite order'),
+      fact(n.readings, 'readings attached to them'),
+      fact(n.languages, 'languages you can answer in'),
+    );
   }
 
   /* ---------------- the dashboard's two main actions ----------------
@@ -398,6 +615,9 @@ const UI = (() => {
   function continueCard() {
     const up = Catalog.nextUp();
 
+    /* Two ways there is nothing to carry on with, and the difference
+       matters: everything is finished, or nothing was ever loaded. Saying
+       neither would leave the rail looking like it had failed. */
     if (!up) {
       const total = Catalog.counts().problems;
       return actionCard({
@@ -1192,6 +1412,16 @@ const UI = (() => {
     if (!host) return;
 
     const parts = [];
+
+    /* Carrying on where you left off used to be the first thing on the
+       landing page. That page is now an introduction, and this is where
+       somebody looking for a problem looks, so it came here rather than
+       being deleted along with the doors. */
+    const carry = continueCard();
+    if (carry) {
+      parts.push(el('h2', { class: 'rail-head', text: 'Carry on' }));
+      parts.push(carry);
+    }
 
     const weekly = weeklyCard();
     if (weekly) {
@@ -2133,6 +2363,8 @@ const UI = (() => {
 
   function wire() {
     wireMe();
+    wireContent();
+    renderContentMenu();
     wireCanvas();
     wireCatalog();
     wireConcepts();
@@ -2143,7 +2375,7 @@ const UI = (() => {
   return {
     toast, refreshPurse, applyCosmetics, wire, endPreview,
     renderHome, renderCatalog, renderConcepts, renderProfile, renderShop, renderSettings,
-    paintMe, closeMe,
+    paintMe, closeMe, renderContentMenu, markNav, closeContent,
     renderTracks, renderLearn, renderResources, problemList,
     setFilter, checkJudge, paintJudgeState,
   };

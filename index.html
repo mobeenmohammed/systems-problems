@@ -48,12 +48,27 @@
     </div>
   </div>
 
-  <!-- Two entries. The brand goes home, and everything about *you* is
-       behind the avatar on the right, which is where every site that has
-       an account puts it. -->
+  <!-- One entry. Two links in the bar could only ever name two of the
+       seven places this site goes; a menu names all of them, with a line
+       each saying what they are for, which is what somebody who has not
+       been here before actually needs.
+
+       It opens on hover and on click, and the panel is filled by
+       views.js rather than written out here so the counts beside each
+       entry are the catalogue's, not a number somebody typed once. -->
   <nav class="topbar-nav" id="nav" aria-label="Views">
-    <a href="#/problems" data-route="problems">Problems</a>
-    <a href="#/learn" data-route="learn">Learn</a>
+    <div class="navmenu" id="navContent">
+      <button class="navmenu-btn" id="contentBtn" type="button"
+              aria-expanded="false" aria-haspopup="true" aria-controls="contentPanel">
+        <span>Content</span>
+        <svg class="navmenu-caret" viewBox="0 0 10 6" aria-hidden="true">
+          <path d="M1 1.4 5 4.8 9 1.4" fill="none" stroke="currentColor"
+                stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <div class="navmenu-panel" id="contentPanel" role="group"
+           aria-labelledby="contentBtn" hidden></div>
+    </div>
   </nav>
 
   <!-- The ring around the avatar is progress towards the next rank, which
@@ -93,23 +108,196 @@
 
 <main class="main" id="main">
 
-  <!-- ---------------- dashboard ---------------- -->
-  <!-- ---------------- landing ----------------
+  <!-- ---------------- the front page ----------------
 
-       Not a dashboard. A dashboard answers "how am I doing", which is a
-       question for the Profile page; this answers "what do I open", which
-       is the one you actually have on arriving. One thing to carry on
-       with, and four doors. -->
+       Not a dashboard and not a list of problems. Both of those answer a
+       question you only have once you are already using the site. This
+       one answers the first question anybody has: what is this, and what
+       happens if I press the button.
+
+       The prose is written here rather than built in views.js because it
+       is prose. Only the parts that are counted - the strip of numbers,
+       and what the main button says to somebody who has been here before
+       - are filled in by renderHome(). -->
   <section id="view-home" class="view" hidden>
-    <div class="landing-hero">
-      <h1>Metric spaces to memory hierarchies, one problem at a time</h1>
-      <p class="muted" id="landingBlurb"></p>
+
+    <div class="hero">
+      <div class="hero-copy">
+        <p class="hero-eyebrow">Invariant</p>
+        <h1 class="hero-title">
+          The theory is not the hard part.<br>
+          <span class="hero-title-dim">Doing it is.</span>
+        </h1>
+        <p class="hero-sub">
+          Problems in mathematics and computer science, each one marked, each one
+          told why — and each one pointed at the chapter that fixes what you got wrong.
+        </p>
+
+        <ul class="hero-strands">
+          <li>
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M1.8 13.5h12.4M2.6 11.4c2.6 0 3-7.6 5.4-7.6s2.8 7.6 5.4 7.6"/>
+            </svg>
+            Mathematics
+          </li>
+          <li>
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M5.8 4 2.3 8l3.5 4M10.2 4l3.5 4-3.5 4"/>
+            </svg>
+            C++, Rust, Python
+          </li>
+          <li>
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <rect x="4.5" y="4.5" width="7" height="7" rx="1"/>
+              <path d="M6.5 1.8v2.7M9.5 1.8v2.7M6.5 11.5v2.7M9.5 11.5v2.7M1.8 6.5h2.7M1.8 9.5h2.7M11.5 6.5h2.7M11.5 9.5h2.7"/>
+            </svg>
+            Systems and architecture
+          </li>
+          <li>
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M2 12.5 6 7.5l3 3 5-7"/>
+              <circle cx="6" cy="7.5" r="1.1"/><circle cx="9" cy="10.5" r="1.1"/>
+            </svg>
+            Algorithms
+          </li>
+        </ul>
+
+        <div class="hero-cta" id="homeCta"></div>
+        <p class="hero-note tiny faint">
+          No account, no install, nothing to pay for. Your progress is kept in this
+          browser and you can export it whenever you like.
+        </p>
+      </div>
     </div>
 
-    <div id="landingContinue"></div>
+    <!-- Four drawings of what is inside. They are illustrations, not
+         screenshots and not proofs of anything: each says what it is
+         standing for underneath, and each is a door to the real thing. -->
+    <div class="hero-tiles">
+      <a class="htile" href="#/problems?kind=questions">
+        <div class="htile-art">
+          <svg viewBox="0 0 170 112" aria-hidden="true">
+            <path class="htile-axis" d="M18 94h134M18 94V20"/>
+            <path class="htile-line" d="M24 92c26 0 24-62 61-62s35 62 61 62"/>
+            <path class="htile-fill" d="M64 92c13-10 14-45 21-45s8 35 21 45z"/>
+            <path class="htile-axis" d="M85 47v45"/>
+            <text class="htile-tick" x="78" y="106">&#956;</text>
+          </svg>
+        </div>
+        <h3>Questions</h3>
+        <p>Multiple choice, predict the output, order the steps, and written mathematics
+           checked as mathematics rather than as text.</p>
+      </a>
 
-    <h2 class="landing-head">Where to</h2>
-    <div class="landing-grid" id="landingGrid"></div>
+      <a class="htile" href="#/problems?kind=code">
+        <div class="htile-art">
+          <svg viewBox="0 0 170 112" aria-hidden="true">
+            <rect class="htile-pane" x="24" y="16" width="122" height="82" rx="6"/>
+            <path class="htile-axis" d="M24 32h122"/>
+            <circle class="htile-dot" cx="34" cy="24" r="2.4"/>
+            <circle class="htile-dot" cx="42" cy="24" r="2.4"/>
+            <circle class="htile-dot" cx="50" cy="24" r="2.4"/>
+            <rect class="htile-bar" x="34" y="42" width="46" height="5" rx="2.5"/>
+            <rect class="htile-bar" x="34" y="54" width="78" height="5" rx="2.5"/>
+            <rect class="htile-bar htile-bar-on" x="44" y="66" width="58" height="5" rx="2.5"/>
+            <rect class="htile-bar" x="34" y="78" width="34" height="5" rx="2.5"/>
+          </svg>
+        </div>
+        <h3>Coding exercises</h3>
+        <p>Write a program, run it on the samples, submit it against the hidden cases.
+           C++ and Python compile in this tab with nothing installed.</p>
+      </a>
+
+      <a class="htile" href="#/problems?topic=arch">
+        <div class="htile-art">
+          <svg viewBox="0 0 170 112" aria-hidden="true">
+            <rect class="htile-pane" x="56" y="30" width="58" height="52" rx="5"/>
+            <rect class="htile-chip" x="70" y="44" width="30" height="24" rx="3"/>
+            <path class="htile-axis" d="M70 30v-12M85 30v-12M100 30v-12M70 82v12M85 82v12M100 82v12M56 44H38M56 56H38M56 68H38M114 44h18M114 56h18M114 68h18"/>
+            <circle class="htile-dot" cx="34" cy="44" r="2.6"/>
+            <circle class="htile-dot" cx="34" cy="68" r="2.6"/>
+            <circle class="htile-dot" cx="136" cy="56" r="2.6"/>
+          </svg>
+        </div>
+        <h3>Systems</h3>
+        <p>Caches, pipelines, memory ordering, the operating system underneath, and the
+           hardware questions that come with an FPGA attached.</p>
+      </a>
+
+      <a class="htile" href="#/learn">
+        <div class="htile-art">
+          <svg viewBox="0 0 170 112" aria-hidden="true">
+            <rect class="htile-node htile-node-on" x="62" y="14" width="46" height="18" rx="4"/>
+            <path class="htile-axis" d="M85 32v12M44 44h82M44 44v10M85 44v10M126 44v10"/>
+            <rect class="htile-node" x="22" y="54" width="44" height="17" rx="4"/>
+            <rect class="htile-node" x="63" y="54" width="44" height="17" rx="4"/>
+            <rect class="htile-node" x="104" y="54" width="44" height="17" rx="4"/>
+            <path class="htile-axis" d="M44 71v10M85 71v10"/>
+            <rect class="htile-node" x="22" y="81" width="44" height="17" rx="4"/>
+            <rect class="htile-node" x="63" y="81" width="44" height="17" rx="4"/>
+          </svg>
+        </div>
+        <h3>Learn</h3>
+        <p>Every track drawn as the tree of what it rests on, so a thing you cannot do
+           yet comes with the order to learn it in.</p>
+      </a>
+    </div>
+
+    <!-- What actually happens when you use it. Three steps, in the order
+         they happen, with nothing claimed that the site does not do. -->
+    <h2 class="home-head">How it goes</h2>
+    <ol class="home-steps">
+      <li>
+        <span class="step-n">1</span>
+        <h3>Pick something</h3>
+        <p>Filter by topic, difficulty or what you have not finished — or open the
+           track you are on and take the next node in it.</p>
+      </li>
+      <li>
+        <span class="step-n">2</span>
+        <h3>Answer it properly</h3>
+        <p>An expression is parsed and compared as mathematics, not matched as a
+           string. A program is compiled and run against real cases, and the
+           sanitizer has to be quiet when the problem says so.</p>
+      </li>
+      <li>
+        <span class="step-n">3</span>
+        <h3>Find out why</h3>
+        <p>Wrong answers come with the reason, the case that broke it, and the
+           reading that covers it. The solution unlocks when you have earned it
+           or decided to look.</p>
+      </li>
+    </ol>
+
+    <h2 class="home-head">What you get for it</h2>
+    <div class="home-feats">
+      <div class="feat">
+        <h3>It runs in the tab</h3>
+        <p>C++ and Python compile in the browser. Rust and anything heavier can go to a
+           runner you start yourself, or to a small proxy you deploy — the toolbar always
+           names which one just ran your program.</p>
+      </div>
+      <div class="feat">
+        <h3>Marking that can be argued with</h3>
+        <p>Bad syntax is told apart from a wrong answer. A failing case shows the input,
+           what was expected and what came out. Nothing is certified correct because it
+           looked right at a few sampled points.</p>
+      </div>
+      <div class="feat">
+        <h3>A record you own</h3>
+        <p>Solves, drafts, submissions, XP and a year of activity, all in this browser.
+           Export it as JSON to carry it somewhere else, or to hand it to the Learning
+           Tree tracker.</p>
+      </div>
+    </div>
+
+    <div class="home-facts" id="homeFacts"></div>
+
+    <div class="home-foot">
+      <h2>Start with one problem.</h2>
+      <p class="muted">That is the whole method.</p>
+      <div class="hero-cta" id="homeFootCta"></div>
+    </div>
   </section>
 
   <!-- ---------------- catalog ---------------- -->

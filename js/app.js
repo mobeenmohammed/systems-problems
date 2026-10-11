@@ -23,15 +23,11 @@
       const node = document.getElementById(`view-${v}`);
       if (node) node.hidden = v !== name;
     }
-    /* Views without a nav entry of their own borrow the one they belong
-       under, so the tab you came in through stays lit and "back" goes
-       somewhere you recognise. */
-    const NAV_HOME = { problem: 'problems', tracks: 'learn', concepts: 'learn' };
-    const navKey = NAV_HOME[name] || name;
-    for (const a of document.querySelectorAll('#nav a')) {
-      if (a.dataset.route === navKey) a.setAttribute('aria-current', 'page');
-      else a.removeAttribute('aria-current');
-    }
+    /* The bar has one entry now, so which page you are on is said inside
+       the menu rather than on it. A menu left hanging open over the page
+       the reader has just navigated to is the other half of that. */
+    UI.markNav();
+    UI.closeContent();
   }
 
   /* "#/problems?topic=os&diff=beginner" -> { path: ['problems'], query: {…} } */

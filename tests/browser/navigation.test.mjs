@@ -70,14 +70,20 @@ const open = async hash => {
   await page.goto(`${BASE}/${hash}`, { waitUntil: 'networkidle' });
   await settle(900);
 };
-/* Profile, Shop and Settings live behind the avatar button now, so
-   clicking one means opening the menu first — which is what a person
+/* Everything in the bar is behind one of two buttons now: the views
+   behind Content, and Profile, Shop and Settings behind the avatar. So
+   clicking one means opening its menu first - which is what a person
    does too. */
 const navClick = async href => {
   const link = page.locator(`.topbar a[href="${href}"]`).first();
-  if (await link.evaluate(a => !!a.closest('#meMenu'))) {
+  const where = await link.evaluate(a =>
+    a.closest('#meMenu') ? 'me' : a.closest('#contentPanel') ? 'content' : 'bar');
+  if (where === 'me') {
     await page.locator('#meBtn').click();
     await page.waitForTimeout(150);
+  } else if (where === 'content') {
+    await page.locator('#contentBtn').click();
+    await page.waitForTimeout(200);
   }
   await link.click();
   await settle();
@@ -227,7 +233,11 @@ section('dragging a divider and navigating away mid-drag');
 
   let went = null;
   try {
-    await page.locator('.topbar a[href="#/problems"]').first().click({ timeout: 5000 });
+    /* Through the menu, because that is the only way to Problems now —
+       and it exercises one more thing a stuck drag could have broken. */
+    await page.locator('#contentBtn').click({ timeout: 5000 });
+    await page.waitForTimeout(200);
+    await page.locator('.navmenu-item[href="#/problems"]').click({ timeout: 5000 });
     await settle();
     went = await page.evaluate(() => location.hash);
   } catch (err) { went = `BLOCKED: ${err.message.split('\n')[0]}`; }
