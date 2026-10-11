@@ -2,9 +2,14 @@
 
    Only what the site actually uses is pulled in, so the bundle is the size of
    the feature set rather than the size of the library. Deliberately NOT
-   included: autocompletion and the search panel (nothing here wants either,
-   and together they are a third of the weight), code folding, rectangular
-   selection, and tooltips.
+   included: the search panel, code folding, rectangular selection, and
+   tooltips.
+
+   Autocompletion used to be on that list. It is in now, because C++ without
+   it is a worse place to write C++ than anywhere else these problems might
+   be attempted. The word lists live in js/complete-cpp.js rather than here,
+   so changing them does not mean rebuilding this bundle; Python and
+   JavaScript get the completions their language packages already provide.
 
    Built once by scripts/build-editor.mjs into vendor/codemirror.js and
    committed. The site itself still has no build step and no runtime
@@ -24,7 +29,10 @@ import {
 import {
   syntaxHighlighting, HighlightStyle, indentUnit, bracketMatching,
 } from '@codemirror/language';
-import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
+import {
+  closeBrackets, closeBracketsKeymap,
+  autocompletion, completionKeymap, startCompletion,
+} from '@codemirror/autocomplete';
 import { lintGutter, setDiagnostics } from '@codemirror/lint';
 import { tags } from '@lezer/highlight';
 
@@ -59,6 +67,7 @@ export default {
   defaultKeymap, history, historyKeymap, indentWithTab, undo, redo,
   syntaxHighlighting, indentUnit, bracketMatching,
   closeBrackets, closeBracketsKeymap,
+  autocompletion, completionKeymap, startCompletion,
   lintGutter, setDiagnostics,
   highlightStyle, LANGUAGES,
 };

@@ -487,6 +487,51 @@ you.
 A draft is kept per problem *and* per language, and the font size is adjustable
 from the header.
 
+## Completion, without a language server
+
+C++ has autocomplete. It is not clangd: real C++ completion needs a real
+front end holding a real translation unit, and the compiler this site ships
+runs in a worker, takes about a second, and answers *did it build* rather
+than *what can follow this dot*.
+
+`js/complete-cpp.js` is four sources that need no type checking:
+
+- **keywords**;
+- **the standard-library names these problems use**, each labelled with the
+  header it comes from, because *which of these do I include* is the half of
+  the answer people usually want — `std::accumulate  <numeric>`;
+- **identifiers already in the buffer**, so your own names complete;
+- **members after `.` or `->`**, for receivers whose type is declared in the
+  buffer in a form a regex can read — `std::vector<int> v`, `const
+  std::map<K,V>& m`, `vector<T> v` after `using namespace std`.
+
+The fourth is the only one that can be wrong, so it is the careful one. With
+a known receiver you get that type's members and nothing else — a
+`std::vector` is not offered `substr`. With an unknown one (`auto`, a
+typedef, your own class) you get every member *labelled with the type it
+belongs to* rather than a merged list that implies they are all available.
+An honest guess, marked as a guess, beats a confident wrong answer. Nothing
+here is ever a claim that the code compiles; only the compiler says that.
+
+Python and JavaScript get the completions their own CodeMirror language
+packages provide, so `running_total` completes in Python and `std::` does
+not. Rust has none, and is not pretending to.
+
+Adding this cost **23KB** on the editor bundle (685KB to 708KB), not the
+third of the library the old comment in `scripts/editor-entry.js` estimated,
+because `closeBrackets` had already pulled half the package in. The word
+lists are a plain site script rather than part of the bundle, so changing
+them does not mean rebuilding it.
+
+One thing it broke, and the fix: Escape now has two jobs in an editor —
+close the popup, and the site's own *leave the field you are typing in*.
+Both used to fire, so dismissing a suggestion you did not want also threw
+you out of the editor, and the next letter you typed was read as a
+navigation shortcut. The global handler now skips the blur when something
+has already handled the key, so the first Escape closes the popup and keeps
+your cursor and a second one leaves. That is `js/app.js`, and
+`tests/browser/complete.test.mjs` is what holds it there.
+
 ## Learn: a track is a tree
 
 A track is a list of problems. What it *teaches* is the concepts those
@@ -780,6 +825,8 @@ Chromium against a real site:
 | `tests/maths-expr.test.mjs` | The expression engine on its own: equal values comparing equal however they are written, unequal ones never comparing equal, syntax errors and unsupported expressions reported as *different kinds* of failure from a wrong answer, and eleven injection attempts refused |
 | `tests/maths-render.test.mjs` | KaTeX renders, emits MathML, and markdown does not get at the TeX first — `$a_1 + a_2$` must not become `a<em>1 + a</em>2` |
 | `tests/browser/maths.test.mjs` (`npm run test:maths`) | Subject as a filter over one catalogue, typesetting on the page, every one of the six answer formats, a syntax error costing no attempt, a wrong answer explaining the misconception, progressive hints, the figures, a written proof reaching **Self-reviewed** without ever being marked right, and the review being finishable from wherever revealing the model proof leaves you |
+| `tests/complete.test.mjs` | The C++ word lists driven directly: headers on `#include`, the header beside every `std::` name, declarations a regex can read and the ones it cannot, a known receiver getting only its own members, an unknown one getting every member labelled with its type, and staying quiet on one character |
+| `tests/browser/complete.test.mjs` | The same thing through real keystrokes, plus the keys it could have broken: Enter still Enter, Tab still indenting, Ctrl+Enter still running with a popup open, and the first Escape closing the popup without throwing you out of the editor |
 | `tests/browser/learn.test.mjs` (`npm run test:learn`) | The track trees: that every node is drawn below everything it needs, across all eleven tracks; that the extra DAG edges are named rather than dropped and the node still drawn once; that a node lists exactly the problems resting on it; that a node is a shareable address; that ticking a reading there is the same tick as everywhere else; and that the old addresses still land somewhere |
 | `tests/browser/cxx.test.mjs` (`npm run test:cxx`) | C++ in the browser with the runner address pointed at a dead port: the download and its progress bar, a cold first run, submit-wrong-then-correct, a Clang compile error, an infinite loop cut short and a valid program straight afterwards, Stop, the cached second visit, a native-only problem refusing to pretend, and a check that nothing was sent anywhere |
 | `tests/browser/usability.test.mjs` | Buttons after a failure, a run in flight when the problem or language changes, the toolbar at five widths, every answer control being clickable where it looks, horizontal overflow on twelve routes at eight widths with the view links staying reachable, keyboard reach to hints/notes/solution, and the blast radius of a reset |

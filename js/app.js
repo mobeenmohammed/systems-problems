@@ -139,7 +139,11 @@
     /* Never steal a key from a field someone is typing in. */
     const t = e.target;
     if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) {
-      if (e.key === 'Escape') t.blur();
+      /* Escape leaves the field — unless something in the field has
+         already used it. The editor's completion popup closes on Escape,
+         and dismissing a suggestion you did not want should not also
+         throw you out of the editor. A second Escape still leaves. */
+      if (e.key === 'Escape' && !e.defaultPrevented) t.blur();
       return;
     }
     if (e.ctrlKey || e.metaKey || e.altKey) return;

@@ -87,6 +87,7 @@ const Editor = (() => {
       defaultKeymap, history, historyKeymap, indentWithTab, undo, redo,
       syntaxHighlighting, indentUnit, bracketMatching,
       closeBrackets, closeBracketsKeymap,
+      autocompletion, completionKeymap,
       lintGutter, setDiagnostics: cmSetDiagnostics,
       highlightStyle, LANGUAGES,
     } = window.CM;
@@ -100,6 +101,7 @@ const Editor = (() => {
     const language = new Compartment();
     const editable = new Compartment();
     const theming = new Compartment();
+    const completions = new Compartment();
 
     const host = document.createElement('div');
     host.className = 'ed';
@@ -118,6 +120,14 @@ const Editor = (() => {
       const make = LANGUAGES[id];
       return make ? make() : [];
     };
+
+    /* C++ gets js/complete-cpp.js, because the C++ language package ships
+       a parser and no completions. Python and JavaScript already provide
+       their own through language data, so they are left alone — passing
+       `override` would replace those with nothing. */
+    const completion = id => (id === 'cpp' && typeof CppComplete !== 'undefined'
+      ? autocompletion({ override: [CppComplete.source], icons: false })
+      : autocompletion({ icons: false }));
 
     /* Colours and metrics come from the page's tokens, so a theme bought in
        the shop repaints the editor too. Only the handful CodeMirror needs as
@@ -167,6 +177,7 @@ const Editor = (() => {
           dropCursor(),
           bracketMatching(),
           closeBrackets(),
+          completions.of(completion(currentLang)),
           lintGutter(),
           indentUnit.of(INDENT),
           EditorState.tabSize.of(2),
@@ -188,6 +199,11 @@ const Editor = (() => {
               run: () => { if (opts.onSubmit) opts.onSubmit(); return true; },
             },
             ...closeBracketsKeymap,
+            /* Before defaultKeymap, so Enter accepts the highlighted
+               completion rather than inserting a newline underneath the
+               popup, and Escape closes the popup before anything else
+               claims it. */
+            ...completionKeymap,
             ...defaultKeymap,
             ...historyKeymap,
             /* Tab indents rather than leaving the editor. Escape then Tab
@@ -332,7 +348,12 @@ const Editor = (() => {
         currentLang = next;
         if (nextProfile) currentProfile = nextProfile;
         host.dataset.lang = next;
-        view.dispatch({ effects: language.reconfigure(langExtension(next)) });
+        view.dispatch({ effects: [
+          language.reconfigure(langExtension(next)),
+          /* Or the C++ word list would keep offering std::vector in the
+             Python tab. */
+          completions.reconfigure(completion(next)),
+        ] });
         startWatching();
         /* A C++ diagnostic means nothing about the Rust in front of you. */
         if (opts.lint) setDiagnostics([], null);
