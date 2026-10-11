@@ -317,6 +317,124 @@ const Catalog = (() => {
     return reverseIndex[conceptId] || [];
   }
 
+  /* ---------------- a track as a tree ----------------
+
+     A track lists problems. Each problem names the concepts it rests on,
+     and each concept names what it rests on in turn. The union of all of
+     that, closed under `needs`, is what the track actually teaches, and
+     the prerequisite edges are what put it in order.
+
+     It is a DAG rather than a tree: twelve of the hundred and fifteen
+     concepts have more than one prerequisite. Each node is therefore hung
+     under its *deepest* prerequisite, which guarantees that everything a
+     node needs appears somewhere above it, and the edges that did not
+     become the parent are carried on the node as `alsoNeeds` rather than
+     dropped. A clean tree with the awkward edges deleted would be a nicer
+     picture and a false one.
+
+     Cycles are tolerated rather than trusted, as in chain(): depth()
+     stops at a node already being measured instead of recursing forever.
+     content.test.mjs is what actually forbids them. */
+
+  const treeCache = {};
+
+  function trackTree(trackId) {
+    if (treeCache[trackId]) return treeCache[trackId];
+
+    const t = track(trackId);
+    if (!t) return null;
+
+    /* Every concept the track's problems name, plus everything those rest
+       on, transitively. chain() already closes over `needs`. */
+    const inSet = new Set();
+    for (const pid of t.problems) {
+      const meta = byId[pid];
+      if (!meta) continue;
+      for (const cid of meta.prereqs || []) {
+        for (const c of chain(cid)) inSet.add(c.id);
+      }
+    }
+
+    const needsOf = id => (concepts[id] && concepts[id].needs || []).filter(n => inSet.has(n));
+
+    const measuring = new Set();
+    const depths = {};
+    function depth(id) {
+      if (depths[id] !== undefined) return depths[id];
+      if (measuring.has(id)) return 0;
+      measuring.add(id);
+      const ns = needsOf(id);
+      const d = ns.length ? 1 + Math.max(...ns.map(depth)) : 0;
+      measuring.delete(id);
+      depths[id] = d;
+      return d;
+    }
+
+    const ids = [...inSet];
+    for (const id of ids) depth(id);
+
+    const kids = {};
+    const roots = [];
+    const extra = {};
+    for (const id of ids) {
+      const ns = needsOf(id);
+      if (!ns.length) { roots.push(id); continue; }
+      /* Deepest parent, so every prerequisite is above this node. */
+      const parent = ns.slice().sort((a, b) => depth(b) - depth(a))[0];
+      extra[id] = ns.filter(n => n !== parent);
+      (kids[parent] = kids[parent] || []).push(id);
+    }
+
+    const name = id => (concepts[id] || {}).name || id;
+    const byName = (a, b) => name(a).localeCompare(name(b));
+    roots.sort(byName);
+    for (const list of Object.values(kids)) list.sort(byName);
+
+    /* How much of the track's own work sits at this node, so the tree can
+       show progress without the reader opening every branch. */
+    const own = new Set(t.problems);
+    const build = (id, seen) => {
+      const mine = problemsForConcept(id);
+      return {
+        id,
+        name: name(id),
+        oneLine: (concepts[id] || {}).oneLine || '',
+        topic: (concepts[id] || {}).topic || '',
+        depth: depths[id] || 0,
+        alsoNeeds: (extra[id] || []).map(n => ({ id: n, name: name(n) })),
+        readings: (concepts[id] || {}).readings || [],
+        problems: mine,
+        inTrack: mine.filter(m => own.has(m.id)).length,
+        /* A node reachable by two paths is drawn once, under the deepest
+           parent, so the same subtree is never expanded twice. */
+        children: (kids[id] || []).filter(k => !seen.has(k))
+          .map(k => (seen.add(k), build(k, seen))),
+      };
+    };
+
+    const seen = new Set(roots);
+    const forest = roots.map(r => build(r, seen));
+    treeCache[trackId] = { track: t, roots: forest, size: ids.length };
+    return treeCache[trackId];
+  }
+
+  /* Readings ticked and problems solved beneath a node, itself included.
+     Walked rather than stored, because both move as you work. */
+  function treeProgress(node) {
+    let read = 0; let readTotal = 0; let solved = 0; let probTotal = 0;
+    (function walk(n) {
+      const r = readProgress(n.id);
+      read += r.read; readTotal += r.total;
+      for (const pr of n.problems) {
+        probTotal += 1;
+        const st = Store.record(pr.id).status;
+        if (st === 'solved' || st === 'reviewed') solved += 1;
+      }
+      n.children.forEach(walk);
+    })(node);
+    return { read, readTotal, solved, probTotal };
+  }
+
   /* Unread / part-read / read, plus how much of the whole list is done. The
      status is per concept, which is the unit someone actually works through. */
   function readStatus(conceptId) {
@@ -429,7 +547,7 @@ const Catalog = (() => {
     init, all, meta, list, sorted, get, solution,
     concept, allConcepts, chain, prereqsFor, readProgress,
     allTracks, track, trackProgress, thisWeek, topicResources, allResources,
-    counts, nextUp, problemsForConcept, readStatus,
+    counts, nextUp, problemsForConcept, readStatus, trackTree, treeProgress,
     TYPES, TYPE_BY_ID, TRACK_STATE_LABEL, READ_STATE_LABEL,
     get loadError() { return loadError; },
   };

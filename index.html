@@ -51,8 +51,7 @@
   <nav class="topbar-nav" id="nav" aria-label="Views">
     <a href="#/" data-route="home">Dashboard</a>
     <a href="#/problems" data-route="problems">Problems</a>
-    <a href="#/tracks" data-route="tracks">Tracks</a>
-    <a href="#/concepts" data-route="concepts">Reading</a>
+    <a href="#/learn" data-route="learn">Learn</a>
     <a href="#/profile" data-route="profile">Profile</a>
     <a href="#/shop" data-route="shop">Shop</a>
     <a href="#/settings" data-route="settings">Settings</a>
@@ -166,6 +165,44 @@
   </section>
 
   <!-- ---------------- tracks ---------------- -->
+  <!-- ---------------- learn ----------------
+
+       Two pages in one view. With no track chosen it is the list of
+       tracks; with one chosen it is that track's prerequisite tree beside
+       a panel for whichever node is selected. The tree is built from the
+       concept graph rather than stored, so adding a problem to a track
+       adds whatever it rests on to the tree. -->
+  <section id="view-learn" class="view" hidden>
+    <div id="learnIndex">
+      <h1>Learn</h1>
+      <p class="muted" id="learnBlurb"></p>
+      <div id="learnTracks"></div>
+      <p class="small muted" style="margin-top:var(--s5)">
+        Looking for something specific rather than a route through it?
+        <a href="#/concepts">Every concept, by topic</a>.
+      </p>
+    </div>
+
+    <div id="learnTrack" hidden>
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <a href="#/learn">Learn</a>
+        <span aria-hidden="true">/</span>
+        <span id="learnCrumb"></span>
+      </nav>
+      <div class="learn-head">
+        <div>
+          <h1 id="learnTitle"></h1>
+          <p class="muted" id="learnGoal"></p>
+        </div>
+        <a class="btn btn-sm" id="learnProblems" href="#/problems">All its problems</a>
+      </div>
+      <div class="learn-wrap">
+        <div class="learn-tree card" id="learnTreeHost" role="tree" aria-label="Prerequisites"></div>
+        <div class="learn-node card" id="learnNodeHost" aria-live="polite"></div>
+      </div>
+    </div>
+  </section>
+
   <section id="view-tracks" class="view" hidden>
     <h1>Tracks</h1>
     <p class="muted" id="tracksBlurb"></p>

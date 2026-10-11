@@ -119,8 +119,7 @@ section('leaving a code problem restores the page you land on');
 const DESTINATIONS = [
   ['#/', 'view-home', 'Dashboard'],
   ['#/problems', 'view-problems', 'Problems'],
-  ['#/tracks', 'view-tracks', 'Tracks'],
-  ['#/concepts', 'view-concepts', 'Reading'],
+  ['#/learn', 'view-learn', 'Learn'],
   ['#/profile', 'view-profile', 'Profile'],
   ['#/settings', 'view-settings', 'Settings'],
 ];
@@ -154,8 +153,10 @@ section('and the page you land on is still usable');
   }
   ok(`a problem row can still be clicked (${went})`, /^#\/p\//.test(went || ''));
 
-  /* And scrolling, which is the other half of "unresponsive". */
-  await navClick('#/concepts');
+  /* And scrolling, which is the other half of "unresponsive". The concept
+     index is the longest page on the site, which is the point; it has no
+     nav entry of its own any more, so it is reached by address. */
+  await open('#/concepts');
   const scrolled = await page.evaluate(async () => {
     const before = window.scrollY + document.querySelector('.main').scrollTop;
     window.scrollBy(0, 600);
@@ -255,8 +256,8 @@ section('browser Back and Forward');
 
 section('thirty crossings, which is what the reader actually did');
 {
-  const route = ['#/p/algo-running-max', '#/', '#/p/cpp-sizeof-and-types', '#/tracks',
-    '#/p/algo-running-max', '#/concepts', '#/p/cpp-greet-and-sum', '#/settings',
+  const route = ['#/p/algo-running-max', '#/', '#/p/cpp-sizeof-and-types', '#/learn',
+    '#/p/algo-running-max', '#/learn/memory', '#/p/cpp-greet-and-sum', '#/settings',
     '#/problems', '#/p/algo-running-max'];
   for (let i = 0; i < 3; i += 1) {
     for (const hash of route) {
@@ -295,7 +296,7 @@ section('drafts survive all of that');
   await page.keyboard.type('// a draft that must survive');
   await settle(500);
 
-  for (const hash of ['#/', '#/tracks', '#/concepts', '#/settings', '#/problems']) {
+  for (const hash of ['#/', '#/learn', '#/learn/memory', '#/settings', '#/problems']) {
     await page.evaluate(h => { location.hash = h; }, hash);
     await page.waitForTimeout(300);
   }

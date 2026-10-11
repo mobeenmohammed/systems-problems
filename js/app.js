@@ -9,8 +9,8 @@
 
 (() => {
 
-  const VIEWS = ['home', 'problems', 'problem', 'tracks', 'concepts', 'profile', 'shop',
-    'settings', 'setup', '404'];
+  const VIEWS = ['home', 'problems', 'problem', 'learn', 'tracks', 'concepts', 'profile',
+    'shop', 'settings', 'setup', '404'];
 
   function show(name) {
     /* Every route change comes through here, which makes it the one place
@@ -23,9 +23,11 @@
       const node = document.getElementById(`view-${v}`);
       if (node) node.hidden = v !== name;
     }
-    /* The problem view has no nav entry of its own; the Problems tab stays
-       current while you are inside one, which is where "back" goes. */
-    const navKey = name === 'problem' ? 'problems' : name;
+    /* Views without a nav entry of their own borrow the one they belong
+       under, so the tab you came in through stays lit and "back" goes
+       somewhere you recognise. */
+    const NAV_HOME = { problem: 'problems', tracks: 'learn', concepts: 'learn' };
+    const navKey = NAV_HOME[name] || name;
     for (const a of document.querySelectorAll('#nav a')) {
       if (a.dataset.route === navKey) a.setAttribute('aria-current', 'page');
       else a.removeAttribute('aria-current');
@@ -79,11 +81,23 @@
         location.hash = `#/problems?topic=${encodeURIComponent(path[1] || '')}`;
         return;
 
-      case 'tracks':
-        show('tracks');
-        UI.renderTracks(path[1] || null);
+      /* Learn is the tracks-as-trees view: #/learn, #/learn/<track>, and
+         #/learn/<track>/<concept> for a node. */
+      case 'learn':
+        show('learn');
+        UI.renderLearn(path[1] || null, path[2] || null);
         break;
 
+      /* Kept so older links and bookmarks still land somewhere: the flat
+         list of a track's problems, reached from inside Learn. */
+      case 'tracks':
+        if (!path[1]) { location.hash = '#/learn'; return; }
+        show('tracks');
+        UI.renderTracks(path[1]);
+        break;
+
+      /* The whole concept index, by topic. It has no nav entry of its own
+         any more; Learn links to it. */
       case 'concepts':
         show('concepts');
         UI.renderConcepts();
@@ -144,7 +158,10 @@
       case 'g': go('#/'); break;
       case 'p': go('#/problems'); break;
       case 'r': go('#/concepts'); break;
-      case 't': go('#/tracks'); break;
+      /* l for Learn; t still works, because it has been t for Tracks for
+         as long as there have been tracks and the list is still in there. */
+      case 'l': go('#/learn'); break;
+      case 't': go('#/learn'); break;
       case 'u': go('#/profile'); break;
       case 's': go('#/shop'); break;
       /* Focus mode, from anywhere - it is a view preference rather than

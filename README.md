@@ -487,6 +487,37 @@ you.
 A draft is kept per problem *and* per language, and the font size is adjustable
 from the header.
 
+## Learn: a track is a tree
+
+A track is a list of problems. What it *teaches* is the concepts those
+problems rest on, in the order the prerequisites put them in — and that was
+already in the data, spread across two pages that did not know about each
+other: `data/tracks.json` listed the problems, every problem named the
+concepts it needs, and every concept named what it needs in turn.
+
+**Learn** joins them up. Pick a track and you get that closure as a tree,
+built by `Catalog.trackTree` rather than written down, so adding a problem to
+a track adds whatever it rests on to the tree. Pick a node and you get the
+two things you actually want in one place: **Read** — its readings, with the
+same checkboxes and the same stored progress as the concept index — and
+**Then try** — every problem that rests on it, with the ones outside this
+track folded away.
+
+It is a DAG, not a tree: twelve of the 115 concepts have more than one
+prerequisite. Each node hangs under its **deepest** prerequisite, which
+guarantees everything a node needs is drawn above it, and the edges that did
+not become the parent are named on the node — *"Also rests on Open sets,
+Convergence in a metric space — drawn elsewhere in this tree"* — rather than
+deleted. A clean tree with the awkward edges removed would be a nicer picture
+and a false one. `tests/browser/learn.test.mjs` checks the ordering claim
+across all eleven tracks by reading depths out of the DOM.
+
+The old pages are still there and still reachable: `#/tracks/<id>` is the
+flat list of one track's problems, linked from the top of every tree, and
+`#/concepts` is the whole concept index by topic, linked from the Learn
+index. Neither has a tab of its own any more, and both keep the Learn tab
+lit while you are in them.
+
 ## Tracks, the weekly problem, and resources
 
 With this many problems the hard part is choosing one, so the dashboard answers
@@ -749,6 +780,7 @@ Chromium against a real site:
 | `tests/maths-expr.test.mjs` | The expression engine on its own: equal values comparing equal however they are written, unequal ones never comparing equal, syntax errors and unsupported expressions reported as *different kinds* of failure from a wrong answer, and eleven injection attempts refused |
 | `tests/maths-render.test.mjs` | KaTeX renders, emits MathML, and markdown does not get at the TeX first — `$a_1 + a_2$` must not become `a<em>1 + a</em>2` |
 | `tests/browser/maths.test.mjs` (`npm run test:maths`) | Subject as a filter over one catalogue, typesetting on the page, every one of the six answer formats, a syntax error costing no attempt, a wrong answer explaining the misconception, progressive hints, the figures, a written proof reaching **Self-reviewed** without ever being marked right, and the review being finishable from wherever revealing the model proof leaves you |
+| `tests/browser/learn.test.mjs` (`npm run test:learn`) | The track trees: that every node is drawn below everything it needs, across all eleven tracks; that the extra DAG edges are named rather than dropped and the node still drawn once; that a node lists exactly the problems resting on it; that a node is a shareable address; that ticking a reading there is the same tick as everywhere else; and that the old addresses still land somewhere |
 | `tests/browser/cxx.test.mjs` (`npm run test:cxx`) | C++ in the browser with the runner address pointed at a dead port: the download and its progress bar, a cold first run, submit-wrong-then-correct, a Clang compile error, an infinite loop cut short and a valid program straight afterwards, Stop, the cached second visit, a native-only problem refusing to pretend, and a check that nothing was sent anywhere |
 | `tests/browser/usability.test.mjs` | Buttons after a failure, a run in flight when the problem or language changes, the toolbar at five widths, every answer control being clickable where it looks, horizontal overflow on twelve routes at eight widths with the view links staying reachable, keyboard reach to hints/notes/solution, and the blast radius of a reset |
 
@@ -834,8 +866,8 @@ scripts/check-responsive.mjs  both themes, ten widths, four root font sizes
 | `/` | Search the problems |
 | `g` | Dashboard |
 | `p` | Problems |
-| `r` | Reading |
-| `t` | Tracks |
+| `r` | The concept index |
+| `l` | Learn (`t` still works) |
 | `u` | Profile |
 | `s` | Shop |
 | `f` | Focus mode — hide everything but the problem |

@@ -420,6 +420,231 @@ const UI = (() => {
     );
   }
 
+  /* ---------------- learn ----------------
+
+     A track is a list of problems; what it teaches is the concepts those
+     problems rest on, in prerequisite order. Catalog.trackTree works that
+     out, and this draws it: the tree on the left, and whichever node you
+     pick on the right, with its readings and its problems.
+
+     The node panel is the point. "What do I read for this, and what can I
+     then do with it" is one question, and it used to need two pages. */
+
+  function renderLearn(trackId, conceptId) {
+    const index = $('#learnIndex');
+    const detail = $('#learnTrack');
+    const tree = trackId ? Catalog.trackTree(trackId) : null;
+
+    /* An unknown id falls back to the list rather than an empty frame: a
+       stale bookmark should land somewhere useful. */
+    index.hidden = !!tree;
+    detail.hidden = !tree;
+    if (!tree) { renderLearnIndex(); return; }
+
+    $('#learnCrumb').textContent = tree.track.title;
+    $('#learnTitle').textContent = tree.track.title;
+    $('#learnGoal').textContent = tree.track.goal || tree.track.blurb || '';
+    $('#learnProblems').href = `#/tracks/${tree.track.id}`;
+
+    /* Picking the first node by default, so the panel is never an empty
+       box next to a tree you have not clicked yet. */
+    const flat = [];
+    (function walk(ns) { for (const n of ns) { flat.push(n); walk(n.children); } })(tree.roots);
+    const picked = flat.find(n => n.id === conceptId) || flat[0] || null;
+
+    drawTree(tree, picked);
+    drawNode(tree, picked);
+  }
+
+  function renderLearnIndex() {
+    const host = $('#learnTracks');
+    const tracks = Catalog.allTracks();
+    const blurb = $('#learnBlurb');
+    if (blurb) {
+      blurb.textContent = tracks.length
+        ? `${tracks.length} tracks. Each one is a tree of what it rests on — `
+          + 'pick a node to see what to read and what to try.'
+        : 'Ordered sets of problems that build on each other.';
+    }
+
+    /* Grouped by subject rather than filtered to one: the point of taking
+       the switch out of the top bar was that both halves are always here. */
+    const groups = Store.SUBJECTS.map(sub => ({
+      sub,
+      rows: tracks.filter(t => (t.subjects || []).includes(sub.id)),
+    })).filter(g => g.rows.length);
+
+    /* Every other view says so when it has nothing; this one used to
+       render an empty div and look broken rather than empty. */
+    if (!groups.length) {
+      host.replaceChildren(el('div', { class: 'empty' }, [
+        el('h2', { text: 'No tracks loaded' }),
+        el('p', { class: 'muted' }, [Catalog.loadError
+          ? `The catalogue did not load: ${Catalog.loadError}`
+          : 'Nothing to work through yet.'],
+        ),
+      ]));
+      return;
+    }
+
+    host.replaceChildren(...groups.map(g => el('div', { class: 'learn-group' }, [
+      el('h2', { class: 'learn-group-head', text: g.sub.label }),
+      el('div', { class: 'tracks' }, g.rows.map(t => {
+        const prog = Catalog.trackProgress(t);
+        const tree = Catalog.trackTree(t.id);
+        const pct = Math.round(prog.fraction * 100);
+        return el('a', {
+          class: 'track-card', href: `#/learn/${t.id}`, 'data-state': prog.state,
+        }, [
+          el('div', { class: 'track-top' }, [
+            el('h3', { text: t.title }),
+            stateChip(prog.state),
+          ]),
+          el('p', { class: 'track-blurb', text: firstSentence(t.blurb) }),
+          el('div', { class: 'track-foot' }, [
+            el('div', { class: 'bar', title: `${pct}%` }, [el('i', { style: `width:${pct}%` })]),
+            el('div', { class: 'spread tiny' }, [
+              el('span', { text: `${prog.done} of ${prog.total} solved` }),
+              el('span', { class: 'faint', text: `${tree ? tree.size : 0} concepts` }),
+            ]),
+          ]),
+        ]);
+      })),
+    ])));
+  }
+
+  /* The tree. Nested lists, because that is what it is — a screen reader
+     gets the nesting for free and the indentation is not load-bearing. */
+  function drawTree(tree, picked) {
+    const host = $('#learnTreeHost');
+
+    const node = n => {
+      const prog = Catalog.treeProgress(n);
+      const mine = Catalog.readProgress(n.id);
+      const solvedHere = n.problems.filter(pr => {
+        const st = Store.record(pr.id).status;
+        return st === 'solved' || st === 'reviewed';
+      }).length;
+
+      /* Done means read everything and solved everything here, which is
+         the only claim the data can actually support. */
+      const state = !n.problems.length && !mine.total ? 'empty'
+        : (mine.read >= mine.total && solvedHere >= n.problems.length) ? 'done'
+          : (mine.read || solvedHere) ? 'started' : 'fresh';
+
+      const btn = el('button', {
+        type: 'button',
+        class: `tnode${n.id === (picked || {}).id ? ' on' : ''}`,
+        'data-state': state,
+        'data-concept': n.id,
+        'aria-current': n.id === (picked || {}).id ? 'true' : null,
+        onclick: () => { location.hash = `#/learn/${tree.track.id}/${n.id}`; },
+      }, [
+        el('span', { class: 'tnode-name', text: n.name }),
+        el('span', { class: 'tnode-counts tiny faint' }, [
+          mine.total ? el('span', { title: 'readings ticked' , text: `${mine.read}/${mine.total} read` }) : null,
+          n.problems.length ? el('span', { title: 'problems solved', text: `${solvedHere}/${n.problems.length} solved` }) : null,
+        ]),
+      ]);
+
+      return el('li', { class: 'tbranch' }, [
+        btn,
+        n.children.length
+          ? el('ul', { class: 'tkids' }, n.children.map(node))
+          : null,
+      ]);
+    };
+
+    host.replaceChildren(el('ul', { class: 'ttree' }, tree.roots.map(node)));
+  }
+
+  function drawNode(tree, n) {
+    const host = $('#learnNodeHost');
+    if (!n) {
+      host.replaceChildren(el('div', { class: 'empty' }, [
+        el('p', { class: 'muted', text: 'This track rests on nothing that has been written up yet.' }),
+      ]));
+      return;
+    }
+
+    const topic = Store.TOPIC_BY_ID[n.topic];
+    const parts = [
+      el('div', { class: 'lnode-head' }, [
+        el('h2', { text: n.name }),
+        topic ? el('a', {
+          class: 'chip-link tiny', href: `#/problems?topic=${n.topic}`, text: topic.label,
+        }) : null,
+      ]),
+      n.oneLine ? el('p', { class: 'muted', html: MD.renderInline(n.oneLine) }) : null,
+    ];
+
+    /* The edges that did not become this node's parent in the tree. Saying
+       so is the honest alternative to drawing a tree that is not one. */
+    if (n.alsoNeeds.length) {
+      parts.push(el('p', { class: 'tiny faint' }, [
+        'Also rests on ',
+        ...n.alsoNeeds.flatMap((a, i) => [
+          i ? ', ' : '',
+          el('a', { href: `#/learn/${tree.track.id}/${a.id}`, text: a.name }),
+        ]),
+        ' — drawn elsewhere in this tree.',
+      ]));
+    }
+
+    /* ---- readings ---- */
+    parts.push(el('h3', { class: 'lnode-sub', text: 'Read' }));
+    if (!n.readings.length) {
+      parts.push(el('p', { class: 'tiny faint', text: 'Nothing listed for this one yet.' }));
+    } else {
+      const list = el('div', { class: 'readings' });
+      n.readings.forEach((rd, i) => {
+        const done = Store.hasRead(n.id, i);
+        list.append(el('label', { class: `reading${done ? ' done' : ''}` }, [
+          el('input', {
+            type: 'checkbox', checked: done,
+            onchange: e => {
+              for (const a of Store.markReading(n.id, i, e.target.checked)) {
+                toast(`Unlocked: ${a.label}`, 'good');
+              }
+              renderLearn(tree.track.id, n.id);
+              refreshPurse();
+            },
+          }),
+          rd.kind ? el('span', { class: 'kind', text: rd.kind }) : null,
+          rd.url
+            ? el('a', {
+              class: 'title', href: MD.safeHref(rd.url),
+              target: '_blank', rel: 'noopener noreferrer', text: rd.title,
+            })
+            : el('span', { class: 'title', text: rd.title }),
+          rd.where ? el('span', { class: 'where', text: rd.where }) : null,
+        ]));
+      });
+      parts.push(list);
+    }
+
+    /* ---- problems ---- */
+    const own = new Set(tree.track.problems);
+    const here = n.problems.filter(pr => own.has(pr.id));
+    const elsewhere = n.problems.filter(pr => !own.has(pr.id));
+
+    parts.push(el('h3', { class: 'lnode-sub', text: 'Then try' }));
+    if (!n.problems.length) {
+      parts.push(el('p', { class: 'tiny faint', text: 'No problem rests on this one yet.' }));
+    } else {
+      if (here.length) parts.push(el('div', { class: 'plist tight' }, here.map(pr => problemRow(pr))));
+      if (elsewhere.length) {
+        parts.push(el('details', { class: 'lnode-more' }, [
+          el('summary', { class: 'tiny faint',
+            text: `${elsewhere.length} more outside this track` }),
+          el('div', { class: 'plist tight' }, elsewhere.map(pr => problemRow(pr))),
+        ]));
+      }
+    }
+
+    host.replaceChildren(...parts.filter(Boolean));
+  }
+
   /* ---------------- tracks ---------------- */
 
   function renderTracks(trackId) {
@@ -1484,7 +1709,7 @@ const UI = (() => {
   return {
     toast, refreshPurse, applyCosmetics, wire, endPreview,
     renderHome, renderCatalog, renderConcepts, renderProfile, renderShop, renderSettings,
-    renderTracks, renderResources, problemList,
+    renderTracks, renderLearn, renderResources, problemList,
     setFilter, checkJudge, paintJudgeState,
   };
 })();

@@ -516,9 +516,11 @@ section('tracks');
 ok('the dashboard shows a tracks strip', document.querySelectorAll('#homeTracks .track-card').length > 0);
 ok('at most three of them', document.querySelectorAll('#homeTracks .track-card').length <= 3);
 
-await go(window, '#/tracks');
-check('the tracks view is showing', document.getElementById('view-tracks').hidden, false);
-const trackCards = () => [...document.querySelectorAll('#trackList .track-card')];
+/* The list of tracks lives under Learn now; #/tracks/<id> is still the
+   flat list of one track's problems. */
+await go(window, '#/learn');
+check('the learn view is showing', document.getElementById('view-learn').hidden, false);
+const trackCards = () => [...document.querySelectorAll('#learnTracks .track-card')];
 ok('every track is listed',
   trackCards().length
     === window.SystemsLab.Catalog.allTracks().length);
@@ -547,11 +549,11 @@ window.SystemsLab.Store.state.progress[sampleTrack.problems[0]] = {
   ...window.SystemsLab.Store.record(sampleTrack.problems[0]), status: 'attempted', attempts: 1,
 };
 window.SystemsLab.Store.save();
-/* Already on #/tracks, and the router does not re-render an unchanged hash,
+/* Already on #/learn, and the router does not re-render an unchanged hash,
    so leave and come back. */
 await go(window, '#/');
-await go(window, '#/tracks');
-const sampleCard = trackCards().find(c => c.getAttribute('href') === `#/tracks/${sampleTrack.id}`);
+await go(window, '#/learn');
+const sampleCard = trackCards().find(c => c.getAttribute('href') === `#/learn/${sampleTrack.id}`);
 check('one attempt moves it to Attempted', sampleCard.querySelector('.state').textContent, 'Attempted');
 
 /* And the dashboard should now offer to resume that one rather than start

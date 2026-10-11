@@ -286,9 +286,9 @@ await go(broken.window, '#/concepts');
 ok('reading says there is nothing to read',
   /no concepts loaded/i.test(broken.document.querySelector('#conceptList').textContent));
 
-await go(broken.window, '#/tracks');
-ok('tracks says there are none',
-  /no tracks/i.test(broken.document.getElementById('trackList').textContent));
+await go(broken.window, '#/learn');
+ok('Learn says there are no tracks',
+  /no tracks/i.test(broken.document.getElementById('learnTracks').textContent));
 
 /* A missing problem is its own error state. */
 await go(fresh.window, '#/p/no-such-problem-at-all');

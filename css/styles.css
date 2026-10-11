@@ -1806,6 +1806,108 @@ html[data-focus] .rail { display: none; }
 
    Two pills in the top bar. It is a lens rather than an account: everything
    it hides is still solved, still bookmarked, and still found by search. */
+/* ---------------- learn ----------------
+
+   The tree on the left, the selected node on the right. Below the
+   workspace breakpoint they stack, tree first, because picking a node is
+   what you came to do. */
+
+.learn-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: var(--s4); flex-wrap: wrap; margin-bottom: var(--s4);
+}
+.learn-head h1 { margin: 0 0 .2rem; }
+.learn-head p { margin: 0; max-width: 60ch; }
+
+.crumbs {
+  display: flex; gap: .45rem; align-items: center;
+  font-size: .76rem; color: var(--text-faint); margin-bottom: .5rem;
+}
+.crumbs a { color: var(--text-faint); }
+.crumbs a:hover { color: var(--accent); }
+
+.learn-group + .learn-group { margin-top: var(--s5); }
+.learn-group-head {
+  font-size: .72rem; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--text-faint); margin: 0 0 var(--s3);
+}
+
+.learn-wrap {
+  display: grid; grid-template-columns: minmax(0, 26rem) minmax(0, 1fr);
+  gap: var(--s4); align-items: start;
+}
+.learn-tree { padding: var(--s3); overflow-x: auto; }
+.learn-node { padding: var(--s4); min-width: 0; }
+
+/* The nesting is the prerequisite order, so it is a real list and a
+   screen reader gets it for free. The rail is the only decoration. */
+.ttree, .tkids { list-style: none; margin: 0; padding: 0; }
+/* Tight on purpose: the indent is six levels deep in places, and every
+   millimetre of it is width the node's name and counts do not get. */
+.tkids {
+  margin-left: .45rem; padding-left: .5rem;
+  border-left: 1px solid var(--border);
+}
+.tbranch { margin: 1px 0; }
+
+.tnode {
+  display: flex; align-items: baseline; gap: .5rem; flex-wrap: wrap;
+  width: 100%; text-align: left; cursor: pointer;
+  font: inherit; font-size: .84rem;
+  padding: .32rem .5rem; border-radius: var(--radius-s);
+  border: 1px solid transparent; background: none; color: var(--text-dim);
+  transition: background .12s, color .12s, border-color .12s;
+}
+.tnode:hover { background: var(--bg-elev-2); color: var(--text); }
+.tnode.on {
+  background: var(--accent-soft); border-color: var(--accent);
+  color: var(--text); font-weight: 600;
+}
+.tnode-name { min-width: 0; overflow-wrap: anywhere; }
+.tnode-counts {
+  display: flex; gap: .45rem; margin-left: auto;
+  white-space: nowrap; font-size: .68rem;
+}
+
+/* A dot for the node's own state, so the shape of what is done is
+   readable without counting. Colour is never the only signal: the
+   counts beside it say the same thing in words. */
+.tnode::before {
+  content: ''; flex: none; width: .5rem; height: .5rem; border-radius: 50%;
+  background: var(--border-strong); align-self: center;
+}
+.tnode[data-state="started"]::before { background: var(--warn); }
+.tnode[data-state="done"]::before    { background: var(--ok); }
+.tnode[data-state="empty"]::before   { background: transparent; box-shadow: inset 0 0 0 1px var(--border); }
+
+.lnode-head {
+  display: flex; align-items: baseline; gap: var(--s3);
+  flex-wrap: wrap; margin-bottom: .3rem;
+}
+.lnode-head h2 { margin: 0; font-size: 1.15rem; }
+.lnode-sub {
+  font-size: .72rem; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--text-faint); margin: var(--s4) 0 var(--s2);
+}
+.lnode-more { margin-top: var(--s2); }
+.lnode-more summary { cursor: pointer; }
+.chip-link {
+  padding: .1em .55em; border-radius: 999px;
+  background: var(--bg-inset); border: 1px solid var(--border);
+  color: var(--text-dim); text-decoration: none;
+}
+.chip-link:hover { color: var(--accent); border-color: var(--accent); text-decoration: none; }
+
+/* Inside a node panel the rows are denser than the catalogue: there are
+   rarely more than a handful and they sit under a heading already. */
+.plist.tight .prow { padding: .4rem .55rem; }
+.plist.tight { border: 1px solid var(--border); border-radius: var(--radius-s); }
+
+@media (max-width: 900px) {
+  .learn-wrap { grid-template-columns: minmax(0, 1fr); }
+  .learn-tree { max-height: 22rem; overflow-y: auto; }
+}
+
 /* ---------------- mathematics ----------------
 
    KaTeX sets its own type; what is needed here is the space around it and
