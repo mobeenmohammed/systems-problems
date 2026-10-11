@@ -45,18 +45,29 @@ const BrowserCpp = (() => {
 
   /* Loaded once, lazily: the list of problems whose own reference solution
      was compiled and run with this toolchain and got every case right. */
+  /* Loaded once, lazily. The *promise* is what is cached, not a flag:
+     setting a flag before awaiting means a second caller arriving while
+     the fetch is still out gets the not-yet-loaded value, decides the
+     language is uncertified, and disables its tab. That is exactly what
+     happened — the first paint of the toolbar and the first describe()
+     race each other on every page load. */
+  let supportPromise = null;
+  /* The resolved value as well, because toolchain() is called from
+     synchronous rendering code and cannot await. Null until the first
+     load finishes, which is what its caller already falls back from. */
   let support = null;
-  let supportTried = false;
 
-  async function loadSupport() {
-    if (supportTried) return support;
-    supportTried = true;
-    try {
-      const res = await fetch(new URL('../../data/cxx-support.json', HERE).href,
-        { cache: 'no-cache' });
-      if (res.ok) support = await res.json();
-    } catch { /* offline, or the file is not there; treated as "nothing certified" */ }
-    return support;
+  function loadSupport() {
+    if (!supportPromise) {
+      supportPromise = fetch(new URL('../../data/cxx-support.json', HERE).href,
+        { cache: 'no-cache' })
+        .then(res => (res.ok ? res.json() : null))
+        /* Offline, or the file is not there: treated as "nothing
+           certified" rather than as an error. */
+        .catch(() => null)
+        .then(got => { support = got; return got; });
+    }
+    return supportPromise;
   }
 
   /* Whether this *browser* could run C++ at all, which is a different

@@ -457,6 +457,40 @@ section('every C++ problem is classified for the browser compiler');
   }
 }
 
+/* ---------------- the in-browser Python interpreter ---------------- */
+
+section('every Python problem is classified for the browser interpreter');
+{
+  const support = JSON.parse(read('data/py-support.json'));
+  const py = problems.filter(p => p.type === 'code'
+    && ((p.payload || {}).langs || []).includes('python')).map(p => p.id);
+
+  const classified = new Set([...support.browser, ...Object.keys(support.nativeOnly)]);
+  const unclassified = py.filter(id => !classified.has(id)).sort();
+  check('none is left unclassified', unclassified, []);
+
+  const stale = [...classified].filter(id => !py.includes(id)).sort();
+  check('and none names a problem that no longer exists', stale, []);
+
+  ok('the interpreter it was certified against is recorded',
+    /CPython/.test(JSON.stringify(support.runtime || {})));
+  ok('including the platform it actually measured',
+    /emscripten/.test(String((support.runtime || {}).measured || '')));
+
+  for (const [id, why] of Object.entries(support.nativeOnly)) {
+    ok(`${id}: needing a real Python is explained, not just asserted`,
+      String(why).trim().length > 60);
+  }
+
+  /* Every certified problem has a Python reference, or the audit could
+     not have run it. */
+  for (const id of support.browser) {
+    const sol = JSON.parse(read(`solutions/${id}.json`));
+    ok(`${id}: has the Python reference the audit ran`,
+      !!((sol.key || {}).reference || {}).python);
+  }
+}
+
 section('feedback after a wrong answer discloses nothing');
 for (const p of problems) {
   const sol = solutions[p.id];

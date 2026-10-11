@@ -1,0 +1,30 @@
+{
+  "generatedBy": "scripts/vendor-py.mjs",
+  "packages": {
+    "pyodide": "314.0.7"
+  },
+  "files": {
+    "pyodide/pyodide.mjs": {
+      "bytes": 17931,
+      "sha256": "6f1d60f7bf529beb"
+    },
+    "pyodide/pyodide.asm.mjs": {
+      "bytes": 1250344,
+      "sha256": "f7cdc8ece80678ce"
+    },
+    "pyodide/pyodide.asm.wasm": {
+      "bytes": 9598218,
+      "sha256": "cc36e3cab04fdfc9"
+    },
+    "pyodide/python_stdlib.zip": {
+      "bytes": 2545637,
+      "sha256": "fa1957e5777068fc"
+    },
+    "pyodide/pyodide-lock.json": {
+      "bytes": 119077,
+      "sha256": "5dc2fc119108bc14"
+    }
+  },
+  "totalBytes": 13531207,
+  "python": "3.14.2"
+}

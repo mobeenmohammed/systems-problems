@@ -343,8 +343,11 @@ fn main() {
     /* Only subscribe while a run is in flight, and only paint if the
        toolchain is not already loaded — on every run after the first there
        is nothing to download and nothing to show. */
-    const unwatch = (typeof BrowserCpp !== 'undefined' && !BrowserCpp.ready)
-      ? BrowserCpp.onProgress(showDownload) : null;
+    const engine = lang === 'python'
+      ? (typeof BrowserPy !== 'undefined' ? BrowserPy : null)
+      : (typeof BrowserCpp !== 'undefined' ? BrowserCpp : null);
+    const unwatch = (engine && !engine.ready)
+      ? engine.onProgress(p => showDownload(p, lang)) : null;
 
     let reply;
     try {
@@ -412,21 +415,35 @@ fn main() {
     if (btn) btn.hidden = !on;
   }
 
-  /* The download, as a bar. 90 MB with no feedback is indistinguishable from
-     a page that has hung. */
-  function showDownload(p) {
+  /* What is being fetched, in the words of whichever engine is fetching
+     it. 90 MB — or 13 — with no feedback is indistinguishable from a page
+     that has hung. */
+  const ENGINE_WORDS = {
+    cpp: {
+      what: 'the C++ compiler',
+      preparing: 'Preparing the compiler…',
+      note: 'A real Clang, compiled to WebAssembly. It is fetched once and then '
+        + 'cached, so this happens on the first C++ run and not again.',
+    },
+    python: {
+      what: 'Python',
+      preparing: 'Starting the interpreter…',
+      note: 'A real CPython, compiled to WebAssembly. It is fetched once and then '
+        + 'cached, so this happens on the first Python run and not again.',
+    },
+  };
+
+  function showDownload(p, lang = 'cpp') {
     const host = document.getElementById('runOut') || (state && state.out);
     if (!host) return;
     let bar = host.querySelector('.cxx-dl');
     if (!p) { if (bar) bar.remove(); return; }
+    const words = ENGINE_WORDS[lang] || ENGINE_WORDS.cpp;
     if (!bar) {
       bar = el('div', { class: 'cxx-dl' }, [
         el('p', { class: 'small', id: 'cxxDlText' }, ['']),
         el('div', { class: 'bar' }, [el('i', { id: 'cxxDlFill', style: 'width:0%' })]),
-        el('p', { class: 'tiny faint' }, [
-          'A real Clang, compiled to WebAssembly. It is fetched once and then '
-          + 'cached, so this happens on the first C++ run and not again.',
-        ]),
+        el('p', { class: 'tiny faint' }, [words.note]),
       ]);
       host.replaceChildren(bar);
     }
@@ -434,13 +451,16 @@ fn main() {
     const text = bar.querySelector('#cxxDlText');
     const fill = bar.querySelector('#cxxDlFill');
     if (p.stage === 'preparing') {
-      text.textContent = 'Preparing the compiler…';
+      text.textContent = words.preparing;
       fill.style.width = '100%';
     } else if (p.stage === 'ready') {
       bar.remove();
     } else {
-      text.textContent = `Fetching the C++ compiler — ${mb(p.loaded)} of ${mb(p.total)} MB`;
-      fill.style.width = `${p.percent}%`;
+      const pct = p.percent !== undefined
+        ? p.percent
+        : Math.min(100, Math.round((p.loaded / Math.max(1, p.total)) * 100));
+      text.textContent = `Fetching ${words.what} — ${mb(p.loaded)} of ${mb(p.total)} MB`;
+      fill.style.width = `${pct}%`;
     }
   }
 
