@@ -300,21 +300,62 @@ let firstRunMs = 0;
 
 /* ---------------- the second visit ---------------- */
 
-section('the compiler is cached, so the second visit is quick');
+section('the compiler is cached, so coming back fetches nothing');
 {
+  /* Two mistakes this check has made, both worth not making again.
+
+     It used to compare wall-clock against the first run, which only
+     means anything if the first run was genuinely cold — against a
+     deployed site with the assets already in the HTTP cache it was not,
+     and the failure said nothing about caching.
+
+     Then it counted bytes, but in a *fresh context*, whose Cache API is
+     empty. Re-fetching there is correct behaviour. A return visit is the
+     same browser coming back, so that is what this does: one context,
+     one cold run, a reload, and a second run. */
   const { ctx, p } = await freshPage();
+
+  let bytes = 0;
+  const fetched = [];
+  let counting = false;
+  p.on('response', res => {
+    if (!counting) return;
+    const u = res.url();
+    if (!/\.(wasm|tar)(\?|$)/.test(u)) return;
+    const len = Number(res.headers()['content-length'] || 0);
+    if (res.status() === 200 && len > 0) { bytes += len; fetched.push(u.split('/').pop()); }
+  });
+
   await p.goto(`${BASE}/#/p/cpp-count-digits`, { waitUntil: 'networkidle' });
   await p.waitForTimeout(1500);
   await paste(p, DIGITS_OK);
-  const t = Date.now();
+  const cold = Date.now();
   await p.locator('#runBtn').click();
   await settled(p);
-  const ms = Date.now() - t;
-  const r = await cases(p);
-  ok(`it ran (${r.passed}/${r.total})`, r.total > 0 && r.passed === r.total);
-  console.log(`  --    first run ${(firstRunMs / 1000).toFixed(1)}s (cold, with the download), `
-    + `this one ${(ms / 1000).toFixed(1)}s`);
-  ok('and a cached visit is faster than the cold one', ms < firstRunMs);
+  const coldMs = Date.now() - cold;
+  const first = await cases(p);
+  ok(`it ran the first time (${first.passed}/${first.total})`,
+    first.total > 0 && first.passed === first.total);
+
+  /* Everything from here is the return visit. */
+  counting = true;
+  await p.reload({ waitUntil: 'networkidle' });
+  await p.waitForTimeout(1500);
+  await paste(p, DIGITS_OK);
+  const warm = Date.now();
+  await p.locator('#runBtn').click();
+  await settled(p);
+  const warmMs = Date.now() - warm;
+  const again = await cases(p);
+
+  ok(`it ran again (${again.passed}/${again.total})`,
+    again.total > 0 && again.passed === again.total);
+  console.log(`  --    cold ${(coldMs / 1000).toFixed(1)}s, after a reload `
+    + `${(warmMs / 1000).toFixed(1)}s, ${(bytes / 1048576).toFixed(1)} MB off the wire`);
+  ok(`the 90 MB was not fetched again (${(bytes / 1048576).toFixed(1)} MB`
+    + `${fetched.length ? `: ${[...new Set(fetched)].join(', ')}` : ''})`,
+    bytes < 5 * 1048576);
+  ok(`and it was quick about it (${(warmMs / 1000).toFixed(1)}s)`, warmMs < 30000);
   await ctx.close();
 }
 
