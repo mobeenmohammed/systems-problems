@@ -48,11 +48,6 @@
     </div>
   </div>
 
-  <!-- The coarsest switch on the site: which subject you are studying. It
-       filters the catalogue, the tracks and the reading map, and it does not
-       touch progress, bookmarks or the weekly problem, which are shared. -->
-  <div class="subject-switch" id="subjectSwitch" role="group" aria-label="Subject"></div>
-
   <nav class="topbar-nav" id="nav" aria-label="Views">
     <a href="#/" data-route="home">Dashboard</a>
     <a href="#/problems" data-route="problems">Problems</a>
@@ -131,6 +126,12 @@
     <h1>Problems</h1>
     <div class="filters">
       <input type="search" id="fSearch" placeholder="Search titles and tags…" aria-label="Search problems" autocomplete="off">
+      <!-- Subject is a filter like any other now, rather than a switch in the
+           top bar. One catalogue, one search, and mathematics and systems
+           side by side unless you ask for one of them. -->
+      <label>Subject
+        <select id="fSubject"><option value="">All subjects</option></select>
+      </label>
       <label>Topic
         <select id="fTopic"><option value="">All topics</option></select>
       </label>

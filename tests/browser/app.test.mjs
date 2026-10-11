@@ -115,13 +115,11 @@ section('the catalog');
 await go(window, '#/problems');
 check('the catalog is showing', document.getElementById('view-problems').hidden, false);
 const rows = () => [...document.querySelectorAll('#catalogList .prow')];
-/* The catalogue is scoped to the subject the top bar is showing — a lens,
-   not a separate account. Everything hidden is still in Catalog.all(), still
-   solved and still found by search; see the subject section below. */
-const inSubject = () => window.SystemsLab.Catalog.all()
-  .filter(p => p.subject === window.SystemsLab.UI.subject()).length;
-ok(`every problem of the current subject is listed (${rows().length})`,
-  rows().length === inSubject());
+/* One catalogue. Subject is a filter beside topic and difficulty now, not
+   a switch in the top bar, so the default view is every problem on the
+   site rather than half of them. */
+ok(`every problem is listed by default (${rows().length})`,
+  rows().length === window.SystemsLab.Catalog.all().length);
 /* The row is a div with a stretched link inside, so the bookmark button can
    be a real button. href lives on .prow-link. */
 const rowHref = r => (r.querySelector('.prow-link') || r).getAttribute('href');
@@ -159,7 +157,7 @@ ok('no matches says so',
 
 click(document.getElementById('fClear'));
 await settle(window);
-ok('clearing restores the list', rows().length === inSubject());
+ok('clearing restores the list', rows().length === window.SystemsLab.Catalog.all().length);
 
 section('a filter can arrive in the url');
 await go(window, '#/problems?topic=dist');
@@ -521,10 +519,9 @@ ok('at most three of them', document.querySelectorAll('#homeTracks .track-card')
 await go(window, '#/tracks');
 check('the tracks view is showing', document.getElementById('view-tracks').hidden, false);
 const trackCards = () => [...document.querySelectorAll('#trackList .track-card')];
-/* Scoped to the subject showing, like the catalogue. */
-ok('every track of the current subject is listed',
+ok('every track is listed',
   trackCards().length
-    === window.SystemsLab.Catalog.allTracks(window.SystemsLab.UI.subject()).length);
+    === window.SystemsLab.Catalog.allTracks().length);
 ok('each has a progress bar', trackCards().every(c => c.querySelector('.bar i') !== null));
 
 /* The old card said "in progress" for every track with anything left, which
@@ -655,7 +652,7 @@ const clearBtn = document.querySelector('#catalogList .empty button');
 ok('and offers to clear the filters', clearBtn !== null);
 clearBtn.click();
 await settle(window);
-ok('which brings every problem back', rows().length === inSubject());
+ok('which brings every problem back', rows().length === window.SystemsLab.Catalog.all().length);
 
 section('a track naming a problem that does not exist drops it');
 /* The file may list an id that has not been written yet; a dead row would be

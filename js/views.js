@@ -398,7 +398,7 @@ const UI = (() => {
   /* A short strip of tracks on the dashboard; the full list is its own view. */
   function renderTracksStrip() {
     const host = $('#homeTracks');
-    const tracks = Catalog.allTracks(subject());
+    const tracks = Catalog.allTracks();
     if (!tracks.length) { host.replaceChildren(); return; }
 
     /* Started but unfinished first, then untouched, then complete — which is
@@ -424,16 +424,13 @@ const UI = (() => {
 
   function renderTracks(trackId) {
     const host = $('#trackList');
-    /* Scoped like the catalogue. A track opened by id still opens, whichever
-       subject the switch is on, because a link to one should work. */
-    const tracks = Catalog.allTracks(subject());
+    const tracks = Catalog.allTracks();
 
     const blurb = $('#tracksBlurb');
     if (blurb) {
-      const label = Store.SUBJECT_BY_ID[subject()].label;
       blurb.textContent = tracks.length
         ? `${tracks.length} ordered ${tracks.length === 1 ? 'set' : 'sets'} of `
-          + `${label} problems that build on each other, so there is always an `
+          + 'problems that build on each other, so there is always an '
           + 'obvious next one.'
         : 'Ordered sets of problems that build on each other.';
     }
@@ -553,58 +550,42 @@ const UI = (() => {
 
   /* ---------------- catalog ---------------- */
 
-  let filter = { q: '', topic: '', difficulty: '', type: '', status: '', lane: '' };
+  let filter = { q: '', subject: '', topic: '', difficulty: '', type: '', status: '', lane: '' };
 
-  /* ---------------- the subject switch ----------------
+  /* ---------------- subject ----------------
 
-     A view preference, so it lives beside the panel sizes rather than in
-     progress: which subject you are looking at could never be worth a
-     solve. Everything the switch hides is still there, still solved, still
-     bookmarked — it is a lens, not a separate account. */
-
-  const subject = () => {
-    const want = Store.pref('subject', 'systems');
-    return Store.SUBJECT_BY_ID[want] ? want : 'systems';
-  };
-
-  function setSubject(id) {
-    if (!Store.SUBJECT_BY_ID[id] || id === subject()) return;
-    Store.setPref('subject', id);
-    /* The topic filter belongs to the subject that was showing. */
-    filter = { ...filter, topic: '' };
-    paintSubjectSwitch();
-    const view = (document.querySelector('.view:not([hidden])') || {}).id;
-    ({
-      'view-home': renderHome,
-      'view-problems': () => setFilter({ topic: '' }),
-      'view-tracks': () => renderTracks(null),
-      'view-concepts': renderConcepts,
-    }[view] || (() => {}))();
-  }
-
-  function paintSubjectSwitch() {
-    const host = $('#subjectSwitch');
-    if (!host) return;
-    const now = subject();
-    host.replaceChildren(...Store.SUBJECTS.map(sub => el('button', {
-      type: 'button',
-      class: 'subject-btn',
-      'aria-pressed': String(sub.id === now),
-      title: sub.blurb,
-      onclick: () => setSubject(sub.id),
-    }, [sub.short])));
-  }
+     Subject used to be a switch in the top bar: a lens over the whole site
+     that hid half the catalogue, half the tracks and half the reading map.
+     It is a filter now, next to topic and difficulty, so the default view
+     is everything and nothing has to be switched to be found. Progress,
+     bookmarks and the weekly problem were always shared and still are. */
 
   function fillFilterOptions() {
+    const subj = $('#fSubject');
+    if (subj && subj.options.length === 1) {
+      for (const sub of Store.SUBJECTS) {
+        subj.append(el('option', { value: sub.id, text: sub.label, title: sub.blurb }));
+      }
+    }
+
+    /* Topics are grouped under their subject rather than filtered by it.
+       The whole list is short enough to read at once, and a group label
+       says which half of the site a topic belongs to without anyone
+       having to select a subject first to find out. */
     const topic = $('#fTopic');
-    /* Rebuilt whenever the subject changes: offering "Metric Spaces" in the
-       Systems catalogue would filter to nothing and look broken. */
-    const want = subject();
+    const want = filter.subject || '';
     if (topic.dataset.subject !== want) {
       topic.dataset.subject = want;
       topic.replaceChildren(el('option', { value: '', text: 'All topics' }));
-      for (const t of Store.topicsIn(want)) {
-        topic.append(el('option', { value: t.id, text: t.label }));
+      for (const sub of Store.SUBJECTS) {
+        if (want && sub.id !== want) continue;
+        const list = Store.topicsIn(sub.id);
+        if (!list.length) continue;
+        /* No group wrapper when only one subject is in play: a single
+           heading above a list that is already all one thing is noise. */
+        const into = want ? topic : el('optgroup', { label: sub.label });
+        for (const t of list) into.append(el('option', { value: t.id, text: t.label }));
+        if (!want) topic.append(into);
       }
       topic.value = filter.topic || '';
     }
@@ -617,7 +598,15 @@ const UI = (() => {
 
   function setFilter(patch, { silent = false } = {}) {
     filter = { ...filter, ...patch };
+    /* Choosing a subject drops a topic from the other one, which would
+       otherwise filter to nothing and look broken. */
+    if (patch.subject !== undefined && filter.topic
+        && (Store.TOPIC_BY_ID[filter.topic] || {}).subject !== filter.subject
+        && filter.subject) {
+      filter.topic = '';
+    }
     $('#fSearch').value = filter.q;
+    $('#fSubject').value = filter.subject;
     $('#fTopic').value  = filter.topic;
     $('#fDiff').value   = filter.difficulty;
     $('#fType').value   = filter.type;
@@ -629,19 +618,21 @@ const UI = (() => {
   function renderCatalog() {
     fillFilterOptions();
     const searching = !!String(filter.q || '').trim();
-    const rows = Catalog.sorted(Catalog.list({ ...filter, subject: subject() }));
-    const inSubject = Catalog.all().filter(p => p.subject === subject()).length;
+    const rows = Catalog.sorted(Catalog.list(filter));
     const total = Catalog.all().length;
 
-    /* Searching deliberately crosses subjects — looking for "bayes" from the
-       Systems side should find it rather than returning nothing — so the
-       count says which population it is counting. */
-    const label = Store.SUBJECT_BY_ID[subject()].label;
+    /* Searching deliberately ignores the subject filter — looking for
+       "bayes" with Systems selected should find it rather than returning
+       nothing — so when it does, the count says so. */
+    const label = filter.subject ? Store.SUBJECT_BY_ID[filter.subject].label : '';
+    const pool = filter.subject
+      ? Catalog.all().filter(p => p.subject === filter.subject).length
+      : total;
     $('#catalogCount').textContent = searching
       ? `${rows.length} of ${total} problems, searching every subject`
-      : rows.length === inSubject
-        ? `${inSubject} ${label} problems`
-        : `${rows.length} of ${inSubject} ${label} problems`;
+      : rows.length === pool
+        ? `${pool}${label ? ` ${label}` : ''} problems`
+        : `${rows.length} of ${pool}${label ? ` ${label}` : ''} problems`;
 
     const list = $('#catalogList');
 
@@ -681,13 +672,14 @@ const UI = (() => {
       const v = e.target.value;
       t = setTimeout(() => { filter.q = v; renderCatalog(); }, 120);
     });
+    $('#fSubject').addEventListener('change', e => setFilter({ subject: e.target.value }));
     $('#fTopic').addEventListener('change',  e => setFilter({ topic: e.target.value }));
     $('#fDiff').addEventListener('change',   e => setFilter({ difficulty: e.target.value }));
     $('#fType').addEventListener('change',   e => setFilter({ type: e.target.value }));
     $('#fStatus').addEventListener('change', e => setFilter({ status: e.target.value }));
     $('#fLane').addEventListener('change',   e => setFilter({ lane: e.target.value }));
     $('#fClear').addEventListener('click', () =>
-      setFilter({ q: '', topic: '', difficulty: '', type: '', status: '', lane: '' }));
+      setFilter({ q: '', subject: '', topic: '', difficulty: '', type: '', status: '', lane: '' }));
   }
 
   /* ---------------- reading map ---------------- */
@@ -1494,6 +1486,5 @@ const UI = (() => {
     renderHome, renderCatalog, renderConcepts, renderProfile, renderShop, renderSettings,
     renderTracks, renderResources, problemList,
     setFilter, checkJudge, paintJudgeState,
-    subject, setSubject, paintSubjectSwitch,
   };
 })();

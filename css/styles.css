@@ -1806,21 +1806,6 @@ html[data-focus] .rail { display: none; }
 
    Two pills in the top bar. It is a lens rather than an account: everything
    it hides is still solved, still bookmarked, and still found by search. */
-.subject-switch {
-  display: flex; gap: 2px; padding: 2px;
-  background: var(--bg-inset); border: 1px solid var(--border);
-  border-radius: 999px; flex: none;
-}
-.subject-btn {
-  font: inherit; font-size: .78rem; font-weight: 600;
-  padding: .3em .9em; border: 0; border-radius: 999px; cursor: pointer;
-  background: none; color: var(--text-faint);
-  transition: color .13s, background .13s;
-  white-space: nowrap;
-}
-.subject-btn:hover { color: var(--text); }
-.subject-btn[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
-
 /* ---------------- mathematics ----------------
 
    KaTeX sets its own type; what is needed here is the space around it and

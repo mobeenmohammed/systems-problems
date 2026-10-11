@@ -56,11 +56,16 @@ across ten topics" by hand, and both numbers were wrong within a day.
 
 ## Two subjects
 
-The top bar switches between **Systems** and **Mathematics**. It is a lens
-rather than a separate account: progress, bookmarks, the weekly problem and
-search are all shared, and searching deliberately crosses subjects — looking
-for "bayes" from the Systems side finds it, and the catalogue says that is
-what happened.
+**Systems** and **Mathematics** share one catalogue. Subject is a filter in
+the Problems view, beside topic and difficulty, so the default is every
+problem on the site rather than half of them — and the topic list is grouped
+by subject, so you can reach Metric Spaces without selecting Mathematics
+first. Searching deliberately ignores the filter: looking for "bayes" with
+Systems selected finds it, and the count says that is what happened.
+
+This replaced a switch in the top bar. A lens that hides half the catalogue,
+half the tracks and half the reading map is a thing you have to remember the
+state of, and the only part of it worth keeping was the filtering.
 
 A problem's subject is **derived from its topic** rather than being a second
 field on every file, because two fields that have to agree eventually
@@ -743,7 +748,7 @@ Chromium against a real site:
 | `tests/browser/feedback.test.mjs` | A wrong answer on each of MCQ, select-all and find-the-bug: that the explanation is substantial, that it discloses nothing, and that the verdict is relabelled and the marks cleared the moment the answer changes |
 | `tests/maths-expr.test.mjs` | The expression engine on its own: equal values comparing equal however they are written, unequal ones never comparing equal, syntax errors and unsupported expressions reported as *different kinds* of failure from a wrong answer, and eleven injection attempts refused |
 | `tests/maths-render.test.mjs` | KaTeX renders, emits MathML, and markdown does not get at the TeX first — `$a_1 + a_2$` must not become `a<em>1 + a</em>2` |
-| `tests/browser/maths.test.mjs` (`npm run test:maths`) | The subject switch, typesetting on the page, every one of the six answer formats, a syntax error costing no attempt, a wrong answer explaining the misconception, progressive hints, the figures, a written proof reaching **Self-reviewed** without ever being marked right, and the review being finishable from wherever revealing the model proof leaves you |
+| `tests/browser/maths.test.mjs` (`npm run test:maths`) | Subject as a filter over one catalogue, typesetting on the page, every one of the six answer formats, a syntax error costing no attempt, a wrong answer explaining the misconception, progressive hints, the figures, a written proof reaching **Self-reviewed** without ever being marked right, and the review being finishable from wherever revealing the model proof leaves you |
 | `tests/browser/cxx.test.mjs` (`npm run test:cxx`) | C++ in the browser with the runner address pointed at a dead port: the download and its progress bar, a cold first run, submit-wrong-then-correct, a Clang compile error, an infinite loop cut short and a valid program straight afterwards, Stop, the cached second visit, a native-only problem refusing to pretend, and a check that nothing was sent anywhere |
 | `tests/browser/usability.test.mjs` | Buttons after a failure, a run in flight when the problem or language changes, the toolbar at five widths, every answer control being clickable where it looks, horizontal overflow on twelve routes at eight widths with the view links staying reachable, keyboard reach to hints/notes/solution, and the blast radius of a reset |
 

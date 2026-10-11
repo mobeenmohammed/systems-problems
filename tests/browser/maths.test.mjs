@@ -79,27 +79,35 @@ const needs = () => page.evaluate(() =>
   (document.querySelector('.needs-answer') || {}).textContent || '');
 const record = id => page.evaluate(i => window.SystemsLab.Store.record(i), id);
 
-/* ---------------- the subject switch ---------------- */
+/* ---------------- subject as a filter ---------------- */
 
-section('Mathematics is a subject, not a topic');
+section('one catalogue, with subject as a filter');
 {
   await page.goto(`${BASE}/#/problems`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(900);
 
-  const systems = await page.evaluate(() => ({
-    pressed: [...document.querySelectorAll('.subject-btn')]
-      .map(b => `${b.textContent}:${b.getAttribute('aria-pressed')}`),
+  const all = await page.evaluate(() => ({
     rows: document.querySelectorAll('#catalogList .prow').length,
+    total: window.SystemsLab.Catalog.all().length,
     count: document.getElementById('catalogCount').textContent,
+    switches: document.querySelectorAll('.subject-btn, #subjectSwitch').length,
+    subjects: [...document.querySelectorAll('#fSubject option')].map(o => o.textContent),
+    /* Topics from both halves of the site, grouped by subject. */
+    groups: [...document.querySelectorAll('#fTopic optgroup')].map(g => g.label),
     topics: [...document.querySelectorAll('#fTopic option')].map(o => o.textContent),
   }));
-  check('two subjects are offered', systems.pressed.length, 2);
-  ok('Systems is the one showing', systems.pressed.includes('Systems:true'));
-  ok(`and the catalogue is scoped to it (${systems.count})`, /Systems problems/.test(systems.count));
-  ok('the topic filter offers only Systems topics',
-    systems.topics.includes('C++') && !systems.topics.includes('Metric Spaces'));
+  check('the top bar has no subject switch left', all.switches, 0);
+  ok(`every problem is listed by default (${all.rows} of ${all.total})`,
+    all.rows === all.total && all.rows > 100);
+  ok('the subject filter offers both', all.subjects.includes('Mathematics')
+    && all.subjects.includes('Systems'));
+  ok('topics are grouped by subject', all.groups.includes('Mathematics')
+    && all.groups.includes('Systems'));
+  ok('and every topic is reachable without choosing a subject first',
+    all.topics.includes('C++') && all.topics.includes('Metric Spaces'));
+  if (process.env.SHOTS) await page.screenshot({ path: path.join(SHOTS, 'catalogue-all.png') });
 
-  await page.locator('.subject-btn', { hasText: 'Maths' }).click();
+  await page.selectOption('#fSubject', 'maths');
   await page.waitForTimeout(700);
   const maths = await page.evaluate(() => ({
     rows: document.querySelectorAll('#catalogList .prow').length,
@@ -107,16 +115,16 @@ section('Mathematics is a subject, not a topic');
     topics: [...document.querySelectorAll('#fTopic option')].map(o => o.textContent),
     titles: [...document.querySelectorAll('#catalogList .prow-link')].map(a => a.textContent),
   }));
-  check('switching shows the 24 mathematics problems', maths.rows, 24);
-  ok(`and says so (${maths.count})`, /Mathematics problems/.test(maths.count));
-  ok('the topic filter changed with it',
-    maths.topics.includes('Metric Spaces') && maths.topics.includes('Probability')
-      && !maths.topics.includes('C++'));
+  check('filtering to Mathematics leaves 24', maths.rows, 24);
+  ok(`and says so (${maths.count})`, /24 Mathematics problems/.test(maths.count));
+  ok('the topic list narrows with it',
+    maths.topics.includes('Metric Spaces') && !maths.topics.includes('C++'));
   ok('and the titles are mathematics',
     maths.titles.some(t => /axiom/i.test(t)) && maths.titles.some(t => /positive test/i.test(t)));
   if (process.env.SHOTS) await page.screenshot({ path: path.join(SHOTS, 'maths-catalogue.png') });
 
-  /* Search is shared on purpose. */
+  /* Search is shared on purpose, and ignores the subject filter rather
+     than returning nothing. */
   await page.locator('#fSearch').fill('cache');
   await page.waitForTimeout(600);
   const searched = await page.evaluate(() => ({
@@ -127,19 +135,43 @@ section('Mathematics is a subject, not a topic');
     searched.rows > 0 && /every subject/.test(searched.count));
   await page.locator('#fClear').click();
   await page.waitForTimeout(400);
+  check('clearing restores every problem',
+    await page.evaluate(() => document.querySelectorAll('#catalogList .prow').length),
+    await page.evaluate(() => window.SystemsLab.Catalog.all().length));
 }
 
-section('and the switch survives a reload');
+section('a topic from the other subject is dropped rather than left to show nothing');
 {
-  await page.reload({ waitUntil: 'networkidle' });
-  await page.waitForTimeout(900);
+  await page.selectOption('#fTopic', 'metric');
+  await page.waitForTimeout(500);
+  const before = await page.evaluate(() =>
+    document.querySelectorAll('#catalogList .prow').length);
+  ok(`Metric Spaces alone lists something (${before})`, before > 0);
+
+  await page.selectOption('#fSubject', 'systems');
+  await page.waitForTimeout(600);
   const after = await page.evaluate(() => ({
-    pressed: [...document.querySelectorAll('.subject-btn')]
-      .find(b => b.getAttribute('aria-pressed') === 'true').textContent,
+    topic: document.getElementById('fTopic').value,
     rows: document.querySelectorAll('#catalogList .prow').length,
   }));
-  check('still on Mathematics', after.pressed, 'Maths');
-  check('and still showing its problems', after.rows, 24);
+  check('the stale topic is cleared', after.topic, '');
+  ok(`and Systems problems are shown rather than none (${after.rows})`, after.rows > 0);
+  await page.locator('#fClear').click();
+  await page.waitForTimeout(400);
+}
+
+section('tracks and reading are no longer half hidden');
+{
+  await page.goto(`${BASE}/#/tracks`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(900);
+  const tracks = await page.evaluate(() => ({
+    shown: document.querySelectorAll('#trackList .tcard, #trackList .track-card').length,
+    all: window.SystemsLab.Catalog.allTracks().length,
+    text: document.body.textContent,
+  }));
+  ok(`every track is listed (${tracks.all})`, tracks.all === 11);
+  ok('including both subjects',
+    /Metric spaces/i.test(tracks.text) && /C\+\+ foundations/i.test(tracks.text));
 }
 
 /* ---------------- typesetting ---------------- */

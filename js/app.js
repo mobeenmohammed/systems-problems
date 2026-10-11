@@ -169,7 +169,6 @@
     await Store.init();
     UI.applyCosmetics();
     UI.refreshPurse();
-    UI.paintSubjectSwitch();
 
     await Catalog.init();
     if (Catalog.loadError) {
