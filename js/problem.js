@@ -189,6 +189,7 @@ const ProblemView = (() => {
   const RESULT_TABS = [
     { id: 'cases',    label: 'Test cases' },
     { id: 'results',  label: 'Results' },
+    { id: 'subs',     label: 'Submissions' },
     { id: 'compiler', label: 'Compiler output' },
   ];
 
@@ -393,8 +394,10 @@ const ProblemView = (() => {
     for (const t of tabs) {
       const shut = t.id === 'solution' && !disclosed();
       const r = Store.record(current.id);
+      const subs = t.id === 'subs' ? Store.submissions(current.id).length : 0;
       const badge = t.id === 'hints' && (current.hints || []).length
-        ? `${r.hintsUsed}/${current.hints.length}` : null;
+        ? `${r.hintsUsed}/${current.hints.length}`
+        : (subs ? String(subs) : null);
       strip.append(el('button', {
         class: 'tab', role: 'tab', type: 'button',
         'aria-selected': String(t.id === active),
@@ -578,6 +581,8 @@ const ProblemView = (() => {
       return;
     }
 
+    if (resultTab === 'subs') { fillSubmissions(pane); return; }
+
     if (resultTab === 'results') {
       if (lastBlocked) { pane.append(executionFailureNode(lastBlocked)); return; }
       if (!lastRun && !answered) {
@@ -601,6 +606,131 @@ const ProblemView = (() => {
     }
     pane.append(impl.diagnosticsNode(text, impl.lastBuildOk ? impl.lastBuildOk() : true));
   }
+
+  /* ---------------- what you have sent ----------------
+
+     `attempts` is a number, and a number is no help a week later. This is
+     the same list the store keeps: every graded program, newest first, with
+     what it did and the code itself.
+
+     Running the samples is not in here. Run is for the editor and happens
+     dozens of times; Submit is the thing that goes on the record. */
+  function fillSubmissions(pane) {
+    const impl = ProblemTypes.get('code');
+    const list = Store.submissions(current.id);
+
+    if (!list.length) {
+      pane.append(el('p', { class: 'muted small', text:
+        'Nothing submitted yet. Run samples does not count — only Submit, '
+        + 'which also runs the hidden cases.' }));
+      return;
+    }
+
+    pane.append(el('p', { class: 'tiny faint', text:
+      `${list.length} of the last ${Store.SUBS_MAX} submissions, newest first.` }));
+
+    const words = { passed: 'Passed', failed: 'Failed', 'build-failed': 'Did not build' };
+
+    pane.append(el('ol', { class: 'subs' }, list.map((sub, i) => {
+      const lang = ((impl && impl.LANG_LABEL) || {})[sub.lang] || sub.lang || 'unknown';
+      /* A build failure ran no cases, and "0/0 cases" is a worse way of
+         saying so than saying nothing. */
+      const cases = sub.total ? `${sub.passed}/${sub.total} cases` : '';
+
+      const body = el('div', { class: 'sub-body' });
+      if (sub.source == null) {
+        body.append(el('p', { class: 'tiny faint', text:
+          'The code for this one was dropped to stay inside the browser\u2019s '
+          + 'storage. What it did is still here.' }));
+      } else {
+        body.append(sourceNode(sub));
+        if (sub.truncated) {
+          body.append(el('p', { class: 'tiny faint', text:
+            `Only the first ${Store.SUBS_CHARS} characters were kept.` }));
+        }
+        body.append(el('div', { class: 'row' }, [
+          el('button', {
+            class: 'btn btn-sm btn-ghost', type: 'button',
+            onclick: () => loadSubmission(sub),
+          }, ['Load into the editor']),
+        ]));
+      }
+
+      return el('li', {}, [el('details', { class: 'sub' }, [
+        el('summary', {}, [
+          el('span', { class: 'sub-verdict', 'data-outcome': sub.outcome,
+            text: words[sub.outcome] || sub.outcome }),
+          cases ? el('span', { class: 'sub-cases', text: cases }) : null,
+          el('span', { class: 'sub-lang', text: lang }),
+          el('span', { class: 'sub-when', title: sub.at, text: ago(sub.at) }),
+          /* A build failure that never reached the compiler has no time
+             worth printing; anything that ran does, even when it ran in
+             less than the millisecond the runner can measure. */
+          (sub.ms || sub.total)
+            ? el('span', { class: 'sub-ms faint', text: duration(sub.ms) })
+            : null,
+          /* Which one it is, counting from the first, so "my third attempt"
+             means something when you are reading them newest first. */
+          el('span', { class: 'sub-n faint', text: `#${list.length - i}` }),
+        ]),
+        body,
+      ])]);
+    })));
+  }
+
+  /* Code that is displayed is coloured; code you type is not. This takes the
+     same route the statement and the solution take — escape first, then
+     highlight the escaped text, which is what the highlighter is written
+     against — so a program containing `<script>` is a program containing
+     `<script>` rather than one. */
+  function sourceNode(sub) {
+    const pre = el('pre', { class: 'sub-src' });
+    const can = typeof Highlight !== 'undefined' && Highlight.supports(sub.lang);
+    pre.append(can
+      ? el('code', { html: Highlight.run(MD.escapeHtml(sub.source), sub.lang) })
+      : el('code', { text: sub.source }));
+    return pre;
+  }
+
+  function loadSubmission(sub) {
+    const impl = ProblemTypes.get('code');
+    const ed = codeEditor();
+    if (!impl || !impl.loadSource || !ed) return;
+    const now = ed.value;
+    /* The editor holds the draft, and the draft is the only copy of it. */
+    if (now.trim() && now !== sub.source && !confirm(
+      'Put this submission back in the editor?\n\n'
+      + 'What is in the editor now is replaced, and that is the only copy of it.'
+    )) return;
+    impl.loadSource(sub.lang, sub.source);
+    UI.toast('Loaded back into the editor.', 'info');
+    /* No redraw: it would rebuild the editor and take the focus back out of
+       it. The language tabs are repainted by the switch itself. */
+  }
+
+  /* Relative, because "4 minutes ago" is what you want of the submission you
+     just made; the exact stamp is in the title for the one from last week. */
+  function ago(iso) {
+    const then = Date.parse(iso);
+    if (!Number.isFinite(then)) return '';
+    const secs = Math.max(0, Math.round((Date.now() - then) / 1000));
+    if (secs < 45) return 'just now';
+    const mins = Math.round(secs / 60);
+    if (mins < 60) return `${mins} minute${mins === 1 ? '' : 's'} ago`;
+    const hours = Math.round(mins / 60);
+    if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+    const days = Math.round(hours / 24);
+    if (days < 30) return `${days} day${days === 1 ? '' : 's'} ago`;
+    return new Date(then).toISOString().slice(0, 10);
+  }
+
+  /* "0 ms" reads as "it did not run". A JavaScript program over seven small
+     cases genuinely does finish inside one millisecond, which is what the
+     runner can measure, so that is what it says. */
+  const duration = (ms) => {
+    if (ms >= 1000) return `${(ms / 1000).toFixed(1)} s`;
+    return ms >= 1 ? `${Math.round(ms)} ms` : '<1 ms';
+  };
 
   /* ---------------- the two dividers ---------------- */
 
@@ -1062,6 +1192,26 @@ const ProblemView = (() => {
     ]);
   }
 
+  /* What the store keeps about one submitted program: the code, and the
+     numbers behind the verdict.
+
+     The harness verdict itself is deliberately not stored. It holds every
+     case's stdout, which is the judge's output rather than yours, and it
+     would be the bulk of the bytes. */
+  function submissionDigest(response, result) {
+    const v = (result && result.verdict) || {};
+    const cases = v.cases || [];
+    return {
+      source: response && typeof response.source === 'string' ? response.source : '',
+      passed: cases.filter(c => c.pass).length,
+      total: cases.length,
+      /* Explicitly false only when the compiler refused it; an interpreted
+         language never reports a build at all. */
+      built: v.built !== false,
+      ms: ((v.compile && v.compile.ms) || 0) + cases.reduce((n, c) => n + (c.ms || 0), 0),
+    };
+  }
+
   /* Everything before the latest one, folded away. Worth keeping: on a
      multi-select, what you tried last time is most of what you know. */
   function attemptHistory() {
@@ -1247,6 +1397,10 @@ const ProblemView = (() => {
       score: result.score,
       lang: result.lang,
       sanitized: result.sanitized,
+      /* A code problem also keeps the program itself, for the Submissions
+         tab. Gated on the type rather than on "does the response happen to
+         have a source field", because the type is the actual question. */
+      ...(p.type === 'code' ? submissionDigest(response, result) : {}),
     });
 
     if (answered) previousAttempts.push(answered);

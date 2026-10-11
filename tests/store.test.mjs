@@ -442,4 +442,190 @@ section('a language nobody configured is not silently off');
   Store.setCompletion({ on: true });
 }
 
+/* ---------------- submissions ---------------- */
+
+section('a submission is what you sent, not just that you sent something');
+await fresh();
+{
+  const c = P('code-1', 'intermediate', { type: 'code' });
+  Store.submit(c, {
+    correct: false, score: 0.25, lang: 'cpp', source: 'int main() { return 1; }',
+    passed: 1, total: 4, ms: 1234,
+  });
+  const list = Store.submissions('code-1');
+  check('it is recorded', list.length, 1);
+  check('with the program itself', list[0].source, 'int main() { return 1; }');
+  check('the language',            list[0].lang, 'cpp');
+  check('how many cases passed',   `${list[0].passed}/${list[0].total}`, '1/4');
+  check('how long it took',        list[0].ms, 1234);
+  check('and the outcome',         list[0].outcome, 'failed');
+  ok('stamped with a time',        !Number.isNaN(Date.parse(list[0].at)));
+  check('the attempt is still counted the old way too',
+    Store.record('code-1').attempts, 1);
+}
+
+section('a verdict nobody reached is not stored as a wrong answer');
+await fresh();
+{
+  const c = P('code-2', 'intermediate', { type: 'code' });
+  /* The compiler refused it, so no case ever ran. */
+  Store.submit(c, { correct: false, score: 0, lang: 'rust', source: 'fn main() {', built: false });
+  const sub = Store.submissions('code-2')[0];
+  check('the outcome says so', sub.outcome, 'build-failed');
+  check('and it claims no cases', `${sub.passed}/${sub.total}`, '0/0');
+
+  Store.submit(c, {
+    correct: true, score: 1, lang: 'rust', source: 'fn main() {}',
+    passed: 4, total: 4, built: true,
+  });
+  check('a passing one is marked passed', Store.submissions('code-2')[0].outcome, 'passed');
+}
+
+section('newest first, because that is the order anybody reads them');
+await fresh();
+{
+  const c = P('code-3', 'intermediate', { type: 'code' });
+  for (const n of ['one', 'two', 'three']) {
+    Store.submit(c, { correct: false, score: 0, lang: 'js', source: n });
+  }
+  check('the last one is at the top',
+    Store.submissions('code-3').map(x => x.source), ['three', 'two', 'one']);
+  ok('and the list handed out is a copy',
+    Store.submissions('code-3') !== Store.submissions('code-3'));
+}
+
+section('nothing to show means nothing stored');
+await fresh();
+{
+  /* The gate is the source: a multiple-choice answer has nothing to keep
+     that the record does not already say. */
+  Store.submit(P('mcq-1'), { correct: true, score: 1 });
+  check('an answer with no program records no submission', Store.submissions('mcq-1').length, 0);
+  Store.submit(P('mcq-2'), { correct: true, score: 1, source: '   ' });
+  check('and neither does an empty one', Store.submissions('mcq-2').length, 0);
+}
+
+section('the caps, because this is localStorage');
+await fresh();
+{
+  const c = P('code-4', 'intermediate', { type: 'code' });
+  for (let i = 1; i <= Store.SUBS_MAX + 4; i += 1) {
+    Store.submit(c, { correct: false, score: 0, lang: 'js', source: `attempt ${i}` });
+  }
+  const list = Store.submissions('code-4');
+  check(`no more than ${Store.SUBS_MAX} are kept`, list.length, Store.SUBS_MAX);
+  check('the newest is the last one sent', list[0].source, `attempt ${Store.SUBS_MAX + 4}`);
+  check('and the oldest four are gone', list[list.length - 1].source, 'attempt 5');
+}
+
+section('one enormous program is cut, and says so');
+await fresh();
+{
+  const c = P('code-5', 'intermediate', { type: 'code' });
+  const huge = 'x'.repeat(Store.SUBS_CHARS + 500);
+  Store.submit(c, { correct: false, score: 0, lang: 'js', source: huge });
+  const sub = Store.submissions('code-5')[0];
+  check('kept up to the cap', sub.source.length, Store.SUBS_CHARS);
+  ok('and flagged as cut rather than quietly shortened', sub.truncated);
+}
+
+section('the oldest give up their source before the newest do');
+await fresh();
+{
+  const c = P('code-6', 'intermediate', { type: 'code' });
+  /* Each one is a fifth of the per-problem budget, so five fit and the
+     sixth pushes the first out. */
+  const big = n => String(n).repeat(Math.floor(Store.SUBS_BUDGET / 5));
+  for (let i = 1; i <= 6; i += 1) {
+    Store.submit(c, { correct: false, score: 0, lang: 'js', source: big(i) });
+  }
+  const list = Store.submissions('code-6');
+  check('every submission is still listed', list.length, 6);
+  ok('the newest still has its code', list[0].source !== null);
+  ok('the oldest does not', list[list.length - 1].source === null);
+  ok('and what it did survived losing it',
+    list[list.length - 1].outcome === 'failed' && list[list.length - 1].lang === 'js');
+  const bytes = list.reduce((n, x) => n + (x.source ? x.source.length : 0), 0);
+  ok(`the budget holds (${bytes} <= ${Store.SUBS_BUDGET})`, bytes <= Store.SUBS_BUDGET);
+}
+
+section('out of room: the code goes, the XP stays');
+await fresh();
+{
+  const c = P('code-7', 'intermediate', { type: 'code' });
+  Store.submit(c, { correct: false, score: 0, lang: 'js', source: 'first attempt' });
+
+  /* One write fails the way a full quota fails, and only one. */
+  const real = sandbox.localStorage.setItem;
+  let thrown = 0;
+  sandbox.localStorage.setItem = (k, v) => {
+    if (thrown === 0) { thrown = 1; const e = new Error('QuotaExceededError'); e.name = 'QuotaExceededError'; throw e; }
+    return real(k, v);
+  };
+  const out = Store.submit(c, { correct: true, score: 1, lang: 'js', source: 'second attempt' });
+  sandbox.localStorage.setItem = real;
+
+  check('the solve was still awarded', out.xp > 0, true);
+  check('and it is in the saved state',
+    JSON.parse(sandbox.localStorage.getItem('invariant/state/v1')).xp, Store.state.xp);
+  const list = Store.submissions('code-7');
+  check('both submissions are still listed', list.length, 2);
+  ok('with the programs shed to make the write fit',
+    list.every(x => x.source === null));
+}
+
+section('submissions survive an export and import');
+await fresh();
+{
+  const c = P('code-8', 'intermediate', { type: 'code' });
+  Store.submit(c, { correct: true, score: 1, lang: 'cpp', source: 'int main(){}', passed: 3, total: 3 });
+  const snapshot = Store.exportState();
+  Store.reset();
+  check('reset clears them', Store.submissions('code-8').length, 0);
+  Store.importState(snapshot);
+  const sub = Store.submissions('code-8')[0];
+  check('and the import brings them back', sub && sub.source, 'int main(){}');
+  check('with the numbers intact', `${sub.passed}/${sub.total}`, '3/3');
+}
+
+section('a snapshot from elsewhere cannot talk the caps up');
+await fresh();
+{
+  Store.importState({
+    progress: {
+      'code-9': {
+        status: 'attempted',
+        subs: Array.from({ length: 40 }, (_, i) => ({
+          at: '2026-01-01T00:00:00.000Z', lang: 'js', outcome: 'failed',
+          source: `s${i}`, passed: 99, total: 3,
+        })),
+      },
+    },
+  });
+  const list = Store.submissions('code-9');
+  check('the list is cut to the cap on the way in', list.length, Store.SUBS_MAX);
+  check('keeping the newest end', list[0].source, 's39');
+  check('and a passed count above the total is clamped', list[0].passed, 3);
+}
+
+section('rubbish in a submission is not trusted either');
+await fresh();
+{
+  Store.importState({
+    progress: {
+      'code-10': {
+        subs: [{ outcome: 'brilliant', passed: -4, total: 'lots', ms: -1, source: 42 }],
+      },
+    },
+  });
+  const sub = Store.submissions('code-10')[0];
+  check('an unknown outcome reads as failed', sub.outcome, 'failed');
+  check('a negative count reads as zero',     sub.passed, 0);
+  check('a total that is not a number too',   sub.total, 0);
+  check('so does a negative duration',        sub.ms, 0);
+  /* Not '': a program that was dropped and a program that was empty are
+     different things, and only one of them is worth saying. */
+  check('and a source that is not text is no source at all', sub.source, null);
+}
+
 report('store');

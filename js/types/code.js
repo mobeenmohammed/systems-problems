@@ -727,6 +727,26 @@ fn main() {
     /* The workspace owns the panes; this module owns what goes in them. */
     editor: () => (state ? state.editor : null),
 
+    /* The language names, so the Submissions tab can say "C++" without a
+       fourth copy of the same four words. */
+    LANG_LABEL: LABEL,
+
+    /* Putting an old submission back in the editor. The language is switched
+       first, because highlighting, linting and completion all follow it and a
+       Rust program in a C++ buffer is lint noise from end to end. */
+    loadSource(lang, source) {
+      if (!state || !state.editor) return false;
+      if (lang && lang !== state.lang && state.langs.includes(lang)) switchLang(lang);
+      state.editor.value = String(source);
+      /* onChange saves the draft, but only when the text actually changed;
+         loading a submission you have already loaded would otherwise leave
+         the draft behind. */
+      Store.saveDraft(state.problem, state.lang, state.editor.value);
+      noteSaved('loaded a submission');
+      state.editor.focus();
+      return true;
+    },
+
     /* Called by ProblemView.leave(). CodeMirror attaches listeners to the
        document and watches its own DOM, so hiding the view is not enough —
        thirty navigations used to leave thirty live editors behind. The lint

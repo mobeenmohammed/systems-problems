@@ -269,6 +269,9 @@ const Store = (() => {
       perceived: perceived >= 1 && perceived <= 5 ? Math.round(perceived) : null,
       notes:     typeof r.notes === 'string' ? r.notes : '',
       draft:     (r.draft && typeof r.draft === 'object') ? r.draft : {},
+      /* Sliced on the way in as well as on the way out, so a snapshot
+         written by a version with a larger cap cannot reinstate it. */
+      subs:      (Array.isArray(r.subs) ? r.subs : []).slice(-SUBS_MAX).map(normalizeSubmission),
       flagged:   !!r.flagged,
       reviewOn:  r.reviewOn ? String(r.reviewOn).slice(0, 10) : '',
       firstSeenAt:   r.firstSeenAt   ? String(r.firstSeenAt) : '',
@@ -283,17 +286,93 @@ const Store = (() => {
     };
   }
 
+  /* ---------------- what you actually sent ----------------
+
+     The record keeps `attempts` as a count, which answers "how many times"
+     and nothing else. A submissions list answers the question that actually
+     comes up a week later: what did I send, in which language, and what did
+     it do? So each graded program is kept beside its verdict.
+
+     Everything here is capped, because this is localStorage. A few kilobytes
+     per submission across forty problems is how you fill the quota, and a
+     full quota does not lose this feature - it loses the whole state file,
+     including the XP. The caps are the price of that not happening. */
+  const SUBS_MAX    = 10;     /* submissions kept per problem */
+  const SUBS_CHARS  = 6000;   /* of any one program */
+  const SUBS_BUDGET = 20000;  /* of source per problem, all submissions together */
+  const SUB_OUTCOMES = ['passed', 'failed', 'build-failed'];
+
+  function normalizeSubmission(x) {
+    x = x || {};
+    const total = Math.max(0, Math.round(Number(x.total) || 0));
+    return {
+      at:   x.at ? String(x.at) : new Date().toISOString(),
+      lang: x.lang ? String(x.lang) : '',
+      /* A build failure is not a wrong answer, so it is not stored as one:
+         reading it back as "failed" would be a claim about the program's
+         output that nobody ever obtained. */
+      outcome: SUB_OUTCOMES.includes(x.outcome) ? x.outcome : 'failed',
+      passed:  Math.min(total, Math.max(0, Math.round(Number(x.passed) || 0))),
+      total,
+      ms:      Math.max(0, Math.round(Number(x.ms) || 0)),
+      /* null rather than '': the source was dropped to stay inside the
+         quota, which is a different thing from an empty program. */
+      source:  typeof x.source === 'string' ? x.source : null,
+      truncated: !!x.truncated,
+    };
+  }
+
+  function pushSubmission(r, entry) {
+    const e = normalizeSubmission(entry);
+    if (e.source != null && e.source.length > SUBS_CHARS) {
+      e.source = e.source.slice(0, SUBS_CHARS);
+      e.truncated = true;
+    }
+    r.subs.push(e);
+    while (r.subs.length > SUBS_MAX) r.subs.shift();
+    /* The newest keep their source and the oldest give theirs up. Losing the
+       code you sent ten attempts ago is a smaller loss than the write
+       failing and losing all of it. */
+    const bytes = () => r.subs.reduce((n, x) => n + (x.source ? x.source.length : 0), 0);
+    for (let i = 0; i < r.subs.length && bytes() > SUBS_BUDGET; i += 1) {
+      if (r.subs[i].source != null) { r.subs[i].source = null; r.subs[i].truncated = false; }
+    }
+    return e;
+  }
+
+  /* Newest first, which is the order anybody reads them in. */
+  const submissions = id => record(id).subs.slice().reverse();
+
   function save() {
     state.updatedAt = new Date().toISOString();
     try {
       localStorage.setItem(LS_KEY, JSON.stringify(state));
     } catch (err) {
+      /* Out of room. The stored programs are the largest thing in here and
+         the cheapest to lose, so they go and the write is tried once more:
+         an XP award that silently fails to persist is a worse outcome than a
+         submission whose code you can no longer read back. */
+      if (shedSubmissionSources()) {
+        try {
+          localStorage.setItem(LS_KEY, JSON.stringify(state));
+          emit('storage-trimmed', null);
+          return true;
+        } catch { /* genuinely full; fall through and say so */ }
+      }
       /* A failed write means the rest of the session is lost silently on the
          next reload, which is worse than being told about it now. */
       emit('storage-error', err);
       return false;
     }
     return true;
+  }
+
+  function shedSubmissionSources() {
+    let shed = false;
+    for (const r of Object.values(state.progress)) {
+      for (const x of r.subs || []) if (x.source != null) { x.source = null; shed = true; }
+    }
+    return shed;
   }
 
   function emit(event, detail) {
@@ -407,6 +486,23 @@ const Store = (() => {
     r.bestScore = Math.max(r.bestScore, score);
     if (result.lang)      r.lang = result.lang;
     if (result.sanitized) r.sanitized = true;
+
+    /* Only when the caller handed over a program. For a multiple-choice
+       answer there is nothing to keep that the record does not already say,
+       and a submissions list of ten identical rows reading "B" would be
+       storage spent on nothing. */
+    if (typeof result.source === 'string' && result.source.trim()) {
+      pushSubmission(r, {
+        lang: result.lang,
+        source: result.source,
+        ms: result.ms,
+        passed: result.passed,
+        total: result.total,
+        outcome: result.built === false
+          ? 'build-failed'
+          : (result.correct ? 'passed' : 'failed'),
+      });
+    }
 
     const out = {
       correct: !!result.correct, firstTry, xp: 0, coins: 0,
@@ -864,6 +960,7 @@ const Store = (() => {
 
     todayISO, addDays, daysBetween,
     record, isSolved, potentialXp, touch,
+    submissions, SUBS_MAX, SUBS_CHARS, SUBS_BUDGET,
     openHint, reveal, submit,
     setNotes, setPerceived, setFlag, toggleFlag, setReview, saveDraft, setLang, draft, dueForReview, selfReview,
     completionPref, completionOn, setCompletion, COMPLETION_LANGS,

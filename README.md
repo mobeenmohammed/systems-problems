@@ -765,7 +765,7 @@ scrolls on its own.
 │  the statement             │  the editor                                  │
 │                            │                                              │
 │                            ├──────────────────────────────────────────────┤
-│                            │ Test cases  Results  Compiler output         │
+│                            │ Test cases  Results  Submissions  Compiler   │
 │                            │                                              │
 └────────────────────────────┴──────────────────────────────────────────────┘
 ```
@@ -799,13 +799,42 @@ can click to jump the caret there, with the compiler's own words kept
 underneath — the caret diagrams and the template backtraces are sometimes
 exactly what you need.
 
+### Submissions
+
+The record used to keep `attempts` as a count, which answers "how many times"
+and nothing else. **Submissions** is the list that answers the question that
+actually comes up: what did I send, in which language, and what did it do?
+One row per graded program, newest first, folded shut — the point is scanning
+the verdicts, and ten open programs are a scrollbar rather than a list. Open
+one and the program is there as it was sent, with a button that puts it back
+in the editor. It switches language first if it needs to, and it asks before
+replacing what is in there, because the editor holds the draft and the draft
+is the only copy of it.
+
+**Run is not in here.** Running the samples happens dozens of times and is
+for the editor; Submit also runs the hidden cases, and that is the thing worth
+a record. A submission that could not be run at all is not in here either,
+for the same reason it does not count as an attempt: nothing was judged.
+
+A build failure is stored as its own outcome rather than as a wrong answer,
+and it claims no cases, because none ran. "0 of 7 passed" about a program the
+compiler refused would be a statement about output nobody ever obtained.
+
+This is localStorage, so everything is capped: **ten** submissions per
+problem, **6,000** characters of any one program, and **20,000** characters of
+stored source per problem in total. Past that the oldest give up their code
+and keep their verdict — the row says so rather than showing an empty
+program. If a write fails for want of room, the stored programs are dropped
+and the write is retried: an XP award that silently fails to persist is a
+worse outcome than a submission you cannot read back.
+
 Non-code problems get a single comfortable reading column instead, with the
 answer controls under the statement and the same retry feedback. Below 900px
 both layouts stack rather than being squeezed into columns.
 
 `F` toggles **focus mode**, which hides the header and gives the problem the
 whole window. `Escape` leaves it. Panel sizes and focus mode are stored under
-`systems-lab/ui/v1`, separate from progress, so a bad value there can never
+`invariant/ui/v1`, separate from progress, so a bad value there can never
 cost a solve.
 
 ### Attempts, and what an attempt does not reveal
@@ -969,6 +998,7 @@ Chromium against a real site:
 
 | Suite | What it covers |
 | --- | --- |
+| `tests/browser/submissions.test.mjs` (`npm run test:subs`) | The Submissions tab, through real submissions of a JavaScript problem — so it needs the site served and nothing else: that Run adds no row and Submit does; that a near miss reads as 1 of 7 rather than as "wrong"; that a build failure is not stored as a wrong answer; newest first with the program in it; loading one back, including the confirmation and the language switch; surviving a reload; a row whose code was dropped saying so; and a 1,700-character line scrolling inside its own box at four widths |
 | `tests/browser/journeys.test.mjs` (`npm run test:journeys`) | The reported failures as journeys, with real mouse and keyboard: typing, caret placement, Tab, paste, cut, undo, long lines, scrolling, resizing, zoom, per-language drafts across a reload, a wrong MCQ and a wrong multi-select that disclose nothing, reveal-with-confirmation, practising a solved problem, and the layout at 1440×900, 1920×1080 and 390×844 in both themes |
 | `tests/browser/hosted.test.mjs` (`npm run test:hosted`) | The published-site journey with **no local runner**: write C++, Run, Submit, get marked — plus a compile error, a wrong submission then a fix, a timeout, a rate limit, an unreachable runner, and a check that no submission went to localhost |
 | `tests/browser/local.test.mjs` (`npm run test:local`) | The same workspace against the **local runner**, which is the only backend that can produce them: a warning on a successful build, a clickable compiler diagnostic that moves the caret, a build failure, a timeout, and a sanitizer trip on a program whose output is right |
@@ -1051,7 +1081,7 @@ js/lint.js              brackets locally, the real compiler through the judge
 js/editor.js            CodeMirror: mounting, theming, lint gutter, drafts
 js/types/registry.js    the problem-type contract
 js/types/*.js           one file per problem type
-js/problem.js           a problem: its tabs, submitting, the verdict
+js/problem.js           a problem: its tabs, submitting, the verdict, submissions
 js/cxx/toolchain.js     Clang-in-WebAssembly: fetch, cache, compile, run
 js/cxx/compile.worker.js  the long-lived compiler worker
 js/cxx/run.worker.js    one throwaway worker per test case
@@ -1103,9 +1133,9 @@ There is no backend. Three separate `localStorage` keys, on purpose:
 
 | Key | Holds | Why separate |
 | --- | --- | --- |
-| `systems-lab/state/v1` | progress, XP, coins, what you own | the thing worth keeping; **Settings ▸ Export** writes it out as `data/progress.json` |
-| `systems-lab/judge-url` and `/judge-token` | where the runner listens, and its token | properties of the machine, not of your progress, so they never travel in an export |
-| `systems-lab/ui/v1` | the panel split, focus mode | per-device view preferences; a bad value here can never cost a solve |
+| `invariant/state/v1` | progress, XP, coins, what you own, the last ten submissions per problem | the thing worth keeping; **Settings ▸ Export** writes it out as `data/progress.json` |
+| `invariant/judge-url` and `/judge-token` | where the runner listens, and its token | properties of the machine, not of your progress, so they never travel in an export |
+| `invariant/ui/v1` | the panel split, focus mode | per-device view preferences; a bad value here can never cost a solve |
 
 Progress from the old `bare-metal/state/v1` key is migrated on first load, so
 nothing was lost when the site was renamed.
