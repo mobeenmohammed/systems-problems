@@ -287,6 +287,27 @@
       </label>
     </div>
 
+    <!-- Completion is a preference rather than a fact about the editor:
+         some people want the suggestions, some find a popup over the next
+         line unbearable, and both are reasonable. Per language as well as
+         overall, because the C++ list is a different proposition from
+         Python's. -->
+    <div class="card" style="margin-bottom:1rem">
+      <h3>Editor</h3>
+      <label class="check">
+        <input type="checkbox" id="setComplete" checked>
+        <span>Suggest completions as you type</span>
+      </label>
+      <p class="small muted" style="margin:.35rem 0 .7rem">
+        Keywords, the standard-library names these problems use with the header
+        each comes from, and whatever you have already written in the file.
+        Ctrl+Space asks for them even when this is off.
+      </p>
+      <fieldset class="lang-checks" id="setCompleteLangs">
+        <legend class="tiny faint">For which languages</legend>
+      </fieldset>
+    </div>
+
     <div class="card" style="margin-bottom:1rem">
       <h3>Code execution</h3>
       <p class="small muted prose" id="execSummary"></p>
@@ -481,6 +502,7 @@
 <script src="js/runners/index.js"></script>
 <script src="js/lint.js"></script>
 <script src="js/complete-cpp.js"></script>
+<script src="js/complete-rust.js"></script>
 <script src="js/editor.js"></script>
 <script src="js/types/registry.js"></script>
 <script src="js/types/mcq.js"></script>

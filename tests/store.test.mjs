@@ -374,4 +374,72 @@ check('and copied under the new name',
   sandbox.localStorage.getItem('invariant/judge-url'), 'http://127.0.0.1:2222');
 check('interface preferences come across', Store.pref('splitFraction'), 0.31);
 
+/* ---------------- editor completion ---------------- */
+
+section('completion is on until somebody turns it off');
+sandbox.localStorage.removeItem('invariant/ui/v1');
+{
+  const c = Store.completionPref();
+  ok('the master switch defaults on', c.on);
+  ok('and so does every language',
+    Store.COMPLETION_LANGS.every(id => c.langs[id] === true));
+  ok('so asking about one says yes', Store.completionOn('cpp'));
+}
+
+section('the master switch covers everything');
+{
+  Store.setCompletion({ on: false });
+  ok('every language goes quiet', Store.COMPLETION_LANGS.every(id => !Store.completionOn(id)));
+  ok('even though each is still individually on',
+    Store.completionPref().langs.cpp === true);
+  Store.setCompletion({ on: true });
+  ok('and comes back', Store.completionOn('cpp'));
+}
+
+section('one language can be switched off on its own');
+{
+  Store.setCompletion({ langs: { python: false } });
+  ok('Python is off', !Store.completionOn('python'));
+  ok('C++ is not', Store.completionOn('cpp'));
+  ok('and the master switch is untouched', Store.completionPref().on);
+
+  Store.setCompletion({ langs: { cpp: false } });
+  ok('two can be off at once',
+    !Store.completionOn('python') && !Store.completionOn('cpp'));
+  ok('without disturbing the others',
+    Store.completionOn('rust') && Store.completionOn('js'));
+}
+
+section('it survives a reload, and an old prefs blob');
+{
+  Store.setCompletion({ on: true, langs: { rust: false } });
+  await Store.init();
+  ok('the setting is still there after init', !Store.completionOn('rust'));
+
+  /* A prefs blob written before this setting existed has no completion
+     key at all, and must not read as "everything off". */
+  sandbox.localStorage.setItem('invariant/ui/v1',
+    JSON.stringify({ splitFraction: 0.5 }));
+  await Store.init();
+  ok('an older prefs blob defaults to on',
+    Store.COMPLETION_LANGS.every(id => Store.completionOn(id)));
+
+  /* And a half-written one. */
+  sandbox.localStorage.setItem('invariant/ui/v1',
+    JSON.stringify({ completion: { langs: { cpp: false } } }));
+  await Store.init();
+  ok('a blob with no master key still reads as on', Store.completionPref().on);
+  ok('while honouring the language it does name', !Store.completionOn('cpp'));
+}
+
+section('a language nobody configured is not silently off');
+{
+  sandbox.localStorage.removeItem('invariant/ui/v1');
+  await Store.init();
+  ok('an unknown language follows the master switch', Store.completionOn('fortran'));
+  Store.setCompletion({ on: false });
+  ok('including when it is off', !Store.completionOn('fortran'));
+  Store.setCompletion({ on: true });
+}
+
 report('store');

@@ -575,7 +575,26 @@ here is ever a claim that the code compiles; only the compiler says that.
 
 Python and JavaScript get the completions their own CodeMirror language
 packages provide, so `running_total` completes in Python and `std::` does
-not. Rust has none, and is not pretending to.
+not.
+
+**Rust** gets `js/complete-rust.js`, on the same terms: keywords, the library
+names these problems reach for, `use std::…` paths offered as paths rather
+than words, macros spelled with the bang, and whatever is already in the
+buffer. What it does *not* have is member completion after a dot. C++ can
+read `std::vector<int> v` and know the type; Rust's declarations are mostly
+`let v = …` with it inferred, and guessing methods off an inference is the
+confident wrong answer the C++ source goes out of its way to avoid. A bare
+dot offers nothing, and a few letters after one fall back to the ordinary
+word list.
+
+### It is a preference
+
+Settings has a master switch and a box per language, all on by default.
+Switched off, the extension still loads with `activateOnTyping: false`, so
+**Ctrl+Space still asks for a suggestion** — off means "stop interrupting
+me", not "take the feature away". `Store.completionOn(lang)` is the single
+place that answers the question, so a prefs blob written before the setting
+existed reads as on rather than as everything off.
 
 Adding this cost **23KB** on the editor bundle (685KB to 708KB), not the
 third of the library the old comment in `scripts/editor-entry.js` estimated,
@@ -886,7 +905,7 @@ Chromium against a real site:
 | `tests/maths-render.test.mjs` | KaTeX renders, emits MathML, and markdown does not get at the TeX first — `$a_1 + a_2$` must not become `a<em>1 + a</em>2` |
 | `tests/browser/maths.test.mjs` (`npm run test:maths`) | Subject as a filter over one catalogue, typesetting on the page, every one of the six answer formats, a syntax error costing no attempt, a wrong answer explaining the misconception, progressive hints, the figures, a written proof reaching **Self-reviewed** without ever being marked right, and the review being finishable from wherever revealing the model proof leaves you |
 | `tests/complete.test.mjs` | The C++ word lists driven directly: headers on `#include`, the header beside every `std::` name, declarations a regex can read and the ones it cannot, a known receiver getting only its own members, an unknown one getting every member labelled with its type, and staying quiet on one character |
-| `tests/browser/complete.test.mjs` | The same thing through real keystrokes, plus the keys it could have broken: Enter still Enter, Tab still indenting, Ctrl+Enter still running with a popup open, and the first Escape closing the popup without throwing you out of the editor |
+| `tests/browser/complete.test.mjs` | The same thing through real keystrokes, Rust included, plus the switch (off stops the popup but Ctrl+Space still works; one language can be off while another is on) and the keys it could have broken: Enter still Enter, Tab still indenting, Ctrl+Enter still running with a popup open, and the first Escape closing the popup without throwing you out of the editor |
 | `tests/browser/python.test.mjs` (`npm run test:py`) | Python in the browser with the runner address pointed at a dead port: the download and its progress, the platform differences stated above measured rather than asserted, a traceback that is the reader's and not the harness's, truncation of a flood of output, an infinite loop cut short and a valid program straight afterwards, Stop, a fresh namespace per case, a recorded solve, and a check that nothing was sent anywhere |
 | `tests/browser/learn.test.mjs` (`npm run test:learn`) | The track trees: that every node is drawn below everything it needs, across all eleven tracks; that the extra DAG edges are named rather than dropped and the node still drawn once; that a node lists exactly the problems resting on it; that a node is a shareable address; that ticking a reading there is the same tick as everywhere else; and that the old addresses still land somewhere |
 | `tests/browser/cxx.test.mjs` (`npm run test:cxx`) | C++ in the browser with the runner address pointed at a dead port: the download and its progress bar, a cold first run, submit-wrong-then-correct, a Clang compile error, an infinite loop cut short and a valid program straight afterwards, Stop, the cached second visit, a native-only problem refusing to pretend, and a check that nothing was sent anywhere |

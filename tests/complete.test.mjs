@@ -10,8 +10,9 @@
 
 import { loadScripts, section, check, ok, report } from './harness.mjs';
 
-const { grab } = loadScripts(['js/complete-cpp.js']);
+const { grab } = loadScripts(['js/complete-cpp.js', 'js/complete-rust.js']);
 const C = grab('CppComplete');
+const R = grab('RustComplete');
 
 /* A stand-in for CodeMirror's context. The cursor is always at the end of
    the text, which is where completion happens. */
@@ -167,6 +168,57 @@ section('it stays out of the way');
   ok('two characters is enough', at('ve') !== null);
   ok('a member list shows on the dot, with nothing typed',
     at('std::vector<int> v;\nv.') !== null);
+}
+
+/* ---------------- Rust ---------------- */
+
+const rustAt = (doc, explicit = false) => R.source(ctx(doc, explicit));
+const rustLabels = r => (r ? r.options.map(o => o.label) : []);
+
+section('Rust was getting nothing at all; now it gets the same four sources');
+{
+  ok('keywords', rustLabels(rustAt('mat')).includes('match'));
+  ok('the types these problems use', rustLabels(rustAt('Ve')).includes('Vec'));
+  ok('with the widths spelled out', rustLabels(rustAt('u6')).includes('u64'));
+  ok('macros, with the bang', rustLabels(rustAt('printl')).includes('println!'));
+  ok('and whatever you have already written',
+    rustLabels(rustAt('fn running_total(v: &Vec<i64>) -> i64 { 0 }\nrunning_'))
+      .includes('running_total'));
+}
+
+section('a use line offers paths, not words');
+{
+  const r = rustAt('use std::coll');
+  const ls = rustLabels(r);
+  ok('the collections are there', ls.includes('std::collections::HashMap'));
+  ok('so is the io line every one of these problems starts with',
+    ls.includes('std::io::{self, Read, Write}'));
+  ok('and no bare keywords', !ls.includes('match'));
+  check('it replaces what follows `use `', r.from, 'use '.length);
+}
+
+section('what Rust deliberately does not do');
+{
+  /* C++ can read `std::vector<int> v` and offer that type's members.
+     Rust's declarations are mostly `let v = ...` with the type inferred,
+     and guessing members off an inference is the confident wrong answer
+     the C++ source goes out of its way to avoid. */
+  check('a bare dot offers nothing at all',
+    rustAt('let v = vec![1, 2, 3];\nv.'), null);
+
+  /* Type a few letters after the dot and you get the ordinary word list —
+     keywords and names from the file — never a method list for a type
+     nobody established. */
+  const ls = rustLabels(rustAt('let v = vec![1, 2, 3];\nv.pu'));
+  ok('a few letters after it fall back to the ordinary words', ls.includes('match'));
+  ok('with no guessed methods among them',
+    !ls.includes('push') && !ls.includes('iter') && !ls.includes('len'));
+}
+
+section('Rust keeps out of the way on one character too');
+{
+  ok('one character is not enough', rustAt('v') === null);
+  ok('unless asked', rustAt('v', true) !== null);
 }
 
 report('complete');

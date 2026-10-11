@@ -307,6 +307,13 @@ const Store = (() => {
     } catch { /* opening the page off disk is allowed; the defaults stand. */ }
     loadJudgeUrl();
 
+    /* Preferences are cached after the first read, so init has to drop that
+       cache or "start again" quietly keeps the last run's panel sizes and
+       editor settings. The page only ever inits once, so this costs
+       nothing there; it is the tests, and anything that re-inits, that
+       were being lied to. */
+    prefs = null;
+
     /* Per-init: otherwise a second load in the same page claims a migration
        that happened once, long ago. */
     migratedFrom = null;
@@ -785,6 +792,43 @@ const Store = (() => {
     return Object.prototype.hasOwnProperty.call(all, key) ? all[key] : fallback;
   }
 
+  /* ---------------- editor completion ----------------
+
+     A master switch and a per-language override, both defaulting to on.
+     Kept here rather than read straight out of prefs by the editor so
+     that "is completion on for Rust" has exactly one answer, and so the
+     default survives a prefs blob written by an older version. */
+
+  const COMPLETION_LANGS = ['cpp', 'python', 'js', 'rust'];
+
+  function completionPref() {
+    const raw = pref('completion', null);
+    const on = !raw || raw.on !== false;
+    const langs = {};
+    for (const id of COMPLETION_LANGS) {
+      langs[id] = !(raw && raw.langs && raw.langs[id] === false);
+    }
+    return { on, langs };
+  }
+
+  function completionOn(lang) {
+    const c = completionPref();
+    /* An unknown language has no completion source anyway; saying true
+       here keeps the caller from having to know that. */
+    if (!Object.prototype.hasOwnProperty.call(c.langs, lang)) return c.on;
+    return c.on && c.langs[lang];
+  }
+
+  function setCompletion(patch) {
+    const now = completionPref();
+    const next = {
+      on: patch.on === undefined ? now.on : !!patch.on,
+      langs: { ...now.langs, ...(patch.langs || {}) },
+    };
+    setPref('completion', next);
+    return next;
+  }
+
   function setPref(key, value) {
     const all = loadPrefs();
     if (value === null || value === undefined) delete all[key];
@@ -822,6 +866,7 @@ const Store = (() => {
     record, isSolved, potentialXp, touch,
     openHint, reveal, submit,
     setNotes, setPerceived, setFlag, toggleFlag, setReview, saveDraft, setLang, draft, dueForReview, selfReview,
+    completionPref, completionOn, setCompletion, COMPLETION_LANGS,
     markReading, hasRead, readingCount,
     rankFor, rankProgress,
     buy, equip, isOwned, earnedTitles,

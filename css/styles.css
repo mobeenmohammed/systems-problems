@@ -1806,6 +1806,29 @@ html[data-focus] .rail { display: none; }
 
    Two pills in the top bar. It is a lens rather than an account: everything
    it hides is still solved, still bookmarked, and still found by search. */
+/* ---------------- a checkbox you can read ---------------- */
+
+.check {
+  display: flex; align-items: center; gap: .55rem;
+  cursor: pointer; font-size: .9rem; color: var(--text);
+}
+.check input { margin: 0; flex: none; accent-color: var(--accent); }
+.check input:disabled + span { color: var(--text-faint); }
+.check:has(input:disabled) { cursor: default; }
+
+/* The per-language set under a master switch. The fieldset is real, so a
+   screen reader reads the legend as the group's name rather than leaving
+   four unexplained checkboxes in a row. */
+.lang-checks {
+  display: flex; flex-wrap: wrap; gap: .3rem 1.1rem;
+  border: 0; margin: 0; padding: 0;
+}
+.lang-checks legend {
+  padding: 0; margin-bottom: .35rem;
+  text-transform: uppercase; letter-spacing: .09em;
+}
+.lang-checks .check { font-size: .84rem; font-family: var(--mono); }
+
 /* ---------------- learn ----------------
 
    The tree on the left, the selected node on the right. Below the

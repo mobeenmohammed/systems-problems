@@ -238,6 +238,136 @@ section('Python gets its own completions, not the C++ word list');
   await p.close();
 }
 
+/* ---------------- it is a preference, not a fact ---------------- */
+
+section('completion can be switched off, and Ctrl+Space still works');
+{
+  const p = await browser.newPage({ viewport: { width: 1400, height: 950 } });
+  p.on('pageerror', e => errors.push(e.message));
+
+  const typeInto = async text => {
+    await p.locator('.cm-content').click();
+    await p.keyboard.press('Control+A');
+    await p.keyboard.type(text, { delay: 22 });
+    await p.waitForTimeout(700);
+  };
+  const open = async hash => {
+    await p.goto(`${BASE}/${hash}`, { waitUntil: 'networkidle' });
+    await p.waitForTimeout(hash.includes('/p/') ? 1800 : 1000);
+  };
+
+  await open('#/settings');
+  const controls = await p.evaluate(() => ({
+    master: document.getElementById('setComplete')?.checked,
+    langs: [...document.querySelectorAll('#setCompleteLangs input')].length,
+    legend: document.querySelector('#setCompleteLangs legend')?.textContent,
+  }));
+  ok('Settings offers the switch, on by default', controls.master === true);
+  check('with one box per language', controls.langs, 4);
+  ok('under a legend, so the group has a name', !!controls.legend);
+
+  await open('#/p/cpp-greet-and-sum');
+  await typeInto('std::vec');
+  ok('typing suggests, as before', (await popup(p)).open);
+
+  await open('#/settings');
+  await p.locator('#setComplete').uncheck();
+  await p.waitForTimeout(400);
+  ok('the per-language boxes grey out with it', await p.evaluate(() =>
+    [...document.querySelectorAll('#setCompleteLangs input')].every(i => i.disabled)));
+
+  await open('#/p/cpp-greet-and-sum');
+  await typeInto('std::vec');
+  ok('now typing suggests nothing', !(await popup(p)).open);
+
+  /* Off means "stop interrupting me", not "take it away". */
+  await p.keyboard.press('Control+Space');
+  await p.waitForTimeout(600);
+  ok('but Ctrl+Space still asks for one', (await popup(p)).open);
+
+  await p.close();
+}
+
+section('and it can be switched off for one language only');
+{
+  const p = await browser.newPage({ viewport: { width: 1400, height: 950 } });
+  p.on('pageerror', e => errors.push(e.message));
+  const typeInto = async text => {
+    await p.locator('.cm-content').click();
+    await p.keyboard.press('Control+A');
+    await p.keyboard.type(text, { delay: 22 });
+    await p.waitForTimeout(700);
+  };
+
+  await p.goto(`${BASE}/#/settings`, { waitUntil: 'networkidle' });
+  await p.waitForTimeout(1000);
+  await p.locator('#setComplete').check();
+  await p.waitForTimeout(300);
+  await p.locator('#setCompleteLangs .check', { hasText: 'Python' })
+    .locator('input').uncheck();
+  await p.waitForTimeout(400);
+
+  await p.goto(`${BASE}/#/p/cpp-greet-and-sum`, { waitUntil: 'networkidle' });
+  await p.waitForTimeout(1800);
+  await typeInto('std::vec');
+  ok('C++ still suggests', (await popup(p)).open);
+
+  await p.evaluate(() =>
+    window.SystemsLab.ProblemTypes.get('code').editor().setLang('python'));
+  await p.waitForTimeout(500);
+  await typeInto(['def running_total(xs):', '    return 0', '', 'running_'].join('\n'));
+  ok('and Python does not', !(await popup(p)).open);
+
+  await p.close();
+}
+
+section('Rust completes too, through the same keystrokes');
+{
+  const p = await browser.newPage({ viewport: { width: 1400, height: 950 } });
+  p.on('pageerror', e => errors.push(e.message));
+  await p.goto(`${BASE}/#/p/rust-borrow-shared-exclusive`, { waitUntil: 'networkidle' });
+  await p.waitForTimeout(2000);
+
+  const inRust = await p.evaluate(() => {
+    const ed = window.SystemsLab.ProblemTypes.get('code').editor();
+    if (!ed || !ed.setLang) return false;
+    ed.setLang('rust');
+    return ed.lang === 'rust';
+  });
+  ok('the editor is in Rust', inRust);
+  await p.waitForTimeout(500);
+
+  const typeInto = async text => {
+    await p.locator('.cm-content').click();
+    await p.keyboard.press('Control+A');
+    await p.keyboard.type(text, { delay: 22 });
+    await p.waitForTimeout(700);
+  };
+
+  await typeInto('use std::coll');
+  let m = await popup(p);
+  ok(`a use line offers paths (${m.items[0] || 'none'})`,
+    m.items.some(i => i.startsWith('std::collections::')));
+
+  await p.keyboard.press('Escape');
+  await typeInto('printl');
+  m = await popup(p);
+  ok(`macros come with the bang (${m.items[0] || 'none'})`,
+    m.items.some(i => i.startsWith('println!')));
+
+  await p.keyboard.press('Escape');
+  /* All in one go, and no Escape in the middle of it: with no popup
+     open, Escape leaves the field, and the next letter typed is read
+     as a navigation shortcut — `r` goes to the concept index. That is
+     documented behaviour, and this test walked straight into it. */
+  await typeInto(['fn running_total(v: &Vec<i64>) -> i64 { 0 }', 'running_'].join('\n'));
+  m = await popup(p);
+  ok(`and your own names (${m.items.join(', ') || 'none'})`,
+    m.items.includes('running_total'));
+
+  await p.close();
+}
+
 section('no uncaught errors');
 ok(errors.length ? errors.join(' | ').slice(0, 200) : 'none', errors.length === 0);
 

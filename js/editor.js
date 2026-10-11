@@ -124,10 +124,24 @@ const Editor = (() => {
     /* C++ gets js/complete-cpp.js, because the C++ language package ships
        a parser and no completions. Python and JavaScript already provide
        their own through language data, so they are left alone — passing
-       `override` would replace those with nothing. */
-    const completion = id => (id === 'cpp' && typeof CppComplete !== 'undefined'
-      ? autocompletion({ override: [CppComplete.source], icons: false })
-      : autocompletion({ icons: false }));
+       `override` would replace those with nothing.
+
+       Switched off, the extension still loads: `activateOnTyping: false`
+       keeps Ctrl+Space working for somebody who wants a suggestion once
+       without wanting a popup on every identifier. Off should mean "stop
+       interrupting me", not "take the feature away". */
+    const OWN_SOURCE = {
+      cpp: () => (typeof CppComplete !== 'undefined' ? CppComplete.source : null),
+      rust: () => (typeof RustComplete !== 'undefined' ? RustComplete.source : null),
+    };
+
+    const completion = (id) => {
+      const typing = Store.completionOn(id);
+      const own = (OWN_SOURCE[id] || (() => null))();
+      return own
+        ? autocompletion({ override: [own], icons: false, activateOnTyping: typing })
+        : autocompletion({ icons: false, activateOnTyping: typing });
+    };
 
     /* Colours and metrics come from the page's tokens, so a theme bought in
        the shop repaints the editor too. Only the handful CodeMirror needs as

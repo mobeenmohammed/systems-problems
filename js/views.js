@@ -1431,8 +1431,36 @@ const UI = (() => {
 
   /* ---------------- settings ---------------- */
 
+  /* The completion controls. Rebuilt rather than patched, because the
+     per-language boxes are disabled as a group when the master is off and
+     keeping two sources of truth for that is how one of them goes stale. */
+  function paintCompletion() {
+    const master = $('#setComplete');
+    const host = $('#setCompleteLangs');
+    if (!master || !host) return;
+
+    const pref = Store.completionPref();
+    master.checked = pref.on;
+
+    host.replaceChildren(
+      el('legend', { class: 'tiny faint', text: 'For which languages' }),
+      ...Store.COMPLETION_LANGS.map(id => {
+        const box = el('input', {
+          type: 'checkbox', checked: pref.langs[id] || undefined,
+          disabled: !pref.on || undefined,
+          onchange: e => {
+            Store.setCompletion({ langs: { [id]: e.target.checked } });
+            paintCompletion();
+          },
+        });
+        return el('label', { class: 'check' }, [box, el('span', { text: LANG_LABEL[id] || id })]);
+      }),
+    );
+  }
+
   function renderSettings() {
     $('#setName').value = Store.state.profile.name || '';
+    paintCompletion();
     $('#setJudge').value = Store.config.judgeUrl || '';
     const tok = $('#setJudgeToken');
     if (tok) tok.value = Store.config.judgeToken || '';
@@ -1575,6 +1603,14 @@ const UI = (() => {
   }
 
   function wireSettings() {
+    $('#setComplete').addEventListener('change', e => {
+      Store.setCompletion({ on: e.target.checked });
+      paintCompletion();
+      toast(e.target.checked
+        ? 'Completions on. Open a problem to see them.'
+        : 'Completions off. Ctrl+Space still asks for one.', 'info');
+    });
+
     $('#setName').addEventListener('input', e => {
       Store.state.profile.name = e.target.value.slice(0, 40);
       Store.save();
