@@ -575,7 +575,7 @@ if (isMain) {
     await publishToken();
     const rule = '-'.repeat(60);
     console.log(rule);
-    console.log(`  Systems Lab runner    http://${HOST}:${PORT}`);
+    console.log(`  Invariant runner      http://${HOST}:${PORT}`);
     if (process.env.WSL_DISTRO_NAME) console.log(`  WSL distro            ${process.env.WSL_DISTRO_NAME}`);
     console.log(`  prlimit guards        ${prlimit ? 'on' : 'unavailable'}`);
     console.log(`  token                 ${TOKEN}`);

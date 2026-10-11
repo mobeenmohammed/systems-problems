@@ -37,7 +37,7 @@ Then open **Settings** in the site and press **Check**.
 
 ```
 ------------------------------------------------------------
-  Systems Lab runner — toolchain check
+  Invariant runner — toolchain check
 ------------------------------------------------------------
   ok    node     v18.19.1
   ok    g++      g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
@@ -47,7 +47,7 @@ Then open **Settings** in the site and press **Check**.
 ------------------------------------------------------------
   ok    sanitizers available (-fsanitize=address,undefined links)
 ------------------------------------------------------------
-  Systems Lab runner    http://127.0.0.1:2000
+  Invariant runner      http://127.0.0.1:2000
   WSL distro            Ubuntu
   prlimit guards        on
   token                 NHeFeWfuHnmVPswlmU-Xe5VMTfUU0nL1

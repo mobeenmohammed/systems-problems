@@ -13,18 +13,52 @@
 
 const Store = (() => {
 
-  const LS_KEY     = 'systems-lab/state/v1';
-  const LS_JUDGE   = 'systems-lab/judge-url';
+  /* The site has been renamed twice: Bare Metal, then Systems Lab, now
+     Invariant. The storage prefix follows the name, and every old prefix
+     stays readable, newest first — see adopt() below. Nothing is ever
+     deleted, which costs a few kilobytes and makes a rename reversible. */
+  const NS = 'invariant';
+  const OLD_NS = ['systems-lab', 'bare-metal'];
+
+  const LS_KEY     = `${NS}/state/v1`;
+  const LS_JUDGE   = `${NS}/judge-url`;
   /* Where hosted execution lives, kept beside the runner address for the
      same reason: it is a property of how this browser reaches a service,
      not of the reader's progress, so it never travels in an export. */
-  const LS_HOSTED  = 'systems-lab/hosted-url';
-  const LS_JUDGE_TOKEN = 'systems-lab/judge-token';
+  const LS_HOSTED  = `${NS}/hosted-url`;
+  const LS_JUDGE_TOKEN = `${NS}/judge-token`;
   /* Interface preferences — a panel split, focus mode — live under their own
      key rather than in the progress state. They are per-device and
      uninteresting, and keeping them out means a malformed pref can never
      corrupt a solve record or travel in an export. */
-  const LS_PREFS = 'systems-lab/ui/v1';
+  const LS_PREFS = `${NS}/ui/v1`;
+
+  /* Read a key under the current name, falling back through the old ones.
+     Returns the raw string and which namespace it came from, so init() can
+     say so and the settings keys can be copied across on first read.
+
+     Suffix, not full key, because every key shares the prefix: 'state/v1'
+     finds 'invariant/state/v1', then 'systems-lab/state/v1', and so on. */
+  function readNS(suffix) {
+    for (const ns of [NS, ...OLD_NS]) {
+      let raw = null;
+      try { raw = localStorage.getItem(`${ns}/${suffix}`); } catch { return { raw: null, from: null }; }
+      if (raw !== null) return { raw, from: ns };
+    }
+    return { raw: null, from: null };
+  }
+
+  /* Settings are small and independent, so they are copied forward the
+     first time they are read under the old name rather than waiting for
+     something to write them. A failure here is not worth reporting: the
+     value was still found, and the copy will be retried next load. */
+  function adopt(suffix) {
+    const { raw, from } = readNS(suffix);
+    if (raw !== null && from && from !== NS) {
+      try { localStorage.setItem(`${NS}/${suffix}`, raw); } catch { /* full or blocked */ }
+    }
+    return raw;
+  }
   const CONFIG_URL = 'data/config.json';
 
   /* The coarsest division, and the one the top bar switches between. A
@@ -277,23 +311,18 @@ const Store = (() => {
        that happened once, long ago. */
     migratedFrom = null;
 
+    /* Anyone who had solved anything under an old name would otherwise open
+       the renamed site to an empty profile. readNS tries each prefix in
+       turn, newest first, so a reader who has been here since Bare Metal
+       keeps everything through both renames. A corrupt old key is skipped
+       rather than migrated. */
     let raw = null;
-    try { raw = JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch { raw = null; }
-
-    /* The site was called Bare Metal before it was called Systems Lab, and the
-       storage key carried that name. Anyone who had solved anything under the
-       old name would otherwise open the renamed site to an empty profile, so
-       the old key is read once and copied across. It is left in place rather
-       than deleted, which costs a few kilobytes and makes the rename
-       reversible. */
-    if (!raw) {
+    const found = readNS('state/v1');
+    if (found.raw !== null) {
       try {
-        const legacy = localStorage.getItem('bare-metal/state/v1');
-        if (legacy) {
-          raw = JSON.parse(legacy);
-          migratedFrom = 'bare-metal';
-        }
-      } catch { /* a corrupt old key is simply not migrated */ }
+        raw = JSON.parse(found.raw);
+        if (found.from !== NS) migratedFrom = found.from;
+      } catch { raw = null; }
     }
 
     state = normalize(raw);
@@ -714,11 +743,15 @@ const Store = (() => {
   }
   function loadJudgeUrl() {
     try {
-      const u = localStorage.getItem(LS_JUDGE);
+      /* adopt(), not getItem(): a runner address set under the old name is
+         still this browser's runner address, and losing it to a rename
+         would send someone to Settings to retype something they had
+         already configured. */
+      const u = adopt('judge-url');
       if (u) config.judgeUrl = u;
-      const t = localStorage.getItem(LS_JUDGE_TOKEN);
+      const t = adopt('judge-token');
       if (t) config.judgeToken = t;
-      const h = localStorage.getItem(LS_HOSTED);
+      const h = adopt('hosted-url');
       if (h) config.hosted = { ...(config.hosted || {}), url: h, enabled: true };
     } catch {}
     return config.judgeUrl;
@@ -738,7 +771,7 @@ const Store = (() => {
     if (prefs) return prefs;
     prefs = {};
     try {
-      const raw = localStorage.getItem(LS_PREFS);
+      const raw = adopt('ui/v1');
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed && typeof parsed === 'object') prefs = parsed;

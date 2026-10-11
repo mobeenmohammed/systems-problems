@@ -36,8 +36,8 @@ const fresh = async () => {
   const ctx = await browser.newContext({ viewport: { width: 1500, height: 1000 } });
   await ctx.grantPermissions(['clipboard-read', 'clipboard-write']);
   await ctx.addInitScript(() => {
-    localStorage.setItem('systems-lab/judge-url', 'http://127.0.0.1:2999');
-    localStorage.removeItem('systems-lab/hosted-url');
+    localStorage.setItem('invariant/judge-url', 'http://127.0.0.1:2999');
+    localStorage.removeItem('invariant/hosted-url');
   });
   const p = await ctx.newPage();
   p.on('pageerror', e => console.log(`         !! page error: ${e.message}`));

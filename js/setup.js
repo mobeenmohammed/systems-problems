@@ -345,7 +345,7 @@ const SetupGuide = (() => {
             'From the same folder. Leave this terminal open — closing it stops the runner.' }),
           command('npm run runner'),
           expected('------------------------------------------------------------\n'
-            + '  Systems Lab runner    http://127.0.0.1:2000\n'
+            + '  Invariant runner      http://127.0.0.1:2000\n'
             + '  prlimit guards        on\n'
             + '  token                 0-oexA5ti…\n'
             + '------------------------------------------------------------\n'

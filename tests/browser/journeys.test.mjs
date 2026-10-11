@@ -71,7 +71,7 @@ async function page({ width = 1440, height = 900, state = null, theme = null } =
      braces, which is a picture of the test's own mistake rather than of the
      page. The typing path has its own section above. */
   await p.context().grantPermissions(['clipboard-read', 'clipboard-write']);
-  if (proxyUp) await p.addInitScript(u => localStorage.setItem('systems-lab/hosted-url', u), PROXY);
+  if (proxyUp) await p.addInitScript(u => localStorage.setItem('invariant/hosted-url', u), PROXY);
   p.on('pageerror', e => { consoleErrors.push('pageerror: ' + e.message); });
   /* A refused connection to the local runner is the page correctly finding
      out that there is no runner here, which is the normal state on any
@@ -84,11 +84,11 @@ async function page({ width = 1440, height = 900, state = null, theme = null } =
   });
   if (state || theme) {
     await p.addInitScript(([s, t]) => {
-      if (s) localStorage.setItem('systems-lab/state/v1', JSON.stringify(s));
+      if (s) localStorage.setItem('invariant/state/v1', JSON.stringify(s));
       if (t) {
-        const cur = JSON.parse(localStorage.getItem('systems-lab/state/v1') || '{}');
+        const cur = JSON.parse(localStorage.getItem('invariant/state/v1') || '{}');
         cur.equipped = { ...(cur.equipped || {}), theme: t };
-        localStorage.setItem('systems-lab/state/v1', JSON.stringify(cur));
+        localStorage.setItem('invariant/state/v1', JSON.stringify(cur));
       }
     }, [state, theme]);
   }

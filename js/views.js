@@ -1049,7 +1049,7 @@ const UI = (() => {
     }, [
       el('div', { class: 'tp-bar' }, [
         el('span', { class: 'tp-mark' }),
-        el('span', { class: 'tp-brand', text: 'Systems Lab' }),
+        el('span', { class: 'tp-brand', text: 'Invariant' }),
         el('span', { class: 'tp-xp', text: '1,240 xp' }),
       ]),
       el('div', { class: 'tp-body' }, [

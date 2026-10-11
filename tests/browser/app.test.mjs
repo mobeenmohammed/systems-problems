@@ -46,7 +46,7 @@ async function boot({ state = null } = {}) {
   window.scrollTo = () => {};
   window.URL.createObjectURL = () => 'blob:stub';
   window.URL.revokeObjectURL = () => {};
-  if (state) window.localStorage.setItem('systems-lab/state/v1', JSON.stringify(state));
+  if (state) window.localStorage.setItem('invariant/state/v1', JSON.stringify(state));
 
   /* The scripts, and their order, are read out of index.html rather than
      listed here. jsdom will not run them itself under runScripts:
@@ -732,7 +732,7 @@ check('the name is saved', window.SystemsLab.Store.state.profile.name, 'Jimmy');
 /* ---------------- persistence across a reload ---------------- */
 
 section('a reload keeps everything');
-const saved = JSON.parse(window.localStorage.getItem('systems-lab/state/v1'));
+const saved = JSON.parse(window.localStorage.getItem('invariant/state/v1'));
 const second = await boot({ state: saved });
 check('no errors on the second boot', second.errors, []);
 check('xp survived', second.window.SystemsLab.Store.state.xp, window.SystemsLab.Store.state.xp);

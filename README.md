@@ -1,4 +1,4 @@
-# Systems Lab
+# Invariant
 
 A personal problems site for the knowledge a low-level systems developer is
 expected to have: **C++** and **Rust**, computer architecture, operating
@@ -198,7 +198,7 @@ the first time you open it. Revealing the answer scores **zero** and records
 the problem as *read* rather than *solved* — the same distinction the Learning
 Tree draws with `independence`, and the reason the two are worth keeping apart.
 
-Ranks: **Userland → Libc → Syscall → Kernel → Ring 0 → Systems Lab → Silicon**.
+Ranks: **Userland → Libc → Syscall → Kernel → Ring 0 → Bare Metal → Silicon**.
 
 The shop sells cosmetics only — eight themes, accents, avatars, frames. Titles
 are not for sale: they are granted by achievements, so wearing one is a claim

@@ -98,7 +98,7 @@ async function boot({ token = undefined } = {}) {
   window.scrollTo = () => {};
   window.URL.createObjectURL = () => 'blob:stub';
   window.URL.revokeObjectURL = () => {};
-  if (token !== undefined) window.localStorage.setItem('systems-lab/judge-token', token);
+  if (token !== undefined) window.localStorage.setItem('invariant/judge-token', token);
 
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   const files = [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map(m => m[1]);

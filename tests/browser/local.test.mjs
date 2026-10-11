@@ -64,7 +64,7 @@ page.on('pageerror', e => errors.push('pageerror: ' + e.message));
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
 /* No hosted runner configured at all, so "Local" cannot be a hosted result
    wearing the wrong label. */
-await page.addInitScript(() => localStorage.removeItem('systems-lab/hosted-url'));
+await page.addInitScript(() => localStorage.removeItem('invariant/hosted-url'));
 await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
 
 const pasteInto = async (p, text) => {

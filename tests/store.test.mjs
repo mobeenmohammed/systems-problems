@@ -315,14 +315,63 @@ await Store.init();
 check('the old key is read',                 Store.state.xp, legacyXp);
 check('and the solve came with it',          Store.record('legacy1').status, 'solved');
 check('the migration is reported',           Store.migratedFrom, 'bare-metal');
-ok('it is written under the new key',        !!sandbox.localStorage.getItem('systems-lab/state/v1'));
+ok('it is written under the new key',        !!sandbox.localStorage.getItem('invariant/state/v1'));
 ok('and the old key is left alone, so the rename is reversible',
   !!sandbox.localStorage.getItem('bare-metal/state/v1'));
 
 section('the new key wins when both exist');
-sandbox.localStorage.setItem('systems-lab/state/v1', JSON.stringify({ xp: 42 }));
+sandbox.localStorage.setItem('invariant/state/v1', JSON.stringify({ xp: 42 }));
 await Store.init();
 check('the current key is preferred', Store.state.xp, 42);
 check('and no migration is claimed',  Store.migratedFrom, null);
+
+/* ---------------- two renames deep ---------------- */
+
+section('a reader who has been here since Bare Metal keeps everything');
+/* Bare Metal -> Systems Lab -> Invariant. Each rename moved the prefix, and
+   every old prefix has to stay readable: somebody who solved things under
+   the first name and has not opened the site since the second must still
+   not land on an empty profile. */
+Store.reset();
+Store.submit(P('old-solve', 'advanced'), { correct: true, score: 1 });
+const twoRenamesAgo = JSON.stringify(Store.exportState());
+const twoRenamesXp = Store.state.xp;
+
+sandbox.localStorage.clear();
+sandbox.localStorage.setItem('systems-lab/state/v1', twoRenamesAgo);
+await Store.init();
+check('the Systems Lab key is read',   Store.state.xp, twoRenamesXp);
+check('the solve came with it',        Store.record('old-solve').status, 'solved');
+check('and the migration names it',    Store.migratedFrom, 'systems-lab');
+ok('it is written forward',            !!sandbox.localStorage.getItem('invariant/state/v1'));
+
+section('the newest prefix present wins, in order');
+sandbox.localStorage.clear();
+sandbox.localStorage.setItem('bare-metal/state/v1',  JSON.stringify({ xp: 1 }));
+sandbox.localStorage.setItem('systems-lab/state/v1', JSON.stringify({ xp: 2 }));
+await Store.init();
+check('Systems Lab beats Bare Metal', Store.state.xp, 2);
+sandbox.localStorage.setItem('invariant/state/v1',   JSON.stringify({ xp: 3 }));
+await Store.init();
+check('Invariant beats both',         Store.state.xp, 3);
+check('and claims no migration',      Store.migratedFrom, null);
+
+section('a corrupt old key is skipped, not migrated');
+sandbox.localStorage.clear();
+sandbox.localStorage.setItem('systems-lab/state/v1', '{not json');
+await Store.init();
+check('it starts clean rather than throwing', Store.state.xp, 0);
+
+section('the runner address survives the rename too');
+/* Settings are not progress, but retyping a runner address because the site
+   changed its name is still the site losing something the reader set. */
+sandbox.localStorage.clear();
+sandbox.localStorage.setItem('systems-lab/judge-url', 'http://127.0.0.1:2222');
+sandbox.localStorage.setItem('systems-lab/ui/v1', JSON.stringify({ splitFraction: 0.31 }));
+await Store.init();
+check('the old runner address is still used', Store.config.judgeUrl, 'http://127.0.0.1:2222');
+check('and copied under the new name',
+  sandbox.localStorage.getItem('invariant/judge-url'), 'http://127.0.0.1:2222');
+check('interface preferences come across', Store.pref('splitFraction'), 0.31);
 
 report('store');

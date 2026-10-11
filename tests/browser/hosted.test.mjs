@@ -67,8 +67,8 @@ const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 page.on('pageerror', e => errors.push('pageerror: ' + e.message));
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
 await page.addInitScript(url => {
-  localStorage.setItem('systems-lab/hosted-url', url);
-  localStorage.setItem('systems-lab/judge-url', 'http://127.0.0.1:2999');
+  localStorage.setItem('invariant/hosted-url', url);
+  localStorage.setItem('invariant/judge-url', 'http://127.0.0.1:2999');
 }, PROXY);
 
 await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
@@ -213,8 +213,8 @@ section('an unavailable hosted runner is reported honestly');
 {
   const p2 = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   await p2.addInitScript(() => {
-    localStorage.setItem('systems-lab/hosted-url', 'http://127.0.0.1:2999');
-    localStorage.setItem('systems-lab/judge-url', 'http://127.0.0.1:2999');
+    localStorage.setItem('invariant/hosted-url', 'http://127.0.0.1:2999');
+    localStorage.setItem('invariant/judge-url', 'http://127.0.0.1:2999');
   });
   await p2.goto(`${SITE}/#/p/algo-running-max`, { waitUntil: 'networkidle' });
   await p2.waitForTimeout(2000);
@@ -320,8 +320,8 @@ section('a rate-limited proxy says so, and the code survives');
 
   const p3 = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   await p3.addInitScript(() => {
-    localStorage.setItem('systems-lab/hosted-url', 'http://127.0.0.1:8791');
-    localStorage.setItem('systems-lab/judge-url', 'http://127.0.0.1:2999');
+    localStorage.setItem('invariant/hosted-url', 'http://127.0.0.1:8791');
+    localStorage.setItem('invariant/judge-url', 'http://127.0.0.1:2999');
   });
   await p3.context().grantPermissions(['clipboard-read', 'clipboard-write']);
   await p3.goto(`${SITE}/#/p/algo-running-max`, { waitUntil: 'networkidle' });

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Start the Systems Lab runner under WSL Ubuntu — no Docker.
+# Start the Invariant runner under WSL Ubuntu — no Docker.
 #
 # From Windows, one command:
 #
@@ -23,7 +23,7 @@ rule() { printf '%s\n' "--------------------------------------------------------
 export PATH="$HOME/.cargo/bin:$PATH"
 
 rule
-echo "  Systems Lab runner — toolchain check"
+echo "  Invariant runner — toolchain check"
 rule
 
 missing_required=0

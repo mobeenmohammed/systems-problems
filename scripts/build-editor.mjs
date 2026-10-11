@@ -35,7 +35,7 @@ const result = await build({
 });
 
 const banner = [
-  '/* CodeMirror 6, bundled for Systems Lab by scripts/build-editor.mjs.',
+  '/* CodeMirror 6, bundled for Invariant by scripts/build-editor.mjs.',
   '   Do not edit. Change scripts/editor-entry.js and rebuild.',
   `   Built ${new Date().toISOString().slice(0, 10)} from the versions in package.json.`,
   '   MIT licensed — see https://codemirror.net/ */',

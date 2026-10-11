@@ -71,7 +71,7 @@ setInterval(() => sweepBuckets(), 5 * 60000).unref();
 server.listen(PORT, '127.0.0.1', () => {
   const upstream = env.JUDGE0_URL || (env.JUDGE0_RAPIDAPI_KEY ? 'RapidAPI' : 'https://ce.judge0.com (default)');
   console.log('─'.repeat(60));
-  console.log('  Systems Lab hosted-execution proxy');
+  console.log('  Invariant hosted-execution proxy');
   console.log(`  listening   http://127.0.0.1:${PORT}`);
   console.log(`  upstream    ${upstream}`);
   console.log(`  origins     ${env.ALLOWED_ORIGINS}`

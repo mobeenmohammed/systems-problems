@@ -52,8 +52,8 @@ async function freshPage() {
     errors.push(m.text());
   });
   await p.addInitScript(() => {
-    localStorage.setItem('systems-lab/judge-url', 'http://127.0.0.1:2999');
-    localStorage.removeItem('systems-lab/hosted-url');
+    localStorage.setItem('invariant/judge-url', 'http://127.0.0.1:2999');
+    localStorage.removeItem('invariant/hosted-url');
   });
   await ctx.grantPermissions(['clipboard-read', 'clipboard-write']);
   return { ctx, p };

@@ -48,8 +48,8 @@ section('a failed run never leaves the button disabled');
   /* Execution pointed at a port nothing serves, so every Run fails. */
   const p = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   await p.addInitScript(() => {
-    localStorage.setItem('systems-lab/judge-url', 'http://127.0.0.1:2999');
-    localStorage.removeItem('systems-lab/hosted-url');
+    localStorage.setItem('invariant/judge-url', 'http://127.0.0.1:2999');
+    localStorage.removeItem('invariant/hosted-url');
   });
   await p.goto(`${BASE}/#/p/algo-running-max`, { waitUntil: 'networkidle' });
   await p.waitForTimeout(1600);

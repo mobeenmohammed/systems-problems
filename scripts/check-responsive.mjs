@@ -75,7 +75,7 @@ const row = (label, m) => {
 for (const theme of ['theme-dark', 'theme-paper']) {
   console.log(`\n== ${theme} ==`);
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
-  await ctx.addInitScript(t => localStorage.setItem('systems-lab/state/v1',
+  await ctx.addInitScript(t => localStorage.setItem('invariant/state/v1',
     JSON.stringify({ equipped: { theme: t } })), theme);
   const p = await ctx.newPage();
   for (const [hash, what] of PAGES) {

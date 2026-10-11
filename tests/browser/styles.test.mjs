@@ -290,7 +290,7 @@ for (const [, name, attrs] of views) {
 section('the theme bootstrap runs before the stylesheets can paint');
 /* If this inline script moved below the first paint, every load would flash
    the default dark theme — blinding for anyone wearing Paper. */
-const bootIdx = html.indexOf('systems-lab/state/v1');
+const bootIdx = html.indexOf('invariant/state/v1');
 const bodyIdx = html.indexOf('<body');
 ok('the inline theme script is in the head', bootIdx > 0 && bootIdx < bodyIdx);
 ok('it sets data-theme', /setAttribute\('data-theme'/.test(html));

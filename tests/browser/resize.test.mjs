@@ -307,9 +307,9 @@ section('a split saved on a big screen does not ruin a small one');
 {
   await open();
   await page.evaluate(() => {
-    const ui = JSON.parse(localStorage.getItem('systems-lab/ui/v1') || '{}');
+    const ui = JSON.parse(localStorage.getItem('invariant/ui/v1') || '{}');
     ui.splitFraction = 0.8;
-    localStorage.setItem('systems-lab/ui/v1', JSON.stringify(ui));
+    localStorage.setItem('invariant/ui/v1', JSON.stringify(ui));
   });
 
   await page.setViewportSize({ width: 1920, height: 1080 });
@@ -327,7 +327,7 @@ section('a split saved on a big screen does not ruin a small one');
 
   /* And the preference itself was not rewritten by the small window. */
   const pref = await page.evaluate(() =>
-    JSON.parse(localStorage.getItem('systems-lab/ui/v1') || '{}').splitFraction);
+    JSON.parse(localStorage.getItem('invariant/ui/v1') || '{}').splitFraction);
   check('the reader\'s choice is still what they chose', pref, 0.8);
 
   await page.setViewportSize({ width: 1920, height: 1080 });
@@ -343,9 +343,9 @@ section('Reset layout');
 {
   await open();
   await page.evaluate(() => {
-    const ui = JSON.parse(localStorage.getItem('systems-lab/ui/v1') || '{}');
+    const ui = JSON.parse(localStorage.getItem('invariant/ui/v1') || '{}');
     ui.splitFraction = 0.75;
-    localStorage.setItem('systems-lab/ui/v1', JSON.stringify(ui));
+    localStorage.setItem('invariant/ui/v1', JSON.stringify(ui));
   });
   /* A draft, so it can be shown that resetting the layout does not touch it. */
   await page.locator('.cm-content').click();

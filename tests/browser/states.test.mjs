@@ -58,7 +58,7 @@ async function boot({ state = null, breakContent = false } = {}) {
   window.scrollTo = () => {};
   window.URL.createObjectURL = () => 'blob:stub';
   window.URL.revokeObjectURL = () => {};
-  if (state) window.localStorage.setItem('systems-lab/state/v1', JSON.stringify(state));
+  if (state) window.localStorage.setItem('invariant/state/v1', JSON.stringify(state));
 
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   const files = [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map(m => m[1]);
