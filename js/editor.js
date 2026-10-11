@@ -161,6 +161,34 @@ const Editor = (() => {
       '.cm-lineNumbers .cm-gutterElement': { padding: '0 .5rem 0 .7rem' },
       '&.cm-editor.cm-focused': { outline: 'none' },
       '.cm-lint-marker-error': { content: 'none' },
+
+      /* The completion popup. CodeMirror styles it itself otherwise, and
+         because this theme declares dark: true it stayed the same slab of
+         #333338 in the Paper theme as in Midnight — readable, but the one
+         part of the editor that did not belong to the page. */
+      '.cm-tooltip.cm-tooltip-autocomplete': {
+        backgroundColor: 'var(--bg-elev-2)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-s)',
+        boxShadow: 'var(--shadow-2)',
+        overflow: 'hidden',
+      },
+      '.cm-tooltip-autocomplete ul': { fontFamily: 'var(--mono)', maxHeight: '14rem' },
+      '.cm-tooltip-autocomplete ul li': {
+        color: 'var(--text-dim)', padding: '.18rem .55rem', lineHeight: '1.5',
+      },
+      '.cm-tooltip-autocomplete ul li[aria-selected]': {
+        backgroundColor: 'var(--accent-soft)', color: 'var(--text)',
+      },
+      /* The header beside a std:: name is the useful half of that row, so
+         it is dimmed rather than hidden, and never italicised into
+         illegibility. */
+      '.cm-completionDetail': {
+        color: 'var(--text-faint)', fontStyle: 'normal', marginLeft: '.75rem',
+      },
+      '.cm-completionMatchedText': {
+        color: 'var(--accent)', textDecoration: 'none', fontWeight: '600',
+      },
     }, { dark: true });
 
     const view = new EditorView({
