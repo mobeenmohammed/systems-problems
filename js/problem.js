@@ -186,14 +186,24 @@ const ProblemView = (() => {
     { id: 'solution', label: 'Solution' },
   ];
 
-  const RESULT_TABS = [
-    { id: 'cases',    label: 'Test cases' },
+  /* One strip across the top of the right column, the editor among them.
+     It used to be a horizontal split: editor above, results below, with a
+     divider. That gave the editor about half a column to live in and gave
+     the sample cases a permanent seat they did not earn — they are read
+     once and then not again. As tabs, whichever one you are looking at
+     has the whole column.
+
+     The language picker is injected after Editor, because it belongs to
+     the editor rather than to the strip. */
+  const WORK_TABS = [
+    { id: 'editor',   label: 'Editor' },
     { id: 'results',  label: 'Results' },
+    { id: 'cases',    label: 'Test cases' },
     { id: 'subs',     label: 'Submissions' },
     { id: 'compiler', label: 'Compiler output' },
   ];
 
-  let resultTab = 'cases';
+  let workTab = 'editor';
 
   function draw() {
     const p = current;
@@ -354,20 +364,23 @@ const ProblemView = (() => {
   function drawWorkspace() {
     const p = current;
 
+    /* Switching the statement for the hints must not rebuild the editor
+       beside it; only the pane that changed is repainted. */
     const left = el('section', { class: 'ws-left' }, [
-      tabStrip(LEFT_TABS, activeTab, id => { activeTab = id; draw(); }),
+      tabStrip(LEFT_TABS, activeTab, setLeftTab),
       el('div', { class: 'ws-pane', id: 'leftPane' }),
     ]);
     fillLeftPane(left.querySelector('#leftPane'));
 
-    const right = el('section', { class: 'ws-right' }, [
-      el('div', { class: 'ws-toolbar', id: 'wsToolbar' }),
+    /* The editor stays in the DOM whichever tab is showing: CodeMirror
+       holds the undo history, the cursor and the scroll position, and
+       rebuilding it to look at the test cases would throw all three away.
+       Only one of the two is visible at a time — see .ws-right[data-pane]. */
+    const right = el('section', { class: 'ws-right', 'data-pane': workTab === 'editor' ? 'editor' : 'result' }, [
+      workStrip(),
       el('div', { class: 'ws-editor', id: 'wsEditor' }),
-      hGutter(),
-      el('section', { class: 'ws-results' }, [
-        tabStrip(RESULT_TABS, resultTab, id => { resultTab = id; draw(); }, 'ws-tabs ws-tabs-sm'),
-        el('div', { class: 'ws-pane', id: 'resultPane' }),
-      ]),
+      el('div', { class: 'ws-pane', id: 'resultPane' }),
+      el('div', { class: 'ws-foot', id: 'wsFoot' }),
     ]);
 
     const body = el('div', { class: 'ws-body' }, [left, vGutter(), right]);
@@ -377,7 +390,7 @@ const ProblemView = (() => {
        inside a box that already has its final size. */
     queueMicrotask(() => {
       const slot = wrap.querySelector('#wsEditor');
-      const bar = wrap.querySelector('#wsToolbar');
+      const bar = wrap.querySelector('#wsFoot');
       if (!slot || !bar) return;
       mountAnswer(slot, bar);
       fillResultPane(wrap.querySelector('#resultPane'));
@@ -387,6 +400,44 @@ const ProblemView = (() => {
     });
 
     return wrap;
+  }
+
+  /* The work strip, with a slot for the language picker after Editor.
+     code.js builds the picker, because it is the thing that knows which
+     languages a problem takes and which of them can actually run. */
+  function workStrip() {
+    const strip = tabStrip(WORK_TABS, workTab, setWorkTab, 'ws-tabs ws-tabs-work');
+    const editorTab = strip.querySelector('[data-tab="editor"]');
+    if (editorTab) editorTab.after(el('div', { class: 'ws-lang-slot', id: 'langSlot' }));
+    return strip;
+  }
+
+  function setWorkTab(id) {
+    workTab = id;
+    const right = host && host.querySelector('.ws-right');
+    if (!right) { draw(); return; }
+    right.dataset.pane = id === 'editor' ? 'editor' : 'result';
+    for (const b of right.querySelectorAll('.ws-tabs-work .tab')) {
+      b.setAttribute('aria-selected', String(b.dataset.tab === id));
+    }
+    if (id === 'editor') {
+      /* CodeMirror was measured in a hidden box; it has to look again. */
+      const ed = codeEditor();
+      if (ed) ed.refresh();
+    } else {
+      fillResultPane(right.querySelector('#resultPane'));
+    }
+  }
+
+  function setLeftTab(id) {
+    activeTab = id;
+    const strip = host && host.querySelector('.ws-left .ws-tabs');
+    const pane = host && host.querySelector('#leftPane');
+    if (!strip || !pane) { draw(); return; }
+    for (const b of strip.querySelectorAll('.tab')) {
+      b.setAttribute('aria-selected', String(b.dataset.tab === id));
+    }
+    fillLeftPane(pane);
   }
 
   function tabStrip(tabs, active, onPick, cls = 'ws-tabs') {
@@ -457,9 +508,21 @@ const ProblemView = (() => {
     slot.append(widget);
     impl.render(p, widget, { locked: false, disclosed: disclosed() });
 
+    /* The bar across the bottom of the column. It is the same two buttons
+       for every problem, in the same place, and it does not scroll away
+       with the editor. Reset is down here with them rather than inside
+       the editor panel: it is one of the three things you can do to a
+       program, and the other two are already here. */
     bar.replaceChildren(
-      el('div', { class: 'ws-toolbar-left', id: 'langSlot' }),
-      el('div', { class: 'ws-toolbar-right' }, [
+      el('div', { class: 'ws-foot-left' }, [
+        el('button', {
+          class: 'btn btn-sm btn-ghost', type: 'button', id: 'resetBtn',
+          title: 'Put the starting template back',
+          onclick: () => { if (impl.resetTemplate) impl.resetTemplate(); },
+        }, ['Reset']),
+        el('span', { class: 'tiny faint', id: 'draftNote' }, ['']),
+      ]),
+      el('div', { class: 'ws-foot-right' }, [
         el('span', { class: 'ws-exec', id: 'execState' }),
         /* Shown only when the language in front of the reader cannot run.
            code.js unhides it, because it is the thing that knows. Editing
@@ -476,9 +539,9 @@ const ProblemView = (() => {
           onclick: () => { if (impl.stop) impl.stop(); },
         }, ['Stop']),
         el('button', {
-          class: 'btn btn-sm', type: 'button', id: 'runBtn',
+          class: 'btn btn-sm btn-run', type: 'button', id: 'runBtn',
           onclick: () => impl.run && impl.run(false),
-        }, ['Run samples']),
+        }, ['Run tests']),
         el('button', {
           class: 'btn btn-sm btn-primary', type: 'button', id: 'submitBtn',
           onclick: doSubmit,
@@ -486,10 +549,11 @@ const ProblemView = (() => {
       ]),
     );
 
-    /* The language tabs the type module built belong in the toolbar. */
-    const tabs = widget.querySelector('.lang-tabs');
-    const slotFor = bar.querySelector('#langSlot');
-    if (tabs && slotFor) slotFor.append(tabs);
+    /* The language picker the type module built belongs in the tab strip,
+       beside Editor: it is which language the editor is in. */
+    const pick = widget.querySelector('.lang-pick');
+    const slotFor = host && host.querySelector('#langSlot');
+    if (pick && slotFor) slotFor.append(pick);
     /* The judge-state box stays in the editor panel but is hidden by CSS
        while everything is fine — the toolbar chip is enough then. When
        something cannot run it reappears, because "No runner" on its own does
@@ -560,7 +624,7 @@ const ProblemView = (() => {
     if (!pane) return;
     pane.replaceChildren();
 
-    if (resultTab === 'cases') {
+    if (workTab === 'cases') {
       const cases = ((current.payload || {}).cases) || [];
       if (!cases.length) {
         pane.append(el('p', { class: 'muted small', text: 'This problem has no visible sample cases.' }));
@@ -581,12 +645,12 @@ const ProblemView = (() => {
       return;
     }
 
-    if (resultTab === 'subs') { fillSubmissions(pane); return; }
+    if (workTab === 'subs') { fillSubmissions(pane); return; }
 
-    if (resultTab === 'results') {
+    if (workTab === 'results') {
       if (lastBlocked) { pane.append(executionFailureNode(lastBlocked)); return; }
       if (!lastRun && !answered) {
-        pane.append(el('p', { class: 'muted small', text: 'Press Run samples, or Submit.' }));
+        pane.append(el('p', { class: 'muted small', text: 'Press Run tests, or Submit.' }));
         return;
       }
       if (answered) pane.append(verdictNode(answered));
@@ -621,7 +685,7 @@ const ProblemView = (() => {
 
     if (!list.length) {
       pane.append(el('p', { class: 'muted small', text:
-        'Nothing submitted yet. Run samples does not count — only Submit, '
+        'Nothing submitted yet. Run tests does not count — only Submit, '
         + 'which also runs the hidden cases.' }));
       return;
     }
@@ -742,17 +806,6 @@ const ProblemView = (() => {
       axis: box => ({ start: box.left, size: box.width }),
       coord: e => e.clientX,
       container: node => node.closest('.ws-body'),
-    });
-  }
-
-  function hGutter() {
-    return makeGutter({
-      cls: 'ws-hgutter', orientation: 'horizontal',
-      label: 'Resize the editor and results panels',
-      get: vSplitFraction, set: setVSplit,
-      axis: box => ({ start: box.top, size: box.height }),
-      coord: e => e.clientY,
-      container: node => node.closest('.ws-right'),
     });
   }
 
@@ -915,7 +968,6 @@ const ProblemView = (() => {
   const SPLIT_MIN = 0.2;
   const SPLIT_MAX = 0.8;
   const MIN_PANEL_PX = 320;   /* a readable statement, a usable editor */
-  const MIN_EDITOR_PX = 180;  /* the results pane is allowed to be smaller */
 
   const prefFraction = (key, fallback) => {
     const v = Number(Store.pref(key, fallback));
@@ -935,7 +987,6 @@ const ProblemView = (() => {
   }
 
   const splitFraction = () => prefFraction('splitFraction', 0.42);
-  const vSplitFraction = () => prefFraction('vSplitFraction', 0.62);
 
   /* What the layout should actually be right now, given the window. */
   function effectiveSplit() {
@@ -944,26 +995,10 @@ const ProblemView = (() => {
     return fitted(splitFraction(), w, MIN_PANEL_PX);
   }
 
-  function effectiveVSplit() {
-    const right = host && host.querySelector('.ws-right');
-    const h = right ? right.getBoundingClientRect().height : 0;
-    return fitted(vSplitFraction(), h, MIN_EDITOR_PX);
-  }
-
   function applySplit() {
     if (!host) return;
     const body = host.querySelector('.ws-body');
     if (body) body.style.setProperty('--split', String(effectiveSplit()));
-    const right = host.querySelector('.ws-right');
-    if (right) right.style.setProperty('--vsplit', String(effectiveVSplit()));
-  }
-
-  function setVSplit(fraction) {
-    Store.setPref('vSplitFraction',
-      Math.round(Math.min(SPLIT_MAX, Math.max(SPLIT_MIN, fraction)) * 1000) / 1000);
-    applySplit();
-    const ed = codeEditor();
-    if (ed) ed.refresh();
   }
 
   function setSplit(fraction) {
@@ -978,7 +1013,6 @@ const ProblemView = (() => {
      and notes are a different kind of thing and are not touched. */
   function resetLayout() {
     Store.setPref('splitFraction', 0.42);
-    Store.setPref('vSplitFraction', 0.62);
     Store.setPref('editorFontSize', 14);
     const ed = codeEditor();
     if (ed && ed.setFontSize) ed.setFontSize(14);
@@ -1235,10 +1269,10 @@ const ProblemView = (() => {
   function sayNeedsAnswer(text) {
     clearNeedsAnswer();
     const widget = host && host.querySelector('#answerWidget');
-    const anchor = host && (host.querySelector('.ws-toolbar-right') || widget);
+    const anchor = host && (host.querySelector('.ws-foot-right') || widget);
     if (!anchor) return;
     const note = el('p', { class: 'needs-answer small', role: 'status', text });
-    if (anchor.classList.contains('ws-toolbar-right')) anchor.before(note);
+    if (anchor.classList.contains('ws-foot-right')) anchor.before(note);
     else anchor.append(note);
     const go = () => clearNeedsAnswer();
     if (widget) {
@@ -1367,7 +1401,7 @@ const ProblemView = (() => {
       answered = { response, result, award: null };
       answerChanged = false;
       reviewing = true;
-      resultTab = 'results';
+      workTab = 'results';
       draw();
       return;
     }
@@ -1385,7 +1419,7 @@ const ProblemView = (() => {
          result pane starts on Test cases, so a failed submission used to
          produce no visible change at all — the reason was sitting in a tab
          nobody had any reason to open. */
-      resultTab = 'results';
+      workTab = 'results';
       draw();
       UI.toast(result.feedback, 'bad', 9000);
       return;
@@ -1408,7 +1442,7 @@ const ProblemView = (() => {
     /* The verdict on screen belongs to this submission, so any note that it
        is stale belongs to the one before it. */
     answerChanged = false;
-    resultTab = 'results';
+    workTab = 'results';
     attempting = false;
 
     /* Only now, and only if it is actually earned. */
@@ -1655,13 +1689,14 @@ const ProblemView = (() => {
      at is the one with the answer in it. */
   function showResults() {
     lastRun = true;
-    resultTab = 'results';
-    draw();
+    /* No redraw: rebuilding the workspace would rebuild the editor, and
+       the reader's cursor is still in it. Only the pane changes. */
+    setWorkTab('results');
   }
 
   return {
-    open, leave, toggleFocus, setSplit, splitFraction, setVSplit, vSplitFraction,
-    showResults, resetLayout,
+    open, leave, toggleFocus, setSplit, splitFraction,
+    showResults, resetLayout, setWorkTab,
     /* The code type paints the results pane and wants to say how long a run
        took in the same words the submissions list uses. One formatter, so
        the two cannot drift into "0 ms" and "<1 ms" for the same number. */

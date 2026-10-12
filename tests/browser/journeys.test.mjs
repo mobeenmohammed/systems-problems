@@ -19,7 +19,16 @@ import { chromium } from 'playwright';
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { section, check, ok, report } from '../harness.mjs';
+import { section, check, ok, report, toEditorTab } from '../harness.mjs';
+
+/* The language is a dropdown in the tab strip now, not a row of tabs, so
+   choosing one means opening it first - which is what a person does too. */
+const pickLang = async (p, id) => {
+  await p.locator('.lang-pick-btn').click();
+  await p.waitForTimeout(150);
+  await p.locator(`.lang-opt[data-lang="${id}"]`).click();
+  await p.waitForTimeout(400);
+};
 
 /* BROWSER=msedge runs the whole suite through the Edge installed on this
    machine rather than Playwright's bundled Chromium. Same engine, different
@@ -115,6 +124,7 @@ const docText = p => p.evaluate(() =>
   window.SystemsLab.ProblemTypes.get('code').editor().value);
 
 async function typeCode(p, text) {
+  await toEditorTab(p);
   await code(p).click();
   await p.keyboard.press('Control+a');
   await p.keyboard.press('Delete');
@@ -142,6 +152,7 @@ int main() {
    brackets: open a brace, press Enter, write the body, and step past the
    closer the editor supplied rather than typing one. */
 async function typeProgramNaturally(p) {
+  await toEditorTab(p);
   await code(p).click();
   await p.keyboard.press('Control+a');
   await p.keyboard.press('Delete');
@@ -158,6 +169,7 @@ async function typeProgramNaturally(p) {
 }
 
 async function paste(p, text) {
+  await toEditorTab(p);
   await code(p).click();
   await p.keyboard.press('Control+a');
   await p.keyboard.press('Delete');
@@ -179,6 +191,7 @@ section('the editor accepts real typing');
   ok('with a gutter', await p.locator('.cm-gutters').count() === 1);
 
   /* Click into the middle of the document, then type. */
+  await toEditorTab(p);
   await code(p).click();
   await p.keyboard.press('Control+a');
   await p.keyboard.press('Delete');
@@ -247,6 +260,7 @@ section('type a whole solution, run it, change the last character, run again');
   const firstSource = await p.evaluate(() =>
     window.SystemsLab.ProblemTypes.get('code').editor().value);
 
+  await toEditorTab(p);
   await code(p).click();
   await p.keyboard.press('Control+End');
   await p.keyboard.type('//EDIT');
@@ -304,7 +318,7 @@ section('the last character typed is the one that gets run');
   /* And the draft the store holds matches, with no debounce to wait out. */
   await p.waitForTimeout(150);
   const same = await p.evaluate(() => {
-    const lang = document.querySelector('.lang-tab[aria-pressed="true"]').dataset.lang;
+    const lang = document.querySelector('.lang-pick').dataset.lang;
     const ed = window.SystemsLab.ProblemTypes.get('code').editor();
     return ed.value === window.SystemsLab.Store.draft('algo-running-max', lang);
   });
@@ -355,6 +369,7 @@ section('long lines and long files');
      follows is still being painted, so the caret move is given a frame to
      settle before anything is typed — otherwise this reads as a typing bug
      when it is the test racing the renderer. */
+  await toEditorTab(p);
   await code(p).click();
   await p.waitForTimeout(150);
   await p.keyboard.press('Control+End');
@@ -386,6 +401,7 @@ section('resizing the panels, and browser zoom');
   ok(`dragging moved the divider (now ${after})`, after > 0.45);
 
   /* Typing still lands, and the gutter is still aligned, after a resize. */
+  await toEditorTab(p);
   await code(p).click();
   await p.keyboard.press('Control+End');
   await p.keyboard.type('//resized');
@@ -405,6 +421,7 @@ section('resizing the panels, and browser zoom');
   await p.setViewportSize({ width: 1100, height: 700 });
   await p.evaluate(() => { document.documentElement.style.fontSize = '19px'; });
   await p.waitForTimeout(400);
+  await toEditorTab(p);
   await code(p).click();
   await p.keyboard.press('Control+End');
   await p.keyboard.type('//zoomed');
@@ -434,16 +451,16 @@ section('a draft per problem and per language, across a reload');
   await p.waitForTimeout(150);
 
   /* Switch language through the real tab. */
-  await p.locator('.lang-tab[data-lang="js"]').click();
+  await pickLang(p, 'js');
   await p.waitForTimeout(400);
   await typeCode(p, '// my js draft');
   await p.waitForTimeout(150);
 
-  await p.locator('.lang-tab[data-lang="cpp"]').click();
+  await pickLang(p, 'cpp');
   await p.waitForTimeout(400);
   check('switching back restores the C++ draft', await docText(p), '// my cpp draft');
 
-  await p.locator('.lang-tab[data-lang="js"]').click();
+  await pickLang(p, 'js');
   await p.waitForTimeout(400);
   check('and the JavaScript one is still there', await docText(p), '// my js draft');
 
@@ -467,7 +484,7 @@ section('resetting to the template asks first');
 
   let asked = false;
   p.on('dialog', async d => { asked = true; await d.dismiss(); });
-  const reset = p.locator('button', { hasText: 'Reset to template' });
+  const reset = p.locator('#resetBtn');
   if (await reset.count()) {
     await reset.first().click();
     await p.waitForTimeout(300);
@@ -703,7 +720,7 @@ for (const [w, h, label] of [[1440, 900, '1440x900'], [1920, 1080, '1920x1080']]
         w: Math.round(r.width), h: Math.round(r.height) }; };
     return {
       head: box('.ws-head'), left: box('.ws-left'), right: box('.ws-right'),
-      toolbar: box('.ws-toolbar'), editor: box('.ws-editor'), results: box('.ws-results'),
+      toolbar: box('.ws-tabs-work'), editor: box('.ws-editor'), results: box('.ws-foot'),
       run: box('#runBtn'), submit: box('#submitBtn'),
       pageScrolls: document.documentElement.scrollHeight > innerHeight + 2,
       pageHScroll: document.documentElement.scrollWidth > innerWidth + 2,

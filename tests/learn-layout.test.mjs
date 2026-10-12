@@ -36,38 +36,122 @@ section('one node');
 {
   const r = L.layout({ roots: [node('a', 0)] });
   check('is one box', r.nodes.length, 1);
-  check('in one column', r.columns, 1);
+  check('in one rank', r.ranks, 1);
   check('with no edges', r.edges.length, 0);
   ok('the canvas is big enough to hold it',
     r.width >= L.NODE_W && r.height >= L.NODE_H);
 }
 
-section('a chain runs left to right');
+section('a chain runs top to bottom');
 {
   const tree = { roots: [node('a', 0, [node('b', 1, [node('c', 2)])])] };
   const r = L.layout(tree);
   const at = id => r.nodes.find(n => n.id === id);
   check('three boxes', r.nodes.length, 3);
-  check('three columns', r.columns, 3);
-  ok('b is right of a', at('b').x > at('a').x);
-  ok('c is right of b', at('c').x > at('b').x);
+  check('three ranks', r.ranks, 3);
+  ok('b is below a', at('b').y > at('a').y);
+  ok('c is below b', at('c').y > at('b').y);
+  ok('and a chain is one column wide',
+    new Set(r.nodes.map(n => n.x)).size === 1);
   check('two edges', r.edges.length, 2);
-  ok('each edge is a path', r.edges.every(e => /^M [\d.]+ [\d.]+ C /.test(e.path)));
+  ok('each edge is a path', r.edges.every(e => /^M [\d.]+ [\d.]+ [LV]/.test(e.path)));
 }
 
-section('siblings stack, they do not overlap');
+section('siblings sit side by side, they do not overlap');
 {
   const tree = { roots: [node('a', 0, [node('b', 1), node('c', 1), node('d', 1)])] };
   const r = L.layout(tree);
-  const kids = r.nodes.filter(n => n.id !== 'a').sort((x, y) => x.y - y.y);
-  check('all in one column', new Set(kids.map(k => k.x)).size, 1);
+  const kids = r.nodes.filter(n => n.id !== 'a').sort((x, y) => x.x - y.x);
+  check('all in one rank', new Set(kids.map(k => k.y)).size, 1);
   ok('and none overlaps the next',
-    kids.every((k, i) => i === 0 || k.y >= kids[i - 1].y + L.NODE_H));
+    kids.every((k, i) => i === 0 || k.x >= kids[i - 1].x + L.NODE_W));
+}
+
+section('a parent sits over the middle of its children');
+{
+  /* The whole reason for turning the picture: a box above the ones it
+     feeds reads as a tree. Flush left, it reads as a list. */
+  const tree = { roots: [node('a', 0, [node('b', 1), node('c', 1), node('d', 1)])] };
+  const r = L.layout(tree);
+  const at = id => r.nodes.find(n => n.id === id);
+  const mid = n => n.x + n.w / 2;
+  const kids = ['b', 'c', 'd'].map(at);
+  const span = (Math.min(...kids.map(mid)) + Math.max(...kids.map(mid))) / 2;
+  ok(`a is centred over them (${Math.round(mid(at('a')))} vs ${Math.round(span)})`,
+    Math.abs(mid(at('a')) - span) <= 1);
+}
+
+section('an edge leaves the bottom of one box and arrives at the top of the next');
+{
+  /* Straight down, across, straight down. Checked as coordinates rather
+     than as a path string, because the claim is about where the line
+     is, not how it is spelled. */
+  const tree = { roots: [node('a', 0, [node('b', 1), node('c', 1)])] };
+  const r = L.layout(tree);
+  const at = id => r.nodes.find(n => n.id === id);
+  const mid = n => n.x + n.w / 2;
+
+  const toB = r.edges.find(e => e.to === 'b');
+  const first = toB.points[0];
+  const last = toB.points[toB.points.length - 1];
+  check('it starts at the foot of a', first[1], at('a').y + L.NODE_H);
+  check('in the middle of it', first[0], mid(at('a')));
+  check('and ends at the top of b', last[1], at('b').y);
+  check('in the middle of it too', last[0], mid(at('b')));
+  ok('every leg is vertical or horizontal',
+    toB.points.every((p, i) => i === 0
+      || p[0] === toB.points[i - 1][0] || p[1] === toB.points[i - 1][1]));
+}
+
+/* ---------------- lines that go round, not through ---------------- */
+
+/* Every horizontal leg must be in the empty band between two ranks,
+   and every vertical leg must miss every box it passes. A line behind
+   a box is a line claiming a connection that is not there, and nothing
+   on screen tells the two apart. */
+function throughABox(r) {
+  const bad = [];
+  for (const e of r.edges) {
+    for (let i = 1; i < e.points.length; i += 1) {
+      const [ax, ay] = e.points[i - 1];
+      const [bx, by] = e.points[i];
+      for (const n of r.nodes) {
+        /* Its own two ends are allowed to touch their own boxes. */
+        if (n.id === e.from || n.id === e.to) continue;
+        const x0 = n.x;
+        const x1 = n.x + n.w;
+        const y0 = n.y;
+        const y1 = n.y + n.h;
+        const hits = Math.min(ax, bx) < x1 && Math.max(ax, bx) > x0
+          && Math.min(ay, by) < y1 && Math.max(ay, by) > y0;
+        if (hits) bad.push(`${e.from}->${e.to} crosses ${n.id}`);
+      }
+    }
+  }
+  return bad;
+}
+
+section('a prerequisite two ranks up is routed round the boxes between');
+{
+  /* d rests on a (rank 0) as well as on c (rank 2), so the a->d edge
+     has to cross rank 1 — where b is sitting. */
+  const d = node('d', 3);
+  d.alsoNeeds = [{ id: 'a', name: 'a' }];
+  const tree = { roots: [node('a', 0, [node('b', 1, [node('c', 2, [d])])])] };
+  const r = L.layout(tree);
+
+  const long = r.edges.find(e => e.from === 'a' && e.to === 'd');
+  ok('the long edge is there at all', !!long);
+  ok(`it is broken at the ranks it crosses (${long.points.length} points)`,
+    long.points.length > 4);
+  check('it still ends on d', long.points[long.points.length - 1][1],
+    r.nodes.find(n => n.id === 'd').y);
+  check('and it passes behind nothing', throughABox(r), []);
 }
 
 /* ---------------- the claim the picture makes ---------------- */
 
-section('every prerequisite is to the left of what needs it');
+section('every prerequisite is above what needs it');
 {
   /* The one thing a reader is entitled to assume from the arrows. */
   const tree = {
@@ -79,8 +163,8 @@ section('every prerequisite is to the left of what needs it');
   tree.roots[0].children[1].alsoNeeds = [];
   const r = L.layout(tree);
   const by = new Map(r.nodes.map(n => [n.id, n]));
-  ok('no edge points backwards or sideways',
-    r.edges.every(e => by.get(e.from).col < by.get(e.to).col));
+  ok('no edge points upwards or sideways',
+    r.edges.every(e => by.get(e.from).rank < by.get(e.to).rank));
 }
 
 section('the edges that make it a DAG are drawn, not dropped');
@@ -196,11 +280,14 @@ section('every real track lays out, and lays out legally');
     ok(`${t.id}: every concept it rests on is a box (${r.nodes.length})`,
       r.nodes.length === inSet.size);
     ok(`${t.id}: no edge points backwards`,
-      r.edges.every(e => by.get(e.from).col < by.get(e.to).col));
+      r.edges.every(e => by.get(e.from).rank < by.get(e.to).rank));
     ok(`${t.id}: no two boxes sit on top of each other`,
       new Set(r.nodes.map(n => `${n.x},${n.y}`)).size === r.nodes.length);
     ok(`${t.id}: the canvas contains every box`,
       r.nodes.every(n => n.x + n.w <= r.width && n.y + n.h <= r.height));
+    const crossed = throughABox(r);
+    ok(`${t.id}: no line passes behind a box${crossed.length ? ` (${crossed[0]})` : ''}`,
+      crossed.length === 0);
     checked += 1;
   }
   ok(`all ${checked} tracks checked`, checked === tracks.length);

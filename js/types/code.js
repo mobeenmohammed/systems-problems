@@ -85,6 +85,11 @@ fn main() {
      had just failed to compile. */
   let last = { verdict: null, reply: null, submission: false, at: 0 };
 
+  /* The Results pane owns the node; this module only fills it. It does
+     not exist until that pane has been painted, which is why every run
+     opens Results before it starts. */
+  const outNode = () => document.getElementById('runOut');
+
   function templateFor(problem, lang) {
     const given = (problem.payload.templates || {})[lang];
     return given != null ? given : (TEMPLATE[lang] || '');
@@ -110,11 +115,15 @@ fn main() {
     if (!state || state.problem.id !== problem.id) {
       last = { verdict: null, reply: null, submission: false, at: 0 };
     }
-    state = { problem, mount, lang, editor: null, out: null, langs, running: false };
+    state = { problem, mount, lang, editor: null, langs, running: false };
 
     const head = el('div', { class: 'editor-head' });
-    const tabs = el('div', { class: 'lang-tabs', role: 'group', 'aria-label': 'Language' });
-    head.append(tabs);
+    /* One control rather than a row of them. Four languages across the top
+       of the editor was four buttons saying what this problem could be
+       written in; what the reader needs is one saying what it is being
+       written in now, with the others a click away. */
+    const pick = langPicker(langs, lang);
+    head.append(pick);
 
     if (pay.profile && pay.profile !== 'standard') {
       head.append(el('span', { class: 'pill pill-plain', title: 'The compiler flags this problem is built with' },
@@ -159,35 +168,12 @@ fn main() {
       },
     });
 
-    /* Run and Submit are rendered by the problem page, together, in a bar that
-       sticks to the bottom of this column. What stays here is the editor's own
-       housekeeping. */
-    const controls = el('div', { class: 'editor-tools' }, [
-      el('button', {
-        class: 'btn btn-sm btn-ghost', type: 'button',
-        title: 'Put the starting template back',
-        onclick: () => {
-          if (!confirm('Replace what you have written with the starting template?')) return;
-          state.editor.value = templateFor(problem, state.lang);
-          Store.saveDraft(problem, state.lang, state.editor.value);
-          noteSaved('reset to the template');
-        },
-      }, ['Reset to template']),
-      el('span', { class: 'tiny faint', id: 'draftNote' }, ['']),
-    ]);
-    mount.append(controls);
-
-    state.out = el('div', { class: 'run-out', id: 'runOut' });
-    mount.append(state.out);
-
-    /* The tabs are built after the editor so switching one can reach it. */
-    for (const id of langs) {
-      tabs.append(el('button', {
-        class: 'lang-tab', type: 'button', 'data-lang': id,
-        'aria-pressed': String(id === lang),
-        onclick: () => switchLang(id),
-      }, [LABEL[id] || id]));
-    }
+    /* Reset, Run and Submit are all rendered by the problem page, in one
+       bar across the bottom of this column, and the output goes in the
+       Results pane. Nothing of either is left in here — there used to be
+       a second copy of every case under the editor, which survived as a
+       stale duplicate the moment the panes stopped being redrawn
+       together. */
 
     /* Which languages are actually runnable — and *where* each would run —
        is a question for the runners, and the answer can change while the page
@@ -197,6 +183,99 @@ fn main() {
     refreshExec();
   }
 
+  /* ---------------- the language picker ----------------
+
+     A button that says which language, and a menu of the others. The
+     options carry `data-lang` and a disabled state, because a language
+     nothing can run has to look unavailable rather than fail on the
+     click — and refreshExec() is what decides that, from a live look at
+     the backends. A problem that takes one language gets the button with
+     nothing to open, which is the truth about it. */
+  function langPicker(langs, lang) {
+    const only = langs.length < 2;
+
+    const name = el('span', { class: 'lang-pick-name', text: LABEL[lang] || lang });
+    const btn = el('button', {
+      class: 'lang-pick-btn', type: 'button',
+      'aria-haspopup': only ? undefined : 'listbox',
+      'aria-expanded': only ? undefined : 'false',
+      disabled: only || undefined,
+      title: only
+        ? `This problem is ${LABEL[lang] || lang} only`
+        : 'Which language to write it in',
+    }, [
+      el('span', { class: 'lang-mark', 'data-lang': lang, 'aria-hidden': 'true' }),
+      name,
+      only ? null : caret(),
+    ]);
+
+    const menu = el('div', {
+      class: 'lang-menu', role: 'listbox', 'aria-label': 'Language', hidden: true,
+    }, langs.map(id => el('button', {
+      class: 'lang-opt', type: 'button', role: 'option', 'data-lang': id,
+      'aria-selected': String(id === lang),
+      onclick: () => { shutMenu(); switchLang(id); },
+    }, [
+      el('span', { class: 'lang-mark', 'data-lang': id, 'aria-hidden': 'true' }),
+      LABEL[id] || id,
+    ])));
+
+    const wrap = el('div', { class: 'lang-pick', 'data-lang': lang }, [btn, menu]);
+
+    function shutMenu() {
+      menu.hidden = true;
+      btn.setAttribute('aria-expanded', 'false');
+    }
+
+    if (!only) {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const open = menu.hidden;
+        menu.hidden = !open;
+        btn.setAttribute('aria-expanded', String(open));
+        if (open) {
+          const first = menu.querySelector('.lang-opt[aria-selected="true"]') || menu.firstChild;
+          if (first) first.focus();
+        }
+      });
+      /* A menu left open over the editor is a menu in the way of the thing
+         it is about. */
+      document.addEventListener('click', e => {
+        if (menu.hidden) return;
+        if (!e.target.closest('.lang-pick')) shutMenu();
+      });
+      document.addEventListener('keydown', e => {
+        if (e.key !== 'Escape' || menu.hidden) return;
+        shutMenu();
+        btn.focus();
+      });
+    }
+
+    return wrap;
+  }
+
+  function caret() {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'lang-caret');
+    svg.setAttribute('viewBox', '0 0 10 6');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.innerHTML = '<path d="M1 1.4 5 4.8 9 1.4" fill="none" stroke="currentColor" '
+      + 'stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>';
+    return svg;
+  }
+
+  /* Put the starting template back. Called from the bar at the foot of the
+     column, which is where the other two things you can do to a program
+     already are. */
+  function resetTemplate() {
+    if (!state) return;
+    if (!confirm('Replace what you have written with the starting template?')) return;
+    state.editor.value = templateFor(state.problem, state.lang);
+    Store.saveDraft(state.problem, state.lang, state.editor.value);
+    noteSaved('reset to the template');
+    state.editor.focus();
+  }
+
   /* Repaints the toolbar chip, the sentence under the tabs, and which tabs
      are selectable, from a fresh look at what can run right now. Called on
      mount and again whenever the language changes, because the three
@@ -204,8 +283,9 @@ fn main() {
   function refreshExec() {
     if (!state) return;
     const { langs, mount } = state;
-    /* Same reason as switchLang: the tabs live in the toolbar by now. */
-    const tabs = mount.querySelector('.lang-tabs') || document.querySelector('.lang-tabs');
+    /* Same reason as switchLang: the picker lives in the tab strip by now,
+       which is outside this module's mount. */
+    const pick = mount.querySelector('.lang-pick') || document.querySelector('.lang-pick');
     const judgeBox = mount.querySelector('.judge-state');
 
     setExec('checking', 'Checking…');
@@ -248,14 +328,15 @@ fn main() {
           setExec('blocked', 'No runner');
         }
 
-        if (!tabs) return;
-        for (const node of tabs.querySelectorAll('.lang-tab')) {
+        if (!pick) return;
+        for (const node of pick.querySelectorAll('.lang-opt')) {
           const row = rows.find(r => r.id === node.dataset.lang);
           if (!row) continue;
           node.disabled = !row.ready;
+          node.dataset.ready = String(!!row.ready);
           node.title = row.ready
             ? `${row.where}${row.version ? ` — ${row.version}` : ''}`
-            : 'Nothing available can run this — see the note under the tabs';
+            : 'Nothing available can run this — see the note under the editor';
         }
       });
   }
@@ -276,14 +357,22 @@ fn main() {
        so the editor has to be told before the new source goes in. */
     state.editor.setLang(id, (state.problem.payload || {}).profile || 'standard');
     state.editor.value = sourceFor(state.problem, id);
-    /* The tabs were moved into the workspace toolbar when the page mounted,
-       so they are no longer inside this module's mount. Looking for them
-       there found nothing, and the pressed state never moved — the editor
-       switched language while the tabs went on claiming the old one. */
-    for (const node of document.querySelectorAll('.lang-tab')) {
-      node.setAttribute('aria-pressed', String(node.dataset.lang === id));
+    /* The picker was moved into the workspace tab strip when the page
+       mounted, so it is no longer inside this module's mount — hence the
+       document-wide lookup. Its button is the only thing on screen saying
+       which language this is, so it has to be told. */
+    const pick = document.querySelector('.lang-pick');
+    if (pick) {
+      pick.dataset.lang = id;
+      const name = pick.querySelector('.lang-pick-name');
+      if (name) name.textContent = LABEL[id] || id;
+      const mark = pick.querySelector('.lang-pick-btn .lang-mark');
+      if (mark) mark.dataset.lang = id;
+      for (const node of pick.querySelectorAll('.lang-opt')) {
+        node.setAttribute('aria-selected', String(node.dataset.lang === id));
+      }
     }
-    state.out.replaceChildren();
+    if (outNode()) outNode().replaceChildren();
     /* C++ may be hosted while JavaScript runs in the browser, so the chip has
        to be re-asked rather than carried over from the previous language. */
     refreshExec();
@@ -333,7 +422,12 @@ fn main() {
     state.running = true;
     const btn = document.getElementById('runBtn');
     if (btn) { btn.disabled = true; btn.textContent = 'Running…'; }
-    if (state.out) state.out.replaceChildren(el('p', { class: 'muted small', text: 'Compiling and running…' }));
+    /* Open Results first, not at the end. A compile can take a minute the
+       first time, and the reader should watch it happen in the pane that
+       will hold the answer rather than at a spinner beside a button. It
+       is also what creates #runOut for the progress bar to live in. */
+    if (typeof ProblemView !== 'undefined' && ProblemView.showResults) ProblemView.showResults();
+    if (outNode()) outNode().replaceChildren(el('p', { class: 'muted small', text: 'Compiling and running…' }));
     setExec('running', 'Compiling and running…');
 
     /* The source is read here, at the moment of the click, and it is read
@@ -386,7 +480,7 @@ fn main() {
     if (unwatch) unwatch();
     showDownload(null);
     const liveBtn = document.getElementById('runBtn');
-    if (liveBtn) { liveBtn.disabled = false; liveBtn.textContent = 'Run samples'; }
+    if (liveBtn) { liveBtn.disabled = false; liveBtn.textContent = 'Run tests'; }
 
     /* Too late: the reader changed problem or language while this was out. */
     if (epoch !== runEpoch || !state || state.problem.id !== problem.id || state.lang !== lang) {
@@ -408,9 +502,6 @@ fn main() {
     else setExec('ready', `Ran on ${Runners.label(reply.backend)}`);
 
     void btn;
-    /* Show the reader what just happened rather than leaving the result in a
-       tab they are not looking at. */
-    if (typeof ProblemView !== 'undefined' && ProblemView.showResults) ProblemView.showResults();
     return verdict;
   }
 
@@ -444,7 +535,7 @@ fn main() {
   };
 
   function showDownload(p, lang = 'cpp') {
-    const host = document.getElementById('runOut') || (state && state.out);
+    const host = outNode();
     if (!host) return;
     let bar = host.querySelector('.cxx-dl');
     if (!p) { if (bar) bar.remove(); return; }
@@ -509,7 +600,7 @@ fn main() {
   }
 
   function paint(verdict, reply, isSubmission, into) {
-    const host = into || state.out;
+    const host = into || outNode();
     if (!host) return;
     host.replaceChildren();
 
@@ -799,6 +890,10 @@ fn main() {
 
     /* The workspace owns the panes; this module owns what goes in them. */
     editor: () => (state ? state.editor : null),
+
+    /* Reset is a button in the bar at the foot of the column, which the
+       problem page builds; the template it puts back is this module's. */
+    resetTemplate,
 
     /* The language names, so the Submissions tab can say "C++" without a
        fourth copy of the same four words. */

@@ -467,9 +467,12 @@ back to a plain textarea if the bundle fails to load.
 last character typed before pressing Run" is not a question that can have a
 wrong answer — there is no second copy to be stale.
 
-**Colouring is not checking, and the editor says so.** Under the editor it
-reads *"Syntax colouring only. Press Run to compile it."* until a compiler has
-actually looked, and only then does it report anything about the code.
+**Colouring is not checking.** The line under the editor says nothing at
+all until a compiler has actually looked, and then it says what the compiler
+said. It used to read *"Syntax colouring only. Press Run to compile it."* from
+the moment a problem opened — a standing notice about something that had not
+happened, on every problem, taking a row under every editor. Nothing is lost
+by its absence: the Results tab is empty too, and says so in one line.
 
 There used to be a second thing there: a hand-written bracket scanner that ran
 on every keystroke and announced **"No unbalanced brackets."** It is gone. It
@@ -640,27 +643,56 @@ which is your own figure from the problem page rather than a guess at it).
 
 ### The layout, and what it claims
 
-One column per prerequisite depth, left to right. Everything in column 2
-rests on something in column 1 or earlier — that is the whole claim the
-picture makes, and `tests/learn-layout.test.mjs` checks it on all eleven
-real tracks as arithmetic, with no browser involved. Within a column the
-order comes from the usual barycentre sweep, two passes each way; it is a
-heuristic, not an optimum, because minimising crossings exactly is NP-hard
-and nobody needs it for twenty-two boxes.
+One rank per prerequisite depth, **top down**. Everything in rank 2 rests on
+something in rank 1 or earlier — that is the whole claim the picture makes,
+and `tests/learn-layout.test.mjs` checks it on all eleven real tracks as
+arithmetic, with no browser involved. Within a rank the order comes from the
+usual barycentre sweep, two passes each way; it is a heuristic, not an
+optimum, because minimising crossings exactly is NP-hard and nobody needs it
+for twenty-two boxes. Each rank is then centred against the widest, so a
+parent sits over the middle of its children rather than flush left of them.
+
+It ran left to right first, which is the same claim turned on its side. A box
+is 208 wide and 60 tall, so left-to-right spent the short axis on the thing
+that grows: a rank of fifteen concepts was fifteen boxes tall and three
+columns wide, and you read down a column to find what the next one rested on.
+Top down puts the growth along the axis the boxes are already wide on, and
+puts a parent above its children, which is what everybody means by a tree.
 
 It is a DAG, not a tree: twelve of the 115 concepts have more than one
 prerequisite. **Every** prerequisite edge is drawn, with the ones that are
 not the node's spine dashed rather than deleted, so a node with two parents
 has two lines going into it instead of one line and a footnote.
 
+### Lines that go round, not through
+
+An edge is a right-angled elbow: straight down out of the bottom of one box,
+across the empty band halfway between the two ranks, straight down into the
+top of the next, corners rounded. A single curve was tried first and is wrong
+for this shape — there are 76 pixels between ranks and a parent can be eight
+hundred to one side of its child, so every curve came out nearly flat and ran
+along under the boxes instead of between them.
+
+A prerequisite two or more ranks up used to be one line straight down, which
+took it behind every box in the way. **A line entering the top of a box and
+leaving the bottom is a line claiming a connection that is not there**, and
+nothing on screen tells it apart from one that is. So an edge spanning more
+than one rank is now broken at every rank it crosses, and each break is a
+two-pixel lane that takes its own place in that rank's order — the boxes are
+laid out around it. The test asserts the result directly, on every real
+track: no leg of any edge overlaps the rectangle of any box that is not one
+of its own two ends.
+
 ### It had to stay keyboard-navigable
 
 There is no plainer list to fall back to — the canvas replaced it — so the
 canvas itself carries the keyboard and the screen reader. The boxes are real
-`<button>`s in a `role="tree"` with `aria-level` for the column, a roving
-tabindex so exactly one is tabbable, and arrow keys that walk it: up and down
-within a column, left to a prerequisite, right to something that rests on
-this. Each box's `aria-label` says its progress in words, because the bar
+`<button>`s in a `role="tree"` with `aria-level` for the rank, a roving
+tabindex so exactly one is tabbable, and arrow keys that walk it: left and
+right along a rank, up to a prerequisite, down to something that rests on
+this. Up and down follow an actual edge rather than going to whatever box
+happens to be above — that is the more useful answer, and it is the one the
+line under your feet goes to. Each box's `aria-label` says its progress in words, because the bar
 under the name is three pixels tall and a screen reader cannot see it.
 
 The old pages are still there and still reachable: `#/tracks/<id>` is the
@@ -792,22 +824,51 @@ scrolls on its own.
 ```
 ┌ back · 25/85 · title · difficulty · status ····· A− 14 A+ · ☆ · Focus · ⋯ ┐
 ├────────────────────────────┬──────────────────────────────────────────────┤
-│ Description  Prereqs       │ C++  Rust  JS        Hosted  Run     Submit  │
-│ Hints  Notes  Solution 🔒  ├──────────────────────────────────────────────┤
+│ Description  Prereqs       │ Editor │ C++ ⌄ │ Results  Test cases         │
+│ Hints  Notes  Solution 🔒  │        Submissions  Compiler output          │
+│                            ├──────────────────────────────────────────────┤
 │                            │                                              │
-│  the statement             │  the editor                                  │
+│  the statement             │  whichever one of them you are looking at    │
+│                            │                                              │
 │                            │                                              │
 │                            ├──────────────────────────────────────────────┤
-│                            │ Test cases  Results  Submissions  Compiler   │
-│                            │                                              │
+│                            │ Reset  Saved      Browser   Run tests  Submit│
 └────────────────────────────┴──────────────────────────────────────────────┘
 ```
 
-Both dividers drag, and both take the arrow keys, `Home`, `End` and `Enter`
-to reset. Positions are remembered, and **Reset layout** in the `⋯` menu puts
-them back without touching a draft or a solve. Run and Submit are in the
-editor's own toolbar rather than a bar that floats over the code — which is
-what used to swallow the clicks.
+**One strip, and one pane at a time.** It used to be a horizontal split: the
+editor above, a second tab strip below, and a divider between them. That gave
+the editor about half a column, and it gave the sample cases a permanent seat
+they had not earned — they are read once and then not again. So the editor is
+a tab among the rest, and whichever one you are looking at has the whole
+column. The editor went from fifteen visible lines to thirty-five on the same
+screen.
+
+The editor is never destroyed to show another tab. CodeMirror holds the undo
+history, the cursor and the scroll position, and all three would go with it;
+both panes stay mounted and the CSS shows one. Switching tabs — on either side
+— repaints only the pane that changed, so this is now true of the statement and
+the hints as well.
+
+The language is a **dropdown in the strip** rather than a row of buttons: four
+buttons said what the problem *could* be written in, where what you need is one
+saying what it is being written in now. A language nothing can compile is still
+listed, disabled, with the reason in its title — the problem does accept it.
+A problem that takes one language gets a button with nothing to open.
+
+**Run tests**, **Submit** and **Reset** are in one bar across the foot of the
+column, outside the scrolling pane, with the execution backend beside them.
+Reset was *"Reset to template"* under the editor; it is one of the three things
+you can do to a program and the other two were already down here.
+
+Pressing Run opens **Results** before the run starts rather than after it
+finishes, so a first in-browser compile — which is a 90 MB download — is
+watched in the pane that will hold the answer.
+
+One divider is left, between the statement and the editor. It drags, and takes
+the arrow keys, `Home`, `End` and `Enter` to reset. Its position is remembered,
+and **Reset layout** in the `⋯` menu puts it back without touching a draft or a
+solve.
 
 The divider is 18px of hit area with a visible 10px bar and a grip in the
 middle of it. It was 10px containing a 1px hairline, which is to say invisible:
@@ -817,7 +878,7 @@ clamped rather than honoured on a small one — neither panel is ever allowed
 below 320px — and the stored preference is left alone, so the big screen gets
 it back.
 
-The toolbar also names the execution backend, always: **Hosted**, **Local** or
+The bar also names the execution backend, always: **Hosted**, **Local** or
 **Browser** before a run, and "Ran on Hosted" or "Could not run — Hosted"
 after one. When nothing can compile the language in front of you, a **Set up
 execution** button appears beside Run and goes to an in-site guide — see
@@ -1082,7 +1143,7 @@ Chromium against a real site:
 | `tests/browser/hosted.test.mjs` (`npm run test:hosted`) | The published-site journey with **no local runner**: write C++, Run, Submit, get marked — plus a compile error, a wrong submission then a fix, a timeout, a rate limit, an unreachable runner, and a check that no submission went to localhost |
 | `tests/browser/local.test.mjs` (`npm run test:local`) | The same workspace against the **local runner**, which is the only backend that can produce them: a warning on a successful build, a clickable compiler diagnostic that moves the caret, a build failure, a timeout, and a sanitizer trip on a program whose output is right |
 | `tests/browser/navigation.test.mjs` | Leaving a problem for every other page, thirty times over, plus focus mode, Back/Forward and a drag abandoned mid-navigation. Measures the **destination** page: is anything clipped out of reach, is the navigation there, can you still click and scroll |
-| `tests/browser/resize.test.mjs` | Both dividers, dragged with a real pointer, asserting measured panel widths and heights before and after. Minimum widths, keyboard resizing, every way a drag can end, a split saved on a big screen opened on a small one, and Reset layout |
+| `tests/browser/resize.test.mjs` | The divider, dragged with a real pointer, asserting measured panel widths before and after. Minimum widths, keyboard resizing, every way a drag can end, a split saved on a big screen opened on a small one, Reset layout, the editor having the whole column rather than half of it, and what was typed — and the undo history — surviving a trip to another tab |
 | `tests/browser/feedback.test.mjs` | A wrong answer on each of MCQ, select-all and find-the-bug: that the explanation is substantial, that it discloses nothing, and that the verdict is relabelled and the marks cleared the moment the answer changes |
 | `tests/maths-expr.test.mjs` | The expression engine on its own: equal values comparing equal however they are written, unequal ones never comparing equal, syntax errors and unsupported expressions reported as *different kinds* of failure from a wrong answer, and eleven injection attempts refused |
 | `tests/maths-render.test.mjs` | KaTeX renders, emits MathML, and markdown does not get at the TeX first — `$a_1 + a_2$` must not become `a<em>1 + a</em>2` |
@@ -1091,7 +1152,7 @@ Chromium against a real site:
 | `tests/browser/complete.test.mjs` | The same thing through real keystrokes, Rust included, plus the switch (off stops the popup but Ctrl+Space still works; one language can be off while another is on) and the keys it could have broken: Enter still Enter, Tab still indenting, Ctrl+Enter still running with a popup open, and the first Escape closing the popup without throwing you out of the editor |
 | `tests/browser/landing.test.mjs` (`npm run test:landing`) | The front page introducing the site rather than listing it, its numbers matching the catalogue, the main button changing for somebody who has been here before, the Content menu opening by hover, click, Enter and Tab and closing on Escape with focus going back, its counts and its current-page mark, an entry landing on the catalogue already filtered, Kind and Subject narrowing together with search overriding both, the profile menu by mouse and keyboard, the rank ring moving, the rail at four widths, and every number that left the dashboard turning up on Profile |
 | `tests/browser/python.test.mjs` (`npm run test:py`) | Python in the browser with the runner address pointed at a dead port: the download and its progress, the platform differences stated above measured rather than asserted, a traceback that is the reader's and not the harness's, truncation of a flood of output, an infinite loop cut short and a valid program straight afterwards, Stop, a fresh namespace per case, a recorded solve, and a check that nothing was sent anywhere |
-| `tests/learn-layout.test.mjs` | The canvas layout as arithmetic, no browser: a chain runs left to right, siblings stack without overlapping, every prerequisite is in an earlier column, the DAG edges are drawn and never drawn twice, a node reached twice is one box, the barycentre sweep untangles what it can, and all eleven real tracks lay out legally and identically on a second run |
+| `tests/learn-layout.test.mjs` | The canvas layout as arithmetic, no browser: a chain runs top to bottom, siblings sit side by side without overlapping, a parent is centred over its children, every prerequisite is in an earlier rank, an edge leaves the foot of one box and arrives at the head of another by right angles, a long edge is broken at the ranks it crosses and passes behind no box, the DAG edges are drawn and never drawn twice, a node reached twice is one box, the barycentre sweep untangles what it can, and all eleven real tracks lay out legally and identically on a second run |
 | `tests/browser/learn.test.mjs` (`npm run test:learn`) | The same claim read out of the DOM; the dashed extra edges and the lit ones; pan, zoom and Recenter; walking it with the arrow keys with one box tabbable at a time; the node panel's two tables and its columns; closing it without leaving the track; ticking a reading being the same tick as everywhere else; and that the old addresses still land somewhere |
 | `tests/browser/cxx.test.mjs` (`npm run test:cxx`) | C++ in the browser with the runner address pointed at a dead port: the download and its progress bar, a cold first run, submit-wrong-then-correct, a Clang compile error, an infinite loop cut short and a valid program straight afterwards, Stop, the cached second visit, a native-only problem refusing to pretend, and a check that nothing was sent anywhere |
 | `tests/browser/usability.test.mjs` | Buttons after a failure, a run in flight when the problem or language changes, the toolbar at five widths, every answer control being clickable where it looks, horizontal overflow on twelve routes at eight widths with the view links staying reachable, keyboard reach to hints/notes/solution, and the blast radius of a reset |
@@ -1198,7 +1259,7 @@ scripts/check-responsive.mjs  both themes, ten widths, four root font sizes
 | `s` | Shop |
 | `f` | Focus mode — hide everything but the problem |
 | `Escape` | Leave focus mode, or leave the field you are typing in |
-| `Ctrl+Enter` | Run the samples (in a code problem) |
+| `Ctrl+Enter` | Run the tests (in a code problem) |
 | `Ctrl+Shift+Enter` | Submit |
 
 In the workspace, the panel divider is in the tab order: arrow keys move it,

@@ -291,14 +291,15 @@ const Editor = (() => {
         : diagnostics.length ? 'warning'
         : checkedBy ? 'clean' : 'idle';
 
-      /* Three states, and the difference between them matters. Until a
-         compiler has looked, the editor says exactly what it is doing —
-         colouring the text — so that syntax highlighting is never mistaken
-         for a program having been checked. */
-      status.textContent = !opts.lint ? ''
-        : checkedBy === 'compiler'
-          ? `${Lint.summarise(diagnostics, { checkedBy })} · checked by the compiler`
-          : 'Syntax colouring only. Press Run to compile it.';
+      /* Nothing until a compiler has actually looked. The line used to say
+         "Syntax colouring only. Press Run to compile it." on every problem
+         from the moment it opened, which is a standing notice about
+         something that has not happened yet — and it sat under the editor
+         on every one of them. What the compiler said, when it has said
+         anything, is worth the row; the absence of a compiler is not. */
+      status.textContent = (!opts.lint || checkedBy !== 'compiler') ? ''
+        : `${Lint.summarise(diagnostics, { checkedBy })} · checked by the compiler`;
+      status.hidden = !status.textContent;
     }
 
     /* Our diagnostics carry a line and a column; CodeMirror wants document

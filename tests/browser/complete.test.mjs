@@ -11,7 +11,7 @@
 
 import { chromium } from 'playwright';
 
-import { section, check, ok, report } from '../harness.mjs';
+import { section, check, ok, report, toEditorTab } from '../harness.mjs';
 
 const CHANNEL = process.env.BROWSER || null;
 const BASE = process.env.BASE || 'http://127.0.0.1:8000';
@@ -36,6 +36,7 @@ async function editor(problem = 'cpp-greet-and-sum') {
   p.on('pageerror', e => errors.push(e.message));
   await p.goto(`${BASE}/#/p/${problem}`, { waitUntil: 'networkidle' });
   await p.waitForTimeout(1800);
+  await toEditorTab(p);
   await p.locator('.cm-content').click();
   await p.keyboard.press('Control+A');
   await p.keyboard.press('Delete');
@@ -194,6 +195,7 @@ section('Ctrl+Enter still runs, with a popup open');
   });
   await p.goto(`${BASE}/#/p/cpp-greet-and-sum`, { waitUntil: 'networkidle' });
   await p.waitForTimeout(1800);
+  await toEditorTab(p);
   await p.locator('.cm-content').click();
   await p.keyboard.press('Control+A');
   await p.keyboard.press('Delete');
@@ -227,6 +229,7 @@ section('Python gets its own completions, not the C++ word list');
   });
   ok('the editor is in Python', switched);
   await p.waitForTimeout(500);
+  await toEditorTab(p);
   await p.locator('.cm-content').click();
   await p.keyboard.press('Control+A');
   await p.keyboard.press('Delete');
@@ -246,6 +249,7 @@ section('completion can be switched off, and Ctrl+Space still works');
   p.on('pageerror', e => errors.push(e.message));
 
   const typeInto = async text => {
+    await toEditorTab(p);
     await p.locator('.cm-content').click();
     await p.keyboard.press('Control+A');
     await p.keyboard.type(text, { delay: 22 });
@@ -293,6 +297,7 @@ section('and it can be switched off for one language only');
   const p = await browser.newPage({ viewport: { width: 1400, height: 950 } });
   p.on('pageerror', e => errors.push(e.message));
   const typeInto = async text => {
+    await toEditorTab(p);
     await p.locator('.cm-content').click();
     await p.keyboard.press('Control+A');
     await p.keyboard.type(text, { delay: 22 });
@@ -338,6 +343,7 @@ section('Rust completes too, through the same keystrokes');
   await p.waitForTimeout(500);
 
   const typeInto = async text => {
+    await toEditorTab(p);
     await p.locator('.cm-content').click();
     await p.keyboard.press('Control+A');
     await p.keyboard.type(text, { delay: 22 });

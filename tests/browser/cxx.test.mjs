@@ -17,7 +17,7 @@
 import { chromium } from 'playwright';
 import fs from 'node:fs';
 import path from 'node:path';
-import { section, check, ok, report } from '../harness.mjs';
+import { section, check, ok, report, toEditorTab } from '../harness.mjs';
 
 /* BROWSER=msedge runs it through the Edge installed on this machine. */
 const CHANNEL = process.env.BROWSER || null;
@@ -60,6 +60,7 @@ async function freshPage() {
 }
 
 const paste = async (p, text) => {
+  await toEditorTab(p);
   await p.locator('.cm-content').click();
   await p.keyboard.press('Control+a');
   await p.keyboard.press('Delete');

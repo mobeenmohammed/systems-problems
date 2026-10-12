@@ -10,7 +10,16 @@
 
 import { chromium } from 'playwright';
 
-import { section, check, ok, report } from '../harness.mjs';
+import { section, check, ok, report, toEditorTab } from '../harness.mjs';
+
+/* The language is a dropdown in the tab strip now, not a row of tabs, so
+   choosing one means opening it first - which is what a person does too. */
+const pickLang = async (p, id) => {
+  await p.locator('.lang-pick-btn').click();
+  await p.waitForTimeout(150);
+  await p.locator(`.lang-opt[data-lang="${id}"]`).click();
+  await p.waitForTimeout(400);
+};
 
 /* BROWSER=msedge runs the whole suite through the Edge installed on this
    machine rather than Playwright's bundled Chromium. Same engine, different
@@ -63,7 +72,7 @@ section('a failed run never leaves the button disabled');
       return { run: r.disabled, runLabel: r.textContent, submit: s.disabled };
     });
     check(`Run is usable again after failure ${i}`, state.run, false);
-    check(`and says Run, not "Running…" (${state.runLabel})`, state.runLabel, 'Run samples');
+    check(`and says Run, not "Running…" (${state.runLabel})`, state.runLabel, 'Run tests');
     check('Submit is live too', state.submit, false);
   }
 
@@ -77,6 +86,11 @@ section('a failed run never leaves the button disabled');
   ok(`an untouched template says exactly that ("${untouched.slice(0, 48)}…")`,
     /starting template/i.test(untouched));
 
+  /* A run puts the reader in front of the results, which is a different
+     tab from the editor now. Going back to it is what a person does too. */
+  await p.locator('.ws-tabs-work .tab[data-tab="editor"]').click();
+  await p.waitForTimeout(250);
+  await toEditorTab(p);
   await p.locator('.cm-content').click();
   await p.keyboard.press('Control+End');
   await p.keyboard.type('\n// mine');
@@ -101,6 +115,7 @@ section('a failed run never leaves the button disabled');
 section('a run in flight cannot land on the next problem');
 {
   await open('#/p/algo-running-max');
+  await toEditorTab(page);
   await page.locator('.cm-content').click();
   await page.keyboard.press('Control+a');
   await page.keyboard.press('Delete');
@@ -133,11 +148,11 @@ section('switching language mid-run does not mix the two up');
   await open('#/p/algo-running-max');
   await page.locator('#runBtn').click();
   await page.waitForTimeout(120);
-  await page.locator('.lang-tab[data-lang="js"]').click();
+  await pickLang(page, 'js');
   await page.waitForTimeout(3000);
 
   const state = await page.evaluate(() => ({
-    lang: document.querySelector('.lang-tab[aria-pressed="true"]').dataset.lang,
+    lang: document.querySelector('.lang-pick').dataset.lang,
     chip: (document.getElementById('execState') || {}).textContent,
     runEnabled: !document.getElementById('runBtn').disabled,
   }));
@@ -147,15 +162,16 @@ section('switching language mid-run does not mix the two up');
   ok('Run is usable', state.runEnabled);
 }
 
-/* ---------------- the toolbar at the widths people use ---------------- */
+/* ---------------- the bar at the widths people use ---------------- */
 
-section('the toolbar stays on screen and clickable');
+section('the bar stays on screen and clickable');
 for (const [w, h] of [[1920, 1080], [1536, 864], [1440, 900], [1280, 800], [1152, 720]]) {
   await page.setViewportSize({ width: w, height: h });
   await open('#/p/algo-running-max', 900);
 
   const m = await page.evaluate(() => {
-    const bar = document.querySelector('.ws-toolbar');
+    const bar = document.querySelector('.ws-foot');
+    const strip = document.querySelector('.ws-tabs-work');
     const inside = sel => {
       const n = document.querySelector(sel);
       if (!n || n.hidden) return 'absent';
@@ -168,15 +184,19 @@ for (const [w, h] of [[1920, 1080], [1536, 864], [1440, 900], [1280, 800], [1152
     return {
       run: inside('#runBtn'),
       submit: inside('#submitBtn'),
-      tabs: inside('.lang-tab[data-lang="cpp"]'),
+      tabs: inside('.lang-pick'),
       barOverflows: bar.scrollWidth > bar.clientWidth + 2,
+      /* The strip is allowed to scroll inside itself; what it may not do
+         is push the page sideways. */
+      stripFits: strip.getBoundingClientRect().right <= window.innerWidth + 1,
       pageHScroll: document.documentElement.scrollWidth > window.innerWidth + 2,
     };
   });
   check(`${w}×${h}: Run`, m.run, 'clickable');
   check(`${w}×${h}: Submit`, m.submit, 'clickable');
-  check(`${w}×${h}: the language tabs`, m.tabs, 'clickable');
-  ok(`${w}×${h}: the toolbar is not overflowing its own box`, !m.barOverflows);
+  check(`${w}×${h}: the language picker`, m.tabs, 'clickable');
+  ok(`${w}×${h}: the bar is not overflowing its own box`, !m.barOverflows);
+  ok(`${w}×${h}: and the tab strip fits the column`, m.stripFits);
   ok(`${w}×${h}: and the page does not scroll sideways`, !m.pageHScroll);
 }
 await page.setViewportSize({ width: 1440, height: 900 });
@@ -316,13 +336,14 @@ section('resetting the editor touches nothing else');
     window.SystemsLab.Store.saveDraft({ id: 'cpp-greet-and-sum', topic: 'cpp',
       difficulty: 'beginner', type: 'code' }, 'cpp', '// another problem\'s draft');
   });
+  await toEditorTab(page);
   await page.locator('.cm-content').click();
   await page.keyboard.press('Control+a');
   await page.keyboard.press('Delete');
   await page.keyboard.type('// this one');
   await page.waitForTimeout(400);
 
-  await page.locator('.editor-tools button').first().click();
+  await page.locator('#resetBtn').click();
   await page.waitForTimeout(500);
 
   const after = await page.evaluate(() => ({

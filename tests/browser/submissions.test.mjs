@@ -15,7 +15,7 @@ import { chromium } from 'playwright';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { section, check, ok, report } from '../harness.mjs';
+import { section, check, ok, report, toEditorTab } from '../harness.mjs';
 
 const CHANNEL = process.env.BROWSER || null;
 const BASE = process.env.BASE || 'http://127.0.0.1:8000';
@@ -63,8 +63,12 @@ const reload = async (wait = 1300) => {
   await page.waitForTimeout(wait);
 };
 
+/* The language is a dropdown in the tab strip now, not a row of tabs, so
+   choosing one means opening it first - which is what a person does too. */
 const pickLang = async (id) => {
-  await page.locator(`.lang-tab[data-lang="${id}"]`).click();
+  await page.locator('.lang-pick-btn').click();
+  await page.waitForTimeout(150);
+  await page.locator(`.lang-opt[data-lang="${id}"]`).click();
   await page.waitForTimeout(400);
 };
 
@@ -72,6 +76,7 @@ const pickLang = async (id) => {
    an editor that closes brackets for you produces doubled braces, which is
    a picture of the test's own mistake. */
 async function paste(text) {
+  await toEditorTab(page);
   await page.locator('.cm-content').first().click();
   await page.keyboard.press('Control+a');
   await page.keyboard.press('Delete');
@@ -80,7 +85,7 @@ async function paste(text) {
   await page.waitForTimeout(250);
 }
 
-const tab = name => page.locator(`.ws-tabs-sm .tab[data-tab="${name}"]`);
+const tab = name => page.locator(`.ws-tabs-work .tab[data-tab="${name}"]`);
 const openTab = async (name) => { await tab(name).click(); await page.waitForTimeout(300); };
 
 async function submit() {
@@ -126,9 +131,9 @@ section('the tab is there before there is anything in it');
 await open(`#/p/${PROBLEM}`);
 {
   const m = await page.evaluate(() => ({
-    tabs: [...document.querySelectorAll('.ws-tabs-sm .tab')].map(t => t.dataset.tab),
-    labels: [...document.querySelectorAll('.ws-tabs-sm .tab')].map(t => t.textContent.trim()),
-    badge: !!document.querySelector('.ws-tabs-sm .tab[data-tab="subs"] .badge'),
+    tabs: [...document.querySelectorAll('.ws-tabs-work .tab')].map(t => t.dataset.tab),
+    labels: [...document.querySelectorAll('.ws-tabs-work .tab')].map(t => t.textContent.trim()),
+    badge: !!document.querySelector('.ws-tabs-work .tab[data-tab="subs"] .badge'),
   }));
   ok(`it is one of the result tabs (${m.tabs.join(', ')})`, m.tabs.includes('subs'));
   ok('labelled Submissions', m.labels.some(t => t.startsWith('Submissions')));
@@ -137,13 +142,13 @@ await open(`#/p/${PROBLEM}`);
   await openTab('subs');
   const text = await page.locator('#resultPane').textContent();
   ok('and it says so rather than showing an empty list', /Nothing submitted yet/.test(text));
-  ok('naming what does count', /Run samples does not count/.test(text));
+  ok('naming what does count', /Run tests does not count/.test(text));
   check('with no rows', (await rows()).length, 0);
 }
 
 /* ---------------- a run is not a submission ---------------- */
 
-section('Run samples is not a submission');
+section('Run tests is not a submission');
 await pickLang('js');
 await paste(RIGHT);
 {
@@ -275,11 +280,15 @@ section('loading one written in another language switches to it');
   const m = await page.evaluate(() => ({
     lang: window.SystemsLab.Store.record('algo-running-max').lang,
     src: window.SystemsLab.ProblemTypes.get('code').editor().value,
-    pressed: [...document.querySelectorAll('.lang-tab')]
-      .filter(t => t.getAttribute('aria-pressed') === 'true').map(t => t.dataset.lang),
+    picked: document.querySelector('.lang-pick').dataset.lang,
+    named: document.querySelector('.lang-pick-name').textContent,
+    pressed: [...document.querySelectorAll('.lang-opt')]
+      .filter(t => t.getAttribute('aria-selected') === 'true').map(t => t.dataset.lang),
   }));
   check('the editor switched language', m.lang, 'cpp');
-  check('exactly one tab says so', m.pressed.join(','), 'cpp');
+  check('exactly one option is marked', m.pressed.join(','), 'cpp');
+  check('and the picker says it in words', m.named, 'C++');
+  check('rather than still claiming the one it left', m.picked, 'cpp');
   ok('and the program came with it', m.src.includes('this is not C++'));
 }
 

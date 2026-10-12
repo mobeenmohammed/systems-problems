@@ -957,17 +957,62 @@ pre.code-block[data-lang]::before {
 /* ---------------- the language tabs ---------------- */
 
 .editor-head { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; margin-bottom: var(--s2); }
-.lang-tabs { display: flex; gap: var(--s1); }
-.lang-tab {
-  font: inherit; font-size: .8rem; font-family: var(--mono);
-  padding: .32em .75em; cursor: pointer;
-  background: var(--bg-elev-2); border: 1px solid var(--border);
-  border-radius: var(--radius-s); color: var(--text-dim);
-  transition: color .13s, border-color .13s, background .13s;
+/* What the problem is compiled with, if it is anything unusual. It is a
+   footnote to the editor rather than a heading over it, so it sits at the
+   right-hand end of the row and leaves no gap when there is nothing to
+   say. */
+.ws-editor .editor-head { justify-content: flex-end; margin: .35rem 0 .15rem; }
+/* ---- the language picker ----
+
+   It sits in the workspace tab strip, next to Editor, and looks like one
+   of the tabs with a caret: it is what the editor tab is showing. */
+.lang-pick { position: relative; display: flex; align-items: center; }
+.lang-pick-btn {
+  display: inline-flex; align-items: center; gap: .4rem;
+  padding: .45rem .7rem; border: 0; background: none;
+  color: var(--text-dim); font: inherit; font-size: .8rem; font-weight: 550;
+  cursor: pointer; white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: color .13s, background .13s;
 }
-.lang-tab:hover:not(:disabled) { color: var(--text); border-color: var(--border-strong); }
-.lang-tab[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); font-weight: 600; }
-.lang-tab:disabled { opacity: .4; cursor: not-allowed; }
+.lang-pick-btn:hover:not(:disabled) { color: var(--text); background: var(--bg-elev-2); }
+.lang-pick-btn:disabled { cursor: default; }
+.lang-pick-btn[aria-expanded="true"] { color: var(--text); background: var(--bg-elev-2); }
+.lang-pick-name { white-space: nowrap; }
+.lang-caret { width: 10px; height: 6px; flex: none; transition: transform .15s; }
+.lang-pick-btn[aria-expanded="true"] .lang-caret { transform: rotate(180deg); }
+
+/* A coloured pip rather than four logos: a logo each would be four more
+   files to vendor, and the pip only has to tell them apart. */
+.lang-mark {
+  width: 8px; height: 8px; border-radius: 2px; flex: none;
+  background: var(--text-faint);
+}
+.lang-mark[data-lang="cpp"]    { background: #6c9fd8; }
+.lang-mark[data-lang="rust"]   { background: #d08a5a; }
+.lang-mark[data-lang="python"] { background: #58a861; }
+.lang-mark[data-lang="js"]     { background: #d8bf5a; }
+
+.lang-menu {
+  position: absolute; top: calc(100% + 4px); left: 0; z-index: 30;
+  min-width: 10rem; padding: 4px;
+  display: flex; flex-direction: column; gap: 1px;
+  background: var(--bg-elev); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow-2);
+}
+.lang-menu[hidden] { display: none; }
+.lang-opt {
+  display: flex; align-items: center; gap: .5rem;
+  padding: .4rem .55rem; border: 0; border-radius: var(--radius-s);
+  background: none; color: var(--text-dim);
+  font: inherit; font-size: .82rem; text-align: left; cursor: pointer;
+}
+.lang-opt:hover:not(:disabled) { background: var(--bg-elev-2); color: var(--text); }
+.lang-opt[aria-selected="true"] { color: var(--text); font-weight: 600; }
+/* Nothing on this machine can compile it. Said with the option still
+   listed, because the problem does accept it. */
+.lang-opt:disabled { opacity: .45; cursor: not-allowed; }
+
 
 /* ---------------- the editor ----------------
 
@@ -1380,10 +1425,15 @@ body[data-workspace="true"] #problemHost { height: 100%; min-height: 0; }
 }
 .ws-left, .ws-right { display: grid; min-width: 0; min-height: 0; }
 .ws-left { grid-template-rows: auto minmax(0, 1fr); }
-.ws-right {
-  --vsplit: .62;
-  grid-template-rows: auto minmax(0, calc(var(--vsplit) * 100%)) auto minmax(0, 1fr);
-}
+/* The strip, whichever of the two panes is showing, and the bar. The
+   editor and the result pane are both always in the DOM — CodeMirror
+   keeps the undo history, the cursor and the scroll position, and
+   rebuilding it to glance at the test cases would throw all three away —
+   so they share one grid row and only one of them is displayed. */
+.ws-right { grid-template-rows: auto minmax(0, 1fr) auto; }
+.ws-right > .ws-editor, .ws-right > .ws-pane { grid-row: 2; grid-column: 1; }
+.ws-right[data-pane="editor"] > .ws-pane  { display: none; }
+.ws-right[data-pane="result"] > .ws-editor { display: none; }
 
 /* The one scrolling element per pane. */
 .ws-pane {
@@ -1398,18 +1448,37 @@ body[data-workspace="true"] #problemHost { height: 100%; min-height: 0; }
   scrollbar-width: none;
 }
 .ws-tabs::-webkit-scrollbar { display: none; }
-.ws-tabs-sm .tab { font-size: .76rem; padding: .35rem .7rem; }
+/* The work strip: Editor, the language picker, and the panes. It is the
+   one row of chrome above the editor, so the tabs are a touch bigger
+   than the statement's and the picker sits flush among them. */
+.ws-tabs-work { align-items: stretch; }
+.ws-lang-slot { display: flex; align-items: stretch; flex: none; }
+.ws-tabs-work .tab { font-size: .8rem; padding: .45rem .8rem; }
 
 /* ---- the editor column ---- */
 
-.ws-toolbar {
+/* The bar across the bottom: Reset and what the draft is doing on the
+   left, what can run and the two buttons that do on the right. It is
+   outside the scrolling pane, so it does not move. */
+.ws-foot {
   display: flex; align-items: center; justify-content: space-between;
   gap: var(--s3); flex: none; flex-wrap: wrap;
-  padding: .35rem var(--s3);
-  border-bottom: 1px solid var(--border); background: var(--bg-elev);
+  padding: .4rem var(--s3);
+  border-top: 1px solid var(--border); background: var(--bg-elev);
 }
-.ws-toolbar-left, .ws-toolbar-right { display: flex; align-items: center; gap: var(--s2); }
-.ws-toolbar .lang-tabs { margin: 0; }
+.ws-foot-left, .ws-foot-right { display: flex; align-items: center; gap: var(--s2); }
+
+/* Run reads as the safe one of the pair and Submit as the one that counts,
+   so Run is outlined in the pass colour rather than filled like Submit. */
+.btn-run {
+  color: var(--ok);
+  border-color: color-mix(in srgb, var(--ok) 45%, var(--border));
+  font-weight: 600;
+}
+.btn-run:hover:not(:disabled) {
+  color: var(--ok); border-color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 12%, transparent);
+}
 
 /* Execution status, as a word next to the buttons that cause it. */
 .ws-exec { font-size: .76rem; color: var(--text-faint); white-space: nowrap; }
@@ -1428,10 +1497,14 @@ body[data-workspace="true"] #problemHost { height: 100%; min-height: 0; }
 }
 .ws-editor .widget {
   min-height: 0; display: grid;
-  /* the language tabs, the editor, the "what can run" line, the tools row,
-     and whatever is left. Only the editor gets the leftover height. */
-  grid-template-rows: auto minmax(0, 1fr) auto auto auto;
+  /* the (now empty) head, the editor, the "what can run" line, and
+     whatever is left. Only the editor gets the leftover height. */
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
 }
+/* The language picker moved into the tab strip, so the head above the
+   editor holds only the two pills a problem may carry; with neither it
+   takes no room at all. */
+.ws-editor .editor-head:empty { display: none; }
 .ws-editor .ed-host {
   min-height: 0; display: grid;
   /* the editor, its status line, its problem list */
@@ -1444,7 +1517,6 @@ body[data-workspace="true"] #problemHost { height: 100%; min-height: 0; }
 .ws-editor .judge-state[data-up="true"] { display: none; }
 .ws-editor .ed-problems { max-height: 7rem; overflow: auto; }
 
-.ws-results { display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 0; }
 
 /* ---- the dividers ---- */
 
@@ -1457,59 +1529,41 @@ body[data-workspace="true"] #problemHost { height: 100%; min-height: 0; }
    see is drawn 10px wide inside it by ::before. A pseudo-element overflowing
    into the neighbouring panels was tried first and gave only 3px of overhang
    on the right, because the panel after it in the DOM won. */
-.ws-gutter, .ws-hgutter {
+.ws-gutter {
   position: relative; border: 0; padding: 0; background: none;
   touch-action: none;
+  width: 18px; cursor: col-resize;
 }
-.ws-gutter { width: 18px; cursor: col-resize; }
-.ws-hgutter { height: 18px; cursor: row-resize; }
 
 /* The bar. */
-.ws-gutter::before, .ws-hgutter::before {
+.ws-gutter::before {
   content: ""; position: absolute;
   background: var(--bg-elev);
   transition: background .14s;
-}
-.ws-gutter::before {
   top: 0; bottom: 0; left: 4px; right: 4px;
   border-left: 1px solid var(--border); border-right: 1px solid var(--border);
 }
-.ws-hgutter::before {
-  left: 0; right: 0; top: 4px; bottom: 4px;
-  border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
-}
 
 /* The grip: three dots, so it reads as something to take hold of. */
-.ws-gutter::after, .ws-hgutter::after {
+.ws-gutter::after {
   content: ""; position: absolute; left: 50%; top: 50%;
   transform: translate(-50%, -50%);
   background: var(--text-faint);
   border-radius: 2px;
   transition: background .14s, box-shadow .14s;
-}
-.ws-gutter::after {
   width: 2px; height: 26px;
   box-shadow: 0 -10px 0 var(--text-faint), 0 10px 0 var(--text-faint);
 }
-.ws-hgutter::after {
-  width: 26px; height: 2px;
-  box-shadow: -10px 0 0 var(--text-faint), 10px 0 0 var(--text-faint);
-}
 
-.ws-gutter:hover::before, .ws-hgutter:hover::before,
-[data-dragging] > .ws-gutter::before,
-[data-dragging] > .ws-hgutter::before { background: var(--accent-soft); }
+.ws-gutter:hover::before,
+[data-dragging] > .ws-gutter::before { background: var(--accent-soft); }
 
 .ws-gutter:hover::after, [data-dragging] > .ws-gutter::after {
   background: var(--accent);
   box-shadow: 0 -10px 0 var(--accent), 0 10px 0 var(--accent);
 }
-.ws-hgutter:hover::after, [data-dragging] > .ws-hgutter::after {
-  background: var(--accent);
-  box-shadow: -10px 0 0 var(--accent), 10px 0 0 var(--accent);
-}
 
-.ws-gutter:focus-visible, .ws-hgutter:focus-visible {
+.ws-gutter:focus-visible {
   outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 3px;
 }
 
@@ -1518,9 +1572,6 @@ body[data-workspace="true"] #problemHost { height: 100%; min-height: 0; }
 [data-dragging] { user-select: none; }
 body[data-resizing] { user-select: none; cursor: col-resize; }
 body[data-resizing] * { cursor: inherit !important; }
-/* data-dragging goes on the container, and for the horizontal divider that
-   container is .ws-right itself. */
-body[data-resizing]:has(.ws-right[data-dragging]) { cursor: row-resize; }
 
 /* ---- focus mode ----
 
@@ -1558,8 +1609,9 @@ html[data-focus] .rail { display: none; }
   body[data-workspace="true"] .main { height: auto; overflow: visible; }
   .ws { height: auto; }
   .ws-body { grid-template-columns: minmax(0, 1fr); }
-  .ws-gutter, .ws-hgutter { display: none; }
-  .ws-left, .ws-right { grid-template-rows: auto auto auto auto; }
+  .ws-gutter { display: none; }
+  .ws-left { grid-template-rows: auto auto; }
+  .ws-right { grid-template-rows: auto auto auto; }
   .ws-pane { max-height: 60vh; }
   .ws-editor { height: 55vh; padding: 0 var(--s3) var(--s2); }
   .ws-right { border-top: 1px solid var(--border); }
@@ -1598,12 +1650,6 @@ html[data-focus] .rail { display: none; }
 .actions-bar-note #worthNow { color: var(--text-dim); }
 #draftNote[data-state="saved"], #draftState[data-state="saved"] { color: var(--ok); }
 #draftNote[data-state="saving"], #draftState[data-state="saving"] { color: var(--text-faint); }
-
-/* The row under the language tabs: reset, and the draft-saved note. */
-.editor-tools {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: var(--s3); flex-wrap: wrap; margin-top: var(--s2);
-}
 
 /* ---------------- diagnostics ----------------
 

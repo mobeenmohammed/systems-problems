@@ -17,7 +17,16 @@ import { chromium } from 'playwright';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { section, check, ok, report } from '../harness.mjs';
+import { section, check, ok, report, toEditorTab } from '../harness.mjs';
+
+/* The language is a dropdown in the tab strip now, not a row of tabs, so
+   choosing one means opening it first - which is what a person does too. */
+const pickLang = async (p, id) => {
+  await p.locator('.lang-pick-btn').click();
+  await p.waitForTimeout(150);
+  await p.locator(`.lang-opt[data-lang="${id}"]`).click();
+  await p.waitForTimeout(400);
+};
 
 const CHANNEL = process.env.BROWSER || null;
 const BASE = process.env.BASE || 'http://127.0.0.1:8000';
@@ -54,6 +63,7 @@ const settled = async (p, sel = '#runBtn', ms = 240000) => {
 };
 
 const paste = async (p, text) => {
+  await toEditorTab(p);
   await p.locator('.cm-content').click();
   await p.keyboard.press('Control+A');
   await p.evaluate(t => navigator.clipboard.writeText(t), text);
@@ -66,9 +76,9 @@ const paste = async (p, text) => {
 async function openPython(p, id = PROBLEM) {
   await p.goto(`${BASE}/#/p/${id}`, { waitUntil: 'networkidle' });
   await p.waitForFunction(
-    () => !document.querySelector('.lang-tab[data-lang="python"]')?.disabled,
+    () => !document.querySelector('.lang-opt[data-lang="python"]')?.disabled,
     { timeout: 40000 });
-  await p.locator('.lang-tab[data-lang="python"]').click();
+  await pickLang(p, 'python');
   await p.waitForTimeout(900);
 }
 

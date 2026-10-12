@@ -51,14 +51,17 @@ await open('#/learn');
     groups: [...document.querySelectorAll('.learn-group-head')].map(h => h.textContent),
     cards: document.querySelectorAll('#learnTracks .track-card').length,
     all: window.SystemsLab.Catalog.allTracks().length,
-    nav: (document.querySelector('#nav a[aria-current]') || {}).textContent,
-    gone: document.querySelectorAll('#nav a[data-route="tracks"], #nav a[data-route="concepts"]').length,
+    nav: ((document.querySelector('.navmenu-item[aria-current] .navmenu-title')
+      || {}).childNodes || [{}])[0].textContent,
+    /* They are entries in the Content menu now rather than tabs in the
+       bar, so what used to be "no tab of their own" is "no bare link". */
+    gone: document.querySelectorAll('#nav > a').length,
     toConcepts: !!document.querySelector('#learnIndex a[href="#/concepts"]'),
   }));
   check('every track has a card', m.cards, m.all);
   ok(`and there are eleven of them (${m.cards})`, m.cards === 11);
   ok('grouped by subject', m.groups.includes('Systems') && m.groups.includes('Mathematics'));
-  check('the Learn tab is the current one', m.nav, 'Learn');
+  check('Learn is the entry marked as the page you are on', m.nav.trim(), 'Learn');
   check('Tracks and Reading are no longer their own tabs', m.gone, 0);
   ok('the whole concept index is still one link away', m.toConcepts);
   if (process.env.SHOTS) await page.screenshot({ path: path.join(SHOTS, 'learn-index.png') });
@@ -193,39 +196,41 @@ section('pan, zoom and recenter');
 section('it can be walked with the arrow keys');
 {
   /* systems-simulations, because metric-spaces has a single root and
-     Down has nowhere to go from a column of one. */
+     Right has nowhere to go from a rank of one. */
   await open('#/learn/systems-simulations');
   /* Nothing is selected on arrival, so the first box is the way in. */
   await page.locator('.lnode').first().focus();
   const start = await page.evaluate(() => document.activeElement.dataset.concept);
   ok(`a box can be focused (${start})`, !!start);
 
-  await page.keyboard.press('ArrowDown');
-  await page.waitForTimeout(150);
-  const down = await page.evaluate(() => ({
-    at: document.activeElement.dataset.concept,
-    level: document.activeElement.getAttribute('aria-level'),
-  }));
-  ok('Down moves within the column', down.at !== start && down.level === '1');
-
-  await page.keyboard.press('ArrowUp');
-  await page.waitForTimeout(150);
-  check('Up comes back',
-    await page.evaluate(() => document.activeElement.dataset.concept), start);
-
+  /* The tree runs top down now, so the keys do: left and right along a
+     rank, up and down between them. */
   await page.keyboard.press('ArrowRight');
   await page.waitForTimeout(150);
   const right = await page.evaluate(() => ({
     at: document.activeElement.dataset.concept,
-    level: Number(document.activeElement.getAttribute('aria-level')),
+    level: document.activeElement.getAttribute('aria-level'),
   }));
-  ok(`Right goes to something that rests on it (${right.at})`, right.level > 1);
+  ok('Right moves along the rank', right.at !== start && right.level === '1');
 
   await page.keyboard.press('ArrowLeft');
   await page.waitForTimeout(150);
+  check('Left comes back',
+    await page.evaluate(() => document.activeElement.dataset.concept), start);
+
+  await page.keyboard.press('ArrowDown');
+  await page.waitForTimeout(150);
+  const down = await page.evaluate(() => ({
+    at: document.activeElement.dataset.concept,
+    level: Number(document.activeElement.getAttribute('aria-level')),
+  }));
+  ok(`Down goes to something that rests on it (${down.at})`, down.level > 1);
+
+  await page.keyboard.press('ArrowUp');
+  await page.waitForTimeout(150);
   const back = await page.evaluate(() =>
     Number(document.activeElement.getAttribute('aria-level')));
-  ok('Left goes back towards the prerequisites', back < right.level);
+  ok('Up goes back towards the prerequisites', back < down.level);
 
   /* Only the focused box is in the tab order. */
   check('exactly one box is tabbable',
@@ -385,18 +390,22 @@ await open('#/learn/probability-foundations/bayes');
 
 section('older addresses still land somewhere sensible');
 {
-  for (const [from, expect] of [
-    ['#/tracks', 'view-learn'],
-    ['#/tracks/memory', 'view-tracks'],
-    ['#/concepts', 'view-concepts'],
+  /* Reading has an entry of its own in the menu now, so #/concepts marks
+     Reading rather than borrowing Learn. The two track routes have none,
+     and borrow the entry they are reached from. */
+  for (const [from, expect, lit] of [
+    ['#/tracks', 'view-learn', 'Learn'],
+    ['#/tracks/memory', 'view-tracks', 'Learn'],
+    ['#/concepts', 'view-concepts', 'Reading'],
   ]) {
     await open(from, 800);
     const m = await page.evaluate(() => ({
       view: [...document.querySelectorAll('.view')].find(v => !v.hidden).id,
-      nav: (document.querySelector('#nav a[aria-current]') || {}).textContent,
+      nav: ((document.querySelector('.navmenu-item[aria-current] .navmenu-title')
+        || {}).childNodes || [{}])[0].textContent,
     }));
     check(`${from} shows ${expect}`, m.view, expect);
-    check(`${from} keeps the Learn tab lit`, m.nav, 'Learn');
+    check(`${from} marks ${lit} in the menu`, (m.nav || '').trim(), lit);
   }
 }
 

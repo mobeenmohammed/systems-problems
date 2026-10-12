@@ -92,6 +92,19 @@ export function memoryStorage(seed = {}) {
   };
 }
 
+/* The code workspace shows one pane at a time, and a run leaves the
+   reader on Results. Anything that then wants to type has to go back to
+   the editor first - which is what a person does too. A no-op on a page
+   that has no workspace on it, so it is safe to call before any click
+   into CodeMirror. */
+export async function toEditorTab(page) {
+  const tab = page.locator('.ws-tabs-work .tab[data-tab="editor"]');
+  if (!(await tab.count())) return;
+  if ((await tab.getAttribute('aria-selected')) === 'true') return;
+  await tab.click();
+  await page.waitForTimeout(200);
+}
+
 /* Loads the named site scripts into one sandbox, in order, and returns the
    sandbox plus a `grab` for pulling out a lexically declared global. */
 export function loadScripts(files, extra = {}) {

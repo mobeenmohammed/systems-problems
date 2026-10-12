@@ -404,17 +404,28 @@ const UI = (() => {
     markNav();
   }
 
-  /* Which entry is the page you are on. The button is lit whenever any of
-     them is, so the bar still says where you are with only one entry in
-     it. Matched on the whole hash, because Questions and Coding exercises
-     are the same view with a different filter. */
+  /* Which entry is the page you are on. Matched on the whole hash, because
+     Questions and Coding exercises are the same view with a different
+     filter and nothing shorter can tell them apart.
+
+     Views with no entry of their own borrow the one they are reached
+     from, so a single problem lights Problems and a track's flat list
+     lights Learn — the alternative is a menu that goes blank exactly when
+     you have gone somewhere and want to know where. */
+  const NAV_ALIAS = [
+    [/^#\/p\//, '#/problems'],
+    [/^#\/tracks/, '#/learn'],
+    [/^#\/learn/, '#/learn'],
+    [/^#\/concepts/, '#/concepts'],
+  ];
+
   function markNav() {
     const here = location.hash || '#/';
+    const alias = NAV_ALIAS.find(([re]) => re.test(here));
+    const want = alias ? alias[1] : here;
     let any = false;
     for (const a of document.querySelectorAll('.navmenu-item')) {
-      const mine = a.dataset.nav === here
-        || (a.dataset.nav === '#/problems' && here.startsWith('#/p/'));
-      if (mine) { a.setAttribute('aria-current', 'page'); any = true; }
+      if (a.dataset.nav === want) { a.setAttribute('aria-current', 'page'); any = true; }
       else a.removeAttribute('aria-current');
     }
     const btn = $('#contentBtn');
@@ -961,7 +972,7 @@ const UI = (() => {
         type: 'button',
         class: 'lnode',
         role: 'treeitem',
-        'aria-level': String(pos.col + 1),
+        'aria-level': String(pos.rank + 1),
         'aria-selected': String(n.id === chosen),
         'data-concept': n.id,
         'data-state': p.total && p.done >= p.total ? 'done' : 'open',
@@ -994,37 +1005,39 @@ const UI = (() => {
 
   /* ---------------- walking it with the keyboard ----------------
 
-     Up and down move within a column, left and right across them, which
-     is what the picture looks like it should do. Left goes to a
-     prerequisite rather than to whatever happens to be alongside,
-     because that is the more useful answer and the one the arrow points
-     at. */
+     The tree runs top down, so the keys do too: left and right move
+     along a rank, and up and down cross between them. Up goes to a
+     prerequisite rather than to whatever box happens to be above,
+     because that is the more useful answer and it is the one the line
+     under your feet actually goes to. */
 
   function neighbour(from, key) {
     if (!placed) return null;
     const here = placed.nodes.find(n => n.id === from);
     if (!here) return null;
 
-    const sameCol = placed.nodes.filter(n => n.col === here.col)
-      .sort((a, b) => a.row - b.row);
-    const at = sameCol.indexOf(here);
+    const sameRank = placed.nodes.filter(n => n.rank === here.rank)
+      .sort((a, b) => a.order - b.order);
+    const at = sameRank.indexOf(here);
 
-    if (key === 'ArrowDown') return sameCol[at + 1] || null;
-    if (key === 'ArrowUp') return sameCol[at - 1] || null;
-    if (key === 'Home') return placed.nodes.filter(n => n.col === 0)[0] || null;
+    if (key === 'ArrowRight') return sameRank[at + 1] || null;
+    if (key === 'ArrowLeft') return sameRank[at - 1] || null;
+    if (key === 'Home') return placed.nodes.filter(n => n.rank === 0)[0] || null;
     if (key === 'End') {
-      const last = Math.max(...placed.nodes.map(n => n.col));
-      return placed.nodes.filter(n => n.col === last)[0] || null;
+      const last = Math.max(...placed.nodes.map(n => n.rank));
+      return placed.nodes.filter(n => n.rank === last)[0] || null;
     }
 
-    const step = key === 'ArrowLeft' ? 'to' : key === 'ArrowRight' ? 'from' : null;
+    const step = key === 'ArrowUp' ? 'to' : key === 'ArrowDown' ? 'from' : null;
     if (!step) return null;
     const other = step === 'to' ? 'from' : 'to';
+    /* Nearest along the rank, so following a line up and then back down
+       lands where you started rather than at the far end of the row. */
     return placed.edges
       .filter(e => e[step] === here.id)
       .map(e => placed.nodes.find(n => n.id === e[other]))
       .filter(Boolean)
-      .sort((a, b) => Math.abs(a.row - here.row) - Math.abs(b.row - here.row))[0] || null;
+      .sort((a, b) => Math.abs(a.order - here.order) - Math.abs(b.order - here.order))[0] || null;
   }
 
   function focusNode(id) {
@@ -1908,7 +1921,7 @@ const UI = (() => {
         code,
         el('div', { class: 'tp-btns' }, [
           el('span', { class: 'tp-btn tp-primary', text: 'Submit' }),
-          el('span', { class: 'tp-btn', text: 'Run samples' }),
+          el('span', { class: 'tp-btn', text: 'Run tests' }),
         ]),
       ]),
     ]);

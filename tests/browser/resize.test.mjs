@@ -64,7 +64,10 @@ const rows = () => page.evaluate(() => {
     const n = document.querySelector(s);
     return n ? Math.round(n.getBoundingClientRect().height) : null;
   };
-  return { editor: r('.ws-editor'), results: r('.ws-results') };
+  return {
+    right: r('.ws-right'), strip: r('.ws-tabs-work'),
+    editor: r('.ws-editor'), pane: r('#resultPane'), foot: r('.ws-foot'),
+  };
 });
 
 const cmWidth = () => page.evaluate(() => {
@@ -270,35 +273,61 @@ section('resizing without a mouse');
   ok(`and it says where it is (aria-valuenow="${announced}")`, Number(announced) > 0);
 }
 
-/* ---------------- the horizontal one ---------------- */
+/* ---------------- the editor got the column back ----------------
 
-section('the editor and results divider');
+   There used to be a second divider here, with the editor above it and
+   the results below. Both halves were small, and the sample cases held
+   the bottom one open whether or not anybody was reading them. They are
+   tabs now, so whichever one you are looking at has the whole column. */
+
+section('the editor is the column, not half of it');
 {
   await open();
-  const before = await rows();
-  const g = await page.locator('.ws-hgutter').boundingBox();
-  ok('it is there', !!g);
-  check('with a row cursor', await page.evaluate(() =>
-    getComputedStyle(document.querySelector('.ws-hgutter')).cursor), 'row-resize');
+  const r = await rows();
+  ok(`no second divider is left (${r.editor}px of editor)`,
+    (await page.locator('.ws-hgutter').count()) === 0);
+  ok('the editor fills what the strip and the bar leave',
+    Math.abs(r.right - (r.strip + r.editor + r.foot)) < 4);
+  ok(`which is most of the column (${r.editor} of ${r.right}px)`,
+    r.editor > r.right * 0.75);
 
-  await page.mouse.move(g.x + 200, g.y + g.height / 2);
-  await page.mouse.down();
-  const seen = [];
-  for (const dy of [-40, -90, -140]) {
-    await page.mouse.move(g.x + 200, g.y + g.height / 2 + dy);
-    await page.waitForTimeout(50);
-    seen.push((await rows()).editor);
-  }
-  await page.mouse.up();
+  const tabs = await page.evaluate(() =>
+    [...document.querySelectorAll('.ws-tabs-work .tab')].map(t => t.dataset.tab));
+  check('and the panes that lost their half are tabs',
+    tabs.join(','), 'editor,results,cases,subs,compiler');
+}
+
+section('one pane at a time, and the editor outlives the switch');
+{
+  await page.locator('.cm-content').click();
+  await page.keyboard.press('Control+End');
+  await page.keyboard.type('// still here');
+  await page.waitForTimeout(300);
+
+  await page.locator('.ws-tabs-work .tab[data-tab="cases"]').click();
+  await page.waitForTimeout(300);
+  const onCases = await page.evaluate(() => ({
+    pane: document.querySelector('.ws-right').dataset.pane,
+    editorShown: !!document.querySelector('.ws-editor').offsetParent,
+    paneShown: !!document.querySelector('#resultPane').offsetParent,
+  }));
+  check('the test cases take the column', onCases.pane, 'result');
+  ok('and the editor is out of the way', !onCases.editorShown);
+  ok('rather than both being squeezed in', onCases.paneShown);
+
+  const tall = await rows();
+  ok(`the cases get the whole column too (${tall.pane}px)`, tall.pane > tall.right * 0.75);
+
+  await page.locator('.ws-tabs-work .tab[data-tab="editor"]').click();
+  await page.waitForTimeout(300);
+  /* The point of keeping it mounted: CodeMirror holds the undo history and
+     the cursor, and rebuilding it to glance at the cases would lose both. */
+  ok('what was typed is still in the editor', await page.evaluate(() =>
+    /\/\/ still here/.test(window.SystemsLab.ProblemTypes.get('code').editor().value)));
+  await page.keyboard.press('Control+z');
   await page.waitForTimeout(200);
-  const after = await rows();
-
-  ok(`the editor shrank (${before.editor} → ${after.editor}px)`,
-    after.editor < before.editor - 60);
-  ok(`and the results pane grew (${before.results} → ${after.results}px)`,
-    after.results > before.results + 60);
-  const falling = seen.every((v, i) => i === 0 || v < seen[i - 1]);
-  ok(`continuously (${seen.join(' → ')})`, falling);
+  ok('and so is the undo history', await page.evaluate(() =>
+    !/\/\/ still here/.test(window.SystemsLab.ProblemTypes.get('code').editor().value)));
 }
 
 /* ---------------- a smaller window ---------------- */

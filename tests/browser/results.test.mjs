@@ -15,7 +15,7 @@ import { chromium } from 'playwright';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { section, check, ok, report } from '../harness.mjs';
+import { section, check, ok, report, toEditorTab } from '../harness.mjs';
 
 const CHANNEL = process.env.BROWSER || null;
 const BASE = process.env.BASE || 'http://127.0.0.1:8000';
@@ -44,12 +44,22 @@ page.on('console', m => {
 
 const PROBLEM = 'algo-running-max';   /* 2 sample cases, 5 hidden, JS among its languages */
 
+/* The language is a dropdown in the tab strip now, not a row of tabs, so
+   choosing one means opening it first - which is what a person does too. */
+const pickLang = async (id) => {
+  await page.locator('.lang-pick-btn').click();
+  await page.waitForTimeout(150);
+  await page.locator(`.lang-opt[data-lang="${id}"]`).click();
+  await page.waitForTimeout(400);
+};
+
 const open = async (hash, wait = 1200) => {
   await page.goto(`${BASE}/${hash}`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(wait);
 };
 
 async function paste(text) {
+  await toEditorTab(page);
   await page.locator('.cm-content').first().click();
   await page.keyboard.press('Control+a');
   await page.keyboard.press('Delete');
@@ -119,11 +129,11 @@ for (let i = 0; i < n; i++) {
 section('before anything has run');
 await open(`#/p/${PROBLEM}`);
 {
-  await page.locator('.ws-tabs-sm .tab[data-tab="results"]').click();
+  await page.locator('.ws-tabs-work .tab[data-tab="results"]').click();
   await page.waitForTimeout(300);
   const text = await page.locator('#resultPane').textContent();
   ok('it says what to press rather than showing an empty summary',
-    /Press Run samples, or Submit/.test(text));
+    /Press Run tests, or Submit/.test(text));
   check('and there is no summary to misread', await summary(), null);
 }
 
@@ -137,7 +147,7 @@ section('the editor opens on a template that says where your code goes');
   /* JavaScript, because it is the one language this suite can be sure is
      selectable: with no runner and no toolchain here, the compiled tabs are
      disabled on purpose. */
-  await page.locator('.lang-tab[data-lang="js"]').click();
+  await pickLang('js');
   await page.waitForTimeout(500);
   const starter = await page.evaluate(() =>
     window.SystemsLab.ProblemTypes.get('code').editor().value);
@@ -147,7 +157,7 @@ section('the editor opens on a template that says where your code goes');
 }
 
 section('a run that passes one of two samples');
-await page.locator('.lang-tab[data-lang="js"]').click();
+await pickLang('js');
 await page.waitForTimeout(400);
 await paste(NEARLY);
 await press('runBtn');
