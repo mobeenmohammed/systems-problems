@@ -75,8 +75,14 @@ const paste = async (p, text) => {
    for a guessed number of milliseconds. */
 async function openPython(p, id = PROBLEM) {
   await p.goto(`${BASE}/#/p/${id}`, { waitUntil: 'networkidle' });
+  /* data-ready, not :disabled. An option is never disabled now — one
+     that cannot run says so and stays usable — so waiting on `disabled`
+     would wait for a condition that is true before the probe has
+     answered, and we would switch language before Pyodide was known
+     about at all. */
   await p.waitForFunction(
-    () => !document.querySelector('.lang-opt[data-lang="python"]')?.disabled,
+    () => document.querySelector('.lang-opt[data-lang="python"]')
+      ?.dataset.ready === 'true',
     { timeout: 40000 });
   await pickLang(p, 'python');
   await p.waitForTimeout(900);

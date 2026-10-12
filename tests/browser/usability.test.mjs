@@ -143,6 +143,145 @@ section('a run in flight cannot land on the next problem');
     || state.doc.length > 20);
 }
 
+/* ---------------- what the picker says, and does not hide ----------------
+
+   "Python does not appear in the dropdown" turned out to be two different
+   true things wearing one symptom: on the 17 exercises that declare it,
+   Python is there and ready; on the 13 C++ fundamentals exercises it is
+   not offered at all, because the exercise is C++. Nothing on screen told
+   those apart from a broken runner, which is what these check. */
+
+section('a one-language exercise says so in words');
+{
+  await open('#/p/cpp-count-digits');
+  await page.waitForTimeout(1200);
+  const m = await page.evaluate(() => {
+    const only = document.querySelector('.lang-pick-only');
+    return {
+      lang: document.querySelector('.lang-pick').dataset.lang,
+      name: (document.querySelector('.lang-pick-name') || {}).textContent,
+      only: only && getComputedStyle(only).display !== 'none' ? only.textContent : null,
+      caret: !!document.querySelector('.lang-pick .lang-caret'),
+      title: (document.querySelector('.lang-pick-btn') || {}).title,
+    };
+  });
+  check('it is C++', m.lang, 'cpp');
+  check('and the word "only" is on screen, not in a tooltip', m.only, 'only');
+  ok('with no caret, because there is nothing to open', !m.caret);
+  ok('and the tooltip says whose property that is',
+    /property of the exercise/.test(m.title || ''));
+}
+
+section('a Python exercise offers Python, and says where it would run');
+{
+  await open('#/p/algo-impl-count');
+  await page.waitForTimeout(1200);
+  await page.locator('.lang-pick-btn').click();
+  await page.waitForTimeout(250);
+  const m = await page.evaluate(() => ({
+    opts: [...document.querySelectorAll('.lang-opt')].map(o => ({
+      lang: o.dataset.lang,
+      ready: o.dataset.ready,
+      disabled: o.disabled,
+      name: (o.querySelector('.lang-opt-name') || {}).textContent,
+      note: (o.querySelector('.lang-opt-note') || {}).textContent,
+    })),
+  }));
+  const py = m.opts.find(o => o.lang === 'python');
+  ok(`both languages are listed (${m.opts.map(o => o.lang).join(', ')})`,
+    m.opts.length === 2);
+  ok('Python is one of them', !!py);
+  check('it is ready', py.ready, 'true');
+  ok(`and the option says where it runs ("${py.note}")`,
+    /Browser/.test(py.note || ''));
+  check('no option is disabled', m.opts.filter(o => o.disabled).length, 0);
+  await page.keyboard.press('Escape');
+}
+
+section('the whole menu is on screen, not clipped by the strip it hangs from');
+{
+  /* The strip used to scroll sideways, and a scroll container clips its
+     children on both axes — CSS computes overflow-y to `auto` the moment
+     overflow-x is not `visible`. So the menu was cut off below the first
+     option and looked like a menu with one entry. Nothing in the DOM says
+     so, which is why this is a hit test. */
+  await open('#/p/algo-running-max');
+  await page.waitForTimeout(1500);
+  await page.locator('.lang-pick-btn').click();
+  await page.waitForTimeout(300);
+  const m = await page.evaluate(() => {
+    const menu = document.querySelector('.lang-menu');
+    const opts = [...menu.querySelectorAll('.lang-opt')];
+    const r = menu.getBoundingClientRect();
+    const hit = o => {
+      const b = o.getBoundingClientRect();
+      const at = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+      return !!(at && (at === o || o.contains(at)));
+    };
+    return {
+      options: opts.length,
+      clickable: opts.filter(hit).length,
+      onScreen: r.bottom <= window.innerHeight + 1 && r.top >= -1,
+      /* Taller than one row, which is what a clipped menu looked like. */
+      height: Math.round(r.height),
+    };
+  });
+  ok(`every option is reachable (${m.clickable} of ${m.options})`,
+    m.options >= 3 && m.clickable === m.options);
+  ok('the menu fits on screen', m.onScreen);
+  ok(`and it is as tall as its contents (${m.height}px)`, m.height > 100);
+  await page.keyboard.press('Escape');
+}
+
+section('a language nothing can run is still offered, with the reason');
+{
+  /* Rust has no in-browser runner, so on a deployed page every Rust
+     exercise is in exactly this state. The option must not vanish and
+     must not be a dead button: it is how you read the template and see
+     what to do next. */
+  await open('#/p/algo-running-max');
+  await page.waitForTimeout(1500);
+  await page.locator('.lang-pick-btn').click();
+  await page.waitForTimeout(250);
+  const m = await page.evaluate(() => ({
+    opts: [...document.querySelectorAll('.lang-opt')].map(o => ({
+      lang: o.dataset.lang,
+      ready: o.dataset.ready,
+      disabled: o.disabled,
+      note: (o.querySelector('.lang-opt-note') || {}).textContent,
+      title: o.title,
+    })),
+  }));
+  const rust = m.opts.find(o => o.lang === 'rust');
+  ok('Rust is listed', !!rust);
+  check('it is not pretending to be ready', rust.ready, 'false');
+  ok('it is not disabled either', !rust.disabled);
+  ok(`the note names the problem ("${rust.note}")`, /runner/.test(rust.note || ''));
+  ok('and the tooltip names the next action',
+    /Running code/.test(rust.title || ''));
+  await page.keyboard.press('Escape');
+
+  /* And choosing it works: the template appears, the draft saves, and the
+     bar says it cannot run rather than failing on the click. */
+  await page.locator('.lang-pick-btn').click();
+  await page.waitForTimeout(200);
+  await page.locator('.lang-opt[data-lang="rust"]').click();
+  await page.waitForTimeout(1800);
+  const picked = await page.evaluate(() => ({
+    lang: document.querySelector('.lang-pick').dataset.lang,
+    name: (document.querySelector('.lang-pick-name') || {}).textContent,
+    doc: document.querySelector('.cm-content').textContent,
+    chip: (document.getElementById('execState') || {}).textContent,
+    setup: !(document.getElementById('setupLink') || { hidden: true }).hidden,
+  }));
+  check('it switched', picked.lang, 'rust');
+  check('and the button renamed', picked.name, 'Rust');
+  ok(`the Rust template is in the editor (${picked.doc.length} chars)`,
+    /fn main/.test(picked.doc));
+  ok(`the bar says it cannot run ("${picked.chip}")`, /No runner/.test(picked.chip || ''));
+  ok('and offers the way out', picked.setup);
+}
+
 section('switching language mid-run does not mix the two up');
 {
   await open('#/p/algo-running-max');

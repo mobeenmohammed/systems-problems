@@ -196,16 +196,22 @@ await open('#/');
   }));
   ok('hovering opens it', !open1.hidden);
   check('and says so', open1.expanded, 'true');
-  check('three columns', open1.cols.length, 3);
-  ok(`grouped (${open1.cols.join(', ')})`, open1.cols.join(',') === 'Practice,Guided,You');
-  ok(`every place the site goes is in it (${open1.items.length})`, open1.items.length >= 8);
+  ok(`grouped (${open1.cols.join(', ')})`, open1.cols.join(',') === 'Practice,Guided');
+  ok(`every learning destination is in it (${open1.items.length})`,
+    open1.items.length >= 6);
   ok('each has a line saying what it is for',
     open1.items.every(i => i.blurb.length > 10));
   ok('each has an icon', open1.items.every(i => i.icon));
   ok('each goes somewhere real', open1.items.every(i => /^#\//.test(i.href || '')));
   for (const want of ['Problems', 'Questions', 'Coding exercises', 'Learn', 'Reading',
-    'Profile', 'Shop', 'Running code']) {
+    'This week']) {
     ok(`${want} is in it`, open1.items.some(i => i.label === want));
+  }
+  /* Content is the subject; the avatar is you. Both used to carry Profile
+     and Shop, which is two routes to one page and neither of them the
+     obvious one. */
+  for (const gone of ['Profile', 'Shop', 'Settings', 'Running code']) {
+    ok(`${gone} is not duplicated here`, !open1.items.some(i => i.label === gone));
   }
   if (process.env.SHOTS) await page.screenshot({ path: path.join(SHOTS, 'content-menu.png') });
 }
@@ -304,6 +310,85 @@ section('the menu says which page you are on');
   check('Learn is marked, and only Learn', m.current.join(','), 'Learn');
   check('and the button in the bar is lit', m.btn, 'true');
   await page.keyboard.press('Escape');
+}
+
+/* ---------------- "can be solved in" ----------------
+
+   The question the catalogue could not answer before. Most coding
+   exercises here are C++ only, and that is on purpose — the exercise IS
+   C++. What was missing was any way to find the ones you can write in
+   something else, and any way to tell "this is C++ only" apart from
+   "Python is broken". */
+
+section('the Language filter means can be solved in, not taught in');
+{
+  await open('#/problems');
+  const offered = await page.evaluate(() => ({
+    options: [...document.querySelectorAll('#fLang option')].map(o => o.value),
+    labels: [...document.querySelectorAll('#fLang option')].map(o => o.textContent),
+  }));
+  ok(`it offers the languages problems declare (${offered.labels.join(', ')})`,
+    offered.options.includes('cpp') && offered.options.includes('python'));
+  ok('each option carries how many, so C++ being most of them is visible '
+    + 'before you select it',
+    offered.labels.slice(1).every(l => /\(\d+\)$/.test(l)));
+
+  await page.selectOption('#fLang', 'python');
+  await page.waitForTimeout(700);
+  const py = await page.evaluate(() => {
+    const ids = [...document.querySelectorAll('#catalogList .prow .prow-link')]
+      .map(a => a.getAttribute('href').replace('#/p/', ''));
+    const all = window.SystemsLab.Catalog.all();
+    const by = Object.fromEntries(all.map(p => [p.id, p]));
+    return {
+      rows: ids,
+      notCode: ids.filter(id => (by[id] || {}).type !== 'code'),
+      count: document.getElementById('catalogCount').textContent,
+      real: all.filter(p => (p.langs || []).includes('python')).map(p => p.id),
+    };
+  });
+  check('it lists exactly the problems that declare Python',
+    py.rows.slice().sort(), py.real.slice().sort());
+  ok(`and it found some (${py.rows.length})`, py.rows.length > 0);
+  check('a question declares no language, so none is listed', py.notCode, []);
+  ok(`the count calls them coding exercises ("${py.count}")`,
+    /coding exercises/.test(py.count));
+
+  /* A topic whose exercises are all C++, plus Python selected, is the empty
+     case — and the message has to say why rather than "clear a filter". */
+  await page.selectOption('#fTopic', 'cpp');
+  await page.waitForTimeout(700);
+  const empty = await page.evaluate(() => ({
+    rows: document.querySelectorAll('#catalogList .prow').length,
+    text: (document.querySelector('#catalogList .empty') || {}).textContent || '',
+  }));
+  check('C++ fundamentals has no Python exercise', empty.rows, 0);
+  ok('and the empty state says it is the exercise, not the install',
+    /property of the exercise/i.test(empty.text));
+
+  await page.locator('#fClear').click();
+  await page.waitForTimeout(400);
+  check('Clear clears it too',
+    await page.evaluate(() => document.getElementById('fLang').value), '');
+}
+
+section('the route carries the language, so the filter can be linked to');
+{
+  /* A cold load, not a hash change from a catalogue that has already
+     built its options. The <select> is empty until the catalogue first
+     paints, and setting a value an option does not exist for is dropped
+     without a word — so this passed from a warm page and failed from a
+     pasted link. */
+  await page.goto(`${BASE}/#/problems?lang=python`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+  const m = await page.evaluate(() => ({
+    sel: document.getElementById('fLang').value,
+    rows: document.querySelectorAll('#catalogList .prow').length,
+    real: window.SystemsLab.Catalog.all()
+      .filter(p => (p.langs || []).includes('python')).length,
+  }));
+  check('the control shows it', m.sel, 'python');
+  check('and the list is filtered', m.rows, m.real);
 }
 
 section('Kind and Subject narrow together, and search overrides both');

@@ -221,7 +221,7 @@ select { cursor: pointer; }
    A real gap here makes the menu shut while you are reaching for it. */
 .navmenu-panel {
   position: absolute; top: calc(100% + 6px); left: 0; z-index: 60;
-  display: grid; grid-template-columns: repeat(3, 15.5rem);
+  display: grid; grid-auto-flow: column; grid-auto-columns: 15.5rem;
   background: var(--bg-elev); border: 1px solid var(--border);
   border-radius: var(--radius-l); box-shadow: var(--shadow-2);
   padding: var(--s3); gap: 0;
@@ -1002,16 +1002,29 @@ pre.code-block[data-lang]::before {
 }
 .lang-menu[hidden] { display: none; }
 .lang-opt {
-  display: flex; align-items: center; gap: .5rem;
+  display: flex; align-items: flex-start; gap: .5rem;
   padding: .4rem .55rem; border: 0; border-radius: var(--radius-s);
   background: none; color: var(--text-dim);
   font: inherit; font-size: .82rem; text-align: left; cursor: pointer;
 }
-.lang-opt:hover:not(:disabled) { background: var(--bg-elev-2); color: var(--text); }
+.lang-opt .lang-mark { margin-top: .32rem; }
+.lang-opt:hover { background: var(--bg-elev-2); color: var(--text); }
 .lang-opt[aria-selected="true"] { color: var(--text); font-weight: 600; }
-/* Nothing on this machine can compile it. Said with the option still
-   listed, because the problem does accept it. */
-.lang-opt:disabled { opacity: .45; cursor: not-allowed; }
+.lang-opt-text { display: flex; flex-direction: column; gap: .05rem; min-width: 0; }
+.lang-opt-name { white-space: nowrap; }
+/* Where it would run, or why it would not. Under the name rather than in a
+   tooltip, because a tooltip is invisible to a reader who has not hovered
+   and absent altogether on a touchscreen — which is how "nothing can run
+   this" used to be indistinguishable from "this is not offered". */
+.lang-opt-note { white-space: nowrap; font-weight: 400; }
+.lang-opt[data-ready="false"] .lang-opt-note { color: var(--warn); }
+
+/* "C++ only" in words. The exercise accepts one language; that is a fact
+   about the exercise and it is said rather than implied by a dead caret. */
+.lang-pick-only {
+  font-size: .68rem; font-weight: 500; letter-spacing: .02em;
+  color: var(--text-faint); text-transform: lowercase;
+}
 
 
 /* ---------------- the editor ----------------
@@ -1450,8 +1463,16 @@ body[data-workspace="true"] #problemHost { height: 100%; min-height: 0; }
 .ws-tabs::-webkit-scrollbar { display: none; }
 /* The work strip: Editor, the language picker, and the panes. It is the
    one row of chrome above the editor, so the tabs are a touch bigger
-   than the statement's and the picker sits flush among them. */
-.ws-tabs-work { align-items: stretch; }
+   than the statement's and the picker sits flush among them.
+
+   It wraps rather than scrolling, which the other strip does. The
+   language menu hangs out of the bottom of this one, and a scroll
+   container clips its children on BOTH axes — CSS computes overflow-y to
+   `auto` the moment overflow-x is not `visible`, so there is no way to
+   scroll sideways and let a dropdown out. The menu was being cut off
+   mid-list, which looked like a short menu rather than a clipped one.
+   Wrapping costs a second row of tabs on a phone and clips nothing. */
+.ws-tabs-work { align-items: stretch; overflow: visible; flex-wrap: wrap; }
 .ws-lang-slot { display: flex; align-items: stretch; flex: none; }
 .ws-tabs-work .tab { font-size: .8rem; padding: .45rem .8rem; }
 
@@ -1810,11 +1831,12 @@ html[data-focus] .rail { display: none; }
     padding: var(--s2) var(--s4); gap: var(--s2) var(--s3);
   }
   .topbar-nav { order: 3; width: 100%; margin-left: 0; }
-  /* Three columns do not fit a phone, and a panel wider than the window
-     is a sideways scrollbar on every page. It stacks and is pinned to
-     both edges instead. */
+  /* Columns side by side do not fit a phone, and a panel wider than the
+     window is a sideways scrollbar on every page. It stacks and is pinned
+     to both edges instead. */
   .navmenu { position: static; }
   .navmenu-panel {
+    grid-auto-flow: row; grid-auto-columns: auto;
     grid-template-columns: minmax(0, 1fr);
     left: var(--s3); right: var(--s3);
     max-height: 70vh; overflow-y: auto;

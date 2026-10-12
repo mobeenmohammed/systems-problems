@@ -259,12 +259,19 @@ const UI = (() => {
 
   /* ---------------- the Content menu ----------------
 
-     Two links in the bar could only ever name two of the seven places
-     this site goes, and "Problems" and "Learn" are not self-explanatory
-     to somebody who has just arrived: one of them is a filterable
+     Two links in the bar could only ever name two of the places this
+     site goes, and "Problems" and "Learn" are not self-explanatory to
+     somebody who has just arrived: one of them is a filterable
      catalogue, the other is a prerequisite graph. So the bar has one
      entry, and it opens on a panel that names everything with a line
      each saying what it is for.
+
+     It holds learning destinations and nothing else. Profile, Shop and
+     Settings were in a third column here as well as behind the avatar,
+     which is a menu offering two routes to the same page and neither of
+     them obviously the one to use. The avatar is where everything about
+     *you* is, including exporting your data; this is where everything
+     about the *subject* is.
 
      Built here rather than written into index.html because the count
      beside each entry is counted from the catalogue. A number somebody
@@ -334,7 +341,8 @@ const UI = (() => {
           {
             icon: 'code', label: 'Coding exercises', href: '#/problems?kind=code',
             count: coding,
-            blurb: 'Write a program and run it against the cases. C++ and Python run in this tab.',
+            blurb: 'Write a program and run it against the cases. Filter by the language '
+              + 'you want to write in — most of these are C++ because C++ is the subject.',
           },
         ],
       },
@@ -358,23 +366,6 @@ const UI = (() => {
               icon: 'week', label: 'This week', href: '#/problems',
               blurb: 'One problem is chosen each week. None is set for this one.',
             },
-        ],
-      },
-      {
-        title: 'You',
-        items: [
-          {
-            icon: 'profile', label: 'Profile', href: '#/profile',
-            blurb: 'Rank, the year of activity, and how far through each topic you are.',
-          },
-          {
-            icon: 'shop', label: 'Shop', href: '#/shop',
-            blurb: 'Themes, accents, avatars and frames, bought with coins you earned.',
-          },
-          {
-            icon: 'run', label: 'Running code', href: '#/setup',
-            blurb: 'What can compile C++ and Rust for you, and which of them works right now.',
-          },
         ],
       },
     ];
@@ -1347,7 +1338,10 @@ const UI = (() => {
 
   /* ---------------- catalog ---------------- */
 
-  let filter = { q: '', subject: '', kind: '', topic: '', difficulty: '', type: '', status: '', lane: '' };
+  let filter = {
+    q: '', subject: '', kind: '', topic: '', difficulty: '', type: '',
+    status: '', lane: '', lang: '',
+  };
 
   /* ---------------- subject ----------------
 
@@ -1391,6 +1385,33 @@ const UI = (() => {
       for (const t of Catalog.TYPES) $('#fType').append(el('option', { value: t.id, text: t.label }));
       for (const l of Store.LANES) $('#fLane').append(el('option', { value: l.id, text: l.label }));
     }
+    /* Only the languages some problem actually declares, with how many
+       declare it. An option that matches nothing is a dead end, and the
+       count is what tells you that C++ is most of the coding exercises
+       before you select it and find out. */
+    const langSel = $('#fLang');
+    if (langSel && langSel.options.length === 1) {
+      const counts = new Map();
+      for (const p of Catalog.all()) {
+        for (const id of (p.langs || [])) counts.set(id, (counts.get(id) || 0) + 1);
+      }
+      for (const id of Catalog.LANGS) {
+        const n = counts.get(id) || 0;
+        if (!n) continue;
+        langSel.append(el('option', {
+          value: id,
+          text: `${Catalog.LANG_LABEL[id] || id} (${n})`,
+          title: `${n} ${n === 1 ? 'problem' : 'problems'} can be solved in `
+            + `${Catalog.LANG_LABEL[id] || id}`,
+        }));
+      }
+      /* Set it again now the options exist. setFilter runs from the route
+         before this does, and assigning a value a <select> has no option
+         for is silently dropped — so landing on #/problems?lang=python
+         filtered the list correctly and left the control reading "Any
+         language", which is the control disagreeing with the page. */
+      langSel.value = filter.lang || '';
+    }
   }
 
   function setFilter(patch, { silent = false } = {}) {
@@ -1410,6 +1431,7 @@ const UI = (() => {
     $('#fType').value   = filter.type;
     $('#fStatus').value = filter.status;
     $('#fLane').value   = filter.lane;
+    if ($('#fLang')) $('#fLang').value = filter.lang;
     if (!silent) renderCatalog();
   }
 
@@ -1473,12 +1495,13 @@ const UI = (() => {
     const label = filter.subject ? Store.SUBJECT_BY_ID[filter.subject].label : '';
     const inPool = p => (!filter.subject || p.subject === filter.subject)
       && (!filter.kind
-        || (filter.kind === 'code' ? p.type === 'code' : p.type !== 'code'));
-    const pool = (filter.subject || filter.kind)
+        || (filter.kind === 'code' ? p.type === 'code' : p.type !== 'code'))
+      && (!filter.lang || (p.langs || []).includes(filter.lang));
+    const pool = (filter.subject || filter.kind || filter.lang)
       ? Catalog.all().filter(inPool).length
       : total;
     /* A noun, not an adjective: "72 question problems" is not English. */
-    const noun = filter.kind === 'code' ? 'coding exercises'
+    const noun = (filter.kind === 'code' || filter.lang) ? 'coding exercises'
       : filter.kind === 'questions' ? 'questions' : 'problems';
     $('#catalogCount').textContent = searching
       ? `${rows.length} of ${total} problems, searching every subject`
@@ -1501,12 +1524,22 @@ const UI = (() => {
     }
 
     if (!rows.length) {
+      const lang = filter.lang ? (Catalog.LANG_LABEL[filter.lang] || filter.lang) : '';
       list.replaceChildren(el('div', { class: 'empty' }, [
         el('h2', { text: 'Nothing matches that' }),
-        el('p', { class: 'muted', text: 'Try clearing a filter, or widen the search.' }),
+        el('p', {
+          class: 'muted',
+          text: lang
+            ? `No problem with the other filters you have set can be solved in `
+              + `${lang}. Whether a problem offers a language is a property of `
+              + `the exercise, not of what is installed.`
+            : 'Try clearing a filter, or widen the search.',
+        }),
         el('button', {
           class: 'btn btn-sm', type: 'button',
-          onclick: () => setFilter({ q: '', topic: '', difficulty: '', type: '', status: '', lane: '' }),
+          onclick: () => setFilter({
+            q: '', topic: '', difficulty: '', type: '', status: '', lane: '', lang: '',
+          }),
         }, ['Clear all filters']),
       ]));
       return;
@@ -1531,8 +1564,13 @@ const UI = (() => {
     $('#fType').addEventListener('change',   e => setFilter({ type: e.target.value }));
     $('#fStatus').addEventListener('change', e => setFilter({ status: e.target.value }));
     $('#fLane').addEventListener('change',   e => setFilter({ lane: e.target.value }));
-    $('#fClear').addEventListener('click', () =>
-      setFilter({ q: '', subject: '', kind: '', topic: '', difficulty: '', type: '', status: '', lane: '' }));
+    if ($('#fLang')) {
+      $('#fLang').addEventListener('change', e => setFilter({ lang: e.target.value }));
+    }
+    $('#fClear').addEventListener('click', () => setFilter({
+      q: '', subject: '', kind: '', topic: '', difficulty: '', type: '',
+      status: '', lane: '', lang: '',
+    }));
   }
 
   /* ---------------- reading map ---------------- */

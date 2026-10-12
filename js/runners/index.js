@@ -7,9 +7,13 @@
 
    JavaScript runs in a Web Worker in this tab: instant, offline,
    and killable, because terminating a worker stops an infinite
-   loop dead. Everything else goes to the judge over HTTP, which
-   is the only way to get a real g++ or rustc — with real
-   diagnostics and real sanitizers — out of a static site.
+   loop dead. C++ and Python also run in this tab, on a vendored
+   clang built to WebAssembly and on Pyodide — so neither of those
+   is a g++ or a CPython on Linux, and nothing here says it is.
+   What still needs the judge over HTTP is rustc, and anything
+   graded on a real sanitizer: there is no sanitizer for
+   WebAssembly, and a native toolchain is the only thing that can
+   produce one.
 
    Every backend answers in the judge's shape, so the type module
    and the UI never learn which one ran.
@@ -189,12 +193,32 @@ const Runners = (() => {
      marked checked before the request comes back, so a concurrent caller
      would otherwise be handed a half-built "nothing is listening". */
   let judgePending = null;
+  let judgeCheckedAt = 0;
+
+  /* How long a *negative* answer is believed. "Ready" is cached until
+     something forces a re-probe, because a runner that answered is not
+     going to stop between two clicks and a probe per question would be a
+     request storm. "Down" and "unauthed" are not cached that way: the
+     ordinary way to get a runner is to start one while this page is
+     already open, and a dropdown that decided at load time that Rust can
+     never run is wrong for the rest of the session. Fifteen seconds is
+     long enough that switching language twice costs one probe, short
+     enough that `npm run runner` is noticed by the time you have
+     alt-tabbed back. */
+  const STALE_MS = 15_000;
 
   function checkJudge({ force = false } = {}) {
     const url = Store.config.judgeUrl;
     if (judgePending) return judgePending;
-    if (judgeState.checked && judgeState.url === url && !force) return Promise.resolve(judgeState);
-    judgePending = probeJudge(url, force).finally(() => { judgePending = null; });
+    const fresh = judgeState.state === 'ready'
+      || Date.now() - judgeCheckedAt < STALE_MS;
+    if (judgeState.checked && judgeState.url === url && fresh && !force) {
+      return Promise.resolve(judgeState);
+    }
+    judgePending = probeJudge(url, force).finally(() => {
+      judgeCheckedAt = Date.now();
+      judgePending = null;
+    });
     return judgePending;
   }
 

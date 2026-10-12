@@ -34,6 +34,14 @@ const Catalog = (() => {
   ];
   const TYPE_BY_ID = Object.fromEntries(TYPES.map(t => [t.id, t]));
 
+  /* The languages an exercise can declare, in the order a filter should
+     offer them, and what each is called in front of a reader. Here rather
+     than in the code type module because the catalogue filters on it and
+     two maps that have to agree eventually disagree. The build validates
+     every problem's `langs` against this same list. */
+  const LANGS = ['cpp', 'python', 'rust', 'js'];
+  const LANG_LABEL = { js: 'JavaScript', python: 'Python', cpp: 'C++', rust: 'Rust' };
+
   let index     = [];
   let byId      = {};
   let concepts  = {};
@@ -112,6 +120,12 @@ const Catalog = (() => {
       if (filter.difficulty && p.difficulty !== filter.difficulty) return false;
       if (filter.type       && p.type       !== filter.type)       return false;
       if (filter.lane       && (p.lane || 'core') !== filter.lane)  return false;
+
+      /* "Can be solved in this language" — a property of the exercise, not
+         of what is installed. A problem declaring C++ only stays C++ only
+         whether or not a Python runner exists, and a question has no
+         language at all, so asking for one excludes it. */
+      if (filter.lang && !(p.langs || []).includes(filter.lang)) return false;
 
       if (filter.status) {
         const r = Store.record(p.id);
@@ -599,6 +613,7 @@ const Catalog = (() => {
     allTracks, track, trackProgress, thisWeek, topicResources, allResources,
     counts, nextUp, problemsForConcept, readStatus, trackTree, treeProgress, trackCounts,
     TYPES, TYPE_BY_ID, TRACK_STATE_LABEL, READ_STATE_LABEL,
+    LANGS, LANG_LABEL,
     get loadError() { return loadError; },
   };
 })();

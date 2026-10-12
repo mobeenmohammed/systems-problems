@@ -273,9 +273,10 @@
     <div class="home-feats">
       <div class="feat">
         <h3>It runs in the tab</h3>
-        <p>C++ and Python compile in the browser. Rust and anything heavier can go to a
-           runner you start yourself, or to a small proxy you deploy — the toolbar always
-           names which one just ran your program.</p>
+        <p>C++ compiles in the browser, on a real Clang built to WebAssembly, and Python
+           runs on a real CPython built the same way. Rust and anything graded by a
+           sanitizer need a runner you start yourself, or a small proxy you deploy — and
+           the bar under the editor always names which one answered.</p>
       </div>
       <div class="feat">
         <h3>Marking that can be argued with</h3>
@@ -330,6 +331,14 @@
       </label>
       <label>Type
         <select id="fType"><option value="">Any type</option></select>
+      </label>
+      <!-- "Can be solved in", which is not the same question as the topic.
+           Most coding exercises here are C++ only because C++ is what they
+           are teaching; this is how you find the ones you can write in
+           something else. A problem that is not code offers no language,
+           so choosing one here leaves only coding exercises. -->
+      <label>Language
+        <select id="fLang"><option value="">Any language</option></select>
       </label>
       <label>Status
         <select id="fStatus">

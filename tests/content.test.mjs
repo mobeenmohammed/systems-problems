@@ -13,7 +13,7 @@
 
    Run: node tests/content.test.mjs */
 
-import { loadAll, validate, buildIndex } from '../scripts/build-index.mjs';
+import { loadAll, validate, buildIndex, LANGS } from '../scripts/build-index.mjs';
 import { loadScripts, read, section, check, ok, report } from './harness.mjs';
 
 const { grab } = loadScripts([
@@ -30,6 +30,9 @@ const { grab } = loadScripts([
   'js/types/predict.js',
   'js/types/locate.js',
   'js/types/maths.js',
+  /* The code type reads the language labels off the catalogue, which is
+     the one place they are written down. */
+  'js/catalog.js',
   /* For TEMPLATE: the starters a problem gets when it supplies none. */
   'js/types/code.js',
 ]);
@@ -639,6 +642,33 @@ section('every template says where your code goes, and what goes there');
 
    Languages this machine lacks are skipped with a notice; CI's ubuntu-latest
    has g++, rustc and python3, so they are verified on every push. */
+/* ---------------- one list of languages ---------------- */
+
+/* The build validates every problem's `langs` against its own list; the
+   catalogue's Language filter offers options from a second one. If they
+   drift, the filter either offers a language no problem can declare or
+   silently hides one that several do. */
+section('the build and the catalogue agree on what a language is');
+{
+  const Catalog = grab('Catalog');
+  check('the same set', [...Catalog.LANGS].sort(), [...LANGS].sort());
+  check('and every one has a label',
+    Catalog.LANGS.filter(id => !Catalog.LANG_LABEL[id]), []);
+
+  /* A declared language with no template and no reference is a language the
+     problem offers and cannot grade. */
+  const unbacked = [];
+  for (const p of problems.filter(p => p.type === 'code')) {
+    const pay = p.payload || {};
+    const sol = solutions[p.id] || {};
+    const ref = (sol.key && sol.key.reference) || {};
+    for (const lang of pay.langs || []) {
+      if (!ref[lang]) unbacked.push(`${p.id} offers ${lang} with no reference solution`);
+    }
+  }
+  check('every offered language has a reference solution behind it', unbacked, []);
+}
+
 section('every code problem is solvable in every language it claims');
 const codeProblems = problems.filter(p => p.type === 'code');
 

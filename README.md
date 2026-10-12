@@ -744,12 +744,22 @@ not proofs of anything: each says underneath what it stands for.
 
 ### Content: one entry in the bar
 
-Two links could only ever name two of the seven places this site goes, and
+Two links could only ever name two of the places this site goes, and
 neither *Problems* nor *Learn* explains itself to somebody who has just
 arrived. So the bar has one entry, **Content**, and it opens on all of
-them in three columns — Practice, Guided, You — with a line each saying
-what it is for and a count beside the ones that can be counted. The counts
-come from the catalogue at the moment the panel opens.
+them with a line each saying what it is for and a count beside the ones
+that can be counted. The counts come from the catalogue at the moment the
+panel opens.
+
+It holds learning destinations and nothing else: Practice (Problems,
+Questions, Coding exercises) and Guided (Learn, Reading, This week).
+Profile, Shop and *Running code* used to be a third column here as well
+as behind the avatar, which is one menu offering two routes to the same
+page and neither of them obviously the one to use. The avatar is where
+everything about **you** is; this is where everything about the
+**subject** is. Execution help did not disappear with it — it is a line
+in Settings and a link in the bar under the editor, which are the two
+places you are standing when you need it.
 
 It opens on hover and a click pins it open; the pin is the fix for the
 pointer firing `pointerenter` before `click`, which otherwise shut a menu
@@ -769,13 +779,38 @@ that is (37), and together they are all 109. It is a filter like any other
 overrides it, because looking for something by name should find it whichever
 way you came in.
 
+### Language: can be solved in, not taught in
+
+Most coding exercises here are C++ only, and that is deliberate: thirteen
+of them are *about* C++ — a function signature, a `const std::string&`, a
+`std::vector` — and writing them in Python would be a different exercise.
+Seventeen are about an algorithm or a simulation, and those declare C++
+and Python both, with a reference solution in each that the audit runs
+before certifying the language.
+
+What was missing was any way to use that. A **Language** select sits
+beside Type, and it means *can be solved in this language*, which is a
+property of the exercise and not of what is installed. Each option
+carries how many problems declare it — `C++ (30)`, `Python (17)` — so
+that C++ being most of them is visible before you choose it rather than
+after. A question declares no language at all, so choosing one leaves
+only coding exercises, and the count says *coding exercises* to match.
+It is in the route too: `#/problems?lang=python`.
+
+Choosing a language that nothing matches says why in those terms —
+*whether a problem offers a language is a property of the exercise, not
+of what is installed* — rather than offering "clear a filter" and leaving
+you to work out which one and what it meant.
+
 ### You, in the top right
 
 Everything about you is behind the avatar: XP, coins, streak, and the way
-to Profile, Shop and Settings. The ring around it is progress to the next
-rank, which is the one number worth seeing from every page. Those three
-are in the Content menu as well — it is supposed to list everywhere the
-site goes — but the avatar is where they live.
+to Profile, Shop and Settings — and so, through Settings, export and
+import of everything the site has stored about you. The ring around it is
+progress to the next rank, which is the one number worth seeing from
+every page. Nothing here is duplicated in the Content menu, and a test
+asserts both halves of that: these three are in this menu, and none of
+them is in that one.
 
 It is a real menu rather than a hover trick — `aria-expanded` on the button,
 `role="menu"` on the panel, focus moves in on open, Escape closes it and
@@ -852,9 +887,35 @@ the hints as well.
 
 The language is a **dropdown in the strip** rather than a row of buttons: four
 buttons said what the problem *could* be written in, where what you need is one
-saying what it is being written in now. A language nothing can compile is still
-listed, disabled, with the reason in its title — the problem does accept it.
-A problem that takes one language gets a button with nothing to open.
+saying what it is being written in now.
+
+Under each language in the menu is a line saying **where it would run** —
+`Browser · clang 20.1.2`, `Local · 13.3.0`, or why it would not:
+`no runner — see Running code`, `needs the native toolchain`. Nothing is
+removed and nothing is disabled. A language the exercise accepts but this
+device cannot run is still worth opening: the template is the clearest
+statement of what the exercise wants in that language, and you may well be
+about to start a runner. A disabled button with the reason in a `title` is
+invisible to a reader who has not hovered and absent altogether on a
+touchscreen, which is how *"nothing can run this"* came to look exactly like
+*"this is not offered"*.
+
+A problem that takes one language says **"C++ only"** in words beside the
+name. That was a `title` on a disabled button too, so the thirteen C++
+fundamentals exercises — which are C++ only because the exercise *is* C++ —
+were indistinguishable on screen from an exercise whose other languages had
+broken. That is the whole of the "why is there no Python here" question: on
+the seventeen exercises that declare Python it is there and ready; on the
+thirteen that do not, nothing said why not.
+
+The menu hangs out of the bottom of the tab strip, and the strip used to
+scroll sideways. A scroll container clips its children on **both** axes — CSS
+computes `overflow-y` to `auto` the moment `overflow-x` is not `visible` — so
+the menu was being cut off below the first option and looked like a short
+menu rather than a clipped one. The strip wraps instead, which costs a second
+row of tabs on a phone and clips nothing. `tests/browser/usability.test.mjs`
+hit-tests every option rather than trusting the DOM, because the DOM looked
+perfectly healthy throughout.
 
 **Run tests**, **Submit** and **Reset** are in one bar across the foot of the
 column, outside the scrolling pane, with the execution backend beside them.

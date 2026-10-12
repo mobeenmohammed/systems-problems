@@ -30,7 +30,7 @@
     UI.closeContent();
   }
 
-  /* "#/problems?topic=os&diff=beginner" -> { path: ['problems'], query: {…} } */
+  /* "#/problems?topic=os&lang=python" -> { path: ['problems'], query: {…} } */
   function parseHash() {
     const raw = location.hash.replace(/^#\/?/, '');
     const [pathPart, queryPart] = raw.split('?');
@@ -63,6 +63,7 @@
           difficulty: query.diff || query.difficulty || '',
           type: query.type || '',
           status: query.status || '',
+          lang: query.lang || '',
           q: query.q || '',
         });
         break;

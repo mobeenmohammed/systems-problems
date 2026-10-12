@@ -18,7 +18,9 @@
 (() => {
   const { el, register } = ProblemTypes;
 
-  const LABEL = { js: 'JavaScript', python: 'Python', cpp: 'C++', rust: 'Rust' };
+  /* The catalogue owns this: it filters on the same list, and the Language
+     filter's options and this picker's labels have to be the same words. */
+  const LABEL = Catalog.LANG_LABEL;
 
   /* The starting point per language. For the compiled ones this is the I/O
      boilerplate, because a problem about tiled matrix multiply should not also
@@ -185,12 +187,21 @@ fn main() {
 
   /* ---------------- the language picker ----------------
 
-     A button that says which language, and a menu of the others. The
-     options carry `data-lang` and a disabled state, because a language
-     nothing can run has to look unavailable rather than fail on the
-     click — and refreshExec() is what decides that, from a live look at
-     the backends. A problem that takes one language gets the button with
-     nothing to open, which is the truth about it. */
+     A button that says which language, and a menu of the others, each
+     with a line under it saying where it would run. refreshExec() fills
+     those lines in from a live look at the backends.
+
+     An option is never removed and never disabled. A language the
+     problem accepts but nothing here can run is still worth opening —
+     the template is the clearest statement of what the exercise wants in
+     that language, and you may well be about to start a runner. What it
+     gets instead of a disabled button is the reason and the way out,
+     written where you are looking rather than hidden in a tooltip.
+
+     "C++ only" is said in words, next to the name. It used to be a
+     `title` on a disabled button, which is invisible to a reader and
+     absent on a touchscreen — so a problem with one language looked
+     exactly like a problem whose other languages had broken. */
   function langPicker(langs, lang) {
     const only = langs.length < 2;
 
@@ -201,12 +212,13 @@ fn main() {
       'aria-expanded': only ? undefined : 'false',
       disabled: only || undefined,
       title: only
-        ? `This problem is ${LABEL[lang] || lang} only`
+        ? `This exercise is ${LABEL[lang] || lang} only — that is a property of `
+          + 'the exercise, not of what is installed'
         : 'Which language to write it in',
     }, [
       el('span', { class: 'lang-mark', 'data-lang': lang, 'aria-hidden': 'true' }),
       name,
-      only ? null : caret(),
+      only ? el('span', { class: 'lang-pick-only', text: 'only' }) : caret(),
     ]);
 
     const menu = el('div', {
@@ -217,7 +229,10 @@ fn main() {
       onclick: () => { shutMenu(); switchLang(id); },
     }, [
       el('span', { class: 'lang-mark', 'data-lang': id, 'aria-hidden': 'true' }),
-      LABEL[id] || id,
+      el('span', { class: 'lang-opt-text' }, [
+        el('span', { class: 'lang-opt-name', text: LABEL[id] || id }),
+        el('span', { class: 'lang-opt-note tiny faint', text: 'checking\u2026' }),
+      ]),
     ])));
 
     const wrap = el('div', { class: 'lang-pick', 'data-lang': lang }, [btn, menu]);
@@ -332,13 +347,33 @@ fn main() {
         for (const node of pick.querySelectorAll('.lang-opt')) {
           const row = rows.find(r => r.id === node.dataset.lang);
           if (!row) continue;
-          node.disabled = !row.ready;
+          /* Not disabled. The option stays usable and says why it would
+             not run, which is the difference between "we removed this"
+             and "here is what to do about it". */
           node.dataset.ready = String(!!row.ready);
+          const note = node.querySelector('.lang-opt-note');
+          const where = row.ready
+            ? `${row.where}${row.version ? ` \u00b7 ${row.version}` : ''}`
+            : whyNot(row.id, said);
+          if (note) note.textContent = where;
           node.title = row.ready
-            ? `${row.where}${row.version ? ` — ${row.version}` : ''}`
-            : 'Nothing available can run this — see the note under the editor';
+            ? `Runs here: ${where}`
+            : `${where}. You can still write it — see Running code for how to `
+              + 'get a runner.';
         }
       });
+  }
+
+  /* Why a language the exercise accepts would not run, in the fewest words
+     that still name the next action. The long version is the sentence
+     under the editor and the Running code page; this is the four words
+     that go in a menu. */
+  function whyNot(id, said) {
+    if (said && said.nativeOnly && (id === 'cpp' || id === 'python')) {
+      return 'needs the native toolchain';
+    }
+    if (id === 'rust') return 'no runner here yet';
+    return 'no runner \u2014 see Running code';
   }
 
   function switchLang(id) {
@@ -371,6 +406,8 @@ fn main() {
       for (const node of pick.querySelectorAll('.lang-opt')) {
         node.setAttribute('aria-selected', String(node.dataset.lang === id));
       }
+      /* The pip beside the name on the button is the only other thing
+         that has to follow; the notes are re-asked by refreshExec. */
     }
     if (outNode()) outNode().replaceChildren();
     /* C++ may be hosted while JavaScript runs in the browser, so the chip has
