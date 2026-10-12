@@ -1,5 +1,103 @@
 [
   {
+    "id": "oa-fmt-abs-inequality",
+    "title": "Where the inequality holds",
+    "topic": "metric",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "structured",
+    "tags": [
+      "absolute-value",
+      "intervals",
+      "open-balls"
+    ],
+    "estimate": 5,
+    "subject": "maths",
+    "prereqs": [
+      "open-balls"
+    ]
+  },
+  {
+    "id": "oa-fmt-proof-even-square",
+    "title": "An even square comes from an even number",
+    "topic": "metric",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "proof",
+    "tags": [
+      "proof",
+      "contrapositive",
+      "parity"
+    ],
+    "estimate": 10,
+    "subject": "maths",
+    "prereqs": [
+      "metric-axioms"
+    ]
+  },
+  {
+    "id": "oa-fmt-negative-division",
+    "title": "Dividing by two, the wrong way",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "predict",
+    "tags": [
+      "integer-division",
+      "modulo",
+      "truncation",
+      "signed"
+    ],
+    "estimate": 6,
+    "subject": "systems",
+    "prereqs": [
+      "cpp-integer-types"
+    ]
+  },
+  {
+    "id": "oa-fmt-word-summary",
+    "title": "Count the words, and measure the longest",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "strings",
+      "loops",
+      "parsing",
+      "one-pass"
+    ],
+    "estimate": 15,
+    "subject": "systems",
+    "prereqs": [
+      "cpp-strings",
+      "cpp-loops"
+    ],
+    "langs": [
+      "cpp",
+      "python"
+    ]
+  },
+  {
+    "id": "oa-fmt-which-ub",
+    "title": "Which of these are undefined behaviour",
+    "topic": "cpp",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "multi",
+    "tags": [
+      "undefined-behaviour",
+      "integer-overflow",
+      "shifts",
+      "pointers"
+    ],
+    "estimate": 6,
+    "subject": "systems",
+    "prereqs": [
+      "undefined-behaviour"
+    ]
+  },
+  {
     "id": "oa-lifetime-which-dangle",
     "title": "Which of these return a dangling reference",
     "topic": "cpp",
@@ -59,6 +157,120 @@
     "subject": "systems",
     "prereqs": [
       "cpp-integer-types"
+    ]
+  },
+  {
+    "id": "oa-fmt-invalidation",
+    "title": "What each of these invalidates",
+    "topic": "cpp",
+    "difficulty": "advanced",
+    "lane": "core",
+    "type": "match",
+    "tags": [
+      "iterators",
+      "invalidation",
+      "containers",
+      "undefined-behaviour"
+    ],
+    "estimate": 8,
+    "subject": "systems",
+    "prereqs": [
+      "cpp-std-vector"
+    ]
+  },
+  {
+    "id": "oa-fmt-which-section",
+    "title": "Where an initialised global lives",
+    "topic": "linux",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "short",
+    "tags": [
+      "elf",
+      "sections",
+      "linker",
+      "bss"
+    ],
+    "estimate": 4,
+    "subject": "systems",
+    "prereqs": [
+      "compilation-pipeline"
+    ]
+  },
+  {
+    "id": "oa-fmt-flat-page-table",
+    "title": "The page table nobody builds",
+    "topic": "os",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "numeric",
+    "tags": [
+      "paging",
+      "page-table",
+      "virtual-memory",
+      "arithmetic"
+    ],
+    "estimate": 5,
+    "subject": "systems",
+    "prereqs": [
+      "paging"
+    ]
+  },
+  {
+    "id": "oa-fmt-map-private",
+    "title": "A private mapping, written to",
+    "topic": "os",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "mcq",
+    "tags": [
+      "mmap",
+      "copy-on-write",
+      "virtual-memory",
+      "page-cache"
+    ],
+    "estimate": 4,
+    "subject": "systems",
+    "prereqs": [
+      "copy-on-write"
+    ]
+  },
+  {
+    "id": "oa-fmt-minor-fault-order",
+    "title": "A minor page fault, start to finish",
+    "topic": "os",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "order",
+    "tags": [
+      "page-faults",
+      "virtual-memory",
+      "trap",
+      "page-cache"
+    ],
+    "estimate": 7,
+    "subject": "systems",
+    "prereqs": [
+      "page-faults"
+    ]
+  },
+  {
+    "id": "oa-fmt-double-checked",
+    "title": "The lock is taken. Find the race anyway",
+    "topic": "os",
+    "difficulty": "advanced",
+    "lane": "core",
+    "type": "locate",
+    "tags": [
+      "data-race",
+      "double-checked-locking",
+      "memory-model",
+      "atomics"
+    ],
+    "estimate": 9,
+    "subject": "systems",
+    "prereqs": [
+      "mutual-exclusion"
     ]
   }
 ]

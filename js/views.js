@@ -328,7 +328,8 @@ const UI = (() => {
     /* Only the ones that still exist: a queue counting problems that
        have been deleted is a number nobody can act on. */
     const reviewCount = Store.reviewQueue()
-      .filter(r => Catalog.meta(r.id) && !Catalog.isPooled(r.id)).length;
+      .filter(r => Catalog.meta(r.id)
+        && (!Catalog.isPooled(r.id) || r.flagged)).length;
 
     return [
       {
@@ -1460,16 +1461,54 @@ const UI = (() => {
 
     /* ---- the wheel ----
 
-       Ctrl+wheel zooms about the pointer; a trackpad pinch arrives as
-       exactly that, so pinch-to-zoom works without any gesture code.
-       Plain wheel pans. Neither reaches the page, because the page
-       behind this does not scroll — the graph has the window. */
+       The reported bug, and it was the handler being greedy rather than
+       anything subtle. The details panel is a child of the canvas, so a
+       wheel event over the panel bubbled up to here, hit an
+       unconditional `preventDefault()`, and the panel's own scrolling
+       was cancelled — and then the graph *behind* the panel panned
+       instead. Measured: wheel 400px over a panel with 928px of content
+       in an 803px box left `scrollTop` at 0 and moved the graph 400px.
+       So a selected concept's resources and exercises were unreachable
+       by wheel, which is the ordinary way to read a long panel.
+
+       The rule now, by where the pointer is:
+
+         over the panel, the toolbar or the zoom buttons
+             nothing here runs at all. The browser scrolls whatever is
+             under the pointer, which is the panel. Reaching the end of
+             the panel does not start moving the graph either, and that
+             is `overscroll-behavior: contain` on the panel rather than
+             anything here — a JavaScript guard against scroll chaining
+             would have to guess which element the browser chose.
+
+         over the graph
+             plain wheel moves vertically. A trackpad's sideways
+             movement arrives as deltaX and moves horizontally, and
+             Shift+wheel does the same thing for a mouse with one wheel.
+
+         Ctrl or Cmd + wheel, over the graph
+             zooms about the pointer. A trackpad pinch arrives as
+             exactly this, which is why pinch works with no gesture
+             code. It does take the gesture away from the browser's own
+             page zoom *while the pointer is over the graph* — the
+             keyboard zoom (Ctrl +, Ctrl -, Ctrl 0) is untouched
+             everywhere, as are the explicit zoom buttons in the
+             toolbar, and the hint line under the toolbar says so. */
     canvas.addEventListener('wheel', e => {
+      /* Anything in the chrome scrolls itself. */
+      if (e.target.closest && e.target.closest('.learn-panel, .lpanel, .learn-zoom, .learn-bar')) return;
+
       e.preventDefault();
       const box = canvas.getBoundingClientRect();
       if (e.ctrlKey || e.metaKey) {
         const factor = Math.exp(-e.deltaY * 0.0025);
         zoomAt(view.z * factor, e.clientX - box.left, e.clientY - box.top);
+      } else if (e.shiftKey && !e.deltaX) {
+        /* One wheel, sideways. Mapped from deltaY because a mouse has
+           no deltaX to give; a trackpad already supplies one and is
+           handled below without needing the key. */
+        view.x -= e.deltaY;
+        applyView();
       } else {
         view.x -= e.deltaX;
         view.y -= e.deltaY;
@@ -2108,9 +2147,16 @@ const UI = (() => {
     const host = $('#reviewList');
     if (!host) return;
 
+    /* An assessment question is on this list only if the reader put it
+       there, from the review page after the attempt, and it is the one
+       way the bank is allowed to reach the practice side of the site.
+       Nothing else follows from it: no solved status, no XP, no change
+       to any count of the catalogue. The row says where it came from,
+       because "revise this" about a question that is not in the
+       catalogue is otherwise confusing. */
     const rows = Store.reviewQueue()
-      .map(r => ({ ...r, meta: Catalog.meta(r.id) }))
-      .filter(r => r.meta && !Catalog.isPooled(r.id));
+      .map(r => ({ ...r, meta: Catalog.meta(r.id), fromBank: Catalog.isPooled(r.id) }))
+      .filter(r => r.meta && (!r.fromBank || r.flagged));
 
     const blurb = $('#reviewBlurb');
     if (blurb) {
@@ -2166,6 +2212,10 @@ const UI = (() => {
           el('div', { class: 'meta' }, [
             el('span', { text: topic.label || r.meta.topic }),
             diffTag(r.meta.difficulty),
+            /* Where it came from, because this one is not in the
+               catalogue and a reader looking for it there will not
+               find it. */
+            r.fromBank ? el('span', { class: 'tiny faint', text: 'from an assessment' }) : null,
             r.reviewOn ? el('span', { class: 'tiny', text: `booked for ${r.reviewOn}` }) : null,
             r.attempts ? el('span', { class: 'tiny faint', text: `${r.attempts} ${r.attempts === 1 ? 'attempt' : 'attempts'}` }) : null,
           ]),

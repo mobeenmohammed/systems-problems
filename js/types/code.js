@@ -92,8 +92,40 @@ fn main() {
      opens Results before it starts. */
   const outNode = () => document.getElementById('runOut');
 
+  /* ---------------- starter code, and which one ----------------
+
+     A practice template teaches. It carries the signature, and then it
+     says what to do inside it: "walk s, and for each run of identical
+     characters append the character and, only if the run is longer than
+     one, its length. Jump past the whole run, not past one character."
+     That is the right thing to hand somebody who is learning the idea,
+     and it is the algorithm, written out, in the editor.
+
+     Under a clock it is the answer. So an assessment problem carries a
+     second starter — `payload.assessmentTemplates` — which keeps
+     everything that is part of the interface (the includes, the
+     signatures, the harness in `main` that reads the input and prints
+     the result) and nothing that is part of the method. The task and
+     its constraints go in the statement, where a specification belongs.
+
+     Two authored files rather than one file with the comments stripped
+     by a regex, because a regex cannot tell the difference between
+     coaching and an interface contract, and a licence header is a
+     comment too. The validator checks that both exist and that the
+     assessment one has not had the solution left in it. */
+  let assessMode = false;
+
   function templateFor(problem, lang) {
-    const given = (problem.payload.templates || {})[lang];
+    const pay = problem.payload || {};
+    if (assessMode) {
+      const neutral = (pay.assessmentTemplates || {})[lang];
+      /* No fallback to the teaching template. A missing assessment
+         starter is caught by scripts/check-assessments.mjs before it can
+         ship; falling back here would make that check cosmetic, and the
+         failure it is guarding against is silent disclosure. */
+      if (neutral != null) return neutral;
+    }
+    const given = (pay.templates || {})[lang];
     return given != null ? given : (TEMPLATE[lang] || '');
   }
 
@@ -117,6 +149,7 @@ fn main() {
     if (!state || state.problem.id !== problem.id) {
       last = { verdict: null, reply: null, submission: false, at: 0 };
     }
+    assessMode = !!ctx.assess;
     state = { problem, mount, lang, editor: null, langs, running: false };
 
     const head = el('div', { class: 'editor-head' });
@@ -339,6 +372,12 @@ fn main() {
           setExec('ready', `Ran on ${Runners.label(last.reply.backend)}`);
         } else if (here && here.ready) {
           setExec('ready', here.version ? `${here.where} · ${here.version}` : here.where);
+        } else if (said.checks && state.lang === 'rust') {
+          /* "No runner" is wrong here, and wrong in the direction that
+             matters: rustc's front end IS running, on every keystroke,
+             with the real borrow checker. What cannot happen is code
+             generation. The chip says which. */
+          setExec('check', 'Checked, not run');
         } else {
           setExec('blocked', 'No runner');
         }
@@ -422,18 +461,29 @@ fn main() {
   let savedTimer = null;
 
   function noteSaved(what = '') {
-    const node = document.getElementById('draftNote')
-      || document.getElementById('draftState');
-    if (!node) return;
-    node.textContent = 'Saving\u2026';
-    node.dataset.state = 'saving';
+    /* Two places, because inside an assessment the save status belongs
+       in the assessment's own header — it is one of the five things that
+       bar is required to show, and the editor's own note scrolls away
+       with the toolbar on a narrow screen. */
+    const nodes = [
+      document.getElementById('draftNote') || document.getElementById('draftState'),
+      document.getElementById('oaSave'),
+    ].filter(Boolean);
+    if (!nodes.length) return;
+    for (const node of nodes) {
+      node.textContent = 'Saving\u2026';
+      node.dataset.state = 'saving';
+    }
     clearTimeout(savedTimer);
     savedTimer = setTimeout(() => {
       const at = new Date();
       const hh = String(at.getHours()).padStart(2, '0');
       const mm = String(at.getMinutes()).padStart(2, '0');
-      node.textContent = what ? `Saved \u2014 ${what}` : `Saved at ${hh}:${mm}`;
-      node.dataset.state = 'saved';
+      for (const node of nodes) {
+        node.textContent = node.id === 'oaSave'
+          ? 'Saved' : (what ? `Saved \u2014 ${what}` : `Saved at ${hh}:${mm}`);
+        node.dataset.state = 'saved';
+      }
     }, 420);
   }
 

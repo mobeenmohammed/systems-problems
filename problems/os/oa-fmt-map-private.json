@@ -1,0 +1,36 @@
+{
+  "id": "oa-fmt-map-private",
+  "pool": "assessment",
+  "title": "A private mapping, written to",
+  "topic": "os",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "mcq",
+  "tags": [
+    "mmap",
+    "copy-on-write",
+    "virtual-memory",
+    "page-cache"
+  ],
+  "estimate": 4,
+  "prereqs": [
+    {
+      "concept": "copy-on-write",
+      "why": "The answer is a statement about which page a store lands in."
+    }
+  ],
+  "statement": "A process maps a regular file and then writes through the mapping:\n\n```c\nchar* p = mmap(NULL, 4096, PROT_READ | PROT_WRITE,\n               MAP_PRIVATE, fd, 0);\np[0] = 'X';\n```\n\nThe `mmap` succeeds. What happens to the bytes in the file on disk?",
+  "payload": {
+    "prompt": "One answer.",
+    "options": [
+      "Nothing. The store faults, the kernel copies that page into a private frame, and the write lands in the copy.",
+      "The byte reaches the file the next time the kernel flushes dirty pages, as it would for a `MAP_SHARED` mapping.",
+      "The byte reaches the file, but only once the process calls `msync`.",
+      "Nothing, because the store itself fails: a `MAP_PRIVATE` mapping is read-only, and `p[0] = 'X'` raises `SIGSEGV`."
+    ]
+  },
+  "hints": [
+    "Both `MAP_PRIVATE` and `MAP_SHARED` can carry `PROT_WRITE`. The flag is not about whether you may write; it is about what your write is a write *to*.",
+    "Before the store, the mapping and the page cache can be the same physical frame — there is no reason to copy a page nobody has modified."
+  ]
+}

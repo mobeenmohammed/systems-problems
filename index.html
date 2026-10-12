@@ -439,9 +439,16 @@
           <div class="learn-nodes" id="learnNodes" role="tree"
                aria-label="What this track rests on"></div>
         </div>
+        <!-- The gestures, said out loud, because a canvas that treats the
+             wheel as its own owes the reader an explanation of what it
+             does with it. Scroll moves; Shift+scroll moves sideways;
+             Ctrl+scroll (or a trackpad pinch) zooms about the pointer.
+             The buttons to the right do the same zoom without a gesture,
+             and the browser's own Ctrl+/-/0 is untouched everywhere. -->
         <p class="learn-hint tiny faint" id="learnHint">
-          Drag to move, <kbd>Ctrl</kbd>+scroll to zoom. Arrow keys walk the
-          tree; Enter opens a node.
+          Drag or scroll to move, <kbd>Shift</kbd>+scroll sideways,
+          <kbd>Ctrl</kbd>+scroll to zoom. Arrow keys walk the tree; Enter
+          opens a node. Over an open panel, scroll reads the panel.
         </p>
         <div class="learn-zoom">
           <button class="btn btn-sm" type="button" id="learnZoomOut" aria-label="Zoom out">&minus;</button>

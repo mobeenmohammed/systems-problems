@@ -1507,6 +1507,10 @@ body[data-workspace="true"] #problemHost { height: 100%; min-height: 0; }
 .ws-exec[data-state="ok"]      { color: var(--ok); }
 .ws-exec[data-state="bad"]     { color: var(--danger); }
 .ws-exec[data-state="blocked"] { color: var(--warn); }
+/* Rust on a problem whose codegen the browser backend cannot do: the
+   front end is running on every keystroke, so this is not the same
+   state as having no runner at all and does not borrow its colour. */
+.ws-exec[data-state="check"]   { color: var(--text-dim); }
 
 /* Grid rows all the way down, not percentage heights through a flex chain.
    A flex item with height:100% and content taller than its container does not
@@ -2599,7 +2603,16 @@ body[data-graph="true"] #view-learn { height: 100%; min-height: 0; }
   box-shadow: var(--shadow-3);
   min-height: 0;
 }
-.lpanel-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: var(--s4); }
+/* `overscroll-behavior: contain` is the second half of the wheel fix.
+   Without it, wheeling to the bottom of the panel hands the rest of the
+   gesture to the scroll container behind it — the graph — so reading to
+   the end of a concept's resources would start moving the graph under
+   the panel. The guard belongs here rather than in JavaScript, because
+   only the browser knows which element it decided to chain to. */
+.lpanel-body {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: var(--s4);
+  overscroll-behavior: contain;
+}
 /* The grip is eight pixels wide with a two-pixel line in it: a one-pixel
    border is a one-pixel target. */
 .lpanel-grip {
@@ -2868,9 +2881,25 @@ body[data-graph="true"] #view-learn { height: 100%; min-height: 0; }
 
    The window, like the code workspace and the graph: the clock and the
    navigator have to stay put while a problem fills the rest. */
+/* Immersive by default, with no button to press.
+
+   An assessment used to run inside the ordinary page: the site's
+   header above it, with the Content menu, the avatar, the XP and the
+   coin purse, and a Focus button in the problem offering to hide
+   them. That is three things wrong at once. The navigation goes
+   somewhere the reader must not go mid-attempt; the purse and the XP
+   are the one part of the site an attempt deliberately does not touch,
+   sitting in the corner implying otherwise; and the fix was a control
+   the reader had to find.
+
+   So the attempt takes the window, and the only header on screen is
+   its own. Nothing is hidden behind a preference, and nothing depends
+   on the Fullscreen API being granted — fullscreen is asked for on the
+   Start click and is a bonus, not a requirement. */
+body[data-attempt="true"] .topbar { display: none; }
 body[data-attempt="true"] .main {
   max-width: none; padding: 0;
-  height: calc(100vh - var(--header-h));
+  height: 100vh;
   overflow: hidden;
 }
 body[data-attempt="true"] #view-assess-run { height: 100%; min-height: 0; }
@@ -2882,6 +2911,31 @@ body[data-attempt="true"] #assessRun {
 /* The problem inside it gets the row, not the window: it is nested one
    level deeper than it is in practice. */
 body[data-attempt="true"] .ws { height: 100%; }
+
+/* The reported bug, and it made every non-coding question in an
+   assessment unanswerable rather than merely awkward.
+
+   A code problem fills `.oa-host` with `.ws`, which is a fixed-height
+   grid that scrolls inside its own panes. Everything else — a multiple
+   choice, a predicted output, an ordering — fills it with
+   `.pwrap.reading`, which is an ordinary block that expects the *page*
+   to scroll. Under `body[data-attempt]` the page does not scroll: the
+   row is `overflow: hidden`, by design, so the clock cannot be scrolled
+   away from.
+
+   Measured before the fix, at 1440x900 on question 1 of the C++
+   assessment: 1,064px of content in an 803px row, no scrollbar
+   anywhere, the answer box cut off mid-listing and the Submit button at
+   y=1076 — 176px below the window, with `elementFromPoint` returning
+   null on it. So the question rendered, and could not be answered.
+
+   The scroll therefore belongs to the question, one level in. */
+body[data-attempt="true"] .pwrap.reading {
+  height: 100%; overflow-y: auto; overscroll-behavior: contain;
+}
+/* The bottom padding is what stops the Submit button sitting flush
+   against the edge of the row, which reads as "there is more below". */
+body[data-attempt="true"] .pwrap.reading .pmain { padding-bottom: var(--s6); }
 
 .oa-bar {
   display: flex; align-items: center; flex-wrap: wrap; gap: var(--s3);
@@ -2902,6 +2956,24 @@ body[data-attempt="true"] .ws { height: 100%; }
 .oa-clock[data-state="urgent"],
 .oa-clock[data-state="over"] { color: var(--danger); border-color: var(--danger); }
 
+/* The bar's own items. `.oa-bar .btn { margin-left: auto }` used to
+   push the single Finish button to the right end; with two buttons and
+   a save status that rule would push the first of them instead, so the
+   actions are one group and the group is what floats right. */
+/* An assessment question read on the practice page after the attempt.
+   It is not a practice status, so it does not borrow one of their
+   colours. */
+.status-word.status-bank {
+  color: var(--text-dim); border: 1px solid var(--border);
+  border-radius: var(--radius-s); padding: 0 .4em; cursor: help;
+}
+
+.oa-bar-acts { display: flex; gap: var(--s2); margin-left: auto; }
+.oa-bar .oa-bar-acts .btn { margin-left: 0; }
+.oa-progress { color: var(--text-dim); font-variant-numeric: tabular-nums; }
+.oa-save[data-state="failed"] { color: var(--danger); font-weight: 600; }
+.oa-save[data-state="saved"] { color: var(--ok); }
+
 .oa-nav { display: flex; flex-wrap: wrap; gap: .25rem; }
 .oa-dot {
   width: 1.9rem; height: 1.9rem; padding: 0;
@@ -2916,6 +2988,24 @@ body[data-attempt="true"] .ws { height: 100%; }
 .oa-dot[data-state="attempted"] { border-style: dashed; color: var(--text); }
 .oa-dot[data-state="submitted"] { background: var(--accent-soft); border-color: var(--accent); color: var(--text); }
 .oa-dot[aria-current="true"] { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* What a question inside an attempt is told, which is deliberately not a
+   verdict: see problem.js ▸ the feedback policy. */
+.oa-state {
+  margin: var(--s4) 0; padding: var(--s3) var(--s4); max-width: 70ch;
+  border-radius: var(--radius); background: var(--bg-elev);
+  border: 1px solid var(--border); border-left: 3px solid var(--accent);
+}
+.oa-state[data-state="errored"] { border-left-color: var(--warn); }
+.oa-state[data-state="review"] { border-left-color: var(--text-dim); }
+.oa-state .verdict-head h4 { margin: 0; font-size: .95rem; }
+.oa-state p { margin: .3rem 0 0; }
+
+/* Saving / Saved / Save failed. Three states, and the failed one is the
+   only one that is allowed to be loud — a page that cannot save and does
+   not say so is a page quietly losing work. */
+#answerSaved[data-state="failed"] { color: var(--danger); font-weight: 600; }
+#answerSaved[data-state="saved"] { color: var(--ok); }
 
 /* ---- afterwards ---- */
 
@@ -2950,6 +3040,13 @@ body[data-attempt="true"] .ws { height: 100%; }
   background: var(--bg-inset); border-radius: var(--radius-s);
   font-size: .78rem;
 }
+.oa-result-acts { display: flex; align-items: center; justify-content: space-between;
+  gap: var(--s3); margin-top: var(--s3); flex-wrap: wrap; }
+.oa-proof { margin-top: var(--s3); padding-top: var(--s3); border-top: 1px dashed var(--border); }
+.oa-proof .btn[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.oa-rubric { margin: .3rem 0 0; padding-left: 1.1rem; }
+.oa-rubric li { font-size: .85rem; color: var(--text-dim); margin: .2rem 0; }
+
 .oa-again { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3); margin: var(--s5) 0; }
 .oa-again .tiny { max-width: 48ch; }
 
@@ -2960,6 +3057,8 @@ body[data-attempt="true"] .ws { height: 100%; }
   .oa-fact-note { grid-column: 1; }
   .oa-bar { padding: .4rem var(--s3); }
   .oa-bar-title { flex: 1 1 100%; }
+  .oa-bar-acts { flex: 1 1 100%; margin-left: 0; justify-content: flex-end; }
+  .oa-progress { flex: 1 1 auto; }
 }
 
 /* ---------------- mathematics ----------------

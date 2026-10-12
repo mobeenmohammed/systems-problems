@@ -1,0 +1,23 @@
+{
+  "id": "oa-fmt-invalidation",
+  "key": {
+    "pairs": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ]
+  },
+  "explanation": "## Why each one is what it is\n\n**`vector::push_back` — everything, if it reallocates.** A vector owns one contiguous block. Growing past the capacity allocates a new block and moves the elements, so every iterator, pointer and reference into the old block dangles. If the capacity was sufficient, nothing moved and only the past-the-end iterator changes meaning. `reserve` up front is how you buy the stable case; `capacity()` is how you check.\n\n**`deque::push_back` — all iterators, but not pointers or references.** This is the row worth remembering. A deque is a sequence of fixed-size blocks plus a map of pointers to them, and growing may reallocate *that map*. The elements themselves never move, so a pointer or reference to an element stays good — but an iterator, which has to know about the block structure to walk it, does not. Two different answers for the same operation on the same container.\n\n**`vector::erase` — from the erased position onwards.** Erasing shifts the tail down by one, so everything at or after that point refers to a different element than it did. Everything before it is untouched, which is what makes the `it = v.erase(it)` idiom work: the return value is the rebuilt iterator for the position just vacated.\n\n**`map::erase` — only the erased element.** A `std::map` is a node-based tree. Erasing destroys one node and relinks its neighbours; every other node is exactly where it was. Rebalancing moves *links*, not nodes.\n\n**`unordered_map::insert` — all iterators, if it rehashes.** The same iterator/pointer split as the deque, for the same kind of reason: the nodes stay put, and rehashing rebuilds the bucket array the iterators walk. So references survive an insert unconditionally; iterators survive only if `load_factor` stayed under `max_load_factor`, which `reserve` lets you guarantee.\n\n## The one nothing matched\n\n\"Everything, unconditionally, whether or not it grows\" describes no standard container operation. Every guarantee here is conditional on something observable — a capacity, a load factor, a position — and that is what makes them usable: you can arrange for the stable case.\n\n## The rule underneath\n\nAsk two questions in order. **Did an element move?** If so, pointers and references to it are dead. **Did the container's internal index change?** If so, iterators are dead, whether or not anything moved. Contiguous containers answer yes to both at once, which is why they are the ones people remember and the wrong model to generalise from.",
+  "readMore": [
+    {
+      "title": "cppreference: iterator invalidation",
+      "url": "https://en.cppreference.com/w/cpp/container#Iterator_invalidation"
+    },
+    {
+      "title": "cppreference: std::deque — invalidation guarantees",
+      "url": "https://en.cppreference.com/w/cpp/container/deque"
+    }
+  ]
+}

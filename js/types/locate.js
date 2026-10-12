@@ -39,14 +39,36 @@
         const escaped = MD.escapeHtml(text);
         const body = p.lang ? Highlight.run(escaped, p.lang) : escaped;
 
+        /* A radiogroup, so the keyboard contract is the one a radiogroup
+           has: one tab stop for the whole listing, and the arrow keys
+           move between the lines inside it. Every line was tabbable
+           before, which is correct ARIA for nothing and meant 24 tab
+           presses to get past a listing. The roving tabindex is set
+           here for the first line and moved by select(). */
         listing.append(el('div', {
-          class: 'locate-line', role: 'radio', tabindex: '0',
+          class: 'locate-line', role: 'radio', tabindex: i === 0 ? '0' : '-1',
           'data-line': n, 'aria-pressed': 'false', 'aria-checked': 'false',
           'aria-label': `Line ${n}: ${text.trim() || '(blank)'}`,
           onclick: () => { if (!ctx.locked) select(mount, n); },
           onkeydown: e => {
             if (ctx.locked) return;
-            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select(mount, n); }
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select(mount, n); return; }
+            const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key];
+            const jump = e.key === 'Home' ? 'first' : e.key === 'End' ? 'last' : null;
+            if (!step && !jump) return;
+            e.preventDefault();
+            const rows = [...mount.querySelectorAll('.locate-line')];
+            const at = rows.findIndex(r => Number(r.dataset.line) === n);
+            const to = jump === 'first' ? 0
+              : jump === 'last' ? rows.length - 1
+              : Math.min(rows.length - 1, Math.max(0, at + step));
+            const row = rows[to];
+            if (!row) return;
+            /* Moving the selection is what a radiogroup's arrow keys do,
+               and it is also the only way this is answerable without a
+               mouse. */
+            select(mount, Number(row.dataset.line));
+            row.focus();
           },
         }, [
           el('span', { class: 'ln', text: String(n) }),
@@ -148,6 +170,9 @@
       const on = Number(node.dataset.line) === n;
       node.setAttribute('aria-pressed', String(on));
       node.setAttribute('aria-checked', String(on));
+      /* The tab stop follows the selection, so tabbing back into the
+         listing lands on the line that is chosen rather than on line 1. */
+      node.setAttribute('tabindex', on ? '0' : '-1');
     });
     const status = mount.querySelector('.locate-status');
     if (status) status.textContent = `Line ${n} chosen.`;

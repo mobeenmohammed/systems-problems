@@ -1,0 +1,13 @@
+{
+  "id": "oa-fmt-abs-inequality",
+  "key": {
+    "value": "(-1,5)"
+  },
+  "explanation": "## As a distance\n\n$|x - 2|$ is the distance from $x$ to 2 on the real line, so the condition says \"$x$ is less than 3 away from 2\". Everything within 3 of 2 is everything strictly between $2 - 3$ and $2 + 3$:\n\n$$(-1, 5).$$\n\nBoth endpoints are excluded, because the inequality is strict: at $x = -1$ and at $x = 5$ the distance is exactly 3, which is not less than 3.\n\n## Doing it mechanically\n\nIf you would rather not reason about distance:\n\n$$|x-2| < 3 \\iff -3 < x - 2 < 3 \\iff -1 < x < 5.$$\n\nThe first step is the definition of absolute value, and the second adds 2 throughout. Adding a constant to an inequality never changes its direction, which is why this is safe where multiplying by something that might be negative would not be.\n\n## What it is, in the language of the subject\n\nThis set is the open ball $B(2, 3)$ in $\\mathbb{R}$ with the usual metric $d(x,y) = |x-y|$. That is not a reinterpretation — it is the same definition read in the other direction, and it is the reason open balls are the right primitive for talking about convergence and continuity. On the real line every open ball is an open interval centred on its point, and every open interval is an open ball; the metric picture and the interval picture agree.\n\nThey stop agreeing as soon as the ambient space changes. Taken inside $X = [0, 4]$ rather than inside $\\mathbb{R}$, the same ball $B(2,3)$ is $[0, 4]$ — the whole space — because a ball contains the points of $X$ within 3 of 2, and there are no others to include.",
+  "readMore": [
+    {
+      "title": "Open balls in a metric space",
+      "url": "https://en.wikipedia.org/wiki/Ball_(mathematics)"
+    }
+  ]
+}

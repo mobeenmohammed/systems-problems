@@ -1,0 +1,43 @@
+{
+  "id": "oa-fmt-minor-fault-order",
+  "pool": "assessment",
+  "title": "A minor page fault, start to finish",
+  "topic": "os",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "order",
+  "tags": [
+    "page-faults",
+    "virtual-memory",
+    "trap",
+    "page-cache"
+  ],
+  "estimate": 7,
+  "prereqs": [
+    {
+      "concept": "page-faults",
+      "why": "The sequence is the mechanism, and the order is the only thing being asked about."
+    }
+  ],
+  "statement": "A process reads from a page that is mapped but not currently present in its page table. The page happens to be in the page cache already — another process read the same file a moment ago — so this is a **minor** fault and no disk is touched.\n\nPut the seven steps in the order they actually happen, from the instruction that triggers it to the instruction completing.",
+  "payload": {
+    "prompt": "First at the top.",
+    "labels": [
+      "the load is issued",
+      "the load completes"
+    ],
+    "items": [
+      "The kernel finds the page already resident in the page cache, so no disk read is needed.",
+      "The CPU executes a load from a virtual address.",
+      "The kernel returns from the trap, and the CPU re-executes the same instruction, which now completes.",
+      "The MMU walks the page table and finds the entry for that address marked not-present.",
+      "The kernel writes a valid page-table entry pointing at that physical frame, with the right permissions.",
+      "The CPU traps into the kernel, recording the faulting address and enough state to restart the instruction.",
+      "The kernel looks up the address in the process's memory map and confirms it falls inside a mapped region."
+    ]
+  },
+  "hints": [
+    "Two of the seven happen in hardware before the kernel has been given control at all. Find those first and the rest is one path.",
+    "The last step is not \"the kernel returns the value\". Nothing in the kernel knows what the load was loading — it fixes the mapping and lets the instruction run again."
+  ]
+}

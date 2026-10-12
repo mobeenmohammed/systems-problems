@@ -53,6 +53,23 @@
          get "not quite", and find the form blank. Optional —
          a type that has nothing to put back can leave it out.
 
+         It must accept whatever either collect() or partial()
+         produced, because both are written down as drafts.
+
+     partial(mount, problem)
+         What the reader has put down so far, finished or not.
+         Optional, and it defaults to collect().
+
+         The two are different for one reason. collect() is the
+         gate on grading, so it returns null for a half-made
+         answer — three of five pairs matched is not an answer
+         and grading it as wrong would cost a first-try bonus
+         for stopping to think. A draft has the opposite duty:
+         three of five pairs is exactly what must survive
+         navigating to the next question and back, and the type
+         that has a notion of "half done" is the one that has to
+         say what half done looks like.
+
      mark(mount, { response, key, problem, result })
          Paint the outcome onto the widget: which option was
          right, which line was the bug.
@@ -90,6 +107,9 @@ const ProblemTypes = (() => {
       mark:    () => {},
       reveal:  impl.reveal || (() => {}),
       ...impl,
+      /* After the spread, so a type that does not define one gets its
+         own collect() rather than the no-op default above. */
+      partial: impl.partial || impl.collect || (() => null),
       id,
     };
     return types[id];

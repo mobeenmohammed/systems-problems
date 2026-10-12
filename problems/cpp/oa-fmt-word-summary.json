@@ -1,0 +1,57 @@
+{
+  "id": "oa-fmt-word-summary",
+  "pool": "assessment",
+  "title": "Count the words, and measure the longest",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "strings",
+    "loops",
+    "parsing",
+    "one-pass"
+  ],
+  "estimate": 15,
+  "prereqs": [
+    {
+      "concept": "cpp-strings",
+      "why": "Walking a string and taking lengths out of it, without building a container of substrings."
+    },
+    {
+      "concept": "cpp-loops",
+      "why": "The inner loop advances past a whole word, and the outer one must then step over the space."
+    }
+  ],
+  "statement": "Read **one line** from standard input. It is a sequence of words separated by **exactly one space** each, with no leading or trailing space.\n\nPrint two numbers on one line, separated by a single space:\n\n1. how many words the line has;\n2. the length, in characters, of the longest word.\n\n```\ninput:   the quick brown fox\noutput:  4 5\n\ninput:   a\noutput:  1 1\n```\n\n### Guarantees\n\n- The line is non-empty and contains at least one word.\n- Words are made of printable non-space characters. They are not necessarily letters.\n- Separators are exactly one space. There is no leading space, no trailing space, and never two spaces in a row.\n- The line is at most 1,000 characters.\n\n### What the cases will try\n\nA single word; a line where the longest word is first; a line where it is last; several words of equal maximum length; and one-character words beside long ones.",
+  "hints": [
+    "One pass is enough. Walk forwards; when you reach a space you have just finished a word, so you know its length without having stored it.",
+    "The usual off-by-one here is the step after a word: having stopped at a space, the next word starts one character after it, not at it.",
+    "If you build a container of substrings instead, it works — but note you then have to handle the final word, which has no space after it to tell you it ended."
+  ],
+  "payload": {
+    "langs": [
+      "cpp",
+      "python"
+    ],
+    "profile": "standard",
+    "templates": {
+      "cpp": "#include <iostream>\n#include <string>\n#include <vector>\n\nstruct Summary\n{\n    int words;\n    int longest;\n};\n\nSummary summarise(const std::string& line)\n{\n    // your code here: split the line on single spaces and count the\n    // pieces, keeping the length of the longest as you go. One pass is\n    // enough — there is no need to store the words.\n    return Summary{ 0, 0 };\n}\n\nint main()\n{\n    std::string line;\n    std::getline(std::cin, line);\n\n    const Summary s = summarise(line);\n    std::cout << s.words << ' ' << s.longest << '\\n';\n    return 0;\n}\n",
+      "python": "import sys\n\n\ndef summarise(line):\n    # your code here: split the line on single spaces and count the\n    # pieces, keeping the length of the longest as you go. Return the\n    # pair (words, longest).\n    return (0, 0)\n\n\ndef main():\n    line = sys.stdin.readline().rstrip(\"\\n\")\n    words, longest = summarise(line)\n    print(words, longest)\n\n\nmain()\n"
+    },
+    "assessmentTemplates": {
+      "cpp": "#include <iostream>\n#include <string>\n#include <vector>\n\nstruct Summary\n{\n    int words;\n    int longest;\n};\n\nSummary summarise(const std::string& line)\n{\n    // TODO\n    return Summary{ 0, 0 };\n}\n\nint main()\n{\n    std::string line;\n    std::getline(std::cin, line);\n\n    const Summary s = summarise(line);\n    std::cout << s.words << ' ' << s.longest << '\\n';\n    return 0;\n}\n",
+      "python": "import sys\n\n\ndef summarise(line):\n    # TODO\n    return (0, 0)\n\n\ndef main():\n    line = sys.stdin.readline().rstrip(\"\\n\")\n    words, longest = summarise(line)\n    print(words, longest)\n\n\nmain()\n"
+    },
+    "cases": [
+      {
+        "stdin": "the quick brown fox\n",
+        "expect": "4 5\n"
+      },
+      {
+        "stdin": "a\n",
+        "expect": "1 1\n"
+      }
+    ]
+  }
+}

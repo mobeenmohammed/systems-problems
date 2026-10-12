@@ -1,0 +1,33 @@
+{
+  "id": "oa-fmt-double-checked",
+  "pool": "assessment",
+  "title": "The lock is taken. Find the race anyway",
+  "topic": "os",
+  "difficulty": "advanced",
+  "lane": "core",
+  "type": "locate",
+  "tags": [
+    "data-race",
+    "double-checked-locking",
+    "memory-model",
+    "atomics"
+  ],
+  "estimate": 9,
+  "prereqs": [
+    {
+      "concept": "mutual-exclusion",
+      "why": "The bug is a read that is outside the mutex, and seeing it means knowing what the mutex is protecting."
+    }
+  ],
+  "statement": "This is double-checked locking, written out. Several threads call `get()`; the intent is that only the first one pays for the lock.\n\nThere is a data race, and it is undefined behaviour under the C++ memory model however the generated code happens to behave.\n\nClick the line where the race is. If two lines are involved, click the one where the **unsynchronised access** is made.",
+  "payload": {
+    "lang": "cpp",
+    "startLine": 1,
+    "prompt": "Click the line with the race.",
+    "code": "std::mutex m;\nConfig* cfg = nullptr;\n\nConfig* get()\n{\n    if (cfg != nullptr)\n        return cfg;\n\n    std::lock_guard<std::mutex> lock{ m };\n\n    if (cfg == nullptr)\n        cfg = new Config{};\n\n    return cfg;\n}"
+  },
+  "hints": [
+    "Every access to a shared variable has to be either inside the same mutex as every other access, or atomic. Go through the accesses to `cfg` and sort them into those two groups.",
+    "The second check and the write are both under the lock, and they are fine. The question is what else touches `cfg`."
+  ]
+}

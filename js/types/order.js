@@ -103,6 +103,27 @@
       }
     },
 
+    /* Put a saved ordering back. The response is the original indexes in
+       the order they should appear, so the nodes are appended in that
+       order and anything the response does not mention keeps its
+       relative place at the end — a draft written against an older
+       version of the problem file is then still mostly useful instead
+       of throwing the whole thing away. */
+    restore(mount, response) {
+      const want = [].concat(response || []).map(Number).filter(n => Number.isFinite(n));
+      if (!want.length) return;
+      const list = mount.querySelector('.order-list');
+      if (!list) return;
+      const byIndex = new Map(
+        [...list.querySelectorAll('.order-item')].map(n => [Number(n.dataset.i), n]));
+      for (const i of want) {
+        const node = byIndex.get(i);
+        if (node) { list.append(node); byIndex.delete(i); }
+      }
+      for (const node of byIndex.values()) list.append(node);
+      reindex(list);
+    },
+
     /* The DOM order of the original indexes. Always an answer — an untouched
        list is still a claim about the order, just usually a wrong one. */
     collect(mount) {

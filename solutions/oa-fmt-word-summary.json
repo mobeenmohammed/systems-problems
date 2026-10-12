@@ -1,0 +1,54 @@
+{
+  "id": "oa-fmt-word-summary",
+  "key": {
+    "cases": [
+      {
+        "stdin": "hello\n",
+        "expect": "1 5\n"
+      },
+      {
+        "stdin": "x\n",
+        "expect": "1 1\n"
+      },
+      {
+        "stdin": "elephant a b\n",
+        "expect": "3 8\n"
+      },
+      {
+        "stdin": "a b elephant\n",
+        "expect": "3 8\n"
+      },
+      {
+        "stdin": "abcd efgh ijkl\n",
+        "expect": "3 4\n"
+      },
+      {
+        "stdin": "a bb a bb a\n",
+        "expect": "5 2\n"
+      },
+      {
+        "stdin": "x y z w v u t s r q\n",
+        "expect": "10 1\n"
+      },
+      {
+        "stdin": "42 -7 3.14159\n",
+        "expect": "3 7\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n#include <string>\n#include <vector>\n\nstruct Summary\n{\n    int words;\n    int longest;\n};\n\nSummary summarise(const std::string& line)\n{\n    Summary out{ 0, 0 };\n\n    std::size_t i{ 0 };\n    while (i < line.size())\n    {\n        std::size_t j{ i };\n        while (j < line.size() && line[j] != ' ') ++j;\n\n        const int len{ static_cast<int>(j - i) };\n        out.words += 1;\n        if (len > out.longest) out.longest = len;\n\n        i = j + 1;\n    }\n\n    return out;\n}\n\nint main()\n{\n    std::string line;\n    std::getline(std::cin, line);\n\n    const Summary s = summarise(line);\n    std::cout << s.words << ' ' << s.longest << '\\n';\n    return 0;\n}\n",
+      "python": "import sys\n\n\ndef summarise(line):\n    pieces = line.split(\" \")\n    return (len(pieces), max(len(w) for w in pieces))\n\n\ndef main():\n    line = sys.stdin.readline().rstrip(\"\\n\")\n    words, longest = summarise(line)\n    print(words, longest)\n\n\nmain()\n"
+    }
+  },
+  "explanation": "## One pass, and the step over the space\n\nThe shape that works without a container:\n\n```cpp\nstd::size_t i{ 0 };\nwhile (i < line.size())\n{\n    std::size_t j{ i };\n    while (j < line.size() && line[j] != ' ') ++j;\n\n    // [i, j) is one word\n    i = j + 1;          // step over the space, not onto it\n}\n```\n\nThe outer loop's position always sits at the first character of a word. The inner loop runs to the space after it — or to the end of the line, which is why the guard is `j < size()` first and `line[j] != ' '` second. Then `i = j + 1`, which steps **over** the separator. `i = j` is the bug that gives an infinite loop on a line with a space in it, and it is the one most first attempts have.\n\nWhen `j` reached the end of the line, `i = j + 1` is one past the end, the outer condition fails, and the loop stops — so the last word, which has no space after it, needs no special case. That is the whole reason to walk the string rather than to split it.\n\n## The version that splits\n\nIn Python the split version is obviously right and obviously shorter:\n\n```python\npieces = line.split(\" \")\nreturn (len(pieces), max(len(w) for w in pieces))\n```\n\nand it is worth knowing why it is correct here and would not be in general. `split(\" \")` with an explicit separator splits on every single space, so `\"a  b\"` yields `[\"a\", \"\", \"b\"]` — an empty word. The problem guarantees single spaces, so that cannot arise. `line.split()` with no argument collapses runs of whitespace instead, which would be the right call if the input were not guaranteed, and would quietly disagree with the C++ version if it were written to the letter of the loop above.\n\nThat disagreement between two correct-looking programs is the interesting part of this exercise: the guarantees in the statement are what make the two implementations equivalent, and the moment a guarantee is dropped they stop being.\n\n## Getting the output right\n\nTwo numbers, one space, one newline. `std::cout << a << ' ' << b << '\\n'` and `print(a, b)` both produce exactly that. A trailing space before the newline would be forgiven by the judge, which forgives trailing whitespace per line, but a comma or two lines would not be.",
+  "readMore": [
+    {
+      "title": "cppreference: std::string — size, operator[] and iteration",
+      "url": "https://en.cppreference.com/w/cpp/string/basic_string"
+    },
+    {
+      "title": "Python: str.split — the difference between split() and split(\" \")",
+      "url": "https://docs.python.org/3/library/stdtypes.html#str.split"
+    }
+  ]
+}

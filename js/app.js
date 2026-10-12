@@ -244,6 +244,19 @@
       );
     }
 
+    /* The assessment bank, at boot rather than on first visiting the
+       mode. It is two small files, and loading it lazily made
+       `Catalog.meta` a function whose answer depended on where the
+       reader had been this session: a question flagged for review from
+       an assessment appeared on the review list only if `#/assess` had
+       been opened since the last reload, and the dashboard's review
+       count disagreed with the review page for the same reason. The
+       bank is still not in `Catalog.all()`, so nothing lists it and no
+       count of the catalogue changes. */
+    if (typeof Assessments !== 'undefined') {
+      try { await Assessments.load(); } catch { /* the mode reports its own failure */ }
+    }
+
     UI.wire();
 
     /* A failed write means the rest of the session would vanish on reload, so

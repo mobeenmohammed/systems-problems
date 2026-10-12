@@ -1,0 +1,22 @@
+{
+  "id": "oa-fmt-which-section",
+  "key": {
+    "accept": [
+      ".data",
+      "data"
+    ],
+    "pattern": "^\\.?data$",
+    "flags": "i"
+  },
+  "explanation": "## `.data`\n\nTwo properties decide it, and between them they separate the three sections people confuse:\n\n| Section | Writable | Bytes in the file |\n| --- | --- | --- |\n| `.rodata` | no | yes |\n| `.data` | yes | yes |\n| `.bss` | yes | no |\n\n`counter` is not `const`, so it cannot be `.rodata`. Its initial value is not zero, so it cannot be `.bss`: that section has type `SHT_NOBITS`, meaning it occupies address space but **no space in the file**, and the loader is expected to supply zeroed pages. A non-zero initialiser has to come from somewhere, and the only place left is the file.\n\n## What changes the answer\n\n- `int counter = 0;` goes in `.bss`, and the object file gets four bytes smaller. This is why a large zero-initialised array costs nothing on disk and a large non-zero one costs its full size.\n- `const int counter = 7;` goes in `.rodata` — and in C++ also gets internal linkage, so it may not appear as a symbol at all.\n- `static int counter = 7;` is still `.data`; `static` changes the linkage, not the storage.\n- A `constexpr` used only at compile time may be in no section whatever, having been folded into the instructions that read it.\n\nYou can see all of this directly:\n\n```\n$ readelf -S -W a.o | grep -E \"data|bss\"\n$ nm a.o          # D is .data, B is .bss, R is .rodata\n```\n\nLowercase in `nm` output means local rather than global.",
+  "readMore": [
+    {
+      "title": "man 5 elf — section types and flags",
+      "url": "https://man7.org/linux/man-pages/man5/elf.5.html"
+    },
+    {
+      "title": "Linkers and Loaders, John Levine — object file sections",
+      "url": "https://www.iecc.com/linker/"
+    }
+  ]
+}

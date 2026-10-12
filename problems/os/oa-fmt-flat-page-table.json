@@ -1,0 +1,31 @@
+{
+  "id": "oa-fmt-flat-page-table",
+  "pool": "assessment",
+  "title": "The page table nobody builds",
+  "topic": "os",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "numeric",
+  "tags": [
+    "paging",
+    "page-table",
+    "virtual-memory",
+    "arithmetic"
+  ],
+  "estimate": 5,
+  "prereqs": [
+    {
+      "concept": "paging",
+      "why": "It is one division and one multiplication, but only once you know what the table has one entry per."
+    }
+  ],
+  "statement": "A machine has a **1 GiB** virtual address space, **4 KiB** pages, and a page table that is a single flat array with **one 8-byte entry per page**.\n\nHow large is that table, in MiB?\n\nUse binary units throughout: 1 GiB is 2^30 bytes, 1 KiB is 2^10, 1 MiB is 2^20.",
+  "payload": {
+    "unit": "MiB",
+    "placeholder": "e.g. 4",
+    "hintFormat": "A number of MiB."
+  },
+  "hints": [
+    "Work out how many pages the address space is divided into first. The entry size does not come into it until after that."
+  ]
+}

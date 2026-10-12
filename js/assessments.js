@@ -137,8 +137,72 @@ const Assessments = (() => {
     return { prepared: r.engines, failures: out.filter(Boolean) };
   }
 
+  /* ---------------- grading a frozen answer again ----------------
+
+     An execution failure is not a wrong answer, so the attempt records
+     it as ungraded and refuses to produce a pass verdict while one is
+     present. That is honest, and on its own it is a dead end: the
+     reader is told the service failed and given nothing to do about it.
+
+     This is the something to do. It takes the submission that was
+     already made — the program, byte for byte, or the answer object —
+     runs the problem's own grader over it again, and records the
+     result against the attempt.
+
+     What it cannot do is let anybody answer a question after the
+     deadline. It reads the stored submission and never the editor; it
+     refuses any row that is not `errored`; and the attempt's own
+     `resolve` refuses as well. The answer is frozen and this grades
+     the frozen thing. */
+  async function regrade(attemptId, problemId) {
+    const a = await Attempts.get(attemptId);
+    if (!a) return { graded: false, why: 'no such attempt' };
+    const ans = (a.answers || {})[problemId];
+    if (!ans) return { graded: false, why: 'nothing was submitted for it' };
+    if (!ans.errored) return { graded: false, why: 'that answer has already been graded' };
+
+    const def = byId(a.assessmentId);
+    const problem = await Catalog.get(problemId);
+    const solution = await Catalog.solution(problemId);
+    if (!problem || !solution) return { graded: false, why: 'the problem could not be loaded' };
+
+    const impl = ProblemTypes.get(problem.type);
+    if (!impl) return { graded: false, why: `nothing can grade a "${problem.type}"` };
+
+    /* The frozen submission, in the shape its own grader takes. */
+    const response = problem.type === 'code'
+      ? (ans.source ? { lang: ans.lang, source: ans.source } : null)
+      : ans.response;
+    if (response == null) {
+      return { graded: false, why: 'the submission itself was not stored, so there is '
+        + 'nothing to grade again' };
+    }
+
+    let result;
+    try {
+      result = await impl.grade(response, solution.key, problem, solution);
+    } catch (err) {
+      return { graded: false, why: (err && err.message) || String(err) };
+    }
+
+    /* Still nothing. The row stays ungraded and the answer stays where
+       it is — a second failure must not turn into a zero. */
+    if (result.noAttempt) return { graded: false, why: result.feedback || 'still could not run' };
+
+    const w = await Attempts.resolve(attemptId, def, problemId, {
+      submitted: true,
+      correct: !!result.correct,
+      fraction: typeof result.score === 'number' ? result.score : (result.correct ? 1 : 0),
+      lang: result.lang || ans.lang || null,
+      passedCases: result.passed != null ? result.passed : null,
+      totalCases: result.total != null ? result.total : null,
+    });
+    if (!w.ok) return { graded: false, why: w.why };
+    return { graded: true, attempt: w.attempt, result };
+  }
+
   return {
-    load, all, byId, inPool, langsFor, brief, readiness, warmUp,
+    load, all, byId, inPool, langsFor, brief, readiness, warmUp, regrade,
     get error() { return error; },
     get pool() { return pool; },
   };

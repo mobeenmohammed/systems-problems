@@ -1,0 +1,48 @@
+{
+  "id": "oa-fmt-which-ub",
+  "key": {
+    "answers": [
+      0,
+      2,
+      3,
+      4
+    ]
+  },
+  "explanation": "## Four of the six\n\n### Undefined\n\n**`INT_MAX + 1`.** Signed overflow is undefined — not \"wraps\", not \"implementation-defined\". This is the one with real consequences, because the compiler is entitled to assume it never happens: `if (n + 1 < n)` folds to `false`, and a loop whose induction variable cannot overflow can be widened to 64 bits or unrolled. `-fwrapv` buys you the wrapping definition if you want it; `-fsanitize=signed-integer-overflow` tells you where it happens.\n\n**`1 << 32`.** The standard says the behaviour is undefined if the shift count is negative or greater than or equal to the width of the promoted left operand. `int` is 32 bits, so 32 is one too many. x86 happens to mask the count to its low five bits, so this often evaluates to `1`, which is exactly the kind of accident that makes it survive testing.\n\n**Reading an uninitialised `int`.** An automatic object with no initialiser has an indeterminate value, and `int` has no trap representations to make an exception of, so evaluating it is undefined. In practice this is the one that produces impossible debugging sessions: a variable that reads as two different values on two consecutive lines because the compiler kept it in a register the second time.\n\n**Dereferencing a null pointer.** Undefined, and worth saying plainly because the fact that it usually faults is a property of the platform. There are targets with something mapped at address zero.\n\n### Defined\n\n**`UINT_MAX + 1u`.** Unsigned arithmetic is modular, by definition: it is arithmetic modulo two to the power of the number of value bits. The result is zero. This is the asymmetry that catches people — the signed version is undefined and the unsigned version is specified, which is why unsigned wrapping is a *bug class* rather than undefined behaviour, and why `-fsanitize=unsigned-integer-overflow` is not part of UBSan's defaults.\n\n**`&a[2] < &a[5]`.** Comparing pointers into the same array with a relational operator is defined, and gives the answer you expect. It is only comparing pointers into *unrelated* objects that is unspecified — and note that the word there is unspecified, not undefined: you get some answer, you just cannot rely on which.\n\n## The distinction the question is really about\n\nThree categories, and they are not shades of the same thing:\n\n- **Undefined** — the standard imposes no requirements. The compiler may assume it does not occur, and optimise on that basis.\n- **Unspecified** — several behaviours are allowed and you get one of them, but the program is still a program.\n- **Implementation-defined** — unspecified, plus the implementation has to document which one it chose.\n\nOnly the first licenses the compiler to delete your code.",
+  "readMore": [
+    {
+      "title": "cppreference: undefined behaviour",
+      "url": "https://en.cppreference.com/w/cpp/language/ub"
+    },
+    {
+      "title": "What Every C Programmer Should Know About Undefined Behavior (LLVM)",
+      "url": "https://blog.llvm.org/2011/05/what-every-c-programmer-should-know.html"
+    }
+  ],
+  "distractors": {
+    "0": "Undefined. Signed overflow is the one the optimiser acts on: it may assume `n + 1 > n` for every signed `n`, which turns an overflow check into dead code. `-fwrapv` defines it as wrapping if that is what you want.",
+    "1": "Defined. Unsigned arithmetic is modular by definition, so this is zero. The asymmetry with the signed case is the whole point of the question.",
+    "2": "Undefined. The count must be less than the width of the promoted left operand, and `int` is 32 bits. x86 masks the count to five bits, so it often produces `1` and goes unnoticed.",
+    "3": "Undefined. An uninitialised automatic `int` holds an indeterminate value and `int` has no trap representation to make an exception of, so reading it is undefined — and the symptom is a variable that appears to hold two values at once.",
+    "4": "Undefined. That it usually faults is a property of the platform, not a guarantee of the language.",
+    "5": "Defined. Relational comparison of pointers into the same array is well defined and means what it looks like. Comparing pointers into unrelated objects is *unspecified*, which is a different and much weaker problem."
+  },
+  "feedback": {
+    "misconceptions": [
+      {
+        "picked": [
+          0,
+          1
+        ],
+        "say": "One of those two is defined and the other is not, and the difference is the signedness. Work out which way round that goes — it is the reason one of the sanitizers is on by default and the other is not."
+      },
+      {
+        "picked": [
+          5
+        ],
+        "say": "Comparing two pointers into the same array is well defined. You may be thinking of comparing pointers into unrelated objects, which is unspecified rather than undefined — some answer, just not a reliable one."
+      }
+    ],
+    "nudge": "Separate the three things the standard means by \"not guaranteed\": undefined, unspecified, and implementation-defined. Only one of them lets the compiler assume your code never runs."
+  }
+}

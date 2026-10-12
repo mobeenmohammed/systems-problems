@@ -37,6 +37,48 @@ const AssessmentView = (() => {
   let live = null;        /* { attempt, def } while one is on screen */
   let finishing = false;  /* the guard that makes finalising happen once */
 
+  /* ---------------- fullscreen ----------------
+
+     Asked for once, from the Start click, because that is the only
+     moment a browser will grant it — the request has to come out of a
+     user gesture, and the gesture is pressing Start.
+
+     Everything after that is deliberately passive. If the browser
+     refuses, nothing happens and the attempt is unaffected: the
+     full-viewport layout is CSS on `body[data-attempt]` and owes
+     nothing to the Fullscreen API. If the reader presses Escape, they
+     leave fullscreen and stay in the attempt, and nothing asks again —
+     re-requesting on `fullscreenchange` is a page fighting its reader,
+     and it would not work anyway, since leaving fullscreen is not a
+     gesture that grants entering it.
+
+     The flag records only whether we were the ones who asked, so that
+     finishing can put the browser back the way it was found. */
+  let askedFullscreen = false;
+
+  function goFullscreen() {
+    const el0 = document.documentElement;
+    if (!el0.requestFullscreen || document.fullscreenElement) return;
+    try {
+      const r = el0.requestFullscreen({ navigationUI: 'hide' });
+      askedFullscreen = true;
+      /* A rejected promise here is ordinary: a permissions policy, a
+         browser that only allows it from a direct click on a button it
+         recognises, or a reader who has turned it off. */
+      if (r && r.catch) r.catch(() => { askedFullscreen = false; });
+    } catch { askedFullscreen = false; }
+  }
+
+  function dropFullscreen() {
+    if (!askedFullscreen) return;
+    askedFullscreen = false;
+    if (!document.fullscreenElement || !document.exitFullscreen) return;
+    try {
+      const r = document.exitFullscreen();
+      if (r && r.catch) r.catch(() => {});
+    } catch { /* nothing to undo */ }
+  }
+
   function startTicking() {
     stopTicking();
     ticker = setInterval(tick, 1000);
@@ -467,12 +509,58 @@ const AssessmentView = (() => {
     }
   }
 
+  /* Start.
+
+     Two things happen before the clock exists, and the order is the
+     whole point of the pre-flight page: anything that can take time
+     takes it now, on nobody's clock, rather than at question nine with
+     eleven minutes left.
+
+       · fullscreen is requested, from inside this click, because that
+         is the only place a browser will consider it;
+       · every toolchain the assessment needs is downloaded and cached.
+
+     The download is the one that matters. A 44MB Rust toolchain or an
+     11MB clang fetched during the attempt is minutes of the reader's
+     time spent on their connection rather than on the question, and
+     the pre-flight page already offers the button — but an offer that
+     can be skipped is an offer most people skip, and then it is too
+     late to have been warned. */
   async function begin(def) {
+    goFullscreen();
+
+    const btn = $('#oaStart');
+    const say = text => { if (btn) btn.textContent = text; };
+    if (btn) btn.disabled = true;
+
+    try {
+      const r = await Assessments.readiness(def);
+      if (r.engines.length) {
+        say('Downloading the toolchain…');
+        const note = $('#oaWarmNote');
+        await Assessments.warmUp(def, pr => {
+          const pct = pr.percent == null ? '' : ` ${pr.percent}%`;
+          say(`Downloading ${pr.engine}…${pct}`);
+          if (note) note.textContent = `${pr.engine}: ${pr.percent ?? 0}% — the clock has not started.`;
+        });
+      }
+    } catch (err) {
+      /* A toolchain that will not download is not a reason to refuse to
+         start: the attempt records an un-runnable problem as ungraded
+         rather than wrong, which is said on this page before the button
+         is pressed. */
+      UI.toast(`A toolchain could not be downloaded (${(err && err.message) || err}). `
+        + 'You can still start — anything that cannot run is recorded as ungraded.',
+        'bad', 10_000);
+    }
+    say('Starting…');
+
     const r = await Attempts.start(def, {
       langs: Object.fromEntries(def.problems.map(id => [id, Assessments.langsFor(def, id)])),
     });
     if (!r.ok) {
       UI.toast('An attempt is already in progress.', 'bad');
+      if (btn) { btn.disabled = false; say('Start'); }
       return;
     }
     if (r.stored && !r.stored.ok) {
@@ -518,13 +606,28 @@ const AssessmentView = (() => {
     const problemId = def.problems[at];
     live = { attempt, def, problemId, lang: null };
 
+    /* The assessment's own header, and the only one on screen: the site's
+       navigation, the avatar, the purse and the XP are all taken away by
+       CSS while `body[data-attempt]` is set. Six things, because those
+       are the six a reader under a clock actually needs — what this is,
+       how long is left, where they are in it, whether their work is
+       saved, how to finish, and how to get out. */
     host.replaceChildren(
       el('div', { class: 'oa-bar' }, [
         el('span', { class: 'oa-bar-title', text: def.title }),
         el('span', { class: 'oa-clock', id: 'oaClock', 'data-state': 'ok', text: '—' }),
+        el('span', { class: 'oa-progress tiny', id: 'oaProgress' }),
         el('div', { class: 'oa-nav', id: 'oaNav' }),
-        el('button', { class: 'btn btn-sm', type: 'button', id: 'oaFinish' },
-          ['Finish assessment']),
+        el('span', { class: 'oa-save tiny faint', id: 'oaSave', 'data-state': 'idle',
+          text: 'Saved as you work' }),
+        el('div', { class: 'oa-bar-acts' }, [
+          el('button', {
+            class: 'btn btn-sm btn-ghost', type: 'button', id: 'oaExit',
+            title: 'Leave the assessment without finishing it',
+          }, ['Exit']),
+          el('button', { class: 'btn btn-sm', type: 'button', id: 'oaFinish' },
+            ['Finish assessment']),
+        ]),
       ]),
       el('div', { class: 'oa-host', id: 'oaHost' }),
     );
@@ -534,6 +637,8 @@ const AssessmentView = (() => {
 
     const finish = $('#oaFinish');
     if (finish) finish.addEventListener('click', () => askFinish(def, attempt));
+    const exit = $('#oaExit');
+    if (exit) exit.addEventListener('click', () => askExit(def, attempt));
 
     await ProblemView.open(problemId, $('#oaHost'), {
       assess: {
@@ -563,6 +668,14 @@ const AssessmentView = (() => {
      sent; a reader who cannot tell that from "submitted" cannot tell
      what is left to do. */
   function paintNav(def, attempt) {
+    const prog = $('#oaProgress');
+    if (prog) {
+      const done = def.problems.filter(p => Attempts.statusOf(attempt, p) === 'submitted').length;
+      const written = def.problems.filter(p => Attempts.statusOf(attempt, p) === 'attempted').length;
+      prog.textContent = `${at + 1} of ${def.problems.length} · ${done} submitted`
+        + (written ? `, ${written} written` : '');
+    }
+
     const nav = $('#oaNav');
     if (!nav) return;
     nav.replaceChildren(...def.problems.map((pid, i) => {
@@ -581,6 +694,39 @@ const AssessmentView = (() => {
         onclick: () => { location.hash = `#/assess/${def.id}/go/${i + 1}`; },
       }, [String(i + 1)]);
     }));
+  }
+
+  /* Leaving without finishing, which is a different thing from finishing
+     and has to say so. The clock does not stop — it cannot, because it is
+     a deadline rather than a counter, and a deadline that paused when
+     you navigated away would be a deadline anybody could stop. So the
+     confirmation says that, in those words, rather than letting somebody
+     discover it by coming back to a finished attempt. */
+  async function askExit(def, attempt) {
+    const fresh = await Attempts.get(attempt.id) || attempt;
+    const ms = Attempts.msLeft(fresh);
+
+    const lines = ['Leave this assessment?', ''];
+    lines.push('Your answers are saved. The attempt stays open and you can come '
+      + 'back to it from the assessment\u2019s page.');
+    lines.push('');
+    if (ms != null) {
+      lines.push(`The clock does NOT stop. It is a deadline, not a counter, so the `
+        + `${clockText(ms)} left will keep running down while you are away — `
+        + 'including while the tab is closed.');
+      lines.push('');
+      lines.push('If the deadline passes while you are gone, whatever is saved at '
+        + 'that moment is what gets graded.');
+    } else {
+      lines.push('This assessment is untimed, so there is no deadline to run out.');
+    }
+
+    if (!confirm(lines.join('\n'))) return;
+
+    stopTicking();
+    dropFullscreen();
+    live = null;
+    location.hash = `#/assess/${def.id}`;
   }
 
   /* Finishing early is explicit and confirmed, and the confirmation says
@@ -635,13 +781,30 @@ const AssessmentView = (() => {
     const r = a.results || { rows: [] };
     const pct = a.score == null ? null : Math.round(a.score * 100);
 
+    /* The whole problem files, not the index entries. The review needs
+       two things the index does not carry: a proof's rubric, and the
+       option text, so that "you answered 2" can be printed as the
+       sentence the reader actually chose. */
+    const full = {};
+    for (const [id, got] of await Promise.all(r.rows.map(async row =>
+      [row.id, await Catalog.get(row.id).catch(() => null)]))) {
+      full[id] = got;
+    }
+
     const parts = [
       el('div', { class: 'crumbs' }, [
         el('a', { href: '#/assess', text: '← Assessments' }),
       ]),
       el('h1', { text: a.title }),
-      el('p', { class: 'tiny faint', text: `Attempt ${a.ordinal} · version ${a.version}`
-        + ` · started ${new Date(a.startedAt).toLocaleString()}` }),
+      el('p', { class: 'tiny faint', text: [
+        /* A first sitting and a retake are different evidence, and the
+           difference is worth a word rather than an ordinal the reader
+           has to interpret. */
+        a.ordinal > 1 ? `Retake — attempt ${a.ordinal}` : 'First attempt',
+        `version ${a.version}`,
+        `started ${new Date(a.startedAt).toLocaleString()}`,
+        a.timed ? `${a.durationMin} minutes allowed` : 'untimed',
+      ].join(' · ') }),
     ];
 
     parts.push(el('div', { class: 'oa-score', 'data-passed': String(r.passed) }, [
@@ -680,6 +843,7 @@ const AssessmentView = (() => {
           el('span', { class: 'oa-outcome', text: {
             right: 'Right', partial: 'Partly right', wrong: 'Wrong',
             unanswered: 'Not answered', errored: 'Could not be run',
+            review: 'Not marked — yours to review',
           }[row.outcome] || row.outcome }),
         ]),
         el('div', { class: 'tiny faint' }, [
@@ -690,7 +854,19 @@ const AssessmentView = (() => {
           ans.submits ? ` · ${ans.submits} submission${ans.submits === 1 ? '' : 's'}` : '',
         ].filter(Boolean).join('')),
         row.outcome === 'errored'
-          ? el('p', { class: 'small', style: 'color:var(--warn)', text: row.why })
+          ? el('div', {}, [
+            el('p', { class: 'small', style: 'color:var(--warn)', text: row.why }),
+            /* A grading failure is recoverable, and the thing that makes
+               it recoverable is that the answer was frozen: retrying
+               runs the same submitted program again, and cannot be used
+               to edit an answer after the deadline. */
+            el('button', {
+              class: 'btn btn-sm', type: 'button', 'data-regrade': row.id,
+            }, ['Try grading it again']),
+            el('span', { class: 'tiny faint', style: 'margin-left:.5rem',
+              text: 'Runs the answer you submitted, exactly as you submitted it. '
+                + 'It cannot be edited now.' }),
+          ])
           : null,
         /* The program, whole. It was kept whole on purpose. */
         ans.source
@@ -699,6 +875,19 @@ const AssessmentView = (() => {
             el('pre', {}, [el('code', { text: ans.source })]),
           ])
           : null,
+        /* And the answer, for everything that is not a program. It was
+           stored; not showing it made the review of a nine-question
+           paper a list of verdicts with no way to see what had been
+           said. */
+        (!ans.source && ans.response != null)
+          ? el('details', { class: 'oa-source', open: row.outcome !== 'right' || undefined }, [
+            el('summary', { class: 'small', text: 'What you answered' }),
+            el('pre', {}, [el('code', { text: answerText(full[row.id], ans.response) })]),
+          ])
+          : null,
+        /* A written proof: the rubric, and a mark that is explicitly the
+           reader's own. Nothing here has read the proof. */
+        row.outcome === 'review' ? proofBox(full[row.id], row, ans) : null,
         /* Where to go and read about it. The concepts the problem names
            are the honest answer to "what did I miss". */
         (meta.prereqs || []).length
@@ -712,9 +901,16 @@ const AssessmentView = (() => {
             '.',
           ])
           : null,
-        /* Now it is over, the problem is readable like any other. */
-        el('p', { class: 'tiny' }, [
-          el('a', { href: `#/p/${row.id}`, text: 'Open the problem and its solution →' }),
+        /* Now it is over, the problem is readable like any other — and
+           reading it there is scored as nothing, which is what makes
+           linking to it safe. */
+        el('div', { class: 'oa-result-acts' }, [
+          el('a', { class: 'tiny', href: `#/p/${row.id}`,
+            text: 'Open the problem and its solution →' }),
+          el('button', {
+            class: 'btn btn-sm btn-ghost', type: 'button', 'data-flag': row.id,
+            'aria-pressed': String(!!Store.record(row.id).flagged),
+          }, [Store.record(row.id).flagged ? '★ On your review list' : '☆ Add to review']),
         ]),
       ]);
     })));
@@ -729,6 +925,135 @@ const AssessmentView = (() => {
     }
 
     host.replaceChildren(...parts.filter(Boolean));
+
+    /* Adding a question to the review list. Deliberately only the flag:
+       it puts the question on the review list with the reason "you
+       bookmarked it", and changes nothing about a solved status, an XP
+       total or a catalogue count — an assessment question has none of
+       those and must not acquire any. */
+    for (const btn of host.querySelectorAll('[data-flag]')) {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.flag;
+        const meta = Catalog.meta(id);
+        if (!meta) return;
+        const on = !Store.record(id).flagged;
+        Store.setFlag(meta, on);
+        btn.setAttribute('aria-pressed', String(on));
+        btn.textContent = on ? '★ On your review list' : '☆ Add to review';
+        UI.toast(on
+          ? 'Added to your review list. Nothing about your progress changed.'
+          : 'Taken off your review list.', 'info');
+      });
+    }
+
+    for (const btn of host.querySelectorAll('[data-regrade]')) {
+      btn.addEventListener('click', () => regrade(a, btn.dataset.regrade, btn));
+    }
+
+    for (const btn of host.querySelectorAll('[data-selfmark]')) {
+      btn.addEventListener('click', async () => {
+        const [id, verdict] = btn.dataset.selfmark.split('|');
+        await Attempts.selfMark(a.id, id, verdict || null);
+        renderReview(a.id);
+      });
+    }
+  }
+
+  /* An answer that is not a program, written out so it can be read. The
+     shapes are the ones the graders take, and each is printed as the
+     thing it means rather than as JSON. */
+  function answerText(problem, response) {
+    const pay = (problem && problem.payload) || {};
+    const opts = pay.options || [];
+    const items = pay.items || [];
+    const left = pay.left || [];
+    const right = pay.right || [];
+    /* One line of an option, short enough to read in a list. */
+    const line = (xs, i) => (xs[i] == null ? `#${i}` : String(xs[i]).replace(/\s+/g, ' ').slice(0, 110));
+
+    if (typeof response === 'string') return response;
+
+    /* mcq — one index into the options. */
+    if (typeof response === 'number' && opts.length) return `${response + 1}. ${line(opts, response)}`;
+    if (typeof response === 'number') return String(response);
+
+    if (Array.isArray(response)) {
+      /* multi — indexes into the options. */
+      if (opts.length) return response.map(i => `${Number(i) + 1}. ${line(opts, Number(i))}`).join('\n');
+      /* order — the items, in the order given. */
+      if (items.length) return response.map((i, at) => `${at + 1}. ${line(items, Number(i))}`).join('\n');
+      /* match — the right index chosen for each left item. */
+      if (left.length) {
+        return response.map((j, i) => `${line(left, i)}  →  ${
+          j == null ? '(unpaired)' : line(right, Number(j))}`).join('\n');
+      }
+      return response.join(', ');
+    }
+
+    /* A half-finished pairing, which is the sparse map partial() makes. */
+    if (response && typeof response === 'object') {
+      return Object.entries(response)
+        .map(([k, v]) => `${line(left, Number(k))}  →  ${line(right, Number(v))}`).join('\n');
+    }
+    return String(response);
+  }
+
+  /* ---------------- a written proof, after the clock ----------------
+
+     Nothing here has marked it and nothing here will. What this gives
+     is the three things that make a self-review a real review: the
+     rubric to read it against, the proof as it was written, and a mark
+     that is recorded as the reader's own opinion and is never added to
+     the automatic score. */
+  function proofBox(problem, row, ans) {
+    const rubric = (((problem || {}).payload) || {}).rubric || [];
+    const mark = ans.selfMark ? ans.selfMark.verdict : null;
+
+    const choice = (value, label) => el('button', {
+      class: 'btn btn-sm', type: 'button',
+      'data-selfmark': `${row.id}|${value}`,
+      'aria-pressed': String(mark === value),
+    }, [label]);
+
+    return el('div', { class: 'oa-proof' }, [
+      el('p', { class: 'small', text: 'Nothing in this site marks a written proof. '
+        + 'Read yours against the rubric, one line at a time, and then record what '
+        + 'you think. What you record is kept as your judgement and is not added to '
+        + 'the score above.' }),
+      rubric.length
+        ? el('details', { open: true }, [
+          el('summary', { class: 'small', text: 'The rubric' }),
+          el('ul', { class: 'oa-rubric' }, rubric.map(line => el('li', { html: MD.renderInline(line) }))),
+        ])
+        : null,
+      el('div', { class: 'row', style: 'gap:.4rem;flex-wrap:wrap' }, [
+        el('span', { class: 'tiny faint', text: 'Your own mark:' }),
+        choice('sound', 'Sound'),
+        choice('gap', 'A gap in it'),
+        choice('wrong', 'Not a proof'),
+        mark ? el('button', { class: 'btn btn-sm btn-ghost', type: 'button',
+          'data-selfmark': `${row.id}|` }, ['Clear']) : null,
+      ]),
+      el('p', { class: 'tiny faint', id: `selfmark-${row.id}`,
+        text: mark ? `Recorded as "${mark}". The automatic score above does not include it.` : '' }),
+    ]);
+  }
+
+  /* Re-running a submission that could not be graded. The answer is
+     frozen: this re-grades what was submitted and cannot change it. */
+  async function regrade(attempt, problemId, btn) {
+    btn.disabled = true;
+    btn.textContent = 'Grading…';
+    const ok = await Assessments.regrade(attempt.id, problemId);
+    if (ok && ok.graded) {
+      UI.toast('Graded. The score has been recomputed.', 'good');
+      renderReview(attempt.id);
+      return;
+    }
+    btn.disabled = false;
+    btn.textContent = 'Try grading it again';
+    UI.toast(`Still could not be run: ${(ok && ok.why) || 'no runner'}. Your answer is `
+      + 'untouched and the problem stays ungraded.', 'bad', 9000);
   }
 
   /* Leaving the mode entirely: the ticker must not outlive the page it
@@ -736,6 +1061,10 @@ const AssessmentView = (() => {
      attempt's drafts. */
   function leave() {
     stopTicking();
+    /* The browser goes back the way it was found. Only if we were the
+       ones who put it in fullscreen — a reader who was already there
+       for their own reasons keeps it. */
+    dropFullscreen();
     live = null;
     clearTimeout(navTimer);
     /* And empty it. The view is hidden either way, but a hidden

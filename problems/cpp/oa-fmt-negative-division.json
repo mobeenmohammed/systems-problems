@@ -1,0 +1,34 @@
+{
+  "id": "oa-fmt-negative-division",
+  "pool": "assessment",
+  "title": "Dividing by two, the wrong way",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "predict",
+  "tags": [
+    "integer-division",
+    "modulo",
+    "truncation",
+    "signed"
+  ],
+  "estimate": 6,
+  "prereqs": [
+    {
+      "concept": "cpp-integer-types",
+      "why": "Every line is decided by which way integer division rounds, and by the identity that forces `%` to agree with it."
+    }
+  ],
+  "statement": "Say exactly what this prints.\n\nFour lines. Two divisions and two remainders, with the sign on a different operand each time.\n\nThe rule to apply is the one C++11 settled, and there is one identity that forces `%` to follow `/` rather than being free to choose.",
+  "payload": {
+    "lang": "cpp",
+    "lines": 4,
+    "verifyAs": "cpp",
+    "prompt": "Four lines of output, exactly.",
+    "code": "#include <iostream>\n\nint main()\n{\n    std::cout << -7 / 2 << '\\n';\n    std::cout << -7 % 2 << '\\n';\n    std::cout << 7 / -2 << '\\n';\n    std::cout << 7 % -2 << '\\n';\n\n    return 0;\n}"
+  },
+  "hints": [
+    "Integer division in C++ truncates — it rounds towards zero, not towards minus infinity. That settles both division lines on its own.",
+    "For the remainders, use `(a / b) * b + a % b == a`. Once you know the quotient, the remainder is not a separate decision."
+  ]
+}

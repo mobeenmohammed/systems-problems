@@ -1,0 +1,18 @@
+{
+  "id": "oa-fmt-flat-page-table",
+  "key": {
+    "value": 2,
+    "rtol": 0.005
+  },
+  "explanation": "## Two steps\n\nThe table has one entry per **page**, so the first question is how many pages there are:\n\n    2^30 bytes / 2^12 bytes = 2^18 = 262,144 pages\n\nand the second is how much space those entries take:\n\n    2^18 * 8 bytes = 2^18 * 2^3 = 2^21 bytes = 2 MiB\n\nWorking in powers of two keeps it to subtraction: 30 − 12 + 3 = 21, and 2^21 is 2 MiB.\n\n## Why the question exists\n\nTwo megabytes sounds survivable, which is the trap. Do it again for a 48-bit address space, which is what x86-64 actually gives a process:\n\n    48 − 12 + 3 = 39, so 2^39 bytes = 512 GiB\n\nper process, for the table alone. That is why no real machine has a flat page table. x86-64 uses four levels (five with LA57), and the saving is not in the arithmetic but in the **sparseness**: a level that has no mapped pages under it is one absent entry rather than a subtable, so a process using a few megabytes of a 48-bit space pays for a handful of 4 KiB tables instead of 512 GiB.\n\nThe cost is that a miss now walks four levels — four dependent memory reads before the access can proceed — which is what the TLB exists to avoid, and why a TLB miss is expensive in a way an L1 miss is not.",
+  "readMore": [
+    {
+      "title": "Intel SDM Vol. 3A, chapter 4: paging",
+      "url": "https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html"
+    },
+    {
+      "title": "Linux: five-level page tables",
+      "url": "https://docs.kernel.org/arch/x86/x86_64/5level-paging.html"
+    }
+  ]
+}

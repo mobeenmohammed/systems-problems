@@ -1,0 +1,31 @@
+{
+  "id": "oa-fmt-abs-inequality",
+  "pool": "assessment",
+  "title": "Where the inequality holds",
+  "topic": "metric",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "structured",
+  "tags": [
+    "absolute-value",
+    "intervals",
+    "open-balls"
+  ],
+  "estimate": 5,
+  "prereqs": [
+    {
+      "concept": "open-balls",
+      "why": "The set asked for is exactly an open ball on the real line, written as an interval."
+    }
+  ],
+  "statement": "Give the set of real numbers $x$ satisfying\n\n$$|x - 2| < 3.$$\n\nWrite it as an interval. Use a round bracket for an endpoint that is excluded and a square bracket for one that is included.",
+  "payload": {
+    "kind": "intervals",
+    "prompt": "The set of all $x$ with $|x - 2| < 3$.",
+    "label": "The set is",
+    "placeholder": "e.g. (0,1] or [0,1)"
+  },
+  "hints": [
+    "Read the expression as a distance: $|x - 2|$ is how far $x$ is from 2. The condition is a statement about that distance."
+  ]
+}

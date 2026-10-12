@@ -1,0 +1,27 @@
+{
+  "id": "oa-fmt-double-checked",
+  "key": {
+    "line": 6,
+    "why": "Line 6 reads `cfg` with no lock held and no atomic, while line 12 may be writing it. Two accesses to the same non-atomic object, one of them a write, not ordered by anything: that is the definition of a data race."
+  },
+  "explanation": "## Line 6\n\n```cpp\nif (cfg != nullptr)     // unsynchronised read\n```\n\nwhile another thread may be executing\n\n```cpp\ncfg = new Config{};     // write, under the lock\n```\n\nHolding the mutex on one side does not help. A mutex orders accesses that **all** take it; a thread that does not take it is not ordered against anything. Two accesses to the same non-atomic object from different threads, at least one a write, with no happens-before relation between them, is a data race, and a data race is undefined behaviour — not \"a stale value sometimes\".\n\n## What actually goes wrong\n\nThere are two separate failures, and the famous one is the second.\n\n**Tearing or a stale read.** On the platforms this idiom was written for, a pointer-sized load is atomic in practice, so you read either the old or the new value, and either is survivable. This is why the bug does not show up in testing.\n\n**Reordering.** `cfg = new Config{}` is three things: allocate, run the constructor, store the pointer. Nothing in the original code stops the compiler or the hardware making the store visible before the constructor's writes. Another thread then passes line 6 with a non-null pointer and returns a `Config` that is still being constructed. The reader sees uninitialised fields, and the lock was taken correctly the whole time.\n\nThis is exactly the bug behind the \"C++ and the Perils of Double-Checked Locking\" paper, and the reason the pattern is in textbooks as an example of something that cannot be fixed by being careful.\n\n## The fixes\n\nMake the fast path atomic, and the ordering explicit:\n\n```cpp\nstd::atomic<Config*> cfg{ nullptr };\n\nConfig* get()\n{\n    Config* p = cfg.load(std::memory_order_acquire);\n    if (p) return p;\n\n    std::lock_guard lock{ m };\n    p = cfg.load(std::memory_order_relaxed);\n    if (!p) {\n        p = new Config{};\n        cfg.store(p, std::memory_order_release);\n    }\n    return p;\n}\n```\n\nThe release/acquire pair is what makes the constructor's writes visible to a thread that saw the pointer. Or, much better, let the language do it:\n\n```cpp\nConfig& get()\n{\n    static Config cfg{};   // thread-safe since C++11\n    return cfg;\n}\n```\n\nInitialisation of a function-local `static` is required to be thread-safe, and implementations use a guard variable with the acquire/release pair already in it. `std::call_once` is the same guarantee when the thing being initialised is not a single object.\n\n## Finding it\n\nThreadSanitizer reports this in one run — it tracks happens-before rather than looking for a symptom, so it does not depend on the race actually misbehaving. That is the argument for `-fsanitize=thread` in CI: this class of bug is invisible to testing by construction.",
+  "readMore": [
+    {
+      "title": "Meyers & Alexandrescu: C++ and the Perils of Double-Checked Locking",
+      "url": "https://www.aristeia.com/Papers/DDJ_Jul_Aug_2004_revised.pdf"
+    },
+    {
+      "title": "cppreference: memory order — release/acquire",
+      "url": "https://en.cppreference.com/w/cpp/atomic/memory_order"
+    }
+  ],
+  "feedback": {
+    "lines": {
+      "9": "The `lock_guard` is correct, and it is doing what it says. A mutex orders the threads that take it against each other — it cannot order a thread that never takes it. Look for an access that is outside it.",
+      "11": "The second check is under the lock, together with the write, so those two are properly ordered against each other. That much of the idiom is right.",
+      "12": "The write is under the lock, so it is ordered against every other access that also takes the lock. The problem is an access that does not.",
+      "14": "This return is under the lock, so the read it does is fine."
+    },
+    "nudge": "List every line that touches `cfg` and mark which of them hold the mutex. The race is between a pair, and one of that pair is unprotected."
+  }
+}

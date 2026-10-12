@@ -1,0 +1,38 @@
+{
+  "id": "oa-fmt-which-ub",
+  "pool": "assessment",
+  "title": "Which of these are undefined behaviour",
+  "topic": "cpp",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "multi",
+  "tags": [
+    "undefined-behaviour",
+    "integer-overflow",
+    "shifts",
+    "pointers"
+  ],
+  "estimate": 6,
+  "prereqs": [
+    {
+      "concept": "undefined-behaviour",
+      "why": "Three of the six are decided by what the standard says about integer arithmetic rather than by what the hardware does."
+    }
+  ],
+  "statement": "Assume a mainstream implementation: `int` is 32 bits, two's complement.\n\nTick every expression whose behaviour is **undefined** by the C++ standard. Not unspecified, not implementation-defined — undefined.\n\nWhat the hardware happens to do is not the question.",
+  "payload": {
+    "prompt": "Tick every one that is undefined behaviour.",
+    "options": [
+      "`int n = INT_MAX; n + 1`",
+      "`unsigned u = UINT_MAX; u + 1u`",
+      "`int n = 1; n << 32`",
+      "`int n; std::cout << n;` — with `n` never assigned",
+      "`int* p = nullptr; *p`",
+      "`int a[8]; &a[2] < &a[5]`"
+    ]
+  },
+  "hints": [
+    "Two of the six are explicitly *defined* by the standard, and in both cases the definition is the thing people assume must be undefined because the signed version is.",
+    "For the shift, the rule is about the width of the promoted left operand, and it does not matter what the CPU's shift instruction does with a count of 32."
+  ]
+}

@@ -18,12 +18,21 @@
        easiest mistake to make here
      · a language permitted for a problem that the problem does not
        offer
+     · a problem whose TYPE the assessment mode cannot present. Every
+       type in the list below has a renderer, an answer that can be
+       collected, a draft that survives a reload and a grader; a type
+       that is not in the list would render as a statement with no way
+       to answer it, which is exactly the bug this check exists to stop
+       shipping again
      · a weight that is not a positive number, or a pass mark outside
        0..1
      · a duration that is not a positive number of minutes (null is
        fine and means untimed)
      · feedback settings that are not one of the values the mode
-       understands */
+       understands
+     · a coding exercise with no neutral assessment starter, a starter
+       that is still the teaching template, or a starter with the
+       reference solution in it */
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -44,12 +53,65 @@ export function checkAssessments() {
   if (!Array.isArray(doc.assessments)) return ['data/assessments.json: no "assessments" array'];
 
   const bank = read('data/assessment-index.json');
+
+  /* The whole problem files, which the index does not carry: the
+     starters live in `payload` and this is the only check that reads
+     them. */
+  const files = {};
+  for (const dir of fs.readdirSync(path.join(ROOT, 'problems'))) {
+    const d = path.join(ROOT, 'problems', dir);
+    if (!fs.statSync(d).isDirectory()) continue;
+    for (const f of fs.readdirSync(d)) {
+      if (!f.endsWith('.json')) continue;
+      try {
+        const j = JSON.parse(fs.readFileSync(path.join(d, f), 'utf8'));
+        if (j && j.id) files[j.id] = j;
+      } catch { /* content.test.mjs is what reports an unparseable file */ }
+    }
+  }
   const catalogue = read('data/index.json');
   const byId = Object.fromEntries(bank.map(p => [p.id, p]));
   const inCatalogue = new Set(catalogue.map(p => p.id));
 
   const seen = new Set();
   const DURING = ['samples', 'none'];
+
+  /* The types an attempt can actually present.
+
+     This list is not "every type the site has". It is the types that,
+     inside an assessment, have all four of: a widget with working
+     controls, a collect() that reads it back, a draft that survives
+     navigating away and reloading, and a grader — or, for `proof`, an
+     explicit refusal to grade that the mode knows how to carry.
+
+     The bug that put this check here: a definition could name any
+     problem at all, and anything that was not `code` rendered its
+     statement into a row that could not scroll, with its answer box cut
+     off and its Submit button below the window. A type that cannot be
+     answered must be refused at validation rather than displayed. */
+  const TYPES = {
+    mcq: 'single choice',
+    multi: 'select all, partial credit',
+    numeric: 'a number within a tolerance',
+    short: 'a word or a flag',
+    predict: 'say what it prints',
+    order: 'put in order',
+    match: 'pair the columns',
+    locate: 'click the line with the bug',
+    /* Maths. Structured answers are compared symbolically, not by
+       sampling a few points. */
+    exact: 'an exact expression',
+    approx: 'a number to a tolerance',
+    structured: 'a structured maths answer',
+    proofsteps: 'why each step follows',
+    counterexample: 'a counterexample, checked',
+    /* Written out, and never marked by a machine: recorded as ungraded,
+       held out of the automatic total, and read against the rubric by
+       the reader after the clock stops. Allowed because the mode says
+       so out loud, not because anything here verifies a proof. */
+    proof: 'a written proof — self-reviewed, never auto-graded',
+    code: 'compiled and run against tests',
+  };
 
   for (const a of doc.assessments) {
     const where = `assessments/${a.id || '(no id)'}`;
@@ -83,7 +145,14 @@ export function checkAssessments() {
     if (dupes.length) err(where, `lists the same problem twice: ${[...new Set(dupes)].join(', ')}`);
 
     for (const pid of a.problems) {
-      if (byId[pid]) continue;
+      if (byId[pid]) {
+        const t = byId[pid].type;
+        if (!TYPES[t]) {
+          err(where, `"${pid}" is a "${t}" problem, which the assessment mode `
+            + `cannot present. Supported: ${Object.keys(TYPES).join(', ')}`);
+        }
+        continue;
+      }
       if (inCatalogue.has(pid)) {
         err(where, `"${pid}" is in the practice catalogue. An assessment problem must `
           + 'carry "pool": "assessment" so it is not one you have already met');
@@ -125,6 +194,76 @@ export function checkAssessments() {
     if (fb.solutions === true) {
       err(where, 'feedback.solutions cannot be true — an assessment with a Solution '
         + 'tab is not an assessment');
+    }
+  }
+
+  /* ---------------- assessment starter code ----------------
+
+     A practice template is allowed to teach: it carries the signature
+     and then says, in comments, what to do inside it. Under a clock
+     that is the answer, so an assessment coding exercise carries a
+     second starter with the interface and none of the method.
+
+     Checked here rather than trusted, because the failure is silent:
+     an assessment with a coaching template still works, still runs,
+     still scores — and has handed over the algorithm. */
+  const COACHING = [
+    /your code here/i,
+    /\bhint\b/i,
+    /\bstep 1\b/i,
+    /first,? (?:walk|loop|iterate|count|read all)/i,
+  ];
+
+  for (const p of bank) {
+    if (p.type !== 'code') continue;
+    const full = files[p.id];
+    if (!full) { err(`bank/${p.id}`, 'no problem file found for it'); continue; }
+    const pay = full.payload || {};
+    const langs = pay.langs || [];
+    const neutral = pay.assessmentTemplates || {};
+    const teaching = pay.templates || {};
+
+    /* The reference, for the disclosure check. A line of it that is NOT
+       also in the teaching template is method rather than interface —
+       so finding one in the starter is finding part of the answer. The
+       shared lines (the includes, the signatures, the harness) are
+       exactly the ones that are supposed to be in both. */
+    let reference = {};
+    try {
+      reference = (read(`solutions/${p.id}.json`).key || {}).reference || {};
+    } catch { /* checked elsewhere */ }
+
+    for (const lang of langs) {
+      const where = `bank/${p.id} [${lang}]`;
+      const starter = neutral[lang];
+      if (starter == null) {
+        err(where, 'a coding exercise in the assessment pool needs '
+          + 'payload.assessmentTemplates for every language it offers — the '
+          + 'practice template teaches the method, which under a clock is the answer');
+        continue;
+      }
+      if (teaching[lang] != null && starter === teaching[lang]) {
+        err(where, 'the assessment starter is byte-identical to the teaching '
+          + 'template, so it is not an assessment starter');
+      }
+      for (const re of COACHING) {
+        if (re.test(starter)) {
+          err(where, `the assessment starter still contains coaching (${re})`);
+        }
+      }
+      const ref = reference[lang];
+      if (typeof ref === 'string') {
+        const shared = new Set(
+          String(teaching[lang] || '').split('\n').map(l => l.trim()));
+        const leaked = ref.split('\n')
+          .map(l => l.trim())
+          .filter(l => l.length >= 24 && !shared.has(l))
+          .filter(l => starter.includes(l));
+        if (leaked.length) {
+          err(where, `the assessment starter contains ${leaked.length} line(s) of the `
+            + `reference solution, e.g. ${JSON.stringify(leaked[0].slice(0, 60))}`);
+        }
+      }
     }
   }
 

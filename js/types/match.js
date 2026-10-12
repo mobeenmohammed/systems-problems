@@ -125,6 +125,41 @@
       return Array.from({ length: left }, (_, i) => pairs[i]);
     },
 
+    /* Half a pairing, for the draft. collect() returning null for it is
+       right — it is not an answer — but it is three minutes of work and
+       it has to survive going to the next question and coming back, so
+       it is written down as the sparse map it actually is. */
+    partial() {
+      return Object.keys(pairs).length ? { ...pairs } : null;
+    },
+
+    /* Accepts either shape: the dense array collect() produces, or the
+       sparse map partial() produces. */
+    restore(mount, response) {
+      pairs = {};
+      picked = null;
+      if (Array.isArray(response)) {
+        response.forEach((j, i) => { if (j != null && Number.isFinite(Number(j))) pairs[i] = Number(j); });
+      } else if (response && typeof response === 'object') {
+        for (const [k, v] of Object.entries(response)) {
+          if (Number.isFinite(Number(k)) && Number.isFinite(Number(v))) pairs[Number(k)] = Number(v);
+        }
+      }
+      /* A right item cannot serve two left items, and a draft written
+         against an older problem file could claim one that no longer
+         exists. Both are dropped rather than repainted into a state the
+         widget cannot represent. */
+      const rights = mount.querySelectorAll('.match-item[data-side="right"]').length;
+      const lefts = mount.querySelectorAll('.match-item[data-side="left"]').length;
+      const taken = new Set();
+      for (const k of Object.keys(pairs)) {
+        const j = pairs[k];
+        if (Number(k) >= lefts || j >= rights || taken.has(j)) delete pairs[k];
+        else taken.add(j);
+      }
+      repaint(mount);
+    },
+
     /* key: { pairs: [2, 0, 1, …] } — the right index for each left item.
 
        Scored on how many pairs are right, because "four of six" tells you the

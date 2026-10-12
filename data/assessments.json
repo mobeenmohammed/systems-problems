@@ -35,7 +35,10 @@
         "oa-run-length"
       ],
       "langs": {
-        "oa-run-length": ["cpp", "python"]
+        "oa-run-length": [
+          "cpp",
+          "python"
+        ]
       },
       "scoring": {
         "policy": "weighted",
@@ -49,6 +52,49 @@
       },
       "feedback": {
         "duringAttempt": "samples",
+        "hints": false,
+        "solutions": false
+      }
+    },
+    {
+      "id": "oa-mixed-formats",
+      "version": 1,
+      "title": "Every format, once",
+      "description": "Eleven short questions, one in each of the formats this site can ask under a clock: a single choice, a select-all, a number, a short answer, a predicted output, an ordering, a matching, a line to find a race on, a structured maths answer, a written proof, and one program to write. Sitting it is the quickest way to find out what each format asks of you when hints, solutions and feedback are all switched off. Nothing is reported until you finish, and the proof is not marked by anything here at all.",
+      "durationMin": 40,
+      "difficulty": "intermediate",
+      "problems": [
+        "oa-fmt-map-private",
+        "oa-fmt-which-ub",
+        "oa-fmt-flat-page-table",
+        "oa-fmt-which-section",
+        "oa-fmt-negative-division",
+        "oa-fmt-minor-fault-order",
+        "oa-fmt-invalidation",
+        "oa-fmt-double-checked",
+        "oa-fmt-abs-inequality",
+        "oa-fmt-proof-even-square",
+        "oa-fmt-word-summary"
+      ],
+      "langs": {
+        "oa-fmt-word-summary": [
+          "cpp",
+          "python"
+        ]
+      },
+      "scoring": {
+        "policy": "weighted",
+        "weights": {
+          "oa-fmt-word-summary": 3,
+          "oa-fmt-invalidation": 2,
+          "oa-fmt-double-checked": 2,
+          "oa-fmt-minor-fault-order": 2
+        },
+        "partialCredit": true,
+        "passMark": null
+      },
+      "feedback": {
+        "duringAttempt": "none",
         "hints": false,
         "solutions": false
       }

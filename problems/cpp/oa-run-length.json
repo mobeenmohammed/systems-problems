@@ -48,6 +48,10 @@
         "stdin": "decode a3bc2d5\n",
         "expect": "aaabccddddd\n"
       }
-    ]
+    ],
+    "assessmentTemplates": {
+      "cpp": "#include <iostream>\n#include <string>\n\nstd::string encode(const std::string& s)\n{\n    // TODO\n    return s;\n}\n\nstd::string decode(const std::string& s)\n{\n    // TODO\n    return s;\n}\n\nint main()\n{\n    std::string what;\n    std::cin >> what;\n\n    std::string payload;\n    std::getline(std::cin, payload);\n    if (!payload.empty() && payload.front() == ' ') payload.erase(0, 1);\n\n    std::cout << (what == \"encode\" ? encode(payload) : decode(payload)) << '\\n';\n    return 0;\n}\n",
+      "python": "import sys\n\n\ndef encode(s):\n    # TODO\n    return s\n\n\ndef decode(s):\n    # TODO\n    return s\n\n\ndef main():\n    line = sys.stdin.readline().rstrip(\"\\n\")\n    what, _, payload = line.partition(\" \")\n    print(encode(payload) if what == \"encode\" else decode(payload))\n\n\nmain()\n"
+    }
   }
 }

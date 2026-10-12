@@ -58,6 +58,186 @@ const ProblemView = (() => {
 
   const inAssessment = () => !!assess;
 
+  /* ---------------- answers that are not code ----------------
+
+     The reported bug had two halves, and the second one is this.
+
+     A code problem's answer is the editor's contents, and the editor has
+     saved every keystroke to a draft since the day it was written. Every
+     OTHER kind of answer — a ticked option, a predicted output, an
+     ordering, a pairing, a chosen line — lived nowhere but in the DOM.
+     In practice that is survivable: you answer and submit on one screen.
+     Inside an assessment it is not, because moving to question 2 and
+     back rebuilds the widget from the problem file, and a reload throws
+     the page away entirely. The answer was simply gone, and the
+     navigator could not show "written, not sent" either, because there
+     was nothing written down to see.
+
+     So every type now has a draft, in one slot, through the same hook
+     the editor uses: in practice it goes to the problem's record, and
+     during an attempt it goes to the attempt. One mechanism, no copies
+     of the renderers, and the half-finished ordering you left on
+     question 3 is still there when you come back to it.
+
+     `code` and `proof` are excluded because they already save their own
+     — the editor per language, the proof box under `proof` — and a
+     second writer on the same answer is a race, not a backup. */
+  const ANSWER_SLOT = '_answer';
+  const SELF_SAVING = new Set(['code', 'proof']);
+
+  const drafts = p => !SELF_SAVING.has(p.type);
+
+  /* What to put back into a freshly rendered widget, newest first:
+
+       the draft          what the reader last touched, which is the only
+                          thing that can be newer than a submission;
+       the recorded answer  inside an attempt, what was submitted — which
+                          matters for the types whose widget has a
+                          default position, because `order` collects an
+                          answer from an untouched list and so never
+                          writes a draft until something is dragged.
+
+     Outside an attempt there is no recorded answer to fall back on: the
+     practice store keeps verdicts, not responses. */
+  function savedResponse(p) {
+    if (!drafts(p)) return undefined;
+    const raw = Store.draft(p.id, ANSWER_SLOT);
+    if (raw) {
+      try { return JSON.parse(raw); } catch { /* a draft we cannot read is no draft */ }
+    }
+    if (assess) {
+      const ans = (assess.attempt.answers || {})[p.id];
+      if (ans && ans.response != null) return ans.response;
+    }
+    return undefined;
+  }
+
+  /* Saved on the same three events that already mark a verdict stale,
+     debounced, and only when the reader has actually touched something:
+     collecting on render would write a draft for every `order` problem
+     the moment it was opened, and the navigator would report every
+     question as attempted before the reader had seen it. */
+  let answerDraftTimer = null;
+  /* The pending write, so that leaving, hiding the tab or reloading can
+     push it out rather than let the debounce die with the page. Typing
+     is the only thing debounced, and a reader who types an answer and
+     immediately reloads is the case this exists for. */
+  let flushAnswerDraft = null;
+
+  function flushAnswers() {
+    if (!flushAnswerDraft) return;
+    clearTimeout(answerDraftTimer);
+    const fn = flushAnswerDraft;
+    try { fn(); } catch { /* the widget may already be gone */ }
+  }
+
+  /* Both, because they catch different exits: `pagehide` fires on a
+     reload and on a close, `visibilitychange` on switching away — and
+     on mobile, switching away is often the last event a page gets. */
+  window.addEventListener('pagehide', flushAnswers);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flushAnswers();
+  });
+
+  function watchForAnswerDraft(widget) {
+    const p = current;
+    flushAnswerDraft = null;
+    if (!widget || !p || !drafts(p)) return;
+    const impl = ProblemTypes.get(p.type);
+    if (!impl) return;
+
+    const put = () => {
+      if (!current || current.id !== p.id) return;
+      let response = null;
+      try { response = impl.partial(widget, p); } catch { return; }
+      Store.saveDraft(p, ANSWER_SLOT, response == null ? '' : JSON.stringify(response));
+      saveNote(response == null ? 'cleared' : 'saved');
+    };
+    /* Typing is debounced; a click is not.
+
+       Everything here was debounced at first, and it lost answers. A
+       tick, a drag, a pairing and a chosen line are each one discrete
+       event with nothing to coalesce, so a 180ms wait buys nothing and
+       costs the answer to anybody who ticks an option and reloads
+       inside that window — which is exactly the test the brief asks
+       for. Typing is the only case with a stream of events worth
+       collapsing. */
+    const soon = () => {
+      clearTimeout(answerDraftTimer);
+      answerDraftTimer = setTimeout(put, 180);
+      saveNote('saving');
+    };
+    const atOnce = () => { clearTimeout(answerDraftTimer); put(); };
+
+    widget.addEventListener('change', atOnce);
+    widget.addEventListener('input', e => {
+      /* `input` on a text box is typing; on a checkbox or a radio it is
+         the same discrete event as `change`. */
+      const t = e.target;
+      const typed = t && (t.tagName === 'TEXTAREA'
+        || (t.tagName === 'INPUT' && !['checkbox', 'radio'].includes(t.type)));
+      if (typed) soon(); else atOnce();
+    });
+    /* locate, order and match are clicked rather than changed, and the
+       click lands on a button inside the row. */
+    widget.addEventListener('click', e => {
+      if (e.target.closest('button, [data-line], .opt, li, .match-item')) atOnce();
+    });
+    /* A keyboard user moving an item with Enter on the up arrow fires a
+       click, but one selecting a line with the arrow keys does not. */
+    widget.addEventListener('keyup', e => {
+      if (e.key && e.key.startsWith('Arrow')) atOnce();
+    });
+
+    flushAnswerDraft = put;
+  }
+
+  /* The save indicator. Three words, and they are three different
+     facts: a write in flight, a write that landed, and a write that
+     did not. */
+  function saveNote(stateName) {
+    const text = {
+      saving: 'Saving…',
+      saved: 'Saved',
+      cleared: 'Cleared',
+      failed: 'Save failed',
+    }[stateName] || '';
+    /* Beside the Submit button, and in the assessment's own header.
+       The header is the one the brief asks for and the one that is
+       always on screen; the other is where the eye already is. */
+    for (const node of [
+      host && host.querySelector('#answerSaved'),
+      document.getElementById('oaSave'),
+    ]) {
+      if (!node) continue;
+      node.dataset.state = stateName;
+      node.textContent = text;
+    }
+  }
+
+  /* ---------------- the feedback policy ----------------
+
+     `feedback.duringAttempt` was printed on the pre-flight page and then
+     never consulted. An assessment that says "nothing until you finish"
+     and then prints "Not that one." under the question has told the
+     reader something false about itself, which is worse than either
+     policy would have been on its own.
+
+     Two values, and the difference is what a submission is allowed to
+     report back:
+
+       samples   the visible cases, and nothing else. A submission says
+                 it was recorded; it does not say whether it was right,
+                 because that is decided by cases the reader cannot see.
+       none      that it was recorded, and that is all.
+
+     Either way an assessment never marks the widget, never explains a
+     distractor and never reveals a key — those are practice-mode
+     affordances and `mark()` exists precisely because a wrong answer in
+     practice is allowed to say more than this. */
+  const policy = () => (assess && assess.def && assess.def.feedback) || {};
+  const tellsVerdict = () => !assess;
+
   /* The editor saves on every keystroke and reads on every mount, and
      both have to be synchronous — but an attempt lives in IndexedDB,
      which is not. So the attempt's drafts are copied into a plain map
@@ -75,7 +255,12 @@ const ProblemView = (() => {
       set: (id, lang, src) => {
         mem[id] = mem[id] || {};
         mem[id][lang || '_'] = src;
-        Attempts.saveDraft(ctx.attempt.id, id, lang, src);
+        /* Fire-and-forget for the keystroke, but not for the outcome: a
+           write that did not land is reported, because the alternative
+           is a page quietly losing work under a clock. */
+        Attempts.saveDraft(ctx.attempt.id, id, lang, src).then(r => {
+          if (!r || r.ok === false) saveNote('failed');
+        }).catch(() => saveNote('failed'));
         /* The navigator has a state for "written and not sent", and it
            is no use if it only appears after a submit — that is the
            one state it exists to show. */
@@ -89,11 +274,22 @@ const ProblemView = (() => {
     });
   }
 
-  /* Which tabs an attempt gets. Hints and Solution are the two it must
-     not have, and Notes is left out as well — a notes field that is
-     kept but never shown again is a place to lose fifteen minutes. */
+  /* Which tabs an attempt gets: the question, and nothing else.
+
+     Hints and Solution are the two it obviously must not have. Notes is
+     left out because a notes field that is kept and never shown again is
+     a place to lose fifteen minutes.
+
+     Prerequisites went too, and that was the reported change. A
+     prerequisite is a reading recommendation — "you will want to have
+     met integer promotion before this" — which is exactly the right
+     thing to put in front of somebody learning and exactly the wrong
+     thing to put in front of somebody being assessed: it names the
+     topic the question is about. It is not deleted, it is moved: the
+     review after the attempt links every question to its concepts and
+     its reading, which is the moment that reading is worth anything. */
   const tabsNow = () => (assess
-    ? LEFT_TABS.filter(t => t.id === 'problem' || t.id === 'prereq')
+    ? LEFT_TABS.filter(t => t.id === 'problem')
     : LEFT_TABS);
 
   /* ---------------- entry ---------------- */
@@ -117,6 +313,29 @@ const ProblemView = (() => {
     solution = null;
 
     host.replaceChildren(el('p', { class: 'muted', text: 'Loading…' }));
+
+    /* An assessment question, by id, while that very assessment is
+       running. The route works — the bank is registered by id — and on
+       the practice page it would come with a Hints tab and a Solution
+       tab, which is the one place in the site where a URL hands over an
+       answer that is currently being asked for under a clock.
+
+       Refused, with the way back. Not silently redirected: a reader who
+       typed or bookmarked that URL should be told what happened. */
+    if (!assess && Catalog.isPooled(id) && typeof Attempts !== 'undefined') {
+      const live = await Attempts.running();
+      if (live && (live.problems || []).includes(id)) {
+        host.replaceChildren(el('div', { class: 'empty' }, [
+          el('h2', { text: 'That question is in the assessment you are sitting' }),
+          el('p', { class: 'muted' }, ['It has hints and a solution on this page, '
+            + 'and your attempt is still open, so it is not shown here until the '
+            + 'attempt is finished.']),
+          el('a', { class: 'btn btn-primary', href: `#/assess/${live.assessmentId}/go` },
+            ['Back to the attempt']),
+        ]));
+        return;
+      }
+    }
 
     const problem = await Catalog.get(id);
     if (!problem) {
@@ -157,6 +376,11 @@ const ProblemView = (() => {
      route that is not a problem. It is written to be safe to call twice, and
      safe to call when no problem was ever open. */
   function leave() {
+    /* Before anything is torn down: a debounced answer that has not been
+       written yet is work, and going to the next question must not be the
+       thing that loses it. */
+    flushAnswers();
+    flushAnswerDraft = null;
     endAnyDrag();
 
     /* CodeMirror holds listeners on the document and a mutation observer on
@@ -213,6 +437,12 @@ const ProblemView = (() => {
      Only the last one has any business disabling a control. */
 
   const disclosed = () => {
+    /* Never, under a clock. An assessment problem has no practice record
+       to be solved or revealed, so this was already false by accident —
+       but "by accident" is not a disclosure policy, and a problem that
+       appears in both pools would have leaked its own answer key into an
+       attempt. */
+    if (assess) return false;
     const r = Store.record(current.id);
     return r.status === 'solved' || r.status === 'read' || !!r.revealed;
   };
@@ -223,6 +453,22 @@ const ProblemView = (() => {
   };
 
   const rewarded = () => Store.record(current.id).status === 'solved';
+
+  /* ---------------- an assessment question, outside an assessment ----
+
+     The bank is reachable by id — that is how the attempt renders it
+     with no changes at all — and the review afterwards links straight
+     to it, which is right: once the clock has stopped the question is
+     readable like any other, with its solution and its explanation.
+
+     What must not happen is that reading it there counts for anything.
+     An assessment question solved on the practice page would award XP,
+     set a solved status and add a row to a submission history, for a
+     problem the catalogue does not contain and no count includes — so
+     the totals would stop adding up, and sitting the same assessment
+     twice would pay twice. Grading still happens and still reports;
+     the reward does not. */
+  const pooled = () => !!(current && Catalog.isPooled(current.id));
 
   let attempting = false;
 
@@ -335,20 +581,28 @@ const ProblemView = (() => {
           el('span', { class: 'tiny faint', text: `question ${
             assess.def.problems.indexOf(p.id) + 1} of ${assess.def.problems.length}` }),
         ]),
+        /* No Focus button. An attempt is already the whole window with
+           the site's navigation taken away, so a control offering to do
+           that is a control that does nothing — and one that can be
+           pressed to no visible effect is worse than one that is not
+           there. The font size stays: it is about being able to read
+           the code, which matters more under a clock, not less. */
         el('div', { class: 'ws-head-right' }, [
           p.type === 'code' ? fontSizeControl() : null,
-          el('button', {
-            class: 'btn btn-sm btn-ghost', type: 'button', id: 'focusBtn',
-            'aria-pressed': String(focusOn()),
-            title: focusOn() ? 'Leave focus mode (F)' : 'Focus mode (F)',
-            onclick: () => setFocus(!focusOn()),
-          }, [focusOn() ? 'Unfocus' : 'Focus']),
         ]),
       ]);
     }
 
-    return el('header', { class: 'ws-head' }, [
-      el('div', { class: 'ws-head-left' }, [
+    /* The same problem read after the assessment is over. There is no
+       position in the catalogue because the problem is not in it — the
+       header said `0/109` before this branch existed — and there is no
+       practice status either, because nothing done here is recorded. */
+    const fromBank = pooled();
+
+    return el('header', { class: 'ws-head', 'data-mode': fromBank ? 'bank' : undefined }, [
+      el('div', { class: 'ws-head-left' }, fromBank ? [
+        el('a', { class: 'ws-back', href: '#/assess', title: 'Assessments' }, ['←']),
+      ] : [
         el('a', { class: 'ws-back', href: '#/problems', title: 'All problems' }, ['←']),
         navBtn(n.prev, '‹', 'Previous'),
         el('span', { class: 'ws-count tiny faint', text: `${n.at}/${n.total}` }),
@@ -358,7 +612,13 @@ const ProblemView = (() => {
       el('div', { class: 'ws-head-mid' }, [
         el('h1', { class: 'ws-title', title: p.title, text: p.title }),
         el('span', { class: `diff diff-${p.difficulty}`, text: diff.label }),
-        el('span', { class: `status-word status-${r.status}`, text: statusWord(r) }),
+        fromBank
+          ? el('span', { class: 'status-word status-bank',
+              title: 'From an assessment. You can work through it and read the '
+                + 'solution; nothing here is scored, and it does not appear in '
+                + 'the catalogue or any of its counts.',
+              text: 'Assessment question' })
+          : el('span', { class: `status-word status-${r.status}`, text: statusWord(r) }),
       ]),
 
       el('div', { class: 'ws-head-right' }, [
@@ -602,7 +862,12 @@ const ProblemView = (() => {
 
     const widget = el('div', { class: 'widget', id: 'answerWidget' });
     slot.append(widget);
-    impl.render(p, widget, { locked: false, disclosed: disclosed() });
+    impl.render(p, widget, {
+      locked: false,
+      disclosed: disclosed(),
+      assess: !!assess,
+      policy: policy(),
+    });
 
     /* The bar across the bottom of the column. It is the same two buttons
        for every problem, in the same place, and it does not scroll away
@@ -624,11 +889,19 @@ const ProblemView = (() => {
            code.js unhides it, because it is the thing that knows. Editing
            stays available the whole time — not being able to run something
            is no reason to stop someone writing it. */
+        /* "Set up execution" was the wrong label once the browser could
+           compile everything: it reads as a requirement, and on the
+           overwhelming majority of problems there is nothing to set up.
+           It is hidden whenever the language in front of the reader
+           runs — which is now almost always — and when it does appear
+           it is a link to an explanation of why this particular
+           exercise is the exception, not an instruction to install
+           anything. */
         el('a', {
           class: 'btn btn-sm btn-ghost ws-setup', id: 'setupLink', href: '#/setup',
           hidden: true,
-          title: 'What it takes to compile C++ and Rust, and what is working now',
-        }, ['Set up execution']),
+          title: 'Why this exercise cannot run in the browser, and what else is possible',
+        }, ['Why not here?']),
         el('button', {
           class: 'btn btn-sm btn-ghost ws-stop', type: 'button', id: 'stopBtn', hidden: true,
           title: 'Stop whatever is running or downloading',
@@ -699,8 +972,13 @@ const ProblemView = (() => {
 
     watchForChanges(widget);
     /* Marks from an attempt the reader has since edited would be pointing at
-       a selection that no longer exists. */
-    if (answered && !answerChanged) {
+       a selection that no longer exists.
+
+       And never under a clock. `mark()` is deliberately allowed to say
+       more than nothing — it paints the option you picked as wrong,
+       which in practice is the point and in an assessment is a verdict
+       the policy may not have promised. */
+    if (answered && !answerChanged && tellsVerdict()) {
       impl.mark(widget, {
         response: answered.response,
         key: solution ? solution.key : null,
@@ -749,7 +1027,9 @@ const ProblemView = (() => {
         pane.append(el('p', { class: 'muted small', text: 'Press Run tests, or Submit.' }));
         return;
       }
-      if (answered) pane.append(verdictNode(answered));
+      if (answered) {
+        pane.append(tellsVerdict() ? verdictNode(answered) : attemptStateNode(current));
+      }
       const out = el('div', { class: 'run-out', id: 'runOut' });
       pane.append(out);
       const impl = ProblemTypes.get('code');
@@ -1026,25 +1306,48 @@ const ProblemView = (() => {
       const answer = el('div', { class: 'answer' });
       const widget = el('div', { class: 'widget', id: 'answerWidget' });
       answer.append(widget);
-      if (impl) impl.render(p, widget, { locked: false, disclosed: disclosed() });
+      /* The renderers are the practice renderers. `assess` is the whole
+         of the difference and it is passed in rather than inferred, so a
+         type that needs to behave differently under a clock can, and so
+         that there is never a second copy of a widget to keep in step. */
+      if (impl) {
+        impl.render(p, widget, {
+          locked: false,
+          disclosed: disclosed(),
+          assess: !!assess,
+          policy: policy(),
+        });
+      }
       panel.append(answer);
 
       panel.append(el('div', { class: 'actions-bar' }, [
         el('div', { class: 'actions-bar-main' }, [
           el('button', {
             class: 'btn btn-primary', type: 'button', id: 'submitBtn', onclick: doSubmit,
-          }, ['Submit']),
+          }, [assess ? 'Submit answer' : 'Submit']),
         ]),
         el('div', { class: 'actions-bar-note' }, [
-          el('span', { class: 'tiny', id: 'worthNow',
-            text: rewarded() ? 'Already solved — practice only' : `Worth ${Store.potentialXp(p)} XP now` }),
+          assess
+            ? el('span', { class: 'tiny faint', id: 'answerSaved', 'data-state': 'idle',
+                text: 'Your answer saves as you work' })
+            : el('span', { class: 'tiny', id: 'worthNow',
+                text: pooled()
+                  ? 'From an assessment — nothing here is scored or recorded'
+                  : rewarded() ? 'Already solved — practice only'
+                  : `Worth ${Store.potentialXp(p)} XP now` }),
         ]),
       ]));
 
+      if (assess) panel.append(attemptStateNode(p));
       if (lastBlocked) panel.append(executionFailureNode(lastBlocked));
-      else if (answered) panel.append(verdictNode(answered));
+      else if (answered && tellsVerdict()) panel.append(verdictNode(answered));
 
+      /* Before the marks, because a saved answer is the thing the marks
+         are about. */
+      const seed = savedResponse(p);
+      if (impl && impl.restore && seed !== undefined) impl.restore(widget, seed);
       repaintMarks(widget);
+      watchForAnswerDraft(widget);
     } else {
       ({
         prereq: drawPrereq, hints: drawHints, notes: drawNotes, solution: drawSolution,
@@ -1255,6 +1558,62 @@ const ProblemView = (() => {
   }
 
   /* ---------------- the problem tab ---------------- */
+
+  /* ---------------- what an attempt is told ----------------
+
+     Three states, kept apart because they are three different facts
+     about one question and a reader who cannot tell them apart cannot
+     tell what is left to do:
+
+       not answered    nothing written down
+       answered        written down and saved, not sent
+       submitted       sent, and recorded
+
+     And a fourth that is not a state of the answer at all: **graded**.
+     Nothing here is graded until the attempt is finished, which is what
+     this says out loud rather than leaving the reader to infer it from
+     the absence of a verdict. */
+  function attemptStateNode(p) {
+    const ans = (assess.attempt.answers || {})[p.id];
+    const fb = policy();
+    const submitted = !!(ans && ans.submitted);
+    const errored = !!(ans && ans.errored);
+    const selfReview = !!(ans && ans.selfReview);
+
+    const at = ans && ans.at
+      ? new Date(ans.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      : null;
+
+    const lines = [];
+    if (selfReview) {
+      lines.push('Nothing marks a written proof. It is saved exactly as you '
+        + 'wrote it, and you will read it against the rubric yourself once '
+        + 'the assessment is over.');
+    } else if (errored) {
+      lines.push('This could not be run, so it has not been graded and is '
+        + 'not counted wrong. Try submitting it again.');
+    } else if (submitted) {
+      lines.push(fb.duringAttempt === 'none'
+        ? 'Recorded. Nothing is reported until you finish.'
+        : 'Recorded. Run reports the sample cases; the result is reported '
+          + 'when you finish.');
+      if ((ans.submits || 0) > 1) {
+        lines.push(`Submitted ${ans.submits} times. The last one is the one that counts.`);
+      }
+    }
+
+    return el('div', { class: 'oa-state', 'data-state':
+      selfReview ? 'review' : errored ? 'errored' : submitted ? 'submitted' : 'answered' }, [
+      el('div', { class: 'verdict-head' }, [
+        el('h4', { text: selfReview ? 'Saved, not marked'
+          : errored ? 'Not graded' : 'Answer recorded' }),
+        at ? el('span', { class: 'tiny faint', text: at }) : null,
+      ]),
+      ...lines.map(t => el('p', { class: 'small', text: t })),
+      el('p', { class: 'tiny faint', text: 'You can change it and submit again '
+        + 'until the assessment ends.' }),
+    ]);
+  }
 
   function verdictNode({ result, award }) {
     let kind = result.correct ? 'right' : (result.score > 0 ? 'part' : 'wrong');
@@ -1576,12 +1935,32 @@ const ProblemView = (() => {
     }
 
     /* A written proof is never marked by a machine. It is saved, and the
-       reader is handed a rubric and — on request — a model proof. */
+       reader is handed a rubric and — on request — a model proof.
+
+       Inside an assessment it is saved and nothing else happens yet.
+       The rubric and the model proof are both disclosure, and they
+       belong after the clock has stopped; the attempt records the
+       proof as submitted-but-ungraded, the scoring keeps it out of the
+       automatic total, and the review afterwards is where it is read
+       against the rubric and marked by the only thing that can mark
+       it. Nothing here claims to have verified a proof. */
     if (result.selfReview) {
       restore();
+      if (assess) {
+        await Attempts.record(assess.attempt.id, p.id, {
+          submitted: true,
+          selfReview: true,
+          errored: false,
+          correct: null,
+          fraction: null,
+          words: result.words || null,
+          response,
+        });
+        if (assess.onAnswer) assess.onAnswer();
+      }
       answered = { response, result, award: null };
       answerChanged = false;
-      reviewing = true;
+      reviewing = !assess;
       workTab = 'results';
       draw();
       return;
@@ -1601,10 +1980,21 @@ const ProblemView = (() => {
          computed over the problems that happened to work is not a
          pass. The reader gets a retry path instead. */
       if (assess) {
+        /* The answer is frozen here, not discarded.
+
+           It used to store `response: null`, which made the retry path
+           on the review page impossible: there was nothing left to
+           re-run. And storing it is what makes the retry *safe* — the
+           grading can be attempted again after the deadline precisely
+           because what gets graded is this, exactly as it was
+           submitted, and cannot be edited now. */
         await Attempts.record(assess.attempt.id, p.id, {
           errored: true,
           errorWhy: result.feedback || 'execution failed',
-          response: null,
+          lang: result.lang || (response && response.lang) || null,
+          source: p.type === 'code' && response && typeof response.source === 'string'
+            ? response.source : null,
+          response: p.type === 'code' ? null : response,
         });
         if (assess.onAnswer) assess.onAnswer();
       }
@@ -1647,6 +2037,9 @@ const ProblemView = (() => {
         totalCases: result.total != null ? result.total : null,
       });
       if (assess.onAnswer) assess.onAnswer();
+    } else if (pooled()) {
+      /* Graded, reported, and recorded nowhere. See `pooled()`. */
+      award = null;
     } else {
       award = Store.submit(p, {
         correct: result.correct,

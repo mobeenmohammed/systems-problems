@@ -1,0 +1,30 @@
+{
+  "id": "oa-fmt-which-section",
+  "pool": "assessment",
+  "title": "Where an initialised global lives",
+  "topic": "linux",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "short",
+  "tags": [
+    "elf",
+    "sections",
+    "linker",
+    "bss"
+  ],
+  "estimate": 4,
+  "prereqs": [
+    {
+      "concept": "compilation-pipeline",
+      "why": "The answer is the name of one section, and the question is which of three it is."
+    }
+  ],
+  "statement": "A C++ file at namespace scope contains:\n\n```cpp\nint counter = 7;\n```\n\nName the ELF section of the compiled object file that holds those four bytes: **writable, and initialised to something other than zero**.\n\nGive the section name as `readelf -S` prints it.",
+  "payload": {
+    "placeholder": ".something",
+    "prompt": "The section name."
+  },
+  "hints": [
+    "Three candidates, and each is ruled in or out by two questions: is it writable, and does the file have to carry the bytes?"
+  ]
+}

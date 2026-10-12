@@ -40,6 +40,12 @@ import { Fd, File, Directory, PreopenDirectory, WASI } from '../../vendor/cxx/wa
    that is no longer the exercise it says it is. */
 export const BROWSER_FLAGS = ['--edition', '2024', '-O', '-Cpanic=abort'];
 
+/* Front end only: parse, types, traits, borrows, and stop. Shared with
+   js/runners/browserrust.js, which runs exactly this on every keystroke
+   in the editor — so the audit's "checks" column is a statement about
+   what the reader actually gets rather than a separate experiment. */
+export const CHECK_FLAGS = ['--edition', '2024', '--emit=metadata', '-Cpanic=abort'];
+
 export const TOOLCHAIN = {
   compiler: 'rustc (Cranelift), WebAssembly build',
   target: 'wasm32-wasip1',
@@ -296,6 +302,34 @@ export class Toolchain {
       stderr: diagnostics.length
         ? diagnostics.map(d => d.rendered).join('\n')
         : (residue || (bytes ? '' : `rustc exited ${exit} without producing a program`)),
+    };
+  }
+
+  /* The front end only: parse, resolve, type-check, solve traits, borrow
+     check — and stop before code generation.
+
+     A separate method rather than a flag the caller passes, because the
+     *success condition is different* and getting that wrong is exactly
+     the mistake this replaced. `compile()` reports `ok` by whether a
+     wasm file appeared, which is the right test for a compile and is
+     always false for a check: `--emit=metadata` never writes one. The
+     audit asked `compile(src, CHECK_FLAGS).ok` and was told that none
+     of the seven Rust problems type-checked, when in fact all of them
+     do — the number that was wrong was the number that exists to say
+     what the browser toolchain *can* do.
+
+     So a check succeeds when rustc exited cleanly and emitted no error
+     diagnostic, which is what "it type-checks" means. */
+  async check(source) {
+    const r = await this.compile(source, CHECK_FLAGS);
+    const errors = r.diagnostics.filter(d => d.level === 'error');
+    return {
+      ok: r.exit === 0 && !errors.length,
+      diagnostics: r.diagnostics,
+      errors,
+      stderr: r.stderr,
+      ms: r.ms,
+      exit: r.exit,
     };
   }
 

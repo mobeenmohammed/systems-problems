@@ -85,6 +85,21 @@ const BrowserRust = (() => {
     return (s.browser || []).includes(problemId);
   }
 
+  /* Does the FRONT END accept this problem's reference solution?
+
+     A separate question from `supportsProblem`, and the answer is yes
+     far more often: the Cranelift gap is in code generation, so every
+     Rust problem type-checks even when five of the seven cannot be
+     run. data/rust-support.json records both, measured, and this is
+     how the editor and the toolbar tell a reader which of the two
+     they have. */
+  async function checksProblem(problemId) {
+    if (!capable()) return false;
+    const s = await loadSupport();
+    if (!s) return false;
+    return (s.checks || []).includes(problemId);
+  }
+
   async function reasonFor(problemId) {
     const s = await loadSupport();
     return (s && s.nativeOnly && s.nativeOnly[problemId]) || null;
@@ -382,7 +397,7 @@ const BrowserRust = (() => {
   });
 
   return {
-    capable, supportsProblem, reasonFor, loadSupport, toolchain,
+    capable, supportsProblem, checksProblem, reasonFor, loadSupport, toolchain,
     prepare, onProgress, progress, teardown, run, check,
     get ready() { return ready; },
     get version() { return version; },

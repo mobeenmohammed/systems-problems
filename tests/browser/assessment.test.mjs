@@ -86,9 +86,20 @@ section('the assessment bank is not in the catalogue');
   }, bank.map(b => b.id));
   check('no assessment problem is listed', m.leaked, []);
   check('and the catalogue count is the catalogue', m.counts, m.total);
-  /* Before the mode is opened nothing has registered the pool, which is
-     the correct state: the catalogue page must not pay for it. */
-  check('the pool is not even loaded until the mode is', m.byId, bank.map(() => false));
+  /* The bank is loaded at boot and every one of its problems resolves by
+     id — that is how the attempt renders one with no changes at all, and
+     how a question flagged for review from an assessment can be shown on
+     the review list at all.
+
+     It used to be loaded lazily, on first opening the mode, and the test
+     here asserted that. That was the wrong invariant to protect: it made
+     `Catalog.meta` a function whose answer depended on where the reader
+     had been this session, so the dashboard's review count and the
+     review page itself disagreed about the same flagged question.
+
+     The invariant that matters is the one checked either side of this:
+     being loaded is not being listed. */
+  check('every bank problem resolves by id', m.byId, bank.map(() => true));
 
   /* Searching for one by name finds nothing, which is the real test —
      a filter that reaches the bank would spoil every assessment. */
@@ -223,12 +234,36 @@ section('an attempt hides what an assessment must hide');
   ok(`it says where you are in the assessment instead (${chrome.says})`,
     /question \d+ of \d+/.test(chrome.says));
 
-  /* The three tabs an assessment must not have. */
-  for (const gone of ['hints', 'solution', 'notes']) {
+  /* The four tabs an assessment must not have.
+
+     `prereq` joined the list. A prerequisite is a reading
+     recommendation — "you will want to have met integer promotion
+     before this" — which is the right thing to put in front of somebody
+     learning and the wrong thing to put in front of somebody being
+     assessed, because it names the topic the question is about. It is
+     not deleted: the review afterwards links every question to its
+     concepts, which is the moment that reading is worth anything. */
+  for (const gone of ['hints', 'solution', 'notes', 'prereq']) {
     ok(`there is no ${gone} tab`, !m.tabs.includes(gone));
   }
-  ok('the statement and its prerequisites are still there',
-    m.tabs.includes('problem') && m.tabs.includes('prereq'));
+  check('the statement is the only tab', m.tabs, ['problem']);
+
+  /* And nothing of the site's own navigation. An attempt is immersive by
+     default — there is no Focus button to press, because there is
+     nothing left for it to hide. */
+  const immersive = await p.evaluate(() => ({
+    topbar: getComputedStyle(document.querySelector('.topbar')).display,
+    mainH: Math.round(document.querySelector('.main').getBoundingClientRect().height),
+    winH: window.innerHeight,
+    focusBtn: !!document.getElementById('focusBtn'),
+    bar: ['oaClock', 'oaProgress', 'oaNav', 'oaSave', 'oaExit', 'oaFinish']
+      .filter(id => !!document.getElementById(id)),
+  }));
+  check('the site navigation is gone', immersive.topbar, 'none');
+  check('the attempt has the whole window', immersive.mainH, immersive.winH);
+  ok('there is no Focus button to press', !immersive.focusBtn);
+  check('and the assessment bar has all six of its parts',
+    immersive.bar.length, 6);
   if (process.env.SHOTS) await p.screenshot({ path: path.join(SHOTS, 'assess-attempt.png') });
 
   /* ---- answering ---- */

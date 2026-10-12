@@ -1,0 +1,25 @@
+{
+  "id": "oa-fmt-minor-fault-order",
+  "key": {
+    "order": [
+      1,
+      3,
+      5,
+      6,
+      0,
+      4,
+      2
+    ]
+  },
+  "explanation": "## The order, and where the boundary is\n\n1. **The CPU executes the load.** Nothing special has happened yet; this is an ordinary instruction.\n2. **The MMU walks the page table** and finds the entry not-present. On x86-64 that is up to four dependent memory reads, which is why the TLB exists.\n3. **The CPU traps.** The faulting address goes in `CR2`, an error code describes the access, and enough state is saved that the instruction can be restarted. Everything up to here is hardware.\n4. **The kernel checks the address against the memory map.** This is the step that separates a fault it is going to fix from a fault that is a bug: an address in no VMA at all is what becomes `SIGSEGV`.\n5. **The kernel finds the page in the page cache.** This is what makes the fault minor. Had it not been there, the kernel would have had to start I/O and block the process, and the fault would be major.\n6. **The kernel installs a valid page-table entry** pointing at that frame, with permissions from the VMA — which is also where a private mapping gets its read-only entry over a writable mapping.\n7. **The kernel returns from the trap and the instruction runs again.** This is the part most descriptions get wrong: the kernel does not complete the load. It has no idea what register the value was going to, and does not need to. It repairs the mapping and lets the hardware retry.\n\n## Why the restart matters\n\nRestartability is a constraint on the instruction set, not a convenience. An instruction that had already modified some architectural state before faulting could not simply be run again — which is why faulting instructions are specified to be restartable, and why complicated read-modify-write instructions are a problem for architects.\n\nIt is also why a page fault is *not* a system call. There is no return value, no errno, and the faulting code is not aware it happened. The only evidence is time, and `/proc/self/stat`'s minor and major fault counters.\n\n## Minor versus major\n\nStep 5 is the whole difference, and the cost difference is about four orders of magnitude: a minor fault is a few microseconds of kernel work, and a major fault waits for a disk. `perf stat -e page-faults,major-faults` reports them separately for exactly that reason.",
+  "readMore": [
+    {
+      "title": "Understanding the Linux Kernel — the page fault handler",
+      "url": "https://www.oreilly.com/library/view/understanding-the-linux/0596005652/"
+    },
+    {
+      "title": "man 2 mmap and man 7 signal — what becomes SIGSEGV",
+      "url": "https://man7.org/linux/man-pages/man7/signal.7.html"
+    }
+  ]
+}

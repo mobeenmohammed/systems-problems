@@ -804,6 +804,11 @@ const Store = (() => {
         id: r.id,
         reason: reasons[0],
         reasons,
+        /* Carried as a field as well as a reason, because one caller
+           needs to know specifically that the reader put this row here
+           by hand: an assessment question reaches the review list only
+           when it was deliberately flagged. */
+        flagged: !!r.flagged,
         /* Your own rating, kept apart from anything a grader said.
            1..5 or null, and null means you never said. */
         perceived: r.perceived,

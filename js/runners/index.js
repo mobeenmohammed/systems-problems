@@ -364,6 +364,13 @@ const Runners = (() => {
     hosted: 'Hosted', local: 'Local',
   };
 
+  /* The languages, as a reader calls them. `r.id.toUpperCase()` produced
+     "CPP and RUST needs the native toolchain" — the wrong name for two
+     of the four languages and the wrong verb for any plural. */
+  const LANG_NAME = { cpp: 'C++', python: 'Python', rust: 'Rust', js: 'JavaScript' };
+  const nameList = rows => rows.map(r => LANG_NAME[r.id] || r.id).join(' and ');
+  const verb = rows => (rows.length === 1 ? 'needs' : 'need');
+
   const browserCpp = () => (typeof BrowserCpp !== 'undefined' ? BrowserCpp : null);
   const browserPy = () => (typeof BrowserPy !== 'undefined' ? BrowserPy : null);
   const browserRust = () => (typeof BrowserRust !== 'undefined' ? BrowserRust : null);
@@ -500,21 +507,46 @@ const Runners = (() => {
       : null;
 
     if (nativeOnly) {
-      const names = blocked.map(r => r.id.toUpperCase()).join(' and ');
+      const names = nameList(blocked);
       const parts = Object.entries(ready.reduce((acc, r) => {
-        (acc[r.backend] = acc[r.backend] || []).push(r.id);
+        (acc[r.backend] = acc[r.backend] || []).push(LANG_NAME[r.id] || r.id);
         return acc;
       }, {})).map(([b, ids]) => `${BACKEND_LABEL[b]}: ${ids.join(', ')}`);
+
+      /* "Rust needs the native toolchain for this problem" is true and
+         is not the whole truth, and the part it leaves out is the part
+         that matters most while you are writing. The browser rustc
+         type-checks every Rust problem — the parser, the trait solver
+         and the borrow checker are the ones from the release, and the
+         editor runs them on every keystroke. Only code generation is
+         missing. So a reader on one of these problems gets real E0382
+         and E0502 diagnostics as they type and cannot press Run, which
+         is a very different thing from "Rust does not work here". */
+      const checks = blocked.some(r => r.id === 'rust') && browserRust()
+        ? await browserRust().checksProblem(problemId) : false;
+
       return {
         kind: ready.length ? 'partial' : 'blocked',
+        /* Added to the sentence rather than replacing it: on a problem
+           where both C++ and Rust are blocked, saying only the thing
+           about Rust would drop the fact the reader asked about. */
+        /* Composed so it never says the same language twice. With Rust
+           the only blocked one, the check is the lead and the missing
+           codegen is the qualification; with several, the names come
+           first and the check is a note after them. */
         text: `${parts.length ? `${parts.join(' · ')} · ` : ''}`
-          + `${names} needs the native toolchain for this problem.`,
+          + (checks && blocked.length === 1
+            ? 'Rust is type-checked here as you type; running this one needs the '
+              + 'native toolchain.'
+            : `${names} ${verb(blocked)} the native toolchain to run this one.`
+              + (checks ? ' Rust is still type-checked here.' : '')),
         nativeOnly,
+        checks,
       };
     }
 
     if (!ready.length) {
-      const names = blocked.map(r => r.id.toUpperCase()).join(' and ');
+      const names = nameList(blocked);
       if (hostedAvailable()) {
         const h = await Hosted.check();
         return {
@@ -523,15 +555,21 @@ const Runners = (() => {
             + `${h.error ? ` (${h.error})` : ''}.`,
         };
       }
+      /* No shell command in the toolbar. A reader on a problem that
+         cannot run needs to know that, and needs somewhere to read why;
+         what they do not need is `npm run runner` in a strip under the
+         editor, which is advanced documentation wearing the costume of
+         an error message. The command lives on the setup page, which
+         this links to. */
       return {
         kind: 'blocked',
-        text: `${names} needs a runner. Start one with npm run runner, or `
-          + 'turn on hosted execution in Settings.',
+        text: `${names} cannot run in this browser. There is a native toolchain `
+          + 'option, which is optional and explained under Running code.',
       };
     }
 
     const byBackend = {};
-    for (const r of ready) (byBackend[r.backend] = byBackend[r.backend] || []).push(r.id);
+    for (const r of ready) (byBackend[r.backend] = byBackend[r.backend] || []).push(LANG_NAME[r.id] || r.id);
     const parts = Object.entries(byBackend)
       .map(([b, ids]) => `${BACKEND_LABEL[b]}: ${ids.join(', ')}`);
 
@@ -540,7 +578,7 @@ const Runners = (() => {
        told that C++ does not work and left to guess whose fault it is. */
     let tail = '';
     if (blocked.length) {
-      const names = blocked.map(r => r.id.toUpperCase()).join(' and ');
+      const names = nameList(blocked);
       tail = ` · ${names} cannot run: `;
 
       if (hostedAvailable()) {
@@ -551,8 +589,11 @@ const Runners = (() => {
       } else if (judge.state === 'unauthed') {
         tail += 'the local runner refused this page — reload, or paste its token in Settings.';
       } else {
-        tail += 'there is no runner. Start one with npm run runner, or set a hosted '
-          + 'runner address in Settings.';
+        /* No shell command in a strip under the editor. See the other
+           branch: the native toolchain is advanced documentation and
+           lives on the setup page. */
+        tail += 'there is no runner for it here. The native toolchain is optional '
+          + 'and explained under Running code.';
       }
     }
 

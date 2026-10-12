@@ -147,14 +147,18 @@ const Attempts = (() => {
 
   /* ---------------- during ---------------- */
 
+  /* Returns what the write did, not merely that it was attempted. A
+     draft that could not be stored is work about to be lost, and the
+     only acceptable behaviour is to say so on screen — see the Saved /
+     Saving / Save failed indicator in the assessment bar. */
   async function saveDraft(attemptId, problemId, lang, source) {
     const a = await get(attemptId);
-    if (!a || a.state !== 'running') return false;
+    if (!a || a.state !== 'running') return { ok: false, reason: 'not running' };
     a.drafts[problemId] = a.drafts[problemId] || {};
     a.drafts[problemId][lang || '_'] = String(source == null ? '' : source);
     a.touchedAt = iso(now());
-    await save();
-    return true;
+    const w = await save();
+    return { ok: !!(w && w.ok !== false), write: w };
   }
 
   const draft = async (attemptId, problemId, lang) => {
@@ -233,7 +237,15 @@ const Attempts = (() => {
        errored    execution failed — no runner, a timeout on the
                   service rather than on the program, a backend that
                   threw. NOT counted as wrong, and not counted in the
-                  total either, because nobody ever found out. */
+                  total either, because nobody ever found out.
+       review     a written proof. Nothing here marks one, and a
+                  keyword search is not a reading, so it is held out
+                  of the automatic total until the reader has read it
+                  against the rubric themselves. A self-mark is
+                  reported beside the automatic score and never
+                  folded into it: they are different kinds of
+                  evidence and adding them together would make the
+                  automatic one a claim it cannot support. */
   function score(a, def) {
     const weights = (def && def.scoring && def.scoring.weights) || {};
     const partial = !(def && def.scoring && def.scoring.partialCredit === false);
@@ -251,6 +263,15 @@ const Attempts = (() => {
         row.outcome = 'errored';
         row.why = ans.errorWhy || 'execution failed';
         row.fraction = null;
+        ungraded += w;
+      } else if (ans && ans.selfReview) {
+        row.outcome = 'review';
+        row.why = 'a written proof — nothing here marks one';
+        row.fraction = null;
+        row.words = ans.words || null;
+        /* A self-mark, if the reader has made one since. Carried on the
+           row so the review page can show it; never added to `earned`. */
+        row.selfMark = ans.selfMark || null;
         ungraded += w;
       } else if (!ans || !ans.submitted) {
         row.outcome = 'unanswered';
@@ -285,6 +306,64 @@ const Attempts = (() => {
     };
   }
 
+  /* Grading one answer of a FINISHED attempt, after an execution
+     failure.
+
+     The other write allowed on a finalised attempt, and allowed for the
+     same reason as the self-mark: the answer is frozen. What is recorded
+     here is the grader's verdict on the submission that was already
+     made — the reader cannot edit anything, cannot add an answer to a
+     question they left blank, and cannot change one they got wrong.
+     Only a row whose outcome was `errored` can be resolved, which is
+     the whole guard.
+
+     The attempt is then re-scored, because the score it was given was
+     computed with this row held out of the total. */
+  async function resolve(attemptId, def, problemId, entry) {
+    const a = await get(attemptId);
+    if (!a) return { ok: false, why: 'no such attempt' };
+    const was = a.answers[problemId];
+    if (!was || !was.errored) return { ok: false, why: 'that answer was not ungraded' };
+
+    a.answers[problemId] = {
+      ...was,
+      ...entry,
+      errored: false,
+      errorWhy: null,
+      /* What happened, and when, kept so the review can say the result
+         was obtained after the attempt rather than during it. */
+      resolvedAt: iso(now()),
+    };
+    a.results = score(a, def);
+    a.score = a.results.total;
+    await save();
+    return { ok: true, attempt: a };
+  }
+
+  /* A written proof, marked by the reader after the clock has stopped.
+
+     The one write allowed on a finalised attempt, and it is allowed
+     because it is not an answer: the proof itself is frozen and cannot
+     be edited, and this records a judgement about it. It is kept on its
+     own, outside `score.total`, for the reason the scoring doc gives —
+     a self-mark and a grader's mark are different kinds of evidence. */
+  async function selfMark(attemptId, problemId, mark) {
+    const a = await get(attemptId);
+    if (!a) return false;
+    const ans = (a.answers || {})[problemId];
+    if (!ans || !ans.selfReview) return false;
+    if (mark == null) delete ans.selfMark;
+    else ans.selfMark = { verdict: String(mark), at: iso(now()) };
+    /* The stored rows carry it too, so the review page does not have to
+       re-score a finished attempt to show it. */
+    if (a.results && Array.isArray(a.results.rows)) {
+      const row = a.results.rows.find(r => r.id === problemId);
+      if (row) row.selfMark = ans.selfMark || null;
+    }
+    await save();
+    return true;
+  }
+
   /* ---------------- housekeeping ---------------- */
 
   async function remove(id) {
@@ -303,7 +382,7 @@ const Attempts = (() => {
 
   return {
     all, get, forAssessment, running, start, finish, remove, clear,
-    saveDraft, draft, record, answer, statusOf,
+    saveDraft, draft, record, answer, statusOf, selfMark, resolve,
     msLeft, isExpired, score,
     KEY,
     /* Exposed so a test can drive the store without a page. */

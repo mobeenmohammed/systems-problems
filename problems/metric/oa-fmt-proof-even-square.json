@@ -1,0 +1,39 @@
+{
+  "id": "oa-fmt-proof-even-square",
+  "pool": "assessment",
+  "title": "An even square comes from an even number",
+  "topic": "metric",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "proof",
+  "tags": [
+    "proof",
+    "contrapositive",
+    "parity"
+  ],
+  "estimate": 10,
+  "prereqs": [
+    {
+      "concept": "metric-axioms",
+      "why": "Not for the content, but for the habit: a proof is a sequence of claims each of which follows from the last."
+    }
+  ],
+  "statement": "Let $n$ be an integer. Prove that if $n^2$ is even, then $n$ is even.\n\nWrite the proof out. **Nothing here marks a proof automatically** — it is recorded exactly as you wrote it, counts towards nothing in the automatic score, and after the assessment you read it against a rubric and a model proof yourself.\n\nA direct argument from \"$n^2 = 2k$\" is harder than it looks. The short proof goes the other way round.",
+  "payload": {
+    "prompt": "Write the proof.",
+    "starter": "Suppose, for contradiction, that ...",
+    "rubric": [
+      "It states what is assumed and what is to be shown, before it starts.",
+      "It does not assume what it is proving — in particular, it does not start from \"$n$ is even\".",
+      "If it argues by contrapositive, it says so, and the contrapositive it states is the right one: \"if $n$ is odd then $n^2$ is odd\".",
+      "Writing $n = 2m + 1$ is justified by \"every odd integer has this form\" rather than asserted.",
+      "The algebra is shown: $(2m+1)^2 = 4m^2 + 4m + 1 = 2(2m^2 + 2m) + 1$.",
+      "It concludes by naming the form that makes the result odd, rather than stopping at the expanded expression.",
+      "Every step follows from the one before it, with no appeal to \"clearly\"."
+    ]
+  },
+  "hints": [
+    "The contrapositive of \"if $P$ then $Q$\" is \"if not $Q$ then not $P$\", and it is logically equivalent. Write down what that is here before deciding which to prove.",
+    "Every odd integer can be written $2m + 1$ for some integer $m$. Squaring that is one line of algebra, and the form of the result is the whole proof."
+  ]
+}

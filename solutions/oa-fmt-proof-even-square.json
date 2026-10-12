@@ -1,0 +1,13 @@
+{
+  "id": "oa-fmt-proof-even-square",
+  "key": {
+    "selfReview": true
+  },
+  "explanation": "## A model proof\n\n**Claim.** Let $n \\in \\mathbb{Z}$. If $n^2$ is even then $n$ is even.\n\n**Proof.** We prove the contrapositive: if $n$ is odd then $n^2$ is odd. Since a statement and its contrapositive are logically equivalent, this establishes the claim.\n\nSuppose $n$ is odd. Then by the definition of oddness there is an integer $m$ with\n\n$$n = 2m + 1.$$\n\nSquaring,\n\n$$n^2 = (2m+1)^2 = 4m^2 + 4m + 1 = 2(2m^2 + 2m) + 1.$$\n\nNow $2m^2 + 2m$ is an integer, because the integers are closed under multiplication and addition. So $n^2$ has the form $2k + 1$ with $k = 2m^2 + 2m \\in \\mathbb{Z}$, which is to say $n^2$ is odd.\n\nWe have shown that $n$ odd implies $n^2$ odd. By contraposition, $n^2$ even implies $n$ even. $\\blacksquare$\n\n## Why not go directly\n\nThe direct attempt starts from $n^2 = 2k$ and tries to reach \"$n$ is even\". To get there you need something like \"if 2 divides $n^2$ then 2 divides $n$\" — which is Euclid's lemma, and is a *stronger* fact than the one being proved. Using it is not wrong, but it is using a theorem to prove one of its easy consequences, and if the exercise is to prove this from the definition of parity then it is circular in spirit.\n\nThe contrapositive avoids the problem because it starts from a **constructive** hypothesis. \"$n$ is odd\" hands you a concrete form, $2m+1$, that you can compute with. \"$n^2$ is even\" hands you a form for $n^2$, which is the wrong variable.\n\nThat is the general lesson, and it is worth more than this particular result: when the hypothesis is about a derived quantity and the conclusion is about the original one, try turning the implication round so that the thing you get to write down in a useful form is the thing you are reasoning from.\n\n## Two things that are not proofs\n\n- Checking $n = 2, 4, 6, \\ldots$. The claim is about every integer, and no finite number of cases reaches it.\n- \"Obviously an even square comes from an even number.\" That is the claim restated, not an argument for it.\n\n## Marking your own\n\nRead your proof against the rubric one line at a time, and look particularly for the step that was obvious to you while writing. The commonest real gap here is asserting $n = 2m+1$ without saying why every odd integer has that form, and the second commonest is stopping at $4m^2 + 4m + 1$ — which is true, and is not yet the statement that $n^2$ is odd.",
+  "readMore": [
+    {
+      "title": "Proof by contraposition",
+      "url": "https://en.wikipedia.org/wiki/Contraposition"
+    }
+  ]
+}

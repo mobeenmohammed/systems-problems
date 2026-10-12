@@ -1,0 +1,17 @@
+{
+  "id": "oa-fmt-negative-division",
+  "key": {
+    "output": "-3\n-1\n-3\n1\n"
+  },
+  "explanation": "## One rule and one identity\n\nThe rule: since C++11, integer division **truncates towards zero**. So `-7 / 2` is `-3` and not `-4`, and `7 / -2` is `-3` as well.\n\nThe identity: for integers, `(a / b) * b + a % b == a`. The remainder is not an independent choice — once the quotient is fixed, `%` is whatever makes the arithmetic add up.\n\n    -7 % 2  =  -7 - (-3 * 2)  =  -7 + 6  =  -1\n     7 % -2 =   7 - (-3 * -2) =   7 - 6  =   1\n\nSo `%` takes the sign of the **dividend**, every time. `-7 % 2` is negative; `7 % -2` is positive.\n\n## Why this is worth knowing exactly\n\nThe usual \"is it even\" and \"wrap into a range\" idioms both break on negatives:\n\n```cpp\nif (n % 2 == 1) { /* odd */ }        // false for n = -7\nconst int bucket = key % n;          // can be negative\n```\n\nThe fixes are `n % 2 != 0` and `((key % n) + n) % n`.\n\nRounding towards minus infinity — Python's choice, where `-7 // 2` is `-4` and `-7 % 2` is `1` — is often what you actually want for bucketing, and is why porting index arithmetic between the two languages is a reliable source of off-by-one bugs.\n\nBefore C++11 the rounding direction for negative operands was implementation-defined, so this program was not portable. C99 had already required truncation; C++11 followed, and `std::div` had specified it all along.\n\nOne more corner: `INT_MIN / -1` overflows and is undefined, and on x86 it raises `SIGFPE` from the divide instruction — the one case where integer division faults without a zero divisor in sight.",
+  "readMore": [
+    {
+      "title": "cppreference: arithmetic operators — division and remainder",
+      "url": "https://en.cppreference.com/w/cpp/language/operator_arithmetic"
+    },
+    {
+      "title": "cppreference: std::div",
+      "url": "https://en.cppreference.com/w/cpp/numeric/math/div"
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "id": "oa-fmt-invalidation",
+  "pool": "assessment",
+  "title": "What each of these invalidates",
+  "topic": "cpp",
+  "difficulty": "advanced",
+  "lane": "core",
+  "type": "match",
+  "tags": [
+    "iterators",
+    "invalidation",
+    "containers",
+    "undefined-behaviour"
+  ],
+  "estimate": 8,
+  "prereqs": [
+    {
+      "concept": "cpp-std-vector",
+      "why": "Reallocation is the mechanism behind the first row, and it is the one most people have met."
+    }
+  ],
+  "statement": "Pair each operation with what it invalidates. The guarantees are the standard's, not what any particular implementation happens to do.\n\nThere is one answer on the right that no operation on the left matches.\n\nNote that **iterators, pointers and references are not the same question**: two of these rows invalidate one and not the other, and that is the point of the exercise.",
+  "payload": {
+    "leftLabel": "Operation",
+    "rightLabel": "What it invalidates",
+    "prompt": "Click an operation, then what it invalidates. Clicking an operation again clears its pair.",
+    "left": [
+      "`std::vector::push_back`",
+      "`std::deque::push_back`",
+      "`std::vector::erase` on an element in the middle",
+      "`std::map::erase` on one element",
+      "`std::unordered_map::insert`"
+    ],
+    "right": [
+      "All iterators, pointers and references — but only if it reallocates. If the capacity was already sufficient, only the past-the-end iterator.",
+      "All iterators. Pointers and references to existing elements stay valid, because no existing element moves.",
+      "Everything at or after the erased element. Earlier iterators, pointers and references are unaffected.",
+      "Only the iterators, pointers and references to the element that was erased. Nothing else in the container is touched.",
+      "All iterators, but only if it rehashes. Pointers and references to elements are never invalidated by an insert.",
+      "Every iterator, pointer and reference into the container, unconditionally, whether or not it grows."
+    ]
+  },
+  "hints": [
+    "Start with the two rows that distinguish iterators from pointers. An iterator can be invalidated by the container's *bookkeeping* changing even when the element itself has not moved.",
+    "Both node-based containers here — the tree and the hash table — never move an element once it is constructed. That constrains what either can possibly invalidate."
+  ]
+}

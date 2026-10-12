@@ -1,0 +1,31 @@
+{
+  "id": "oa-fmt-map-private",
+  "key": {
+    "answer": 0
+  },
+  "explanation": "## The flag decides whose page you are writing to\n\n`PROT_WRITE` says the mapping may be written. `MAP_PRIVATE` says what a write *means*: the modification is yours and nobody else, including the file, will see it.\n\nThe mechanism is copy-on-write, and it is the same mechanism `fork` uses. Immediately after the `mmap` there is no copy of anything: the page table entry points at the frame the page cache already holds for that part of the file, and it is marked read-only even though the mapping is `PROT_WRITE`. Nothing has been duplicated because nothing has been modified.\n\nThe store to `p[0]` therefore takes a protection fault. The kernel looks at the VMA, sees a writable private mapping, allocates a fresh frame, copies the 4,096 bytes into it, repoints the page table entry at the copy with write permission, and restarts the instruction. The second time round the store succeeds, into the copy. The page cache still holds the file's contents, unmodified.\n\n### What follows from that\n\n- The file is never written, with or without `msync`. `msync` on a private mapping is permitted and does nothing useful; POSIX leaves it unspecified.\n- Another process mapping the same file `MAP_SHARED` will not see your byte, and you will not see theirs once you have faulted the page in privately.\n- Your copy costs real memory, counted against the process, which is why a private mapping of a large file is cheap until it is written to and then is not.\n- `MAP_PRIVATE | MAP_ANONYMOUS` is the same machinery with no file behind it, and that is what `malloc` uses for large allocations.\n\n### Where the other answers come from\n\nThe flush and the `msync` answers are both true of `MAP_SHARED`, which is the mapping people usually mean when they say \"mmap the file and write to it\". The difference between the two flags is one word in the call and the whole of what the call does.",
+  "readMore": [
+    {
+      "title": "man 2 mmap — MAP_PRIVATE and MAP_SHARED",
+      "url": "https://man7.org/linux/man-pages/man2/mmap.2.html"
+    },
+    {
+      "title": "man 2 msync",
+      "url": "https://man7.org/linux/man-pages/man2/msync.2.html"
+    }
+  ],
+  "distractors": {
+    "0": "This is it. The store faults because the entry is mapped read-only, the kernel copies the page into a frame of its own and restarts the instruction, and the write lands in the copy. The page cache — and therefore the file — is untouched.",
+    "1": "That is `MAP_SHARED`. A shared mapping writes through to the page cache, so the dirty page is the file's page and the usual writeback eventually puts it on disk. A private mapping writes to a copy, so there is no dirty file page to write back.",
+    "2": "`msync` flushes a mapping to the file it is backed by, which a private mapping is not after the first write. POSIX leaves `msync` on `MAP_PRIVATE` unspecified; on Linux it succeeds and changes nothing about the file.",
+    "3": "The mapping is `PROT_WRITE`, so the store is allowed. It does take a fault, which is the part worth knowing, but it is a protection fault the kernel handles and resolves, not a fault delivered to the process. A mapping that genuinely refused the write would have been created without `PROT_WRITE`."
+  },
+  "feedback": {
+    "options": {
+      "1": "That is what a shared mapping does. Look again at which flag was passed, and ask what it says about whose copy of the page you are modifying.",
+      "2": "`msync` pushes a mapping towards the file behind it. The question to settle first is whether, after this store, there is still a file behind the page you wrote to.",
+      "3": "The mapping carries `PROT_WRITE`, so the store is permitted. Something does happen in the kernel on that line, but it is not a signal."
+    },
+    "nudge": "The two mapping flags differ in one thing: whether your modification is visible to anybody else. Work out what that forces the kernel to do on the first store."
+  }
+}
