@@ -274,9 +274,10 @@
       <div class="feat">
         <h3>It runs in the tab</h3>
         <p>C++ compiles in the browser, on a real Clang built to WebAssembly, and Python
-           runs on a real CPython built the same way. Rust and anything graded by a
-           sanitizer need a runner you start yourself, or a small proxy you deploy — and
-           the bar under the editor always names which one answered.</p>
+           runs on a real CPython built the same way. So does Rust — a real rustc, with
+           the real borrow checker. Anything graded by a sanitizer needs a runner you
+           start yourself, or a small proxy you deploy, and the bar under the editor
+           always names which one answered.</p>
       </div>
       <div class="feat">
         <h3>Marking that can be argued with</h3>
@@ -782,6 +783,7 @@
 <script src="js/runners/hosted.js"></script>
 <script src="js/runners/browsercpp.js"></script>
 <script src="js/runners/browserpy.js"></script>
+<script src="js/runners/browserrust.js"></script>
 <script src="js/runners/index.js"></script>
 <script src="js/lint.js"></script>
 <script src="js/complete-cpp.js"></script>

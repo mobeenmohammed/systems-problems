@@ -86,6 +86,20 @@ jobs:
       - name: The browser Python support list matches the problems
         run: npm run check:py
 
+      # And for Rust. This one matters more than the other two, because the
+      # browser rustc cannot run every Rust problem — its Cranelift backend
+      # has no i64 smulhi, so parse::<i64>() does not compile. A stale list
+      # would offer the in-browser compiler for a problem that cannot build
+      # with it, and the reader would get a compiler error about an opcode.
+      - name: The browser Rust support list matches the problems
+        run: npm run check:rust
+
+      # The compiler itself is pinned by sha256. It is the one dependency
+      # that executes code, so an artifact that is not the pinned build is a
+      # failed build rather than something to notice later.
+      - name: The vendored Rust toolchain is the pinned build
+        run: npm run check:vendor-rust
+
       # The local runner writes data/judge-token.json on every start. It is in
       # .gitignore, but the deploy job publishes the whole checkout, so a
       # mistake here would put a live credential on a public URL.

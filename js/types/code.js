@@ -481,9 +481,24 @@ fn main() {
        is nothing to download and nothing to show. */
     const engine = lang === 'python'
       ? (typeof BrowserPy !== 'undefined' ? BrowserPy : null)
-      : (typeof BrowserCpp !== 'undefined' ? BrowserCpp : null);
+      : lang === 'rust'
+        ? (typeof BrowserRust !== 'undefined' ? BrowserRust : null)
+        : (typeof BrowserCpp !== 'undefined' ? BrowserCpp : null);
+    /* Is this run still the one on screen? Asked by everything that
+       writes to the page, not only by the code that paints the result.
+
+       A run that has been left behind keeps reporting: the backend calls
+       onStage as it compiles and runs, and the download bar reports
+       bytes. Those used to be written unconditionally, so opening
+       another problem mid-compile left the NEW problem's bar saying
+       "Running…" for ever — nothing was running, nothing would ever
+       correct it, and the only thing that cleared it was a reload.
+       Found by the Rust suite; the same code runs every language. */
+    const current = () => epoch === runEpoch && state
+      && state.problem.id === problem.id && state.lang === lang;
+
     const unwatch = (engine && !engine.ready)
-      ? engine.onProgress(p => showDownload(p, lang)) : null;
+      ? engine.onProgress(p => { if (current()) showDownload(p, lang); }) : null;
 
     let reply;
     try {
@@ -493,11 +508,14 @@ fn main() {
         compileMs: (pay.limits || {}).compileMs,
         runMs: (pay.limits || {}).runMs,
         signal: state.abort.signal,
-        onStage: stage => setExec('running', {
-          downloading: 'Fetching the compiler…',
-          compiling: 'Compiling…',
-          running: 'Running…',
-        }[stage] || 'Working…'),
+        onStage: stage => {
+          if (!current()) return;
+          setExec('running', {
+            downloading: 'Fetching the compiler…',
+            compiling: 'Compiling…',
+            running: 'Running…',
+          }[stage] || 'Working…');
+        },
       });
     } catch (err) {
       /* A throw from a backend must not leave Run disabled for ever. */
@@ -509,20 +527,27 @@ fn main() {
       };
     }
 
-    /* Whatever happened, this page is not running anything any more. Done
-       before the staleness check and outside any branch, because a Run button
-       stuck on "Running…" for ever is worse than any wrong answer. */
-    if (state) { state.running = false; state.abort = null; }
-    showStop(false);
+    /* The subscription goes either way: a listener for a run nobody is
+       watching is a listener that fires for ever. */
     if (unwatch) unwatch();
+
+    /* Too late: the reader changed problem or language while this was
+       out. Everything below this line belongs to whatever is on screen
+       NOW, and this run is not it — the buttons, the chip and the
+       download bar are the new page's, and a dead run must not reach
+       across and reset them. The new page was drawn fresh; its Run
+       button is already enabled and its Stop already hidden. */
+    if (!current()) return;
+
+    /* This page is not running anything any more. Unconditional from
+       here down, because a Run button stuck on "Running…" for ever is
+       worse than any wrong answer. */
+    state.running = false;
+    state.abort = null;
+    showStop(false);
     showDownload(null);
     const liveBtn = document.getElementById('runBtn');
     if (liveBtn) { liveBtn.disabled = false; liveBtn.textContent = 'Run tests'; }
-
-    /* Too late: the reader changed problem or language while this was out. */
-    if (epoch !== runEpoch || !state || state.problem.id !== problem.id || state.lang !== lang) {
-      return;
-    }
 
     const verdict = RunHarness.judgeRun(reply, cases.map(c => c.expect), { requireClean: !!pay.requireClean });
     /* The judge does not echo the input back, so a failing row showed
@@ -568,6 +593,13 @@ fn main() {
       preparing: 'Starting the interpreter…',
       note: 'A real CPython, compiled to WebAssembly. It is fetched once and then '
         + 'cached, so this happens on the first Python run and not again.',
+    },
+    rust: {
+      what: 'the Rust compiler',
+      preparing: 'Preparing the compiler…',
+      note: 'A real rustc with the Cranelift backend, compiled to WebAssembly, '
+        + 'with the wasm32-wasip1 standard library. It is fetched once and then '
+        + 'cached, so this happens on the first Rust run and not again.',
     },
   };
 

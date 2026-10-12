@@ -96,6 +96,10 @@ const Editor = (() => {
     let currentProfile = opts.profile;
     let diagnostics = [];
     let checkedBy = null;
+    /* Which compiler, in words. There are two now — a native one behind
+       the runner and a rustc in this tab — and they do not check the
+       same amount, so the row says which. */
+    let checkedWith = null;
     let watcher = null;
 
     const language = new Compartment();
@@ -298,7 +302,7 @@ const Editor = (() => {
          on every one of them. What the compiler said, when it has said
          anything, is worth the row; the absence of a compiler is not. */
       status.textContent = (!opts.lint || checkedBy !== 'compiler') ? ''
-        : `${Lint.summarise(diagnostics, { checkedBy })} · checked by the compiler`;
+        : `${Lint.summarise(diagnostics, { checkedBy })} · checked by ${checkedWith || 'the compiler'}`;
       status.hidden = !status.textContent;
     }
 
@@ -322,9 +326,10 @@ const Editor = (() => {
       });
     }
 
-    function setDiagnostics(list, by) {
+    function setDiagnostics(list, by, withWhat = null) {
       diagnostics = Array.isArray(list) ? list : [];
       checkedBy = by;
+      checkedWith = withWhat;
       view.dispatch(cmSetDiagnostics(view.state, toOffsets(diagnostics)));
       paintProblems();
     }
@@ -337,7 +342,7 @@ const Editor = (() => {
         get lang() { return currentLang; },
         lang: currentLang,
         profile: currentProfile,
-        onRemote: res => setDiagnostics(res.diagnostics, 'compiler'),
+        onRemote: res => setDiagnostics(res.diagnostics, 'compiler', res.by),
       });
     }
     startWatching();

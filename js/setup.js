@@ -150,8 +150,13 @@ const SetupGuide = (() => {
         detail: browserLangs.length
           ? 'JavaScript runs immediately. C++ compiles here too, with a real Clang '
             + 'built for WebAssembly — about 90 MB, fetched the first time you press '
-            + 'Run on a C++ problem and cached afterwards. A few problems need the '
-            + 'native toolchain instead and say so; Rust is not available here yet.'
+            + 'Run on a C++ problem and cached afterwards. Python runs on a real '
+            + 'CPython built the same way. Rust has a real rustc here as well, and it '
+            + 'is the one with a limit worth knowing: it checks every Rust problem as '
+            + 'you type — the real borrow checker — but it can only build and run some '
+            + 'of them, because its backend cannot compile parse::<i64>(). Each '
+            + 'problem says which it is. A few problems in every language need the '
+            + 'native toolchain and say so.'
           : 'Unavailable, which should not happen; reload the page.',
         langs: browserLangs,
       }),
@@ -436,8 +441,9 @@ const SetupGuide = (() => {
         ]),
       ]),
       el('p', { class: 'small prose', text:
-        'Until one of those exists, the toolbar says "No runner" for C++ and Rust rather '
-        + 'than guessing, and nothing is sent anywhere.' }),
+        'Until one of those exists, the bar under the editor says "No runner" rather '
+        + 'than guessing, and nothing is sent anywhere. Most C++ and Python problems '
+        + 'and some Rust ones do not need any of this: they run in the browser.' }),
       el('p', { class: 'small prose faint' }, [
         'Already have one deployed? Paste its address into ',
         el('a', { href: '#/settings' }, ['Settings ▸ Code execution ▸ Hosted runner address']),
