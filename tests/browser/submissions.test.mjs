@@ -307,12 +307,16 @@ section('they survive a reload');
 
 section('a submission whose code was dropped still says what it did');
 {
-  /* What the store does when the quota is reached: the programs go, the
-     verdicts stay. The row has to be honest about which happened. */
+  /* What the store does when the quota is reached: the oldest verdicts
+     and their programs go together, and a program that could not be
+     written at all leaves its verdict behind. The row has to be honest
+     about which happened — and must not offer a Load button that
+     cannot work. */
   const dropped = await page.evaluate(() => {
     const raw = JSON.parse(localStorage.getItem('invariant/state/v1'));
     const subs = raw.progress['algo-running-max'].subs;
     /* The oldest, which is the one at the bottom of the list. */
+    subs[0].stored = false;
     subs[0].source = null;
     localStorage.setItem('invariant/state/v1', JSON.stringify(raw));
     return subs.length;
@@ -324,7 +328,8 @@ section('a submission whose code was dropped still says what it did');
   await first.locator('summary').click();
   await page.waitForTimeout(200);
   const text = await first.textContent();
-  ok('it says the code was dropped', /dropped to stay inside/.test(text));
+  ok(`it says no code was kept ("${text.replace(/\s+/g, ' ').slice(0, 60)}")`,
+    /No code was kept|could not be saved/.test(text));
   ok('rather than showing an empty program', !(await first.locator('.sub-src').count()));
   ok('and offers no button that cannot work',
     !(await first.locator('button', { hasText: 'Load into the editor' }).count()));
@@ -336,20 +341,41 @@ section('a submission whose code was dropped still says what it did');
 
 section('a long line scrolls inside the row, not the page');
 {
-  /* Into the newest, which is the row at the top. */
-  await page.evaluate(() => {
+  /* Into the newest, which is the row at the top. Written where
+     programs actually live now — the vault — rather than inline on the
+     verdict, so this exercises the path the page really takes. */
+  await page.evaluate(async () => {
+    const S = window.SystemsLab;
+    const subs = S.Store.submissions('algo-running-max');
+    const newest = subs[0];
+    const long = `const x = ${'"a very long line indeed" + '.repeat(60)}"end";`;
+    await S.Sources.put('algo-running-max', newest.at, long);
+    S.Sources.forget();
+    /* And the verdict's own figures, which the row reads before the
+       program arrives. */
     const raw = JSON.parse(localStorage.getItem('invariant/state/v1'));
-    const subs = raw.progress['algo-running-max'].subs;
-    subs[subs.length - 1].source =
-      `const x = ${'"a very long line indeed" + '.repeat(60)}"end";`;
+    const list = raw.progress['algo-running-max'].subs;
+    const at = list[list.length - 1];
+    at.stored = true;
+    at.source = null;
+    at.bytes = long.length;
     localStorage.setItem('invariant/state/v1', JSON.stringify(raw));
   });
   for (const w of [1500, 1024, 768, 390]) {
     await page.setViewportSize({ width: w, height: 900 });
     await reload();
     await openTab('subs');
-    await page.locator('.subs .sub').first().locator('summary').click();
-    await page.waitForTimeout(250);
+    /* Opened, not toggled: this runs once per width and a second
+       click on the same summary would shut it again. */
+    await page.evaluate(() => {
+      const d = document.querySelector('.subs .sub');
+      if (d) d.open = true;
+    });
+    /* The program is read out of IndexedDB when the row is opened, not
+       when the list is painted, so this waits for the node rather than
+       for a guessed number of milliseconds. */
+    await page.waitForFunction(() => [...document.querySelectorAll('.sub-src')]
+      .some(n => n.textContent.includes('very long line indeed')), { timeout: 15_000 });
     const m = await page.evaluate(() => {
       /* The row that holds the long line, by its content rather than by
          where it happens to sit in the list. */
@@ -379,17 +405,27 @@ section('the program is coloured, and it is still only text');
      rather than text set. So: a program that is itself markup. */
   const NASTY = 'const bad = "<img src=x onerror=\'window.__pwned = 1\'>";\n'
     + 'print("</' + 'script><b>bold</b>");\n';
-  await page.evaluate((src) => {
+  await page.evaluate(async (src) => {
+    /* Where programs live: the vault, keyed by the verdict's `at`. */
+    const S = window.SystemsLab;
+    const newest = S.Store.submissions('algo-running-max')[0];
+    await S.Sources.put('algo-running-max', newest.at, src);
+    S.Sources.forget();
     const raw = JSON.parse(localStorage.getItem('invariant/state/v1'));
     const subs = raw.progress['algo-running-max'].subs;
-    subs[subs.length - 1].source = src;
+    subs[subs.length - 1].source = null;
+    subs[subs.length - 1].stored = true;
+    subs[subs.length - 1].bytes = src.length;
     subs[subs.length - 1].lang = 'js';
     localStorage.setItem('invariant/state/v1', JSON.stringify(raw));
   }, NASTY);
   await reload();
   await openTab('subs');
   await page.locator('.subs .sub').first().locator('summary').click();
-  await page.waitForTimeout(250);
+  await page.waitForFunction(() => {
+    const pre = document.querySelector('.sub-src');
+    return pre && pre.textContent.includes('onerror');
+  }, { timeout: 15_000 });
 
   const m = await page.evaluate(() => {
     const pre = document.querySelector('.sub-src');

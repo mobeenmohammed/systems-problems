@@ -454,7 +454,10 @@ await fresh();
   });
   const list = Store.submissions('code-1');
   check('it is recorded', list.length, 1);
-  check('with the program itself', list[0].source, 'int main() { return 1; }');
+  /* The verdict says a program was kept and how big it is; the
+     program itself is in the vault, keyed by this record's `at`. */
+  check('with a note that the program was kept', list[0].stored, true);
+  check('and how long it was', list[0].bytes, 'int main() { return 1; }'.length);
   check('the language',            list[0].lang, 'cpp');
   check('how many cases passed',   `${list[0].passed}/${list[0].total}`, '1/4');
   check('how long it took',        list[0].ms, 1234);
@@ -485,11 +488,11 @@ section('newest first, because that is the order anybody reads them');
 await fresh();
 {
   const c = P('code-3', 'intermediate', { type: 'code' });
-  for (const n of ['one', 'two', 'three']) {
+  for (const n of ['a', 'bb', 'ccc']) {
     Store.submit(c, { correct: false, score: 0, lang: 'js', source: n });
   }
   check('the last one is at the top',
-    Store.submissions('code-3').map(x => x.source), ['three', 'two', 'one']);
+    Store.submissions('code-3').map(x => x.bytes), [3, 2, 1]);
   ok('and the list handed out is a copy',
     Store.submissions('code-3') !== Store.submissions('code-3'));
 }
@@ -505,7 +508,7 @@ await fresh();
   check('and neither does an empty one', Store.submissions('mcq-2').length, 0);
 }
 
-section('the caps, because this is localStorage');
+section('the verdicts are capped; the programs are not truncated');
 await fresh();
 {
   const c = P('code-4', 'intermediate', { type: 'code' });
@@ -513,47 +516,56 @@ await fresh();
     Store.submit(c, { correct: false, score: 0, lang: 'js', source: `attempt ${i}` });
   }
   const list = Store.submissions('code-4');
-  check(`no more than ${Store.SUBS_MAX} are kept`, list.length, Store.SUBS_MAX);
-  check('the newest is the last one sent', list[0].source, `attempt ${Store.SUBS_MAX + 4}`);
-  check('and the oldest four are gone', list[list.length - 1].source, 'attempt 5');
+  check(`no more than ${Store.SUBS_MAX} verdicts are kept`, list.length, Store.SUBS_MAX);
+  check('the newest is the last one sent', list[0].bytes, `attempt ${Store.SUBS_MAX + 4}`.length);
+  ok('every one of them says a program was kept', list.every(x => x.stored));
 }
 
-section('one enormous program is cut, and says so');
+section('a program is not cut, however long it is');
 await fresh();
 {
+  /* The old store cut one at 6,000 characters. The only reason to keep
+     a program is to load it back, and a program cut in half cannot be
+     loaded back — so the cap went, and the program went to IndexedDB
+     where there is room for it. */
   const c = P('code-5', 'intermediate', { type: 'code' });
-  const huge = 'x'.repeat(Store.SUBS_CHARS + 500);
+  const huge = 'x'.repeat(60_000);
   Store.submit(c, { correct: false, score: 0, lang: 'js', source: huge });
   const sub = Store.submissions('code-5')[0];
-  check('kept up to the cap', sub.source.length, Store.SUBS_CHARS);
-  ok('and flagged as cut rather than quietly shortened', sub.truncated);
+  ok('the verdict says a program was kept', sub.stored);
+  check('and says how big it was, in full', sub.bytes, huge.length);
+  check('nothing is marked truncated any more', sub.truncated, false);
+  /* And the verdict itself is still small, which is what kept the
+     localStorage quota safe in the first place. */
+  ok(`the verdict is a few dozen bytes (${JSON.stringify(sub).length})`,
+    JSON.stringify(sub).length < 300);
 }
 
-section('the oldest give up their source before the newest do');
+section('the state file stays small however much code is submitted');
 await fresh();
 {
   const c = P('code-6', 'intermediate', { type: 'code' });
-  /* Each one is a fifth of the per-problem budget, so five fit and the
-     sixth pushes the first out. */
-  const big = n => String(n).repeat(Math.floor(Store.SUBS_BUDGET / 5));
-  for (let i = 1; i <= 6; i += 1) {
-    Store.submit(c, { correct: false, score: 0, lang: 'js', source: big(i) });
+  for (let i = 1; i <= 10; i += 1) {
+    Store.submit(c, { correct: false, score: 0, lang: 'js', source: 'y'.repeat(50_000) });
   }
-  const list = Store.submissions('code-6');
-  check('every submission is still listed', list.length, 6);
-  ok('the newest still has its code', list[0].source !== null);
-  ok('the oldest does not', list[list.length - 1].source === null);
-  ok('and what it did survived losing it',
-    list[list.length - 1].outcome === 'failed' && list[list.length - 1].lang === 'js');
-  const bytes = list.reduce((n, x) => n + (x.source ? x.source.length : 0), 0);
-  ok(`the budget holds (${bytes} <= ${Store.SUBS_BUDGET})`, bytes <= Store.SUBS_BUDGET);
+  const raw = sandbox.localStorage.getItem('invariant/state/v1');
+  /* Half a megabyte of programs; the file that holds the XP must not
+     have grown by any of it. A quota failure here does not lose the
+     submissions, it loses everything. */
+  ok(`half a megabyte of programs, ${raw.length} bytes of state`, raw.length < 20_000);
+  check('and all ten verdicts are there', Store.submissions('code-6').length, 10);
 }
 
-section('out of room: the code goes, the XP stays');
+section('out of room: the oldest history goes, the draft and the XP stay');
 await fresh();
 {
   const c = P('code-7', 'intermediate', { type: 'code' });
-  Store.submit(c, { correct: false, score: 0, lang: 'js', source: 'first attempt' });
+  /* A draft in progress, which is the thing that must NOT be shed: it
+     is work somebody is in the middle of and the only copy of it. */
+  Store.saveDraft(c, 'js', 'the thing I am writing right now');
+  for (let i = 1; i <= 8; i += 1) {
+    Store.submit(c, { correct: false, score: 0, lang: 'js', source: `attempt ${i}` });
+  }
 
   /* One write fails the way a full quota fails, and only one. */
   const real = sandbox.localStorage.setItem;
@@ -568,10 +580,14 @@ await fresh();
   check('the solve was still awarded', out.xp > 0, true);
   check('and it is in the saved state',
     JSON.parse(sandbox.localStorage.getItem('invariant/state/v1')).xp, Store.state.xp);
-  const list = Store.submissions('code-7');
-  check('both submissions are still listed', list.length, 2);
-  ok('with the programs shed to make the write fit',
-    list.every(x => x.source === null));
+  const left = Store.submissions('code-7').length;
+  ok(`the oldest verdicts were pruned to make the write fit (${left} left)`,
+    left <= Store.SUBS_KEEP_WHEN_FULL + 1);
+  ok('and some history survived rather than all of it going',
+    left >= Store.SUBS_KEEP_WHEN_FULL);
+  /* The whole point of choosing verdicts over drafts. */
+  check('the draft in progress was not touched',
+    Store.draft('code-7', 'js'), 'the thing I am writing right now');
 }
 
 section('submissions survive an export and import');
@@ -584,8 +600,11 @@ await fresh();
   check('reset clears them', Store.submissions('code-8').length, 0);
   Store.importState(snapshot);
   const sub = Store.submissions('code-8')[0];
-  check('and the import brings them back', sub && sub.source, 'int main(){}');
+  /* The verdict travels in the state snapshot; the program travels in
+     the vault's half of the export. See tests/vault.test.mjs. */
+  ok('and the import brings the verdict back', !!sub);
   check('with the numbers intact', `${sub.passed}/${sub.total}`, '3/3');
+  check('and the note that a program exists for it', sub.stored, true);
 }
 
 section('a snapshot from elsewhere cannot talk the caps up');

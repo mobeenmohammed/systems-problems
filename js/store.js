@@ -268,6 +268,13 @@ const Store = (() => {
       lang:      r.lang ? String(r.lang) : '',
       perceived: perceived >= 1 && perceived <= 5 ? Math.round(perceived) : null,
       notes:     typeof r.notes === 'string' ? r.notes : '',
+      /* A different note from `notes`, and deliberately so. `notes` is
+         "what did this teach you", written whenever. `missed` is one
+         line written immediately after getting it wrong, while you
+         still know why — which is the only moment anybody ever
+         actually knows. It is what the review queue shows. */
+      missed:    typeof r.missed === 'string' ? r.missed : '',
+      missedAt:  r.missedAt ? String(r.missedAt) : '',
       draft:     (r.draft && typeof r.draft === 'object') ? r.draft : {},
       /* Sliced on the way in as well as on the way out, so a snapshot
          written by a version with a larger cap cannot reinstate it. */
@@ -298,9 +305,23 @@ const Store = (() => {
      full quota does not lose this feature - it loses the whole state file,
      including the XP. The caps are the price of that not happening. */
   const SUBS_MAX    = 10;     /* submissions kept per problem */
-  const SUBS_CHARS  = 6000;   /* of any one program */
-  const SUBS_BUDGET = 20000;  /* of source per problem, all submissions together */
   const SUB_OUTCOMES = ['passed', 'failed', 'build-failed'];
+
+  /* The program itself is NOT here any more. It lives in IndexedDB,
+     through js/sources.js, keyed by this record's `at`.
+
+     It used to be cut at 6,000 characters and the oldest ones dropped
+     at 20,000 per problem, to protect the five-megabyte origin quota —
+     a quota failure does not lose the submissions, it loses this whole
+     file including the XP. But the only reason to keep a program is
+     "load this one back", and a program cut in half cannot be loaded
+     back. So the verdict stays here, forty bytes of it, and the
+     program goes where there is room for it.
+
+     The policy, in one sentence: the last ten verdicts per problem are
+     kept, and a program is kept for exactly as long as its verdict is.
+     Nothing is ever dropped to save space while its verdict is still
+     on the list. */
 
   function normalizeSubmission(x) {
     x = x || {};
@@ -315,27 +336,51 @@ const Store = (() => {
       passed:  Math.min(total, Math.max(0, Math.round(Number(x.passed) || 0))),
       total,
       ms:      Math.max(0, Math.round(Number(x.ms) || 0)),
-      /* null rather than '': the source was dropped to stay inside the
-         quota, which is a different thing from an empty program. */
-      source:  typeof x.source === 'string' ? x.source : null,
+      /* Where the program is, rather than the program. `stored` says a
+         copy exists to be fetched; `bytes` lets the list say how big it
+         is without fetching it. An old record may still carry `source`
+         inline — those are the pre-migration ones, and they are read
+         from here until the migration has copied them across. */
+      stored: x.stored === undefined ? (typeof x.source === 'string') : !!x.stored,
+      bytes: Math.max(0, Math.round(Number(x.bytes) || (typeof x.source === 'string' ? x.source.length : 0))),
+      /* Kept, never written. See the migration in js/sources.js: the
+         old copy is left where it is rather than deleted before the
+         new one is proven. */
+      source: typeof x.source === 'string' ? x.source : null,
       truncated: !!x.truncated,
     };
   }
 
   function pushSubmission(r, entry) {
     const e = normalizeSubmission(entry);
-    if (e.source != null && e.source.length > SUBS_CHARS) {
-      e.source = e.source.slice(0, SUBS_CHARS);
-      e.truncated = true;
-    }
+    const source = typeof entry.source === 'string' ? entry.source : null;
+    /* The verdict records that there is a program and how big it is;
+       the program goes to the vault. No cap: that is the point. */
+    e.source = null;
+    e.truncated = false;
+    e.stored = source != null;
+    e.bytes = source ? source.length : 0;
+
     r.subs.push(e);
-    while (r.subs.length > SUBS_MAX) r.subs.shift();
-    /* The newest keep their source and the oldest give theirs up. Losing the
-       code you sent ten attempts ago is a smaller loss than the write
-       failing and losing all of it. */
-    const bytes = () => r.subs.reduce((n, x) => n + (x.source ? x.source.length : 0), 0);
-    for (let i = 0; i < r.subs.length && bytes() > SUBS_BUDGET; i += 1) {
-      if (r.subs[i].source != null) { r.subs[i].source = null; r.subs[i].truncated = false; }
+    const gone = [];
+    while (r.subs.length > SUBS_MAX) gone.push(r.subs.shift());
+
+    if (typeof Sources !== 'undefined') {
+      if (source != null) {
+        Sources.put(r.id, e.at, source).then(w => {
+          if (!w || w.ok) return;
+          /* It could not be written anywhere durable. Say so on the
+             record rather than leaving a Load button that will not
+             work. */
+          e.stored = false;
+          e.storeError = w.error || 'it could not be saved';
+          save();
+          emit('storage', { what: 'submission', id: r.id, error: e.storeError });
+        });
+      }
+      /* A program is dropped only once its verdict has rolled off the
+         list. Nothing is pruned while it is still shown. */
+      if (gone.length) Sources.prune(r.id, r.subs.map(x => x.at));
     }
     return e;
   }
@@ -348,14 +393,24 @@ const Store = (() => {
     try {
       localStorage.setItem(LS_KEY, JSON.stringify(state));
     } catch (err) {
-      /* Out of room. The stored programs are the largest thing in here and
-         the cheapest to lose, so they go and the write is tried once more:
-         an XP award that silently fails to persist is a worse outcome than a
-         submission whose code you can no longer read back. */
-      if (shedSubmissionSources()) {
+      /* Out of room. Something has to give, and WHICH thing is a
+         decision worth writing down:
+
+           · not the drafts. A draft is work in progress and it is the
+             only copy of it. Throwing away what somebody is in the
+             middle of writing, to make room for the record of what they
+             finished last week, is the wrong way round.
+           · not the newest verdicts, which are what the Submissions
+             tab is for.
+           · the oldest verdicts beyond the newest few, which is a
+             history and is prunable by nature.
+
+         The programs are not in here at all any more, which is why
+         this is now a rare path rather than the common one. */
+      if (shedOldestVerdicts()) {
         try {
           localStorage.setItem(LS_KEY, JSON.stringify(state));
-          emit('storage-trimmed', null);
+          emit('storage-trimmed', { kept: SUBS_KEEP_WHEN_FULL });
           return true;
         } catch { /* genuinely full; fall through and say so */ }
       }
@@ -367,10 +422,31 @@ const Store = (() => {
     return true;
   }
 
-  function shedSubmissionSources() {
+  /* How many verdicts per problem survive a full quota. Three rather
+     than one, because "the last three attempts" is still a history and
+     one is not. */
+  const SUBS_KEEP_WHEN_FULL = 3;
+
+  function shedOldestVerdicts() {
     let shed = false;
     for (const r of Object.values(state.progress)) {
-      for (const x of r.subs || []) if (x.source != null) { x.source = null; shed = true; }
+      const subs = r.subs || [];
+      if (subs.length <= SUBS_KEEP_WHEN_FULL) continue;
+      const dropped = subs.splice(0, subs.length - SUBS_KEEP_WHEN_FULL);
+      shed = true;
+      /* Their programs go with them — a program is kept for exactly as
+         long as its verdict, and that rule holds here too. */
+      if (typeof Sources !== 'undefined' && dropped.length) {
+        Sources.prune(r.id, subs.map(x => x.at));
+      }
+    }
+    /* Pre-migration records may still carry a program inline. Those are
+       the largest thing left and the cheapest to lose, since the vault
+       has a copy. */
+    if (!shed) {
+      for (const r of Object.values(state.progress)) {
+        for (const x of r.subs || []) if (x.source != null) { x.source = null; shed = true; }
+      }
     }
     return shed;
   }
@@ -564,6 +640,19 @@ const Store = (() => {
   /* ---------------- notes, flags, revisits ---------------- */
 
   function setNotes(problem, text)  { const r = touch(problem); r.notes = String(text); save(); }
+
+  function setMissed(problem, text) {
+    const r = touch(problem);
+    const was = r.missed;
+    r.missed = String(text);
+    /* Stamped only when it changes from nothing to something, so the
+       queue can order by "when did I last get this wrong and say why"
+       rather than by when the textarea last lost focus. */
+    if (!was && r.missed.trim()) r.missedAt = new Date().toISOString();
+    if (!r.missed.trim()) r.missedAt = '';
+    save();
+    return r.missed;
+  }
   function setPerceived(problem, n) { const r = touch(problem); r.perceived = n >= 1 && n <= 5 ? Math.round(n) : null; save(); }
   function setFlag(problem, on)     { const r = touch(problem); r.flagged = !!on; save(); emit('flag', r); }
   /* The catalogue bookmarks from a row, where there is no "on" to pass -
@@ -660,6 +749,77 @@ const Store = (() => {
     return Object.values(state.progress)
       .filter(r => r.flagged || (r.reviewOn && r.reviewOn <= today))
       .map(r => ({ ...r, reason: r.flagged ? 'flagged' : 'due' }));
+  }
+
+  /* ---------------- the review queue ----------------
+
+     Five reasons, and every row carries the one that put it there.
+     That is the whole design: a queue that says "revise this" and not
+     why is a queue nobody trusts, and the obvious fix — a single
+     number per problem — is worse, because a mastery score is an
+     opinion with no argument attached. These are facts about things
+     you did.
+
+     In priority order, because a problem can have several and the
+     most actionable should be the one shown:
+
+       due        you booked a revisit and the date has arrived
+       missed     you wrote down what you got wrong
+       wrong      attempted and not solved
+       read       you revealed the answer rather than solving it
+       flagged    you bookmarked it
+
+     "Marked difficult" is folded into `missed` and `wrong` via the
+     felt rating, which is carried on every row as `perceived` — your
+     own figure, never mixed with the grader's. */
+
+  const REVIEW_REASONS = [
+    { id: 'due', label: 'Due for revisit',
+      why: 'You booked this one for a revisit and the date has come.' },
+    { id: 'missed', label: 'You wrote down what you missed',
+      why: 'There is a note on this one from the last time you got it wrong.' },
+    { id: 'wrong', label: 'Attempted, not solved',
+      why: 'You have had a go at this and it is not right yet.' },
+    { id: 'read', label: 'You read the answer',
+      why: 'The solution was revealed rather than reached, so this one is '
+        + 'worth doing again from scratch.' },
+    { id: 'flagged', label: 'You bookmarked it',
+      why: 'You starred this one to come back to.' },
+  ];
+  const REVIEW_BY_ID = Object.fromEntries(REVIEW_REASONS.map(r => [r.id, r]));
+
+  function reviewQueue() {
+    const today = todayISO();
+    const out = [];
+    for (const r of Object.values(state.progress)) {
+      const due = !!(r.reviewOn && r.reviewOn <= today);
+      const reasons = [];
+      if (due) reasons.push('due');
+      if (r.missed && r.missed.trim()) reasons.push('missed');
+      if (r.status === 'attempted') reasons.push('wrong');
+      if (r.status === 'read') reasons.push('read');
+      if (r.flagged) reasons.push('flagged');
+      if (!reasons.length) continue;
+      out.push({
+        id: r.id,
+        reason: reasons[0],
+        reasons,
+        /* Your own rating, kept apart from anything a grader said.
+           1..5 or null, and null means you never said. */
+        perceived: r.perceived,
+        missed: r.missed,
+        missedAt: r.missedAt,
+        status: r.status,
+        attempts: r.attempts,
+        reviewOn: r.reviewOn,
+        lastAt: r.missedAt || r.lastAttemptAt || '',
+      });
+    }
+    const rank = id => REVIEW_REASONS.findIndex(x => x.id === id);
+    return out.sort((a, b) =>
+      rank(a.reason) - rank(b.reason)
+      || String(b.lastAt).localeCompare(String(a.lastAt))
+      || a.id.localeCompare(b.id));
   }
 
   /* ---------------- readings ---------------- */
@@ -988,9 +1148,10 @@ const Store = (() => {
 
     todayISO, addDays, daysBetween,
     record, isSolved, potentialXp, touch,
-    submissions, SUBS_MAX, SUBS_CHARS, SUBS_BUDGET,
+    submissions, SUBS_MAX, SUBS_KEEP_WHEN_FULL,
     openHint, reveal, submit,
-    setNotes, setPerceived, setFlag, toggleFlag, setReview, saveDraft, setLang, draft, dueForReview, selfReview,
+    setNotes, setMissed, setPerceived, setFlag, toggleFlag, setReview, saveDraft, setLang, draft, dueForReview, selfReview,
+    reviewQueue, REVIEW_REASONS, REVIEW_BY_ID,
     useDraftStore,
     completionPref, completionOn, setCompletion, COMPLETION_LANGS,
     markReading, hasRead, readingCount,

@@ -11,7 +11,7 @@
 
   const VIEWS = ['home', 'problems', 'problem', 'learn', 'tracks', 'concepts', 'profile',
     'shop', 'settings', 'setup', '404',
-    'assess', 'assess-brief', 'assess-run', 'assess-review'];
+    'assess', 'assess-brief', 'assess-run', 'assess-review', 'review'];
 
   function show(name) {
     /* Every route change comes through here, which makes it the one place
@@ -107,6 +107,11 @@
           show('assess-brief');
           await AssessmentView.renderBrief(path[1]);
         }
+        break;
+
+      case 'review':
+        show('review');
+        UI.renderReview();
         break;
 
       case 'p':
@@ -247,6 +252,44 @@
       if (event === 'storage-error') {
         UI.toast('Could not save — your browser refused the write. Export your progress from Settings.', 'bad', 12000);
       }
+      /* The quota filled and the oldest submission history was pruned
+         to make the write fit. Said out loud with the policy in it,
+         because losing history silently is how somebody discovers it a
+         month later. Drafts are never what gets pruned. */
+      if (event === 'storage-trimmed') {
+        UI.toast(`Storage is full, so the oldest submissions were dropped — the last `
+          + `${(detail && detail.kept) || 3} per problem are kept. Drafts and progress `
+          + 'were not touched. Export from Settings.', 'bad', 14000);
+      }
+      /* A program that could not be written. The verdict survived; the
+         Load button for it will not work, and the row says so. */
+      if (event === 'storage') {
+        UI.toast('A submitted program could not be saved. What it did is still '
+          + 'recorded — see Settings ▸ Storage.', 'bad', 10000);
+      }
+    });
+
+    /* The programs used to live inline in the progress file, cut at
+       6,000 characters. Copy them across once, in the background: it
+       touches nothing the first paint needs, and the old copies are
+       left where they are rather than deleted before the new ones
+       exist. */
+    if (typeof Sources !== 'undefined') {
+      Sources.migrate(Store.state.progress).then(r => {
+        if (r.moved) console.info(`[invariant] moved ${r.moved} stored programs to IndexedDB`);
+        if (r.failed) {
+          UI.toast(`${r.failed} of your stored programs could not be moved to the `
+            + 'larger store. Nothing was deleted. See Settings ▸ Storage.', 'bad', 12000);
+        }
+      }).catch(() => { /* reported by the vault's own listener */ });
+    }
+
+    /* And the vault saying it cannot write, whoever asked it to. */
+    Vault.onFail(e => {
+      if (e.what !== 'write') return;
+      UI.toast('This browser will not let the page store data. Anything you do '
+        + 'now will be gone when the tab closes — see Settings ▸ Storage.',
+        'bad', 15000);
     });
 
     window.addEventListener('hashchange', route);
@@ -266,6 +309,6 @@
     Store, Catalog, ProblemTypes, ProblemView, UI, route,
     Runners, Hosted, BrowserCpp, BrowserRust, RunHarness, Lint, Editor,
     MathsExpr, MathsRender,
-    Vault, Attempts, Assessments, AssessmentView, LearnLayout,
+    Vault, Sources, Attempts, Assessments, AssessmentView, LearnLayout,
   };
 })();

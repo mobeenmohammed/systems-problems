@@ -2686,6 +2686,79 @@ body[data-graph="true"] #view-learn { height: 100%; min-height: 0; }
   .graph-acts { margin-left: 0; flex-wrap: wrap; }
 }
 
+/* ---------------- the review queue ----------------
+
+   Every row carries the reason it is here, and the reason is a chip
+   rather than a colour: five reasons is more than colour can carry, and
+   two of them would have to be the same hue anyway. */
+
+.rq-tallies { display: flex; flex-wrap: wrap; gap: .4rem; margin: 0 0 var(--s4); }
+.rq-tally {
+  padding: .15em .6em; border-radius: 999px;
+  background: var(--bg-inset); border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+.rq-tally b { color: var(--text); font-family: var(--mono); }
+
+.rq-list { display: flex; flex-direction: column; gap: var(--s3); }
+.rq-row {
+  display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--s3);
+  padding: var(--s3) var(--s4); border-radius: var(--radius);
+  background: var(--bg-elev); border: 1px solid var(--border);
+  border-left: 3px solid var(--border);
+}
+.rq-row[data-reason="due"] { border-left-color: var(--warn); }
+.rq-row[data-reason="missed"] { border-left-color: var(--accent); }
+.rq-row[data-reason="read"] { border-left-color: var(--text-faint); }
+.rq-main { flex: 1 1 22rem; min-width: 0; }
+.rq-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem; }
+.rq-title a { font-weight: 600; }
+.rq-why {
+  padding: .1em .5em; border-radius: 999px; white-space: nowrap;
+  background: var(--bg-inset); border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+
+/* In your words, so it reads as a quotation rather than as a label. */
+.rq-missed {
+  margin: .45rem 0 .2rem; padding: .35rem 0 .35rem .7rem;
+  border-left: 2px solid var(--border-strong);
+  font-size: .86rem; color: var(--text);
+}
+.rq-concepts { margin: .3rem 0 0; }
+
+.rq-side {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .4rem;
+  margin-left: auto;
+}
+/* Your own rating. Visually apart from everything a grader said,
+   because they are different kinds of claim. */
+.rq-felt {
+  padding: .1em .55em; border-radius: var(--radius-s);
+  border: 1px dashed var(--border); color: var(--text-dim);
+  white-space: nowrap;
+}
+
+/* ---- what I missed, on the verdict ---- */
+
+.missed {
+  margin: .7rem 0 0; padding: .6rem .7rem;
+  border-radius: var(--radius-s);
+  background: var(--bg-inset); border: 1px dashed var(--border);
+}
+.missed p { margin: 0 0 .35rem; }
+.missed-box {
+  width: 100%; resize: vertical; font: inherit; font-size: .86rem;
+  padding: .4rem .55rem; border-radius: var(--radius-s);
+  background: var(--bg); color: var(--text); border: 1px solid var(--border);
+}
+.missed-box:focus-visible { border-color: var(--accent); }
+.missed-saved { margin: .35rem 0 0; color: var(--text-dim); }
+
+@media (max-width: 760px) {
+  .rq-side { margin-left: 0; }
+}
+
 /* ---------------- online assessments ----------------
 
    A separate mode and it looks like one: nothing here borrows the

@@ -767,24 +767,18 @@ const ProblemView = (() => {
          saying so than saying nothing. */
       const cases = sub.total ? `${sub.passed}/${sub.total} cases` : '';
 
-      const body = el('div', { class: 'sub-body' });
-      if (sub.source == null) {
-        body.append(el('p', { class: 'tiny faint', text:
-          'The code for this one was dropped to stay inside the browser\u2019s '
-          + 'storage. What it did is still here.' }));
-      } else {
-        body.append(sourceNode(sub));
-        if (sub.truncated) {
-          body.append(el('p', { class: 'tiny faint', text:
-            `Only the first ${Store.SUBS_CHARS} characters were kept.` }));
-        }
-        body.append(el('div', { class: 'row' }, [
-          el('button', {
-            class: 'btn btn-sm btn-ghost', type: 'button',
-            onclick: () => loadSubmission(sub),
-          }, ['Load into the editor']),
-        ]));
-      }
+      /* The program is in IndexedDB now, so the body is filled when the
+         row is opened rather than when the list is painted: ten reads
+         to draw a list nobody has expanded is ten reads too many, and
+         the list has to paint synchronously. */
+      const body = el('div', { class: 'sub-body' }, [
+        el('p', { class: 'tiny faint', text: sub.stored
+          ? `Reading ${sub.bytes.toLocaleString()} characters\u2026`
+          : (sub.storeError
+            ? `The code for this one could not be saved: ${sub.storeError}. What it did is still here.`
+            : 'No code was kept for this one. What it did is still here.') }),
+      ]);
+      if (sub.stored) fillSubmissionBody(body, sub);
 
       return el('li', {}, [el('details', { class: 'sub' }, [
         el('summary', {}, [
@@ -813,26 +807,59 @@ const ProblemView = (() => {
      highlight the escaped text, which is what the highlighter is written
      against — so a program containing `<script>` is a program containing
      `<script>` rather than one. */
-  function sourceNode(sub) {
+  /* Fetch the program and swap it in. A failed read is said, not left
+     as a spinner: the verdict is still true even when the program has
+     gone, and "Reading…" for ever is the one thing it must not do. */
+  async function fillSubmissionBody(body, sub) {
+    let source = sub.source;   /* pre-migration records still carry it */
+    if (source == null && typeof Sources !== 'undefined') {
+      try { source = await Sources.get(current.id, sub.at); } catch { source = null; }
+    }
+    if (!body.isConnected) return;
+
+    if (source == null) {
+      body.replaceChildren(el('p', { class: 'tiny faint', text:
+        'The code for this one could not be read back from storage. What it '
+        + 'did is still here.' }));
+      return;
+    }
+
+    body.replaceChildren(
+      sourceNode(source, sub.lang),
+      sub.truncated
+        ? el('p', { class: 'tiny faint', text:
+          'This one was saved before programs were kept whole, so only the '
+          + 'first 6,000 characters of it exist.' })
+        : null,
+      el('div', { class: 'row' }, [
+        el('button', {
+          class: 'btn btn-sm btn-ghost', type: 'button',
+          onclick: () => loadSubmission(sub, source),
+        }, ['Load into the editor']),
+      ]),
+    );
+  }
+
+  function sourceNode(source, lang) {
     const pre = el('pre', { class: 'sub-src' });
-    const can = typeof Highlight !== 'undefined' && Highlight.supports(sub.lang);
+    const can = typeof Highlight !== 'undefined' && Highlight.supports(lang);
     pre.append(can
-      ? el('code', { html: Highlight.run(MD.escapeHtml(sub.source), sub.lang) })
-      : el('code', { text: sub.source }));
+      ? el('code', { html: Highlight.run(MD.escapeHtml(source), lang) })
+      : el('code', { text: source }));
     return pre;
   }
 
-  function loadSubmission(sub) {
+  function loadSubmission(sub, source) {
     const impl = ProblemTypes.get('code');
     const ed = codeEditor();
-    if (!impl || !impl.loadSource || !ed) return;
+    if (!impl || !impl.loadSource || !ed || source == null) return;
     const now = ed.value;
     /* The editor holds the draft, and the draft is the only copy of it. */
-    if (now.trim() && now !== sub.source && !confirm(
+    if (now.trim() && now !== source && !confirm(
       'Put this submission back in the editor?\n\n'
       + 'What is in the editor now is replaced, and that is the only copy of it.'
     )) return;
-    impl.loadSource(sub.lang, sub.source);
+    impl.loadSource(sub.lang, source);
     UI.toast('Loaded back into the editor.', 'info');
     /* No redraw: it would rebuild the editor and take the focus back out of
        it. The language tabs are repainted by the switch itself. */
@@ -1236,8 +1263,66 @@ const ProblemView = (() => {
       bits.length ? el('p', { class: 'award', text: bits.join(' · ') }) : null,
       el('p', { class: 'tiny faint' }, [next]),
       reviewing ? rubricNode() : null,
+      /* One line, asked at the only moment anybody actually knows the
+         answer: right after getting it wrong, before the reason has
+         gone. Not offered in an assessment — the reader is under a
+         clock and has not been told what was wrong yet. */
+      (!result.correct && !result.selfReview && !assess) ? missedNode() : null,
       attemptHistory(),
     ]);
+  }
+
+  /* ---------------- what I missed ----------------
+
+     A separate field from Notes, and the separation is the point.
+     Notes is "what did this teach you", written whenever. This is one
+     line written while you still know why you got it wrong, which is a
+     window that closes within about a minute — and it is what the
+     review queue shows, so the queue says something in your words
+     rather than "revise this".
+
+     It is explicitly yours and explicitly not a mark: nothing reads it,
+     nothing scores it, and writing one changes nothing about the
+     problem except that it appears on the review list. */
+  function missedNode() {
+    const p = current;
+    const r = Store.record(p.id);
+    const concepts = (p.prereqs || []).map(x => x.concept || x).slice(0, 3);
+
+    const box = el('textarea', {
+      class: 'missed-box',
+      rows: '2',
+      placeholder: 'In one line — what did you miss?',
+      oninput: e => {
+        Store.setMissed(p, e.target.value);
+        const note = box.parentElement.querySelector('.missed-saved');
+        if (note) note.hidden = !e.target.value.trim();
+      },
+    }, [r.missed || '']);
+
+    return el('div', { class: 'missed' }, [
+      el('p', { class: 'tiny faint', text:
+        'Worth a line now, while you still know. Nobody marks this and '
+        + 'nothing scores it — it goes on your review list so the list can '
+        + 'say why in your own words.' }),
+      box,
+      el('p', { class: 'tiny missed-saved', hidden: !(r.missed || '').trim() }, [
+        'Saved. It is on ',
+        el('a', { href: '#/review', text: 'your review list' }),
+        '.',
+      ]),
+      concepts.length
+        ? el('p', { class: 'tiny faint' }, [
+          'This one rests on ',
+          ...concepts.flatMap((c, i) => [
+            i ? ', ' : '',
+            el('a', { href: `#/concepts?q=${encodeURIComponent(c)}`,
+              text: (Catalog.concept(c) || {}).name || c }),
+          ]),
+          '.',
+        ])
+        : null,
+    ].filter(Boolean));
   }
 
   /* ---------------- reviewing your own proof ----------------

@@ -469,6 +469,18 @@
        at a time: what there is, everything you are owed before the
        clock starts, and what happened afterwards. The attempt itself
        is a fourth, below. -->
+  <!-- ---------------- the review queue ----------------
+
+       Everything you have left a reason to come back to, with the
+       reason on the row. Not a mastery score: these are facts about
+       things you did. -->
+  <section id="view-review" class="view" hidden>
+    <h1>Review</h1>
+    <p class="muted" id="reviewBlurb"></p>
+    <div class="rq-tallies" id="reviewGroups" hidden></div>
+    <div class="rq-list" id="reviewList"></div>
+  </section>
+
   <section id="view-assess" class="view" hidden>
     <h1>Online Assessments</h1>
     <p class="muted" id="assessBlurb"></p>
@@ -713,17 +725,26 @@
 
     <div class="card" style="margin-bottom:1rem">
       <h3>Your data</h3>
-      <p class="small muted">Progress lives in this browser. Export it to carry it to another
+      <p class="small muted">Everything lives in this browser. Export it to carry it to another
          machine, or to commit it as <code>data/progress.json</code>.</p>
       <div class="row">
-        <button class="btn btn-sm" id="setExport">Export progress…</button>
-        <button class="btn btn-sm" id="setImport">Import progress…</button>
+        <button class="btn btn-sm" id="setExport">Export everything…</button>
+        <button class="btn btn-sm" id="setImport">Import…</button>
         <button class="btn btn-sm" id="setExportSolves">Export solves for Learning Tree…</button>
       </div>
       <p class="tiny faint" style="margin:.6rem 0 0">
-        Solves export in the shape the tracker's <strong>Data ▸ Import solved problems</strong>
-        already accepts, under the source <code>systems</code>.
+        One file: progress, drafts, the programs you submitted and your assessment
+        attempts. A file exported by an older version still imports.
+        Solves export separately, in the shape the tracker's
+        <strong>Data ▸ Import solved problems</strong> already accepts, under the
+        source <code>systems</code>.
       </p>
+
+      <!-- Where things actually are, and whether writing works. A page that
+           cannot save and does not say so is a page quietly losing work. -->
+      <h4 style="margin:1rem 0 .3rem;font-size:.82rem">Storage</h4>
+      <p class="small" id="setStorage">Checking…</p>
+      <p class="tiny faint prose" id="setStorageNote" hidden></p>
     </div>
 
     <div class="card">
@@ -808,6 +829,7 @@
 <script src="js/learn/layout.js"></script>
 <script src="js/catalog.js"></script>
 <script src="js/vault.js"></script>
+<script src="js/sources.js"></script>
 <script src="js/attempts.js"></script>
 <script src="js/runners/harness.js"></script>
 <script src="js/runners/hosted.js"></script>

@@ -303,6 +303,7 @@ const UI = (() => {
     week: '<rect x="2" y="3.2" width="12" height="10.8" rx="1.5"/>'
       + '<path d="M2 6.8h12M5.4 1.8v2.6M10.6 1.8v2.6"/>',
     assess: '<circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.4 1.6"/>',
+    review: '<path d="M3 2.6h10v10.8l-5-2.6-5 2.6z"/><path d="M5.8 6.2h4.4"/>',
   };
 
   function navIcon(name) {
@@ -324,6 +325,10 @@ const UI = (() => {
     const concepts = Catalog.allConcepts().length;
     const week = Catalog.thisWeek();
     const weekly = week && week.meta;
+    /* Only the ones that still exist: a queue counting problems that
+       have been deleted is a number nobody can act on. */
+    const reviewCount = Store.reviewQueue()
+      .filter(r => Catalog.meta(r.id) && !Catalog.isPooled(r.id)).length;
 
     return [
       {
@@ -373,6 +378,12 @@ const UI = (() => {
         title: 'Assess',
         items: [
           {
+            icon: 'review', label: 'Review', href: '#/review',
+            count: reviewCount,
+            blurb: 'Everything you left a reason to come back to — bookmarked, '
+              + 'booked, read rather than solved, or noted as missed.',
+          },
+          {
             icon: 'assess', label: 'Online Assessments', href: '#/assess',
             blurb: 'Timed, from a separate bank you have not seen. Kept apart from '
               + 'practice: no XP, and a problem here is not one in the catalogue.',
@@ -420,6 +431,7 @@ const UI = (() => {
     [/^#\/learn/, '#/learn'],
     [/^#\/concepts/, '#/concepts'],
     [/^#\/assess/, '#/assess'],
+    [/^#\/review/, '#/review'],
   ];
 
   function markNav() {
@@ -2079,6 +2091,136 @@ const UI = (() => {
     }));
   }
 
+  /* ---------------- the review queue ----------------
+
+     Everything you have left a reason to come back to, with the reason
+     on the row. Built from things you actually did — a booked revisit,
+     a note you wrote about getting it wrong, an attempt that is not
+     solved, an answer you read, a bookmark — rather than from a
+     mastery score, which is an opinion with no argument attached.
+
+     Your own "how hard did it feel" rating rides along on every row
+     and is labelled as yours. It is never added to anything the grader
+     said: one is a feeling and the other is a check, and a queue that
+     averages them is claiming to know something it does not. */
+
+  function renderReview() {
+    const host = $('#reviewList');
+    if (!host) return;
+
+    const rows = Store.reviewQueue()
+      .map(r => ({ ...r, meta: Catalog.meta(r.id) }))
+      .filter(r => r.meta && !Catalog.isPooled(r.id));
+
+    const blurb = $('#reviewBlurb');
+    if (blurb) {
+      blurb.textContent = rows.length
+        ? `${rows.length} ${rows.length === 1 ? 'thing' : 'things'} you have left a `
+          + 'reason to come back to. Every row says which reason.'
+        : 'Nothing is waiting. This fills up as you bookmark things, book '
+          + 'revisits, read an answer, or write down what you missed.';
+    }
+
+    const groups = $('#reviewGroups');
+    if (groups) {
+      const counts = {};
+      for (const r of rows) for (const x of r.reasons) counts[x] = (counts[x] || 0) + 1;
+      groups.replaceChildren(...Store.REVIEW_REASONS
+        .filter(x => counts[x.id])
+        .map(x => el('span', { class: 'rq-tally tiny', title: x.why }, [
+          el('b', { text: String(counts[x.id]) }), ` ${x.label.toLowerCase()}`,
+        ])));
+      groups.hidden = !rows.length;
+    }
+
+    if (!rows.length) {
+      host.replaceChildren(el('div', { class: 'empty' }, [
+        el('h2', { text: 'Nothing to revisit' }),
+        el('p', { class: 'muted', text:
+          'Bookmark a problem, book a revisit from one you have finished, or '
+          + 'write a line about what you missed — anything you do here ends up '
+          + 'on this page with the reason attached.' }),
+        el('a', { class: 'btn', href: '#/problems' }, ['Find something']),
+      ]));
+      return;
+    }
+
+    host.replaceChildren(...rows.map(r => {
+      const why = Store.REVIEW_BY_ID[r.reason] || {};
+      const topic = Store.TOPIC_BY_ID[r.meta.topic] || {};
+      /* Where to go and read about it. The concepts the problem names
+         are the honest answer to "and what should I look at". */
+      const concepts = (r.meta.prereqs || []).slice(0, 3);
+
+      return el('div', { class: 'rq-row', 'data-reason': r.reason }, [
+        el('div', { class: 'rq-main' }, [
+          el('div', { class: 'rq-title' }, [
+            el('a', { href: `#/p/${r.id}`, text: r.meta.title }),
+            el('span', { class: 'rq-why tiny', title: why.why, text: why.label }),
+            ...r.reasons.slice(1).map(x => el('span', {
+              class: 'rq-why tiny faint',
+              title: (Store.REVIEW_BY_ID[x] || {}).why,
+              text: (Store.REVIEW_BY_ID[x] || {}).label,
+            })),
+          ]),
+          el('div', { class: 'meta' }, [
+            el('span', { text: topic.label || r.meta.topic }),
+            diffTag(r.meta.difficulty),
+            r.reviewOn ? el('span', { class: 'tiny', text: `booked for ${r.reviewOn}` }) : null,
+            r.attempts ? el('span', { class: 'tiny faint', text: `${r.attempts} attempts` }) : null,
+          ]),
+          /* Said in your words, because that is the whole point of
+             having asked. */
+          r.missed
+            ? el('blockquote', { class: 'rq-missed' }, [
+              el('span', { class: 'tiny faint', text: 'What you missed: ' }),
+              r.missed,
+            ])
+            : null,
+          concepts.length
+            ? el('p', { class: 'tiny rq-concepts' }, [
+              'Read about ',
+              ...concepts.flatMap((c, i) => [
+                i ? ', ' : '',
+                el('a', { href: `#/concepts?q=${encodeURIComponent(c)}`,
+                  text: (Catalog.concept(c) || {}).name || c }),
+              ]),
+              '.',
+            ])
+            : null,
+        ]),
+        el('div', { class: 'rq-side' }, [
+          /* Your rating, said as yours. Never an input to a score. */
+          r.perceived
+            ? el('span', { class: 'rq-felt tiny', title:
+              'How hard it felt to you. Your own figure — nothing here '
+              + 'checked it and nothing here scores it.',
+            }, [`felt ${['easy', 'fine', 'work', 'hard', 'brutal'][r.perceived - 1]}`])
+            : el('span', { class: 'rq-felt tiny faint', text: 'not rated' }),
+          el('a', { class: 'btn btn-sm', href: `#/p/${r.id}` }, ['Open']),
+          el('button', {
+            class: 'btn btn-sm btn-ghost', type: 'button',
+            title: 'Take it off this list. Nothing about your progress changes.',
+            onclick: () => { clearReview(r); renderReview(); },
+          }, ['Done with it']),
+        ]),
+      ]);
+    }));
+  }
+
+  /* Taking a row off the list clears exactly the things that put it
+     there, and nothing else: a bookmark and a booked date go, a note
+     goes, and the solve record is not touched. "Done with it" is a
+     statement about this list, not about the problem. */
+  function clearReview(r) {
+    const meta = r.meta || Catalog.meta(r.id);
+    if (!meta) return;
+    if (r.reasons.includes('flagged')) Store.setFlag(meta, false);
+    if (r.reasons.includes('due')) Store.setReview(meta, 0);
+    if (r.reasons.includes('missed')) Store.setMissed(meta, '');
+    toast('Taken off the list. Your progress is unchanged.', 'info');
+  }
+
   /* ---------------- reading map ---------------- */
 
   let conceptFilter = { q: '', topic: '', read: '' };
@@ -2644,6 +2786,7 @@ const UI = (() => {
   function renderSettings() {
     $('#setName').value = Store.state.profile.name || '';
     paintCompletion();
+    paintStorage();
     $('#setJudge').value = Store.config.judgeUrl || '';
     const tok = $('#setJudgeToken');
     if (tok) tok.value = Store.config.judgeToken || '';
@@ -2863,8 +3006,39 @@ const UI = (() => {
       });
     }
 
-    $('#setExport').addEventListener('click', () =>
-      download('progress.json', JSON.stringify(Store.exportState(), null, 2)));
+    /* One file with everything in it, because three files is three
+       files to lose. The progress state is the same shape it has always
+       been and is still readable on its own; the programs and the
+       assessment attempts live beside it under their own keys, since
+       they are in a different store and travel differently. */
+    $('#setExport').addEventListener('click', async () => {
+      const btn = $('#setExport');
+      btn.disabled = true;
+      try {
+        const [sources, attempts] = await Promise.all([
+          typeof Sources !== 'undefined' ? Sources.dump() : {},
+          Vault.get(Attempts.KEY),
+        ]);
+        const doc = {
+          _format: 'invariant/export/v2',
+          _note: 'Progress, drafts, submitted programs and assessment attempts. '
+            + 'The "progress" half is the same file an older version exported '
+            + 'and can still be imported on its own.',
+          exportedAt: new Date().toISOString(),
+          progress: Store.exportState(),
+          sources,
+          attempts: attempts || null,
+        };
+        download('invariant-export.json', JSON.stringify(doc, null, 2));
+        const n = Object.values(sources).reduce((a, m) => a + Object.keys(m).length, 0);
+        toast(`Exported: progress, ${n} submitted ${n === 1 ? 'program' : 'programs'}, `
+          + `${((attempts || {}).attempts || []).length} assessment attempts.`, 'good');
+      } catch (err) {
+        toast(`The export failed: ${err.message}`, 'bad');
+      } finally {
+        btn.disabled = false;
+      }
+    });
 
     $('#setExportSolves').addEventListener('click', () => {
       const solves = Store.exportSolves(Catalog.all());
@@ -2879,9 +3053,33 @@ const UI = (() => {
         const file = input.files && input.files[0];
         if (!file) return;
         try {
-          Store.importState(JSON.parse(await file.text()));
+          const doc = JSON.parse(await file.text());
+          /* Both shapes. A v1 file is the progress object itself; a v2
+             file has it under `progress` with the rest beside it.
+             Refusing the old one because it lacks a wrapper would be
+             refusing somebody their own data. */
+          const isV2 = doc && typeof doc === 'object' && doc.progress;
+          Store.importState(isV2 ? doc.progress : doc);
+
+          const said = ['progress'];
+          if (isV2 && doc.sources && typeof Sources !== 'undefined') {
+            const r = await Sources.load(doc.sources);
+            const n = Object.values(doc.sources)
+              .reduce((a, m) => a + Object.keys(m).length, 0);
+            said.push(`${n} ${n === 1 ? 'program' : 'programs'}`);
+            if (r.failed.length) {
+              toast(`${r.failed.length} could not be stored — see Storage, below.`, 'bad');
+            }
+          }
+          if (isV2 && doc.attempts && doc.attempts.attempts) {
+            const w = await Vault.set(Attempts.KEY, doc.attempts);
+            Attempts._reset();
+            said.push(`${doc.attempts.attempts.length} attempts`);
+            if (!w.ok) toast('The attempts could not be stored — see Storage, below.', 'bad');
+          }
+
           applyCosmetics(); refreshPurse(); renderSettings();
-          toast('Progress imported.', 'good');
+          toast(`Imported: ${said.join(', ')}.`, 'good');
         } catch (err) {
           toast(`That file could not be read: ${err.message}`, 'bad');
         }
@@ -2895,6 +3093,61 @@ const UI = (() => {
       applyCosmetics(); refreshPurse(); renderSettings();
       toast('Everything reset.', 'info');
     });
+  }
+
+  /* ---------------- where your data actually is ----------------
+
+     Two stores, and the honest report is about both. The progress file
+     is localStorage, which is synchronous and small; the programs and
+     the assessment attempts are IndexedDB, which is neither. Either
+     can be unavailable — a private window, blocked site data, an
+     embedded webview — and the page's job is to say so BEFORE
+     somebody loses an hour of work to it, not after. */
+  async function paintStorage() {
+    const line = $('#setStorage');
+    const note = $('#setStorageNote');
+    if (!line) return;
+
+    let localOk = true;
+    try {
+      localStorage.setItem('invariant/probe', '1');
+      localStorage.removeItem('invariant/probe');
+    } catch { localOk = false; }
+
+    const probe = await Vault.probe();
+    const size = await Vault.size();
+    const WORDS = {
+      indexeddb: 'IndexedDB',
+      localstorage: 'localStorage (IndexedDB is unavailable)',
+      memory: 'nothing — this tab only',
+    };
+
+    line.textContent = `Progress: ${localOk ? 'localStorage' : 'NOT SAVING'}. `
+      + `Programs and attempts: ${WORDS[probe.mode] || probe.mode}, `
+      + `${size.count} ${size.count === 1 ? 'record' : 'records'}, `
+      + `about ${Math.round(size.bytes / 1024).toLocaleString()} KB.`;
+    line.dataset.state = (localOk && probe.ok && !Vault.degraded) ? 'ok' : 'bad';
+
+    if (note) {
+      const bad = [];
+      if (!localOk) {
+        bad.push('This browser will not let the page write to localStorage, so '
+          + 'nothing you do here is being saved. Site data is usually blocked by '
+          + 'a private window or a content setting.');
+      }
+      if (probe.mode === 'memory') {
+        bad.push('Submitted programs and assessment attempts cannot be written '
+          + 'anywhere durable and will be gone when this tab closes. Export '
+          + 'before you close it.');
+      } else if (probe.mode === 'localstorage') {
+        bad.push('IndexedDB is unavailable, so programs and attempts are being '
+          + 'kept in localStorage alongside the progress file. That works, but '
+          + 'the quota is shared and much smaller — a long program may fail to '
+          + 'save, and it will say so when it does.');
+      }
+      note.textContent = bad.join(' ');
+      note.hidden = !bad.length;
+    }
   }
 
   /* Asking the runner, through the same code path a submission uses, so what
@@ -2934,6 +3187,7 @@ const UI = (() => {
     renderHome, renderCatalog, renderConcepts, renderProfile, renderShop, renderSettings,
     paintMe, closeMe, renderContentMenu, markNav, closeContent,
     renderTracks, renderLearn, renderResources, problemList, leaveGraph,
+    renderReview,
     setFilter, checkJudge, paintJudgeState,
   };
 })();

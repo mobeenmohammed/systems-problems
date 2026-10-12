@@ -1294,6 +1294,127 @@ away into a list rather than vanishing. Submitting nothing — or an untouched
 code template, which is not the same thing and no longer claims to be — gets a
 validation message beside the control and costs no attempt.
 
+## Review, and what I missed
+
+A queue of everything you have left a reason to come back to, at
+**`#/review`**, reached from **Content ▸ Assess**. Five reasons, and
+every row carries the one that put it there:
+
+| | |
+| --- | --- |
+| Due for revisit | you booked a date and it has come |
+| You wrote down what you missed | there is a note from the last time you got it wrong |
+| Attempted, not solved | you have had a go and it is not right yet |
+| You read the answer | revealed rather than reached |
+| You bookmarked it | you starred it |
+
+The obvious alternative is one number per problem, and it is worse. A
+mastery score is an opinion with no argument attached: it cannot be
+checked, it cannot be argued with, and when it is wrong there is nothing
+to look at. These are **facts about things you did**, each one with its
+own undo.
+
+"Done with it" clears exactly the things that put the row there — a
+bookmark, a booked date, a note — and touches nothing else. It is a
+statement about the list, not about the problem, and the solve record
+is not changed.
+
+### The note is asked at the only useful moment
+
+Getting something wrong produces a one-line box: *what did you miss?*
+Not the Notes tab — that is "what did this teach you", written whenever
+— but one line written **while you still know why**, which is a window
+that closes within about a minute.
+
+It is explicitly not a mark. Nothing reads it, nothing scores it, and
+the box says so. What it does is put the problem on the review list
+with your own sentence on the row, so the list says something instead of
+*revise this*. Beside it are links to the concepts the problem rests on,
+which is the honest answer to *and where do I read about it*.
+
+### Your rating is yours
+
+"How hard did it feel" is 1–5 and travels to the Learning Tree as
+`perceived`. On the review queue it is shown as `felt hard`, visually
+apart from anything a grader said, and a problem you never rated says
+**not rated** rather than being given a number.
+
+It is never added to anything. A feeling and a check are different kinds
+of claim and averaging them produces something that is neither.
+
+## Where your data lives, and what gives when it runs out
+
+A submission has two halves and they want different storage.
+
+The **verdict** is forty bytes — when, which language, how many cases
+passed, did it build. It is read on every paint of the Submissions tab
+and has to be there synchronously, so it stays in `localStorage` with
+the rest of the progress state.
+
+The **program** is kilobytes. It used to be cut at 6,000 characters,
+with the oldest dropped at 20,000 per problem. That cap was the right
+answer to the wrong question: it was protecting the five-megabyte origin
+quota, and a quota failure does not lose the submissions — it loses the
+whole state file, XP included. But the only reason to keep a program is
+*load this one back*, and **a program cut in half cannot be loaded
+back**.
+
+So programs live in IndexedDB now, through `js/vault.js` and
+`js/sources.js`, one record per problem keyed by the submission's
+timestamp, and they are **not truncated**. The verdict keeps `stored`
+and `bytes` so the row can say what it has without a read, and the
+program is fetched when the row is opened rather than when the list is
+painted — ten reads to draw a list nobody expanded is ten too many.
+
+`tests/browser/review.test.mjs` submits a 17,000-character program,
+reloads, and checks every character comes back into the editor. It also
+submits it twice more and checks the progress file grows by about a
+hundred and fifty bytes.
+
+### The migration
+
+The programs already in `localStorage` are copied across on first boot,
+in the background. **Nothing is deleted.** A migration that throws away
+the original before the copy is proven is how people lose things, and
+the record is forty bytes larger for keeping it. A migration that could
+not finish does not mark itself finished, and says so.
+
+### What gives when the quota is full
+
+Something has to, and which thing is a decision worth writing down:
+
+- **not the drafts.** A draft is work in progress and the only copy of
+  it. Throwing away what somebody is in the middle of writing, to make
+  room for the record of what they finished last week, is the wrong way
+  round.
+- **not the newest verdicts**, which are what the Submissions tab is
+  for.
+- **the oldest verdicts** beyond the newest three, which is a history
+  and prunable by nature. Their programs go with them — a program is
+  kept for exactly as long as its verdict, and nothing is dropped while
+  its verdict is still listed.
+
+It is said out loud when it happens, with the policy in the sentence.
+
+### Storage that is not there
+
+IndexedDB is missing in some private windows, with site data blocked,
+and in some embedded webviews. The vault falls back to `localStorage`
+and then to memory, and **says which it is using** — Settings ▸ Storage
+names both stores, how much is in the larger one, and what it means if
+either is degraded. A write that reached only memory is **reported**
+rather than treated as saved: starting an assessment that cannot be
+written to disk says so before the clock, not after the tab closes.
+
+### Export carries all of it
+
+One file — progress, drafts, the programs you submitted, and your
+assessment attempts — because three files is three files to lose. A file
+exported by an older version is still imported: the old shape is the
+progress object itself, the new one has it under `progress` with the
+rest beside it, and refusing the old one for want of a wrapper would be
+refusing somebody their own data.
+
 ## Online Assessments
 
 A separate mode, from a separate bank, reached from **Content ▸ Assess**.
@@ -1577,6 +1698,8 @@ Chromium against a real site:
 | `tests/maths-expr.test.mjs` | The expression engine on its own: equal values comparing equal however they are written, unequal ones never comparing equal, syntax errors and unsupported expressions reported as *different kinds* of failure from a wrong answer, and eleven injection attempts refused |
 | `tests/maths-render.test.mjs` | KaTeX renders, emits MathML, and markdown does not get at the TeX first — `$a_1 + a_2$` must not become `a<em>1 + a</em>2` |
 | `tests/browser/maths.test.mjs` (`npm run test:maths`) | Subject as a filter over one catalogue, typesetting on the page, every one of the six answer formats, a syntax error costing no attempt, a wrong answer explaining the misconception, progressive hints, the figures, a written proof reaching **Self-reviewed** without ever being marked right, and the review being finishable from wherever revealing the model proof leaves you |
+| `tests/vault.test.mjs` | The key-value store and the source store driven directly, on the **fallback** path — which is what a private window gets, so it is worth testing rather than skipping: a round trip, a write that cannot land anywhere durable being reported rather than claimed, a program kept whole at 80,000 characters, a program dropped only once its verdict is gone, and a migration that copies the old truncated programs across without deleting them and refuses to mark itself finished when part of it failed |
+| `tests/browser/review.test.mjs` (`npm run test:review`) | The same storage on **real IndexedDB**: a 17,000-character program submitted, surviving a reload, and coming back into the editor whole — plus two more submissions of it growing the progress file by about a hundred and fifty bytes. Then the review queue: the one-line note asked after a wrong answer and appearing on the queue in those words, every reason naming itself, an unrated problem saying "not rated" rather than being given a number, "Done with it" touching nothing but the list, no assessment problem leaking onto it, export and import carrying the programs, and Settings naming both stores |
 | `tests/browser/assessment.test.mjs` (`npm run test:assess`) | The timed mode end to end: that the bank is not in the catalogue and a search cannot find it, that everything is said before the clock exists, that Hints/Notes/Solution are gone during an attempt, that a correct submission moves no XP, no coins, no streak and no solved status, that the navigator tells written-from-submitted, that a **real reload** resumes the same attempt with the draft and a clock that carried on rather than restarting, that finishing is confirmed and names what is unfinished, that **expiry freezes what was saved** and finalises once, that the full-bleed attempt layout does not follow the reader into their results, and that a retake is a separate attempt earning nothing twice |
 | `tests/rust-toolchain.test.mjs` | The browser rustc driven directly, no browser involved: that the vendored artifacts are the pinned builds, that it is a real rustc, that a program compiles and reads its stdin, that a panic carries its line, that the borrow checker produces E0382/E0502/E0308/E0621 with lines and rustc's own rendering, that the one unsupported thing is `parse::<i64>()` and not 64-bit arithmetic, and that **every entry in `data/rust-support.json` is true in both directions** — each certified problem really passes its own cases here, and each native-only one really does not build |
 | `tests/browser/rust.test.mjs` (`npm run test:rust`) | Rust on a device with nothing installed, with the local runner pointed at a dead port: the pinned artifacts served, no COOP or COEP header needed, borrow-checker diagnostics appearing as you type on a problem that cannot even be run here, the download reporting megabytes with Stop live beside it, a certified problem running and being accepted, a compile error told apart from a wrong answer, a cancel mid-download followed by a run that works, an infinite loop stopped, a run left behind not landing on the next problem, and no request leaving the origin |
