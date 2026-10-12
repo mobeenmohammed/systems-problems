@@ -215,8 +215,14 @@ section('5. test yourself: and it is kept apart from all of that');
     document.querySelectorAll('.oa-fact').length >= 5
     && !document.getElementById('oaClock')));
 
+  /* Starting downloads every toolchain the assessment needs before the
+     clock exists, which is the point of it — so this waits for the
+     attempt rather than for a fixed interval. Against the deployed
+     site that fetch is the slow part, and a fixed 2.4s was asserting
+     that a download had finished. */
   await page.locator('#oaStart').click();
-  await page.waitForTimeout(2400);
+  await page.waitForFunction(() => /\/go/.test(location.hash), { timeout: 180_000 });
+  await page.waitForTimeout(1600);
   ok('the clock is running', await page.evaluate(() =>
     /^\d+:\d\d$/.test((document.getElementById('oaClock') || {}).textContent || '')));
   ok('and the solution tab is gone', await page.evaluate(() =>
