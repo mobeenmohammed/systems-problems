@@ -1754,6 +1754,25 @@ too, so passing the samples is not the same as solving it.
 
 ## Tests
 
+There are three tiers and they prove different things. Keeping them
+apart matters because a pass in one is not a pass in another — the
+standing rule here is that **localhost success does not prove deployed
+compatibility**, and the only way to keep that rule is to be able to
+say which tier a green tick came from.
+
+| Tier | What it runs against | How |
+| --- | --- | --- |
+| **Sandboxed** | the site's modules in a `vm` or in jsdom, with `localStorage` and `fetch` stubbed | `npm test` — no browser, no server, runs in CI on every push |
+| **Local** | a real Chromium against `npm run serve` on this machine | `npm run test:ui`, plus the language suites. NOT in CI: it needs a server, and some of it needs a runner CI deliberately does not have |
+| **Deployed** | a real Chromium against `https://mobeenmohammed.github.io/systems-problems` | the same suites with `BASE=…`. This is the only tier that proves the published site works, and it is the one run before saying anything is finished |
+
+Every suite below can run against any tier that makes sense for it; the
+table says which it is written for. A suite that needs something — a
+server, a local runner — says so rather than silently passing because
+the thing it was testing never happened.
+
+### Sandboxed: `npm test`
+
 ```bash
 npm test
 ```
@@ -1773,8 +1792,17 @@ npm test
 | `tests/browser/states.test.mjs` | The page with nothing solved, part solved, all solved and with the content missing — every view in each — plus keyboard reachability, focus rings and the narrow-screen rules |
 | `tests/browser/runner.test.mjs` | The real browser-to-runner path with the runner up: a passing submission, a compile error, a runtime error, a timeout and a sanitizer trip |
 
-Two more need a server and are not in `npm test`, because they drive a real
-Chromium against a real site:
+### Local and deployed: `npm run test:ui`
+
+These are not in `npm test`, because they drive a real Chromium against a
+real site. Run them against localhost while working and against the
+deployed URL before believing anything:
+
+```bash
+npm run serve                     # in one terminal
+npm run test:ui                   # in another
+BASE=https://mobeenmohammed.github.io/systems-problems npm run test:ui
+```
 
 | Suite | What it covers |
 | --- | --- |
@@ -1916,16 +1944,38 @@ cannot.
 
 ## How data is stored
 
-There is no backend. Three separate `localStorage` keys, on purpose:
+There is no backend. Two stores, because the things being kept want
+different ones.
+
+**`localStorage`**, for what has to be read synchronously and is small:
 
 | Key | Holds | Why separate |
 | --- | --- | --- |
-| `invariant/state/v1` | progress, XP, coins, what you own, the last ten submissions per problem | the thing worth keeping; **Settings ▸ Export** writes it out as `data/progress.json` |
+| `invariant/state/v1` | progress, XP, coins, what you own, your drafts, and the **verdicts** of the last ten submissions per problem | the thing worth keeping; the drafts are here because the editor reads them on mount and writes them on every keystroke, and both have to be synchronous |
 | `invariant/judge-url` and `/judge-token` | where the runner listens, and its token | properties of the machine, not of your progress, so they never travel in an export |
-| `invariant/ui/v1` | the panel split, focus mode | per-device view preferences; a bad value here can never cost a solve |
+| `invariant/ui/v1` | the panel split, focus mode, the per-track graph view | per-device view preferences; a bad value here can never cost a solve |
 
-Progress from the old `bare-metal/state/v1` key is migrated on first load, so
-nothing was lost when the site was renamed.
+**IndexedDB**, through `js/vault.js`, for what is large and can be
+asynchronous:
+
+| Key | Holds |
+| --- | --- |
+| `sources/<problem>` | the **programs** you submitted, whole and untruncated, keyed by the submission's timestamp |
+| `attempts/v1` | every assessment attempt: its deadline, its drafts, its answers and its result |
+
+The split is the point and it is explained at length under *Where your
+data lives*: a verdict is forty bytes and is read on every paint; a
+program is kilobytes and was being cut in half to fit beside it.
+
+Progress from the old `bare-metal/state/v1` key is migrated on first load,
+so nothing was lost when the site was renamed. Programs stored inline
+before the split are copied into IndexedDB on first load too, and the
+originals are left where they are.
+
+**Settings ▸ Export** writes one file with all of it — progress, drafts,
+programs and attempts — and **Settings ▸ Storage** says which stores are
+actually working, because a page that cannot save and does not say so is
+a page quietly losing work.
 
 Solves also export in the shape
 [`work-tracker`](../work-tracker)'s **Data ▸ Import solved problems** already
