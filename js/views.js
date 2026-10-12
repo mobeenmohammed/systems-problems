@@ -743,46 +743,95 @@ const UI = (() => {
        stale bookmark should land somewhere useful. */
     index.hidden = !!tree;
     detail.hidden = !tree;
-    if (!tree) { renderLearnIndex(); return; }
+
+    /* The index is an ordinary page and the graph is a workspace, and
+       they are the same route. So the flag goes on here and comes off
+       here — as well as in the router, which takes it off for every
+       route that is not Learn at all. Both, because one of them being
+       missed is how the code workspace once followed the reader onto
+       the dashboard and clipped it to the window. */
+    if (!tree) {
+      leaveGraph();
+      renderLearnIndex();
+      return;
+    }
+    document.body.dataset.graph = 'true';
+    /* Anything that redraws the graph has answered whatever the search
+       box was asking. Leaving the list open over the picture after the
+       reader has arrived somewhere is a menu in the way of the thing it
+       was for. */
+    closeFind();
 
     $('#learnTitle').textContent = tree.track.title;
-    $('#learnGoal').textContent = tree.track.goal || tree.track.blurb || '';
+    $('#learnTitle').title = tree.track.goal || tree.track.blurb || '';
     $('#learnProblems').href = `#/tracks/${tree.track.id}`;
 
     /* Nothing is selected until something is clicked. The panel covers
-       most of the canvas, and opening it over the picture before the
+       part of the canvas, and opening it over the picture before the
        reader has picked anything hides the thing they came to look at. */
     const flat = [];
     (function walk(ns) { for (const n of ns) { flat.push(n); walk(n.children); } })(tree.roots);
     const picked = conceptId ? flat.find(n => n.id === conceptId) || null : null;
+    selectedId = picked ? picked.id : null;
 
-    /* Read everything the track covers, not just the selected branch, so
-       the figure means the same thing as the one on the track card. */
-    const whole = flat.reduce((acc, n) => {
-      const p = nodeProgress(n);
-      return { done: acc.done + p.done, total: acc.total + p.total };
-    }, { done: 0, total: 0 });
-    $('#learnProgress').textContent = whole.total
-      ? `Progress ${Math.round((whole.done / whole.total) * 100)}%`
-      : 'Nothing to track yet';
+    const centreBtn = $('#learnCentre');
+    if (centreBtn) centreBtn.disabled = !selectedId;
+
+    /* The track's own required work, which is what finishing it means —
+       the same number as the bar on its card. Everything else the tree
+       reaches is related practice and is counted separately, where it is
+       shown. */
+    const req = Catalog.trackRequired(tree.track.id) || { done: 0, total: 0 };
+    $('#learnProgress').textContent = req.total
+      ? `${req.done} of ${req.total} required solved`
+      : 'Nothing required yet';
+    $('#learnProgress').title = 'Questions and coding exercises in this track. '
+      + 'Related practice and readings are not counted here.';
 
     drawTree(tree, picked);
     drawNode(tree, picked);
 
-    /* Fit the graph the first time this track is drawn, and whenever the
-       reader lands straight on a node — but not on a redraw caused by
-       ticking a reading, which would throw away wherever they had
-       panned to. */
-    if (lastTrack !== tree.track.id) {
+    /* The view: whatever this track was left at, or the starting one.
+       Only on arrival — a redraw caused by ticking a reading must not
+       throw away wherever the reader had panned to. */
+    const first = lastTrack !== tree.track.id;
+    if (first) {
       lastTrack = tree.track.id;
-      recenter();
+      applyPanelWidth(Store.pref(PANEL_PREF, 420));
+      const saved = savedViews()[tree.track.id];
+      if (saved && Number.isFinite(saved.z)) {
+        view = { x: saved.x, y: saved.y, z: clampZoom(saved.z) };
+        applyView();
+      } else {
+        resetView();
+      }
     }
-    if (picked) reveal(placed.nodes.find(n => n.id === picked.id));
+
+    /* Whether it was just opened or just selected, the node the panel is
+       about has to be somewhere you can see it — and "visible" means
+       outside the panel, which reveal() measures rather than assumes. */
+    if (picked) {
+      reveal(placed.nodes.find(n => n.id === picked.id));
+      rememberView(tree.track.id, { at: picked.id });
+    } else if (first) {
+      rememberView(tree.track.id);
+    }
   }
 
   /* Which track the canvas is currently showing, so a redraw of the same
-     one does not reset the view. */
+     one does not reset the view, and which node is open. */
   let lastTrack = null;
+  let selectedId = null;
+
+  /* Put the page back the way every other view expects to find it. Safe
+     to call twice and safe to call when no graph was ever open — the
+     same contract as ProblemView.leave, and for the same reason. */
+  function leaveGraph() {
+    delete document.body.dataset.graph;
+    lastTrack = null;
+    selectedId = null;
+    closeFind();
+  }
 
   function renderLearnIndex() {
     const host = $('#learnTracks');
@@ -836,16 +885,29 @@ const UI = (() => {
               el('span', { text: `${prog.done} of ${prog.total} solved` }),
               el('span', { class: 'faint', text: `${tree ? tree.size : 0} concepts` }),
             ]),
+            /* Four labels, not three, and none of them says "Problems"
+               twice. Questions and Coding exercises are the track's own
+               required list, which is what the bar above is a fraction
+               of. Related practice is everything else that rests on a
+               concept this track teaches — worth offering, and not part
+               of finishing it. Resources is kept away from all three:
+               ticking a reading is a note to yourself, not a solve. */
             counts ? el('div', { class: 'track-counts' }, [
-              ['Resources', counts.resources],
-              ['Questions', counts.questions],
-              ['Problems', counts.problems],
+              ['Questions', counts.questions, 'Required: questions in this track'],
+              ['Coding exercises', counts.coding, 'Required: coding exercises in this track'],
+              ['Related practice', counts.related,
+                'Rests on a concept this track teaches, but is not part of finishing it'],
+              ['Resources', counts.resources,
+                'Readings you have ticked. Not a solve, and not counted towards the track'],
             ]
               /* A 0 / 0 tile says there might be some. No mathematics
                  problem is a coding exercise, so that one is left off
                  those cards rather than shown empty. */
               .filter(([, c]) => c.total > 0)
-              .map(([label, c]) => el('div', { class: 'track-count' }, [
+              .map(([label, c, why]) => el('div', {
+                class: 'track-count', 'data-kind': label.toLowerCase().split(' ')[0],
+                title: why,
+              }, [
                 el('span', { class: 'track-count-label', text: label }),
                 el('span', { class: 'track-count-value', text: `${c.done} / ${c.total}` }),
               ]))) : null,
@@ -861,76 +923,179 @@ const UI = (() => {
      them, and one transform on the wrapper for pan and zoom so nothing
      reflows when the scale changes.
 
-     Wheel is deliberately not bound. A canvas that eats the scroll
-     wheel is a canvas you cannot scroll past, and this one sits in the
-     middle of a page. Drag, the two buttons and the keyboard are
-     enough. */
+     The graph owns the window below the header now, so the wheel means
+     something here: it pans, and Ctrl (or a trackpad pinch, which the
+     browser reports as Ctrl+wheel) zooms about the pointer. Plain wheel
+     is deliberately NOT zoom — a two-finger scroll that silently rescales
+     the picture is the single most complained-about behaviour in every
+     canvas that does it. */
 
-  const ZOOM = { min: 0.4, max: 1.6, step: 0.2 };
+  /* 0.55 is where a 0.8rem label stops being readable on a 1080p screen.
+     Nothing goes below it on its own: "Fit all" may, because you asked
+     for all of it, but the view you are given when you open a track may
+     not. A graph scaled to 0.35 so that every one of a hundred and
+     fifteen boxes fits is a picture of grey rectangles. */
+  const ZOOM = { min: 0.25, max: 2, step: 0.2, readable: 0.55 };
+
   let view = { x: 0, y: 0, z: 1 };
   let placed = null;
+
+  /* Pan, zoom and which node was open, per track. Kept so that opening a
+     problem from the panel and coming back puts you where you were
+     rather than at the top of the graph again — which, on a track the
+     size of "How memory really behaves", means finding your place by
+     reading boxes. Persisted, so a reload is the same. */
+  const VIEW_PREF = 'learnViews';
+  let views = null;
+
+  function savedViews() {
+    if (!views) {
+      const raw = Store.pref(VIEW_PREF, null);
+      views = (raw && typeof raw === 'object') ? raw : {};
+    }
+    return views;
+  }
+
+  function rememberView(trackId, extra = {}) {
+    if (!trackId) return;
+    const all = savedViews();
+    all[trackId] = {
+      ...(all[trackId] || {}),
+      x: Math.round(view.x), y: Math.round(view.y), z: Number(view.z.toFixed(3)),
+      ...extra,
+    };
+    Store.setPref(VIEW_PREF, all);
+  }
 
   function applyView() {
     const pan = $('#learnPan');
     if (pan) pan.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.z})`;
+    const at = $('#learnZoomAt');
+    if (at) at.textContent = `${Math.round(view.z * 100)}%`;
   }
 
-  /* Centre the whole graph, or as much of it as fits. Also the answer to
-     "I have dragged it somewhere silly and cannot find it again". */
-  function recenter() {
+  /* The part of the canvas not under the details panel. Everything that
+     puts something "in the middle" has to mean the middle of what you can
+     see, or the selected box ends up behind the panel that was opened to
+     describe it. */
+  function visibleBox() {
     const canvas = $('#learnCanvas');
-    if (!canvas || !placed || !placed.width) return;
+    if (!canvas) return null;
     const box = canvas.getBoundingClientRect();
-    const fit = Math.min(1, (box.width - 24) / placed.width, (box.height - 24) / placed.height);
-    view.z = Math.max(ZOOM.min, Math.min(ZOOM.max, fit || 1));
-    view.x = Math.max(0, (box.width - placed.width * view.z) / 2);
-    view.y = Math.max(0, (box.height - placed.height * view.z) / 2);
+    const panel = $('#learnPanel');
+    const out = { left: 0, top: 0, width: box.width, height: box.height };
+    if (panel && !panel.hidden) {
+      const pr = panel.getBoundingClientRect();
+      /* A drawer across the bottom on a phone, a column on the right
+         otherwise. Measured rather than assumed, so the breakpoint is
+         written down in one place — the stylesheet. */
+      if (pr.width >= box.width - 1) out.height = Math.max(120, pr.top - box.top);
+      else out.width = Math.max(160, pr.left - box.left);
+    }
+    return out;
+  }
+
+  const clampZoom = z => Math.max(ZOOM.min, Math.min(ZOOM.max, z));
+
+  /* The view you get when you open a track, and what Reset zoom puts
+     back. Readable scale, the first concepts at the top, centred across.
+     Not a fit: the roots are what you need first, and they are at the
+     top of a top-down graph. */
+  function resetView() {
+    const vb = visibleBox();
+    if (!vb || !placed || !placed.width) return;
+    const fit = Math.min(1, (vb.width - 48) / placed.width);
+    view.z = clampZoom(Math.max(ZOOM.readable, fit));
+    view.x = vb.left + Math.max(24, (vb.width - placed.width * view.z) / 2);
+    view.y = vb.top + 24;
+    applyView();
+  }
+
+  /* All of it on screen, however small — which is what the button says,
+     so going below the readable floor here is the answer to the question
+     rather than a decision made on the reader's behalf. */
+  function fitAll() {
+    const vb = visibleBox();
+    if (!vb || !placed || !placed.width) return;
+    const fit = Math.min(
+      (vb.width - 48) / placed.width,
+      (vb.height - 48) / placed.height,
+    );
+    view.z = clampZoom(Math.min(1, fit));
+    view.x = vb.left + (vb.width - placed.width * view.z) / 2;
+    view.y = vb.top + (vb.height - placed.height * view.z) / 2;
+    applyView();
+  }
+
+  /* Put one box in the middle of what is visible, without changing the
+     scale: the reader chose that scale. */
+  function centreOn(id) {
+    const vb = visibleBox();
+    const pos = placed && placed.nodes.find(n => n.id === id);
+    if (!vb || !pos) return;
+    view.x = vb.left + vb.width / 2 - (pos.x + pos.w / 2) * view.z;
+    view.y = vb.top + vb.height / 2 - (pos.y + pos.h / 2) * view.z;
+    applyView();
+  }
+
+  /* Zoom about a point in canvas coordinates, so what is under the
+     pointer stays under the pointer. */
+  function zoomAt(next, cx, cy) {
+    const z = clampZoom(next);
+    if (z === view.z) return;
+    view.x = cx - ((cx - view.x) / view.z) * z;
+    view.y = cy - ((cy - view.y) / view.z) * z;
+    view.z = z;
     applyView();
   }
 
   function zoomBy(delta) {
-    const canvas = $('#learnCanvas');
-    if (!canvas) return;
-    const box = canvas.getBoundingClientRect();
-    const next = Math.max(ZOOM.min, Math.min(ZOOM.max, view.z + delta));
-    /* About the middle of what is on screen, so the thing you were
-       looking at stays roughly where it was. */
-    const cx = box.width / 2;
-    const cy = box.height / 2;
-    view.x = cx - ((cx - view.x) / view.z) * next;
-    view.y = cy - ((cy - view.y) / view.z) * next;
-    view.z = next;
-    applyView();
+    const vb = visibleBox();
+    if (!vb) return;
+    zoomAt(view.z + delta, vb.left + vb.width / 2, vb.top + vb.height / 2);
   }
 
   /* Bring a box into view without moving anything already visible —
-     what the arrow keys need. */
+     what the arrow keys need, and what opening the panel needs when the
+     box it is about has just gone underneath it. */
   function reveal(pos) {
-    const canvas = $('#learnCanvas');
-    if (!canvas || !pos) return;
-    const box = canvas.getBoundingClientRect();
+    const vb = visibleBox();
+    if (!vb || !pos) return;
     const pad = 24;
     const left = pos.x * view.z + view.x;
     const top = pos.y * view.z + view.y;
     const right = left + pos.w * view.z;
     const bottom = top + pos.h * view.z;
 
-    if (left < pad) view.x += pad - left;
-    else if (right > box.width - pad) view.x -= right - (box.width - pad);
-    if (top < pad) view.y += pad - top;
-    else if (bottom > box.height - pad) view.y -= bottom - (box.height - pad);
+    if (left < vb.left + pad) view.x += vb.left + pad - left;
+    else if (right > vb.left + vb.width - pad) view.x -= right - (vb.left + vb.width - pad);
+    if (top < vb.top + pad) view.y += vb.top + pad - top;
+    else if (bottom > vb.top + vb.height - pad) view.y -= bottom - (vb.top + vb.height - pad);
     applyView();
   }
 
+  /* What is done at a node, with reading kept apart from solving.
+
+     They used to be added together, so a concept whose three readings
+     were ticked and whose two problems were untouched was 60% and shaded
+     as progress. Reading a thing is not knowing it; the only part of
+     this that was checked by anything is the solves. */
   function nodeProgress(n) {
     const read = Catalog.readProgress(n.id);
     const solved = n.problems.filter(pr => {
       const st = Store.record(pr.id).status;
       return st === 'solved' || st === 'reviewed';
     }).length;
-    const total = read.total + n.problems.length;
-    const done = read.read + solved;
-    return { read, solved, total, done, pct: total ? Math.round((done / total) * 100) : 0 };
+    const total = n.problems.length;
+    return {
+      read, solved, total, done: solved,
+      pct: total ? Math.round((solved / total) * 100) : 0,
+      /* Three states, because "nothing to solve here" is not "solved".
+         A concept with readings and no problems can be read and nothing
+         more, and saying so is more honest than a full green bar. */
+      state: total ? (solved >= total ? 'done' : solved ? 'part' : 'open')
+        : (read.total && read.read >= read.total ? 'read' : 'open'),
+    };
   }
 
   function drawTree(tree, picked) {
@@ -956,9 +1121,11 @@ const UI = (() => {
     nodesHost.style.height = `${placed.height}px`;
 
     const chosen = (picked || {}).id;
+    const own = new Set(tree.track.problems || []);
     nodesHost.replaceChildren(...placed.nodes.map(pos => {
       const n = pos.node;
       const p = nodeProgress(n);
+      const required = n.problems.filter(pr => own.has(pr.id));
       return el('button', {
         type: 'button',
         class: 'lnode',
@@ -966,14 +1133,15 @@ const UI = (() => {
         'aria-level': String(pos.rank + 1),
         'aria-selected': String(n.id === chosen),
         'data-concept': n.id,
-        'data-state': p.total && p.done >= p.total ? 'done' : 'open',
+        'data-state': p.state,
         /* The numbers in words: the bar is three pixels tall and a
-           screen reader cannot see it at all. */
-        'aria-label': `${n.name}. ${p.read.read} of ${p.read.total} readings read, `
-          + `${p.solved} of ${n.problems.length} problems solved.`,
+           screen reader cannot see it at all. Readings are said
+           separately from solves because they mean different things. */
+        'aria-label': `${n.name}. ${p.solved} of ${n.problems.length} problems solved`
+          + `${required.length === n.problems.length ? '' : `, ${required.length} of them in this track`}`
+          + `. ${p.read.read} of ${p.read.total} readings ticked.`,
         tabindex: n.id === chosen ? '0' : '-1',
         style: `left:${pos.x}px; top:${pos.y}px; width:${pos.w}px; height:${pos.h}px`,
-        onclick: () => { location.hash = `#/learn/${tree.track.id}/${n.id}`; },
       }, [
         el('span', { class: 'lnode-name', text: n.name }),
         p.total ? el('div', { class: 'bar' }, [el('i', { style: `width:${p.pct}%` })]) : null,
@@ -983,14 +1151,52 @@ const UI = (() => {
     litEdges(chosen);
   }
 
-  /* The edges into and out of the selected box, so what you picked shows
-     what it rests on without anyone reading the panel. */
+  /* ---------------- following a prerequisite path ----------------
+
+     The edges touching the selected box, and then every edge on the way
+     down to it from a root. One line lit tells you what this rests on;
+     the whole chain lit tells you the order to learn it in, which is the
+     question the picture exists to answer. The two are drawn
+     differently, because "rests directly on" and "is somewhere beneath"
+     are not the same claim. */
   function litEdges(id) {
     const svg = $('#learnEdges');
     if (!svg) return;
+
+    const chain = new Set();
+    if (id && placed) {
+      /* Every ancestor, by walking edges backwards from the selection. */
+      const seen = new Set([id]);
+      const queue = [id];
+      while (queue.length) {
+        const here = queue.shift();
+        for (const e of placed.edges) {
+          if (e.to !== here) continue;
+          chain.add(`${e.from}>${e.to}`);
+          if (!seen.has(e.from)) { seen.add(e.from); queue.push(e.from); }
+        }
+      }
+      for (const btn of document.querySelectorAll('.lnode')) {
+        const on = btn.dataset.concept !== id && seen.has(btn.dataset.concept);
+        if (on) btn.dataset.ancestor = 'true';
+        else delete btn.dataset.ancestor;
+      }
+    } else {
+      for (const btn of document.querySelectorAll('.lnode')) delete btn.dataset.ancestor;
+    }
+
     for (const path of svg.querySelectorAll('path')) {
-      if (id && (path.dataset.from === id || path.dataset.to === id)) path.dataset.lit = 'true';
-      else delete path.dataset.lit;
+      const key = `${path.dataset.from}>${path.dataset.to}`;
+      if (id && (path.dataset.from === id || path.dataset.to === id)) {
+        path.dataset.lit = 'true';
+        delete path.dataset.path;
+      } else if (chain.has(key)) {
+        path.dataset.path = 'true';
+        delete path.dataset.lit;
+      } else {
+        delete path.dataset.lit;
+        delete path.dataset.path;
+      }
     }
   }
 
@@ -1036,8 +1242,101 @@ const UI = (() => {
     if (!btn) return;
     for (const other of document.querySelectorAll('.lnode')) other.tabIndex = -1;
     btn.tabIndex = 0;
-    btn.focus();
+    btn.focus({ preventScroll: true });
     reveal(placed.nodes.find(n => n.id === id));
+  }
+
+  /* ---------------- find a concept ----------------
+
+     A hundred and fifteen boxes is more than anyone will read looking
+     for one. Matches on the name and the one-line description, shows
+     which rank it is at so the answer carries its own context, and
+     centres the chosen one. */
+
+  let findAt = -1;
+
+  function findMatches(q) {
+    if (!placed || !q.trim()) return [];
+    const needle = q.trim().toLowerCase();
+    return placed.nodes
+      .filter(pos => pos.node)
+      .map(pos => pos.node)
+      .filter(n => `${n.name} ${n.id} ${n.oneLine || ''}`.toLowerCase().includes(needle))
+      .sort((a, b) => {
+        /* A name that starts with what you typed first, then by name. */
+        const an = a.name.toLowerCase().startsWith(needle) ? 0 : 1;
+        const bn = b.name.toLowerCase().startsWith(needle) ? 0 : 1;
+        return an - bn || a.name.localeCompare(b.name);
+      })
+      .slice(0, 8);
+  }
+
+  function paintFind(trackId, q) {
+    const list = $('#learnFindList');
+    const input = $('#learnFind');
+    if (!list || !input) return;
+    const hits = findMatches(q);
+    findAt = hits.length ? 0 : -1;
+
+    if (!q.trim()) {
+      list.hidden = true;
+      list.replaceChildren();
+      input.setAttribute('aria-expanded', 'false');
+      return;
+    }
+
+    if (!hits.length) {
+      list.replaceChildren(el('p', {
+        class: 'graph-find-none',
+        text: `Nothing in this track matches “${q.trim()}”.`,
+      }));
+    } else {
+      list.replaceChildren(...hits.map((n, i) => el('button', {
+        class: 'graph-find-opt', type: 'button', role: 'option',
+        'aria-selected': String(i === findAt),
+        'data-concept': n.id,
+        onclick: () => goFind(trackId, n.id),
+      }, [
+        el('span', { text: n.name }),
+        el('span', {
+          class: 'graph-find-why',
+          text: n.oneLine ? n.oneLine.slice(0, 70) : Store.TOPIC_BY_ID[n.topic]?.label || '',
+        }),
+      ])));
+    }
+    list.hidden = false;
+    input.setAttribute('aria-expanded', 'true');
+  }
+
+  function closeFind() {
+    const list = $('#learnFindList');
+    const input = $('#learnFind');
+    findAt = -1;
+    if (list) { list.hidden = true; list.replaceChildren(); }
+    if (input) { input.value = ''; input.setAttribute('aria-expanded', 'false'); }
+  }
+
+  function goFind(trackId, id) {
+    closeFind();
+    location.hash = `#/learn/${trackId}/${id}`;
+    /* The route redraws and selects it; centring is this function's job
+       because arriving at a node by searching is the one case where you
+       have no idea where it is. */
+    setTimeout(() => { centreOn(id); focusNode(id); }, 0);
+  }
+
+  /* ---------------- the panel's width ---------------- */
+
+  const PANEL_PREF = 'learnPanelW';
+  const PANEL_MIN = 260;
+
+  function applyPanelWidth(px) {
+    const canvas = $('#learnCanvas');
+    if (!canvas) return;
+    const max = Math.max(PANEL_MIN, canvas.getBoundingClientRect().width - 280);
+    const w = Math.round(Math.max(PANEL_MIN, Math.min(max, px)));
+    canvas.style.setProperty('--lpanel-w', `${w}px`);
+    return w;
   }
 
   function wireCanvas() {
@@ -1047,39 +1346,173 @@ const UI = (() => {
 
     $('#learnZoomIn').addEventListener('click', () => zoomBy(ZOOM.step));
     $('#learnZoomOut').addEventListener('click', () => zoomBy(-ZOOM.step));
-    $('#learnRecenter').addEventListener('click', () => recenter());
-
-    /* Pan. Pointer events, so a trackpad, a mouse and a finger all
-       behave the same, and capture so a drag that leaves the canvas
-       still ends when the button comes up. */
-    let dragging = null;
-    canvas.addEventListener('pointerdown', e => {
-      if (e.target.closest('.lnode, .learn-zoom, .learn-panel')) return;
-      dragging = { id: e.pointerId, x: e.clientX - view.x, y: e.clientY - view.y };
-      canvas.setPointerCapture(e.pointerId);
-      canvas.dataset.dragging = 'true';
+    $('#learnFit').addEventListener('click', () => { fitAll(); rememberView(lastTrack); });
+    $('#learnReset').addEventListener('click', () => { resetView(); rememberView(lastTrack); });
+    $('#learnCentre').addEventListener('click', () => {
+      if (selectedId) { centreOn(selectedId); focusNode(selectedId); rememberView(lastTrack); }
     });
+
+    /* ---- find ---- */
+    const find = $('#learnFind');
+    if (find) {
+      let t = null;
+      find.addEventListener('input', e => {
+        clearTimeout(t);
+        const v = e.target.value;
+        t = setTimeout(() => paintFind(lastTrack, v), 90);
+      });
+      find.addEventListener('keydown', e => {
+        const opts = [...document.querySelectorAll('.graph-find-opt')];
+        if (e.key === 'Escape') { paintFind(lastTrack, ''); find.value = ''; return; }
+        if (!opts.length) return;
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          findAt = (findAt + (e.key === 'ArrowDown' ? 1 : -1) + opts.length) % opts.length;
+          opts.forEach((o, i) => o.setAttribute('aria-selected', String(i === findAt)));
+          opts[findAt].scrollIntoView({ block: 'nearest' });
+        } else if (e.key === 'Enter' && findAt >= 0) {
+          e.preventDefault();
+          goFind(lastTrack, opts[findAt].dataset.concept);
+        }
+      });
+      document.addEventListener('click', e => {
+        if (!e.target.closest('.graph-find')) paintFind(lastTrack, '');
+      });
+    }
+
+    /* ---- pan, and a click that is not a drag ----
+
+       The pointer may go down on a box: a graph where you cannot drag
+       from a node is a graph where half the surface is not grab-able,
+       and that half is the part with things on it. So every press starts
+       a possible pan, and only four pixels of movement turns it into
+       one. Under that it is a click, and the click opens the node —
+       which is the other half of the same bug, a 2px wobble during a
+       click leaving the reader on a canvas that moved and a panel that
+       never opened. */
+    const SLOP = 4;
+    let drag = null;
+
+    canvas.addEventListener('pointerdown', e => {
+      if (e.button !== 0) return;
+      if (e.target.closest('.learn-zoom, .learn-panel, .graph-find')) return;
+      drag = {
+        id: e.pointerId, moved: false,
+        fromX: e.clientX, fromY: e.clientY,
+        x: e.clientX - view.x, y: e.clientY - view.y,
+        node: e.target.closest('.lnode'),
+      };
+      canvas.setPointerCapture(e.pointerId);
+    });
+
     canvas.addEventListener('pointermove', e => {
-      if (!dragging || e.pointerId !== dragging.id) return;
-      view.x = e.clientX - dragging.x;
-      view.y = e.clientY - dragging.y;
+      if (!drag || e.pointerId !== drag.id) return;
+      if (!drag.moved) {
+        if (Math.abs(e.clientX - drag.fromX) < SLOP
+          && Math.abs(e.clientY - drag.fromY) < SLOP) return;
+        drag.moved = true;
+        canvas.dataset.dragging = 'true';
+      }
+      view.x = e.clientX - drag.x;
+      view.y = e.clientY - drag.y;
       applyView();
     });
-    const stop = e => {
-      if (!dragging || e.pointerId !== dragging.id) return;
-      dragging = null;
+
+    const endDrag = e => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const was = drag;
+      drag = null;
       delete canvas.dataset.dragging;
+      if (was.moved) { rememberView(lastTrack); return; }
+      /* A press with no movement. If it started on a box, that is a
+         click on the box — handled here rather than with an onclick so
+         that a drag which happens to finish over a box never opens it. */
+      if (was.node && e.type === 'pointerup' && lastTrack) {
+        location.hash = `#/learn/${lastTrack}/${was.node.dataset.concept}`;
+      }
     };
-    canvas.addEventListener('pointerup', stop);
-    canvas.addEventListener('pointercancel', stop);
+    canvas.addEventListener('pointerup', endDrag);
+    canvas.addEventListener('pointercancel', endDrag);
+
+    /* ---- the wheel ----
+
+       Ctrl+wheel zooms about the pointer; a trackpad pinch arrives as
+       exactly that, so pinch-to-zoom works without any gesture code.
+       Plain wheel pans. Neither reaches the page, because the page
+       behind this does not scroll — the graph has the window. */
+    canvas.addEventListener('wheel', e => {
+      e.preventDefault();
+      const box = canvas.getBoundingClientRect();
+      if (e.ctrlKey || e.metaKey) {
+        const factor = Math.exp(-e.deltaY * 0.0025);
+        zoomAt(view.z * factor, e.clientX - box.left, e.clientY - box.top);
+      } else {
+        view.x -= e.deltaX;
+        view.y -= e.deltaY;
+        applyView();
+      }
+      rememberView(lastTrack);
+    }, { passive: false });
 
     nodes.addEventListener('keydown', e => {
       const btn = e.target.closest('.lnode');
       if (!btn) return;
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        if (lastTrack) location.hash = `#/learn/${lastTrack}/${btn.dataset.concept}`;
+        return;
+      }
       const next = neighbour(btn.dataset.concept, e.key);
       if (!next) return;
       e.preventDefault();
       focusNode(next.id);
+      rememberView(lastTrack);
+    });
+
+    /* ---- the panel's left edge ---- */
+    const grip = $('#learnGrip');
+    if (grip) {
+      let sizing = null;
+      grip.addEventListener('pointerdown', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        const panel = $('#learnPanel');
+        sizing = { id: e.pointerId, from: e.clientX, w: panel.getBoundingClientRect().width };
+        grip.setPointerCapture(e.pointerId);
+        canvas.dataset.resizing = 'true';
+      });
+      grip.addEventListener('pointermove', e => {
+        if (!sizing || e.pointerId !== sizing.id) return;
+        applyPanelWidth(sizing.w - (e.clientX - sizing.from));
+      });
+      const endSize = e => {
+        if (!sizing || e.pointerId !== sizing.id) return;
+        sizing = null;
+        delete canvas.dataset.resizing;
+        const panel = $('#learnPanel');
+        Store.setPref(PANEL_PREF, Math.round(panel.getBoundingClientRect().width));
+        if (selectedId) reveal(placed && placed.nodes.find(n => n.id === selectedId));
+      };
+      grip.addEventListener('pointerup', endSize);
+      grip.addEventListener('pointercancel', endSize);
+      /* A drag handle a keyboard cannot move is a drag handle half the
+         readers do not have. */
+      grip.addEventListener('keydown', e => {
+        const step = e.shiftKey ? 48 : 16;
+        const panel = $('#learnPanel');
+        const now = panel.getBoundingClientRect().width;
+        if (e.key === 'ArrowLeft') Store.setPref(PANEL_PREF, applyPanelWidth(now + step));
+        else if (e.key === 'ArrowRight') Store.setPref(PANEL_PREF, applyPanelWidth(now - step));
+        else return;
+        e.preventDefault();
+      });
+    }
+
+    /* The window changing size changes what "the middle" is, and a panel
+       wider than the canvas is a panel with no canvas. */
+    window.addEventListener('resize', () => {
+      if (!document.body.dataset.graph) return;
+      applyPanelWidth(Store.pref(PANEL_PREF, 420));
     });
   }
 
@@ -1091,18 +1524,49 @@ const UI = (() => {
 
   function drawNode(tree, n) {
     const host = $('#learnPanel');
-    if (!host) return;
+    const body = $('#learnPanelBody');
+    if (!host || !body) return;
+
+    /* The canvas is told, so the zoom buttons and the hint can move out
+       from under the panel. They sit in the bottom corners of the
+       canvas, and the panel covers one of them. */
+    const canvas = $('#learnCanvas');
 
     if (!n) {
       host.hidden = true;
-      host.replaceChildren();
+      body.replaceChildren();
+      if (canvas) delete canvas.dataset.panel;
       return;
     }
     host.hidden = false;
-    host.className = 'learn-panel lpanel';
+    if (canvas) canvas.dataset.panel = 'open';
 
     const topic = Store.TOPIC_BY_ID[n.topic];
     const p = nodeProgress(n);
+    const own = new Set(tree.track.problems || []);
+
+    /* Three lists, not two. "Questions" used to hold the coding
+       exercises as well, and "resources" sat above them looking like a
+       third kind of the same thing. They are different work: a reading
+       is something you tick for yourself, a question is graded, and a
+       coding exercise is compiled and run. */
+    const required = n.problems.filter(pr => own.has(pr.id));
+    const related = n.problems.filter(pr => !own.has(pr.id));
+    const questions = required.filter(pr => pr.type !== 'code');
+    const coding = required.filter(pr => pr.type === 'code');
+
+    const unsolved = pr => {
+      const st = Store.record(pr.id).status;
+      return st !== 'solved' && st !== 'reviewed';
+    };
+    /* The next thing to actually do here: a required exercise that is
+       not solved, preferring one already started. Offered only when
+       there is one — a button that says "Practise" and goes nowhere
+       useful is worse than no button. */
+    const next = required.find(pr => Store.record(pr.id).status === 'attempted')
+      || required.find(unsolved)
+      || related.find(unsolved)
+      || null;
 
     const parts = [
       el('div', { class: 'lpanel-head' }, [
@@ -1118,6 +1582,18 @@ const UI = (() => {
       n.oneLine ? el('p', { class: 'muted small', html: MD.renderInline(n.oneLine) }) : null,
     ];
 
+    if (next) {
+      parts.push(el('div', { class: 'lpanel-next' }, [
+        el('a', {
+          class: 'btn btn-sm btn-primary', href: `#/p/${next.id}`,
+        }, [Store.record(next.id).status === 'attempted' ? 'Carry on' : 'Practise this']),
+        el('span', { class: 'tiny faint', text: next.title }),
+      ]));
+    } else if (required.length) {
+      parts.push(el('p', { class: 'tiny', style: 'color:var(--ok)' },
+        ['Everything this track asks of this concept is solved.']));
+    }
+
     if (n.alsoNeeds.length) {
       parts.push(el('p', { class: 'tiny faint' }, [
         'Also rests on ',
@@ -1129,10 +1605,17 @@ const UI = (() => {
       ]));
     }
 
+    /* ---- readings ---- */
+
     parts.push(el('div', { class: 'lpanel-sub' }, [
       el('span', { text: 'Resources' }),
       el('span', { text: `${p.read.read}/${p.read.total}` }),
     ]));
+    /* Said once, where the ticks are. A tick is a note to yourself that
+       you read the thing; nothing checked it and nothing counts it
+       towards the track. */
+    parts.push(el('p', { class: 'tiny faint lpanel-note' },
+      ['Ticking one is a note to yourself. It is not counted towards the track.']));
 
     if (!n.readings.length) {
       parts.push(el('p', { class: 'tiny faint', text: 'Nothing listed for this one yet.' }));
@@ -1140,7 +1623,7 @@ const UI = (() => {
       parts.push(el('table', {}, [
         el('thead', {}, [el('tr', {}, [
           el('th', { text: 'Tag' }), el('th', { text: 'Resource' }),
-          el('th', { text: 'Section' }), el('th', { text: 'Done' }),
+          el('th', { text: 'Section' }), el('th', { text: 'Read' }),
         ])]),
         el('tbody', {}, n.readings.map((rd, i) => el('tr', {}, [
           el('td', {}, [rd.kind ? el('span', { class: 'kind', text: rd.kind }) : null]),
@@ -1166,40 +1649,51 @@ const UI = (() => {
       ]));
     }
 
-    parts.push(el('div', { class: 'lpanel-sub' }, [
-      el('span', { text: 'Questions' }),
-      el('span', { text: `${p.solved}/${n.problems.length}` }),
-    ]));
+    /* ---- the work, in three named lists ---- */
+
+    const problemTable = rows => el('table', {}, [
+      el('thead', {}, [el('tr', {}, [
+        el('th', { text: 'Name' }), el('th', { text: 'Difficulty' }),
+        el('th', { text: 'Felt' }),
+      ])]),
+      el('tbody', {}, rows.map(pr => {
+        const r = Store.record(pr.id);
+        const diff = Store.DIFF_BY_ID[pr.difficulty];
+        return el('tr', { 'data-status': r.status }, [
+          el('td', {}, [el('a', { href: `#/p/${pr.id}`, text: pr.title })]),
+          el('td', {}, [el('span', {
+            class: `diff diff-${pr.difficulty}`, text: (diff || {}).label || '',
+          })]),
+          el('td', { class: 'tiny faint', text: r.perceived ? FELT[r.perceived - 1] : '—' }),
+        ]);
+      })),
+    ]);
+
+    const done = rows => rows.filter(pr => !unsolved(pr)).length;
+
+    const section = (label, rows, why) => {
+      if (!rows.length) return;
+      parts.push(el('div', { class: 'lpanel-sub', title: why }, [
+        el('span', { text: label }),
+        el('span', { text: `${done(rows)}/${rows.length}` }),
+      ]));
+      parts.push(problemTable(rows));
+    };
+
+    section('Questions', questions,
+      'Required: questions in this track that rest on this concept');
+    section('Coding exercises', coding,
+      'Required: coding exercises in this track that rest on this concept');
+    section('Related practice', related,
+      'Rests on this concept but belongs to another track. Worth doing, '
+      + 'and not part of finishing this one.');
 
     if (!n.problems.length) {
       parts.push(el('p', { class: 'tiny faint', text: 'No problem rests on this one yet.' }));
-    } else {
-      const own = new Set(tree.track.problems);
-      const rows = [...n.problems]
-        .sort((a, b) => (own.has(b.id) ? 1 : 0) - (own.has(a.id) ? 1 : 0));
-      parts.push(el('table', {}, [
-        el('thead', {}, [el('tr', {}, [
-          el('th', { text: 'Name' }), el('th', { text: 'Difficulty' }),
-          el('th', { text: 'Felt' }),
-        ])]),
-        el('tbody', {}, rows.map(pr => {
-          const r = Store.record(pr.id);
-          const diff = Store.DIFF_BY_ID[pr.difficulty];
-          return el('tr', { 'data-status': r.status }, [
-            el('td', {}, [
-              el('a', { href: `#/p/${pr.id}`, text: pr.title }),
-              own.has(pr.id) ? null : el('span', { class: 'tiny faint', text: ' · elsewhere' }),
-            ]),
-            el('td', {}, [el('span', {
-              class: `diff diff-${pr.difficulty}`, text: (diff || {}).label || '',
-            })]),
-            el('td', { class: 'tiny faint', text: r.perceived ? FELT[r.perceived - 1] : '—' }),
-          ]);
-        })),
-      ]));
     }
 
-    host.replaceChildren(...parts.filter(Boolean));
+    body.replaceChildren(...parts.filter(Boolean));
+    body.scrollTop = 0;
   }
 
   /* ---------------- tracks ---------------- */
@@ -2427,7 +2921,7 @@ const UI = (() => {
     toast, refreshPurse, applyCosmetics, wire, endPreview,
     renderHome, renderCatalog, renderConcepts, renderProfile, renderShop, renderSettings,
     paintMe, closeMe, renderContentMenu, markNav, closeContent,
-    renderTracks, renderLearn, renderResources, problemList,
+    renderTracks, renderLearn, renderResources, problemList, leaveGraph,
     setFilter, checkJudge, paintJudgeState,
   };
 })();

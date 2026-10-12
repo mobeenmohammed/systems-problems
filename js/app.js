@@ -18,6 +18,12 @@
        used to be nobody's job, and the workspace's full-bleed, clipped,
        unscrollable layout followed the reader onto the dashboard. */
     if (name !== 'problem') ProblemView.leave();
+    /* The same for the Learn graph, which takes the window below the
+       header in exactly the same way and would otherwise clip whatever
+       the reader went to next. renderLearn also clears it when it draws
+       the track index, because that route is Learn and is not a graph —
+       both, because one of these being missed is the bug. */
+    if (name !== 'learn') UI.leaveGraph();
 
     for (const v of VIEWS) {
       const node = document.getElementById(`view-${v}`);

@@ -404,6 +404,10 @@ ok('there is a global focus-visible ring',
 const SUPPRESSED = [
   { selector: '.ed-plain .ed-input:focus', replacedBy: '.ed:focus-within' },
   { selector: '.prow-link:focus-visible', replacedBy: '.prow:has(.prow-link:focus-visible)' },
+  /* The panel's resize grip: nine pixels wide, so a ring around it is a
+     smudge. Its own line goes accent-coloured and full-height instead,
+     which is larger than the ring would have been. */
+  { selector: '.lpanel-grip:focus-visible', replacedBy: '.lpanel-grip:focus-visible::after' },
 ];
 for (const { selector, replacedBy } of SUPPRESSED) {
   ok(`${selector} suppresses the outline deliberately`, styles.includes(selector));

@@ -442,21 +442,52 @@ const Catalog = (() => {
     return treeCache[trackId];
   }
 
-  /* What a track is made of, for its card: readings, questions and
-     coding exercises, each as done-of-total.
+  /* What a track is made of: readings, and then problems split four ways.
 
-     Counted over the track's whole concept closure rather than its
-     problem list, because that is what the tree shows and the two
-     numbers disagreeing on the same page would be worse than either. */
+     The split is the point. A track's *required* work is the ordered list
+     in data/tracks.json — that is what "8 of 12 solved" on the card and
+     the progress bar both mean. But the tree is built from the concepts
+     those problems rest on, and a concept is shared: `loop-invariants` is
+     named by problems in four tracks. Everything else resting on a
+     concept this track teaches is worth offering and is NOT part of
+     finishing the track.
+
+     Both used to be counted under a label reading "Problems", in two
+     places on the same card, with different totals. Here they are
+     `questions` and `coding` (required, and what the bar is a fraction
+     of) and `related` (reachable through a shared concept, and not).
+
+     `resources` is kept apart from all three and never added to them.
+     Ticking a reading is a note to yourself that you have read it; it is
+     not a graded thing and it is not evidence of anything. */
   function trackCounts(trackId) {
     const tree = trackTree(trackId);
     if (!tree) return null;
 
+    const own = new Set(tree.track.problems || []);
     const seen = new Set();
     const out = {
       resources: { done: 0, total: 0 },
       questions: { done: 0, total: 0 },
-      problems: { done: 0, total: 0 },
+      coding: { done: 0, total: 0 },
+      related: { done: 0, total: 0 },
+    };
+
+    const solvedId = id => {
+      const st = Store.record(id).status;
+      return st === 'solved' || st === 'reviewed';
+    };
+
+    const count = meta => {
+      /* A problem resting on two concepts in the same track is one
+         problem, not two. */
+      if (!meta || seen.has(meta.id)) return;
+      seen.add(meta.id);
+      const bucket = !own.has(meta.id) ? out.related
+        : meta.type === 'code' ? out.coding
+        : out.questions;
+      bucket.total += 1;
+      if (solvedId(meta.id)) bucket.done += 1;
     };
 
     (function walk(nodes) {
@@ -464,22 +495,30 @@ const Catalog = (() => {
         const r = readProgress(n.id);
         out.resources.done += r.read;
         out.resources.total += r.total;
-
-        for (const pr of n.problems) {
-          /* A problem resting on two concepts in the same track is one
-             problem, not two. */
-          if (seen.has(pr.id)) continue;
-          seen.add(pr.id);
-          const bucket = pr.type === 'code' ? out.problems : out.questions;
-          bucket.total += 1;
-          const st = Store.record(pr.id).status;
-          if (st === 'solved' || st === 'reviewed') bucket.done += 1;
-        }
+        for (const pr of n.problems) count(pr);
         walk(n.children);
       }
     })(tree.roots);
 
+    /* A required problem that names no concept in the tree — one with an
+       empty `prereqs` — is still required. Counting only what the tree
+       reaches would make the card's total disagree with the bar beside
+       it, which is the bug this function is here to not have. */
+    for (const id of own) count(byId[id]);
+
     return out;
+  }
+
+  /* The required work alone, which is what "finished" means for a track:
+     questions plus coding exercises in its own list. Resources and
+     related practice are deliberately not in it. */
+  function trackRequired(trackId) {
+    const c = trackCounts(trackId);
+    if (!c) return null;
+    return {
+      done: c.questions.done + c.coding.done,
+      total: c.questions.total + c.coding.total,
+    };
   }
 
   /* Readings ticked and problems solved beneath a node, itself included.
@@ -611,7 +650,8 @@ const Catalog = (() => {
     init, all, meta, list, sorted, get, solution,
     concept, allConcepts, chain, prereqsFor, readProgress,
     allTracks, track, trackProgress, thisWeek, topicResources, allResources,
-    counts, nextUp, problemsForConcept, readStatus, trackTree, treeProgress, trackCounts,
+    counts, nextUp, problemsForConcept, readStatus, trackTree, treeProgress,
+    trackCounts, trackRequired,
     TYPES, TYPE_BY_ID, TRACK_STATE_LABEL, READ_STATE_LABEL,
     LANGS, LANG_LABEL,
     get loadError() { return loadError; },

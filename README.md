@@ -623,23 +623,116 @@ other: `data/tracks.json` listed the problems, every problem named the
 concepts it needs, and every concept named what it needs in turn.
 
 **Learn** joins them up. The index is a card per track with what it is made
-of — **Resources**, **Questions**, **Problems**, each as done-of-total,
-counted over the track's whole concept closure so the card and the tree
-cannot disagree. A count of zero is left off rather than shown as `0 / 0`,
-which would imply there might be some.
+of, in four separate figures — see *Which total is which*, below. A count of
+zero is left off rather than shown as `0 / 0`, which would imply there might
+be some.
 
-Pick a track and you get that closure as a **canvas**: boxes placed by
-`js/learn/layout.js`, edges drawn in SVG behind them, and one transform for
-pan and zoom so nothing reflows at a new scale. Drag to move, two buttons to
-zoom, Recenter to fit. The wheel is deliberately not bound — a canvas that
-eats the scroll wheel is a canvas you cannot scroll past, and this one sits
-in the middle of a page.
+Pick a track and you get that closure as a **canvas**, and the canvas gets
+the window.
 
-Pick a node and a panel slides over the right of the canvas with the two
-things you actually want: a **Resources** table (tag, resource, section,
-done — the same checkboxes and the same stored progress as the concept
-index) and a **Questions** table (name, difficulty, and how hard it *felt*,
-which is your own figure from the problem page rather than a guess at it).
+### The graph is a workspace
+
+A hundred and fifteen boxes in a 1180px column with 3rem of padding either
+side is a picture of a sixth of the screen. So opening a track puts
+`body[data-graph="true"]` on the document and `.main` becomes the window
+below the header: a compact toolbar, then the canvas, and nothing on the
+page scrolls. The Learn **index** is not a graph — it stays an ordinary card
+page at the ordinary width.
+
+This is the same mechanism the code workspace uses and it has the same
+failure mode, which was a real reported bug: the workspace flag went on and
+nothing took it off, so one click from a problem to anywhere else left the
+destination clipped to the window with no scrollbar — 422px of the
+dashboard, 29,021px of the reading map, unreachable. So the graph flag is
+taken off in **two** places: `renderLearn` clears it when it draws the
+index, and the router clears it on every route that is not Learn at all.
+`tests/browser/learn.test.mjs` walks out of the graph to five different
+views and checks `.main` is a document again each time.
+
+**Three controls, not one.** "Recenter" was being asked three different
+questions, so there are three buttons:
+
+- **Fit all** — scale until every box is on screen, however small. You asked
+  for all of it, so this one may go below the readable floor.
+- **Reset zoom** — the opening view: readable scale, roots at the top.
+- **Centre selected** — bring the open concept to the middle of what you can
+  *see*, which is the canvas minus the details panel. Disabled when nothing
+  is selected, which is the honest state of a button with nothing to centre.
+
+The opening view is deliberately **not** a fit. A fit of the biggest track
+is 0.35 scale, at which every box is a grey rectangle with a smear in it,
+and the thing you need first in a top-down graph is the roots — so the view
+you are given is readable scale with the first concepts at the top, and
+fitting everything is a button you press.
+
+**The wheel** pans. `Ctrl`+wheel zooms about the pointer, which is also what
+a trackpad pinch arrives as, so pinch-to-zoom works with no gesture code. A
+plain two-finger scroll that silently rescales the picture is the most
+complained-about behaviour in every canvas that does it.
+
+**A click is not a drag.** Every press starts a possible pan, including a
+press on a box — a graph you cannot drag from a box is a graph with half a
+surface, and the half with things on it. Four pixels of movement turns it
+into a pan; under that it is a click and the click opens the node. Both
+halves are tested: a two-pixel wobble still opens the box, and a real drag
+from a box pans and opens nothing.
+
+**Find a concept** in the toolbar, because a hundred and fifteen boxes is
+more than anyone will read looking for one. It matches the name and the
+one-line description, arrow keys walk the results, and choosing one opens it
+and brings it to the middle — which is what searching is for, since the
+whole problem is that you do not know where it is.
+
+**Where you were** is kept per track: pan, zoom and which node was open,
+written to the UI prefs so that opening a problem from the panel and coming
+back puts you where you were rather than at the top of the graph again. A
+reload is the same.
+
+### The details panel
+
+Docked to the right of the canvas and **resizable by its left edge** — by
+drag, and by the arrow keys when the grip is focused, because a drag handle
+a keyboard cannot move is a control half the readers do not have. The width
+is one custom property, `--lpanel-w`, which is also what the code works out
+"is the selected box hidden underneath it" from. Below 760px it is a drawer
+across the bottom instead: a 26rem column on a 390px phone is the whole
+screen, and the graph it is describing disappears behind it.
+
+**The selected box stays visible.** Everything that puts something "in the
+middle" means the middle of what you can see, measured against the panel
+rather than against the canvas — otherwise opening the panel to describe a
+concept is what hides it.
+
+Inside: the concept, a direct **Practise this** (or **Carry on**, if you
+have started it) where there is a next exercise, and then the work in named
+lists — **Resources**, **Questions**, **Coding exercises**, **Related
+practice**. Those used to be two lists, and the second held the coding
+exercises as well as the questions.
+
+### Which total is which
+
+A track's **required** work is the ordered list in `data/tracks.json`. That
+is what "8 of 12 solved" means and what the progress bar is a fraction of.
+The tree, though, is built from the concepts those problems rest on, and a
+concept is shared — `loop-invariants` is named by problems in four tracks.
+Everything else resting on a concept this track teaches is worth offering
+and is **not** part of finishing the track.
+
+Both used to be counted under a label reading *Problems*, in two places on
+the same card, with different totals. Now:
+
+| Label | What it counts | Counts towards the track |
+| --- | --- | --- |
+| Questions | Required, not code | yes |
+| Coding exercises | Required, code | yes |
+| Related practice | Reaches this track through a shared concept | no |
+| Resources | Readings you have ticked | no |
+
+Only the first two go green when a track is finished. And **ticking a
+reading is not solving anything** — it is a note to yourself, nothing
+checked it, and the panel says so where the ticks are. A node's bar is its
+solves alone; a concept with readings and no problems can be `read`, which
+is a quiet grey edge, not the green that a solve earns.
 
 ### The layout, and what it claims
 
@@ -694,6 +787,15 @@ this. Up and down follow an actual edge rather than going to whatever box
 happens to be above — that is the more useful answer, and it is the one the
 line under your feet goes to. Each box's `aria-label` says its progress in words, because the bar
 under the name is three pixels tall and a screen reader cannot see it.
+
+### Following one path
+
+Selecting a box lights the edges that touch it, and then every edge on the
+way down to it from a root, at a lighter weight — with the concepts along
+that way outlined. One line lit tells you what this rests on; the whole
+chain tells you the order to learn it in, which is the question the picture
+exists to answer. They are drawn differently on purpose: *rests directly on*
+and *is somewhere beneath* are not the same claim.
 
 The old pages are still there and still reachable: `#/tracks/<id>` is the
 flat list of one track's problems, linked from the top of every tree, and

@@ -390,15 +390,42 @@
       </p>
     </div>
 
-    <div id="learnTrack" hidden>
-      <div class="learn-bar">
-        <a class="btn btn-sm btn-ghost" href="#/learn">&larr; Back</a>
-        <button class="btn btn-sm btn-ghost" type="button" id="learnRecenter">Recenter</button>
+    <!-- A track is a workspace, not a section of a document. The index
+         above is an ordinary card page; opening a track puts
+         body[data-graph="true"] on, which gives this the window below the
+         header. The router takes it off again on every other route, the
+         same way it does for the code workspace — see js/app.js. -->
+    <div id="learnTrack" class="graph" hidden>
+      <div class="graph-bar">
+        <a class="btn btn-sm btn-ghost" href="#/learn" id="learnBack">&larr; Tracks</a>
         <h1 id="learnTitle"></h1>
         <span class="learn-progress" id="learnProgress"></span>
+
+        <!-- Search is the only way to find one concept among a hundred
+             and fifteen without reading every box. -->
+        <div class="graph-find">
+          <input type="search" id="learnFind" autocomplete="off" spellcheck="false"
+                 placeholder="Find a concept…" aria-label="Find a concept in this track"
+                 role="combobox" aria-expanded="false" aria-autocomplete="list"
+                 aria-controls="learnFindList">
+          <div class="graph-find-list" id="learnFindList" role="listbox"
+               aria-label="Matching concepts" hidden></div>
+        </div>
+
+        <!-- Three separate things, because they answer three different
+             questions: "show me all of it", "put it back how it started"
+             and "where is the one I picked". One Recenter button did the
+             first and was asked for all three. -->
+        <div class="graph-acts">
+          <button class="btn btn-sm btn-ghost" type="button" id="learnFit"
+                  title="Scale until every concept is on screen, however small">Fit all</button>
+          <button class="btn btn-sm btn-ghost" type="button" id="learnReset"
+                  title="Back to the starting view: readable text, first concepts at the top">Reset zoom</button>
+          <button class="btn btn-sm btn-ghost" type="button" id="learnCentre"
+                  title="Bring the selected concept to the middle" disabled>Centre selected</button>
+        </div>
         <a class="btn btn-sm" id="learnProblems" href="#/problems">All its problems</a>
       </div>
-      <p class="muted small learn-goal" id="learnGoal"></p>
 
       <!-- The canvas. The boxes are real buttons in a role="tree", so the
            picture is also a list you can walk with the arrow keys — there
@@ -412,17 +439,24 @@
                aria-label="What this track rests on"></div>
         </div>
         <p class="learn-hint tiny faint" id="learnHint">
-          Drag to move. Arrow keys walk the tree; Enter opens a node.
+          Drag to move, <kbd>Ctrl</kbd>+scroll to zoom. Arrow keys walk the
+          tree; Enter opens a node.
         </p>
         <div class="learn-zoom">
           <button class="btn btn-sm" type="button" id="learnZoomOut" aria-label="Zoom out">&minus;</button>
+          <span class="learn-zoom-at tiny faint" id="learnZoomAt" aria-live="off">100%</span>
           <button class="btn btn-sm" type="button" id="learnZoomIn" aria-label="Zoom in">+</button>
         </div>
 
         <!-- Inside the canvas, so it is positioned against it and clipped
              by it: a panel that escapes its own frame ends up behind the
              top bar, which is exactly what happened first time. -->
-        <aside class="learn-panel" id="learnPanel" aria-label="Concept" hidden></aside>
+        <aside class="learn-panel" id="learnPanel" aria-label="Concept" hidden>
+          <div class="lpanel-grip" id="learnGrip" role="separator"
+               aria-orientation="vertical" aria-label="Resize the panel"
+               tabindex="0"></div>
+          <div class="lpanel-body lpanel" id="learnPanelBody"></div>
+        </aside>
       </div>
     </div>
   </section>
