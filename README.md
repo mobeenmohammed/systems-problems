@@ -1066,6 +1066,40 @@ flat list of one track's problems, linked from the top of every tree, and
 index. Neither has a tab of its own any more, and both keep the Learn tab
 lit while you are in them.
 
+### The wheel
+
+The reported bug: after selecting a node, the wheel did nothing to the
+panel and moved the graph behind it instead. The panel is a child of the
+canvas, so its wheel events bubbled to a handler that called
+`preventDefault()` unconditionally — cancelling the scroll the browser
+was about to perform, and panning the graph with the same gesture.
+Measured: 400px of wheel over a panel with 928px of content in an 803px
+box left `scrollTop` at 0 and moved the graph 400px. A concept's
+resources and exercises were unreachable by wheel, which is the ordinary
+way to read a long panel.
+
+The rule now, by where the pointer is:
+
+| pointer over | plain wheel | Shift | Ctrl / ⌘ |
+| --- | --- | --- | --- |
+| the panel, the toolbar, the zoom buttons | the browser scrolls it; nothing here runs at all | — | — |
+| the graph | moves vertically; a trackpad's sideways movement moves horizontally | moves horizontally | zooms about the pointer |
+
+Reaching the end of the panel does not start moving the graph either,
+and that is `overscroll-behavior: contain` on the panel rather than
+anything in JavaScript — only the browser knows which element it decided
+to chain to.
+
+Ctrl+wheel does take that gesture from the browser's page zoom *while
+the pointer is over the graph*, which is the price of pinch-to-zoom
+working inside a canvas. The keyboard zoom (Ctrl +, Ctrl −, Ctrl 0) is
+untouched everywhere, the toolbar's zoom buttons do the same job without
+a gesture, and the hint line under the graph names all of it.
+
+`tests/browser/learn.test.mjs` drives real wheel events over both, and
+asserts the position that changed and the one that did not — including
+that the selection and the open panel survive every one of them.
+
 ## The front page, and where the dashboard went
 
 `#/` used to be a dashboard: rank, five stat pills, a streak line, a topic
@@ -1588,8 +1622,148 @@ refusing somebody their own data.
 ## Online Assessments
 
 A separate mode, from a separate bank, reached from **Content ▸ Assess**.
-Three problems against a clock, on questions that are not in the catalogue
-and that you therefore have not met.
+Problems against a clock, on questions that are not in the catalogue and
+that you therefore have not met.
+
+### Every format, and the bug that said otherwise
+
+A question in an assessment that was not a coding exercise *appeared
+static*. It was, in the literal sense, and the cause had nothing to do
+with the question types.
+
+A coding exercise fills the attempt's row with the workspace grid, which
+is fixed-height and scrolls inside its own panes. Everything else —
+a multiple choice, a predicted output, an ordering — fills it with
+`.pwrap.reading`, which is an ordinary block that expects the *page* to
+scroll. Under `body[data-attempt]` the page does not scroll, by design,
+so that the clock cannot be scrolled away from. Measured at 1440×900 on
+question one: **1,064px of content in an 803px row, no scrollbar
+anywhere, the answer box cut off mid-listing and Submit at y=1076** with
+`elementFromPoint` returning null on it. The question rendered, and could
+not be answered.
+
+The scroll therefore belongs to the question, one level in.
+
+The second half was persistence. The editor has saved every keystroke
+since the day it was written; every *other* kind of answer lived nowhere
+but in the DOM, so moving to question 2 and back rebuilt the widget from
+the problem file and a reload threw it away. Now every type has a draft,
+in one slot, through the same hook the editor uses — the practice store
+in practice, the attempt under a clock. The navigator can finally show
+**written, not sent**, which is the one state it exists to show.
+
+`order` and `match` gained the `restore()` they never had, and `match`
+gained `partial()`: three of five pairs is not an *answer* — grading it
+would cost a first-try bonus for stopping to think — but it is twenty
+minutes of work and has to survive going away and coming back.
+
+A click saves at once; only typing is debounced. Everything was debounced
+at first, and that lost the answer of anybody who ticked an option and
+reloaded within 180ms. A pending write is also flushed on leaving the
+question, on hiding the tab and on `pagehide`.
+
+**Verified** against all eleven formats in `tests/browser/assessment.test.mjs`:
+answer it, navigate away, come back, reload the whole page, read it back.
+
+### The policy is enforced, not printed
+
+`feedback.duringAttempt` was shown on the pre-flight page and then never
+consulted. An assessment that says *nothing until you finish* and then
+prints "Not that one." under the question has told the reader something
+false about itself, which is worse than either policy would have been.
+
+Submitting now reports that the answer was **recorded**, and the three
+states a question can be in — not answered, answered, submitted — are
+kept apart from the fourth thing, **graded**, which does not happen until
+the attempt ends. `mark()` does not run under a clock at all: it is
+deliberately allowed to say more than nothing, which is right in practice
+and is a verdict the policy may not have promised.
+
+A **written proof** is allowed, and is recorded as submitted and
+*ungraded*. Nothing here marks a proof and a keyword search is not a
+reading. The rubric and the model proof are both disclosure, so they
+belong after the clock stops: the review afterwards shows the proof as
+written, the rubric beside it, and a self-mark that is recorded as the
+reader's own judgement and is never added to the automatic score.
+
+### Immersive by default, with no button to press
+
+An attempt used to run inside the ordinary page, with the Content menu,
+the avatar, the XP and the coin purse above it, and a Focus button in the
+problem offering to hide them. Three things wrong at once: the navigation
+goes somewhere the reader must not go mid-attempt; the purse and the XP
+are the one part of the site an attempt deliberately does not touch,
+sitting in the corner implying otherwise; and the fix was a control they
+had to find.
+
+Now the attempt takes the window and the only header is its own, carrying
+the six things a reader under a clock needs — what this is, how long is
+left, where they are in it, whether their work is saved, how to finish,
+and how to get out. **Exit** says in plain words that the clock does not
+stop, because it is a deadline rather than a counter and a deadline that
+paused when you navigated away would be one anybody could stop.
+
+Fullscreen is requested from the Start click, which is the only moment a
+browser will consider it, and is a **bonus**: the layout is CSS and owes
+it nothing. If the browser refuses, nothing happens. If the reader presses
+Escape they stay in the attempt, and nothing asks again — re-requesting on
+`fullscreenchange` is a page fighting its reader, and would not work
+anyway. Tested by making `requestFullscreen` reject.
+
+Prerequisites went with the hints. A prerequisite is a reading
+recommendation, which is the right thing in front of somebody learning and
+the wrong thing in front of somebody being assessed, because it names the
+topic the question is about. It is not deleted: the review links every
+question to its concepts, which is the moment that reading is worth
+anything.
+
+And the toolchains are downloaded **before the clock starts**, not when
+the first Run asks for them. Pressing Start on an assessment with a C++
+question fetches clang first, reporting progress on the button. Four of
+your forty minutes spent fetching eleven megabytes at question three is
+four minutes nobody gets back.
+
+### Starter code is authored, not stripped
+
+The practice template for the run-length exercise says *"walk s, and for
+each run of identical characters append the character and, only if the
+run is longer than one, its length. Jump past the whole run, not past one
+character."* That is the right thing to hand a learner. Under a clock it
+is the algorithm, in the editor.
+
+So an assessment coding exercise carries a second starter,
+`payload.assessmentTemplates`, with everything that is part of the
+interface — the includes, the signatures, the harness in `main` that
+reads the input and prints the result — and nothing that is part of the
+method, plus a `TODO`. Two authored files rather than one file with the
+comments stripped by a regex, because a regex cannot tell coaching from
+an interface contract, and a licence header is a comment too.
+
+`npm run check:assessments` refuses a missing starter, one that is
+byte-identical to the teaching template, one with coaching still in it,
+and one containing a line of the **reference solution** that is not also
+in the teaching template. All four were negative-tested by breaking them
+deliberately.
+
+### The bank cannot be read around
+
+An assessment problem is reachable by id, which is how the attempt
+renders it with no changes at all and how the review afterwards can link
+to it. Two consequences had to be closed:
+
+- **during** the attempt, `#/p/<that question>` is refused, with the way
+  back. The route worked, and came with a Hints tab and a Solution tab,
+  for a question being asked under a clock.
+- **afterwards** it opens like any other problem — and is scored as
+  nothing. No XP, no solved status, no row in a submission history, no
+  position in a catalogue it is not in. Otherwise sitting the same
+  assessment twice would pay twice, and the site's totals would stop
+  adding up.
+
+The one way the bank reaches the practice side is deliberate: **Add to
+review** on the results page puts the question on the review list, with
+the reason "you bookmarked it" and the row saying it came from an
+assessment. Nothing else follows from it.
 
 ### The pool is the point
 

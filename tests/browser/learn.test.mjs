@@ -819,6 +819,147 @@ section('the chain down to the selected concept is lit, not just its own edges')
   ok('but not the whole graph', m.lit + m.path < m.total);
 }
 
+/* ---------------- the wheel ----------------
+
+   The reported bug: after selecting a node, the wheel did nothing to
+   the panel and moved the graph behind it instead. The panel is a
+   child of the canvas, so its wheel events bubbled to a handler that
+   called preventDefault() unconditionally — cancelling the scroll the
+   browser was about to do and panning the graph with it.
+
+   Measured before the fix: 400px of wheel over a panel with 928px of
+   content in an 803px box left scrollTop at 0 and moved the graph
+   400px.
+
+   Driven with real wheel events, and every assertion is about a
+   position that changed or did not. */
+
+section('the wheel belongs to whatever is under the pointer');
+{
+  const page2 = await (await browser.newContext({ viewport: { width: 1500, height: 950 } })).newPage();
+  const track = JSON.parse(fs.readFileSync('data/tracks.json', 'utf8'));
+  const first = (track.tracks || track)[0];
+  await page2.goto(`${BASE}/#/learn/${first.id}`, { waitUntil: 'networkidle' });
+  await page2.waitForTimeout(1800);
+
+  /* A node with enough in it to scroll. Found by measuring rather than
+     named, because which concept has the longest panel is a property
+     of the content and would otherwise be a constant to maintain. */
+  const concepts = await page2.$$eval('.learn-canvas .lnode', ns => ns.map(n => n.dataset.concept));
+  let picked = null;
+  for (const c of concepts) {
+    await page2.goto(`${BASE}/#/learn/${first.id}/${c}`, { waitUntil: 'networkidle' });
+    await page2.waitForTimeout(900);
+    const long = await page2.evaluate(() => {
+      const b = document.querySelector('.lpanel-body');
+      return !!b && b.scrollHeight > b.clientHeight + 8;
+    });
+    if (long) { picked = c; break; }
+  }
+  ok(`a concept whose panel is longer than the panel (${picked})`, !!picked);
+  if (!picked) {
+    await page2.goto(`${BASE}/#/learn/${first.id}/${concepts[0]}`, { waitUntil: 'networkidle' });
+    await page2.waitForTimeout(900);
+  }
+
+  const where = await page2.evaluate(() => {
+    const body = document.querySelector('.lpanel-body');
+    const canvas = document.querySelector('.learn-canvas');
+    if (!body || !canvas) return null;
+    const b = body.getBoundingClientRect();
+    const c = canvas.getBoundingClientRect();
+    return {
+      panel: { x: Math.round(b.x + b.width / 2), y: Math.round(b.y + b.height / 2) },
+      graph: { x: Math.round(c.x + 90), y: Math.round(c.y + c.height / 2) },
+      scrollable: body.scrollHeight > body.clientHeight,
+      overscroll: getComputedStyle(body).overscrollBehaviorY,
+    };
+  });
+  ok('selecting it opens a panel', !!where);
+  ok('whose contents are long enough to scroll', where && where.scrollable);
+  check('and which does not chain its scroll to the graph',
+    where && where.overscroll, 'contain');
+
+  const state = () => page2.evaluate(() => ({
+    panel: document.querySelector('.lpanel-body').scrollTop,
+    pan: document.querySelector('.learn-pan').style.transform,
+    open: !!document.querySelector('.lpanel-body').offsetHeight,
+    selected: (document.querySelector('.lpanel-head h2') || {}).textContent,
+  }));
+
+  const before = await state();
+
+  /* ---- over the panel ---- */
+  await page2.mouse.move(where.panel.x, where.panel.y);
+  await page2.mouse.wheel(0, 400);
+  await page2.waitForTimeout(400);
+  const overPanel = await state();
+  ok(`the panel scrolled (${before.panel} -> ${overPanel.panel})`,
+    overPanel.panel > before.panel);
+  check('and the graph did not move', overPanel.pan, before.pan);
+  ok('the panel is still open', overPanel.open);
+  check('and the same node is still selected', overPanel.selected, before.selected);
+
+  /* ---- at the panel's bottom, the graph still must not move ---- */
+  await page2.evaluate(() => {
+    const b = document.querySelector('.lpanel-body');
+    b.scrollTop = b.scrollHeight;
+  });
+  await page2.waitForTimeout(200);
+  const atEnd = await state();
+  await page2.mouse.wheel(0, 400);
+  await page2.waitForTimeout(400);
+  const past = await state();
+  check('wheeling past the end of the panel does not move the graph', past.pan, atEnd.pan);
+
+  /* ---- over the graph ---- */
+  await page2.mouse.move(where.graph.x, where.graph.y);
+  await page2.mouse.wheel(0, 300);
+  await page2.waitForTimeout(400);
+  const overGraph = await state();
+  ok(`the graph moved vertically (${past.pan} -> ${overGraph.pan})`,
+    overGraph.pan !== past.pan);
+  check('and the panel did not scroll', overGraph.panel, past.panel);
+  check('and the selection is untouched', overGraph.selected, past.selected);
+
+  const yOf = t => Number((/translate\(([-\d.]+)px, ([-\d.]+)px\)/.exec(t) || [])[2]);
+  const xOf = t => Number((/translate\(([-\d.]+)px, ([-\d.]+)px\)/.exec(t) || [])[1]);
+  ok('vertically, specifically', yOf(overGraph.pan) !== yOf(past.pan)
+    && xOf(overGraph.pan) === xOf(past.pan));
+
+  /* ---- shift+wheel goes sideways ---- */
+  await page2.keyboard.down('Shift');
+  await page2.mouse.wheel(0, 300);
+  await page2.keyboard.up('Shift');
+  await page2.waitForTimeout(400);
+  const shifted = await state();
+  ok('Shift+wheel moves horizontally and not vertically',
+    xOf(shifted.pan) !== xOf(overGraph.pan) && yOf(shifted.pan) === yOf(overGraph.pan));
+
+  /* ---- ctrl+wheel zooms, and the buttons still do too ---- */
+  const zoomOf = t => Number((/scale\(([\d.]+)\)/.exec(t) || [])[1]);
+  await page2.keyboard.down('Control');
+  await page2.mouse.wheel(0, -200);
+  await page2.keyboard.up('Control');
+  await page2.waitForTimeout(400);
+  const zoomed = await state();
+  ok(`Ctrl+wheel zooms (${zoomOf(shifted.pan)} -> ${zoomOf(zoomed.pan)})`,
+    zoomOf(zoomed.pan) > zoomOf(shifted.pan));
+
+  await page2.click('#learnZoomOut');
+  await page2.waitForTimeout(300);
+  const buttoned = await state();
+  ok('and the explicit buttons still work', zoomOf(buttoned.pan) < zoomOf(zoomed.pan));
+
+  /* ---- the hint says all of it ---- */
+  const hint = await page2.evaluate(() =>
+    (document.querySelector('#learnHint') || {}).textContent || '');
+  ok(`the hint names the gestures (${hint.replace(/\s+/g, ' ').trim().slice(0, 70)}…)`,
+    /scroll/.test(hint) && /Shift/.test(hint) && /Ctrl/.test(hint));
+
+  await page2.context().close();
+}
+
 section('no uncaught errors');
 ok(errors.length ? `errors: ${errors.join(' | ').slice(0, 200)}` : 'none', errors.length === 0);
 

@@ -67,6 +67,22 @@ const go = async (p, hash, wait = 1600) => {
   await p.waitForTimeout(wait);
 };
 
+/* Press Start, and wait for the attempt to actually begin.
+
+   Starting is no longer instant and that is deliberate: every
+   toolchain the assessment needs is downloaded BEFORE the clock
+   exists, so that a reader does not spend four of their forty minutes
+   fetching eleven megabytes of clang at question three. The button
+   reports the download while it happens.
+
+   Each of these tests runs in a fresh browser context, so each one
+   pays for that download again — which a real reader does not. */
+const start = async (p, { timeout = 180_000 } = {}) => {
+  await p.locator('#oaStart').click();
+  await p.waitForFunction(() => /\/go/.test(location.hash), { timeout });
+  await p.waitForTimeout(1600);
+};
+
 /* ---------------- the bank is separate ---------------- */
 
 section('the assessment bank is not in the catalogue');
@@ -198,8 +214,7 @@ section('an attempt hides what an assessment must hide');
 {
   const { ctx, p } = await freshPage();
   await go(p, `#/assess/${DEF.id}`, 2200);
-  await p.locator('#oaStart').click();
-  await p.waitForTimeout(2500);
+  await start(p);
 
   const m = await p.evaluate(() => ({
     hash: location.hash,
@@ -422,8 +437,7 @@ section('the deadline is an instant, and expiry finalises what was saved');
 {
   const { ctx, p } = await freshPage();
   await go(p, `#/assess/${DEF.id}`, 2200);
-  await p.locator('#oaStart').click();
-  await p.waitForTimeout(2200);
+  await start(p);
 
   /* Write something, then move the deadline into the near future in the
      DURABLE store and let the page notice. Moving the stored deadline
@@ -486,8 +500,7 @@ section('a retake is a separate attempt and earns nothing twice');
   /* Two complete attempts in one context. */
   for (let i = 0; i < 2; i += 1) {
     await go(p, `#/assess/${DEF.id}`, 2000);
-    await p.locator('#oaStart').click();
-    await p.waitForTimeout(2200);
+    await start(p);
     const ta = p.locator('#answerWidget textarea').first();
     await ta.fill('true\nfalse\ntrue\nfalse');
     await p.locator('#submitBtn').click();
@@ -523,6 +536,206 @@ section('a retake is a separate attempt and earns nothing twice');
   ok(`and the button says which this would be ("${page.start}")`,
     /attempt 3/i.test(page.start));
 
+  await ctx.close();
+}
+
+/* ---------------- every format, under a clock ----------------
+
+   The reported bug was that a question in an assessment which is not a
+   coding exercise "appears static". It was: everything but `code`
+   rendered into a row that is `overflow: hidden` by design, so the
+   answer box was cut off and Submit sat below the window with
+   `elementFromPoint` returning null on it.
+
+   So this walks all eleven formats and asks of each: is there a
+   control, is Submit reachable, and does the answer survive going
+   away, coming back, and a real reload. */
+
+section('every question format is answerable');
+const MIXED = defs.find(d => d.id === 'oa-mixed-formats');
+if (!MIXED) {
+  console.log('  --    no mixed-format assessment defined; skipping');
+} else {
+  const { ctx, p } = await freshPage();
+  await go(p, `#/assess/${MIXED.id}`);
+  await start(p);
+
+  const n = MIXED.problems.length;
+  check('every question is in the navigator',
+    await p.evaluate(() => document.querySelectorAll('#oaNav .oa-dot').length), n);
+
+  for (let i = 1; i <= n; i += 1) {
+    await go(p, `#/assess/${MIXED.id}/go/${i}`, 1500);
+    const m = await p.evaluate(() => {
+      const w = document.querySelector('#answerWidget');
+      const sub = document.querySelector('#submitBtn');
+      const box = sub && sub.getBoundingClientRect();
+      const hit = box && box.width
+        ? document.elementFromPoint(box.left + box.width / 2,
+          Math.min(innerHeight - 2, Math.max(2, box.top + box.height / 2)))
+        : null;
+      const wrap = document.querySelector('.pwrap.reading');
+      return {
+        type: (window.SystemsLab.Catalog.meta(
+          document.querySelector('.ws-title').title) || {}).type || null,
+        controls: w
+          ? w.querySelectorAll('input, select, textarea, button, [role="radio"], .cm-content').length
+          : 0,
+        disabled: w ? w.querySelectorAll(':disabled').length : 0,
+        submit: !!sub,
+        /* Either it is on screen, or the thing that contains it can
+           scroll to it. Both are answerable; neither was before. */
+        reachable: !!hit || (wrap && wrap.scrollHeight > wrap.clientHeight),
+      };
+    });
+    const title = await p.evaluate(() => document.querySelector('.ws-title').textContent);
+    ok(`q${i} ${title.slice(0, 34)}: has controls (${m.controls})`, m.controls > 0);
+    ok(`q${i}: none of them is disabled`, m.disabled === 0);
+    ok(`q${i}: Submit is reachable`, m.submit && m.reachable);
+  }
+
+  /* ---- answer them, leave, come back, reload ---- */
+  const at = i => go(p, `#/assess/${MIXED.id}/go/${i}`, 1300);
+
+  await at(1); await p.click('#answerWidget .opt:nth-child(1) input');
+  await at(2); await p.click('#answerWidget .opt:nth-child(1) input');
+               await p.click('#answerWidget .opt:nth-child(3) input');
+  await at(3); await p.fill('#answerWidget input', '2');
+  await at(4); await p.fill('#answerWidget input', '.data');
+  await at(5); await p.fill('#answerWidget textarea', '-3\n-1\n-3\n1');
+  await at(6); await p.click('#orderList .order-item:nth-child(2) .moves button:first-child');
+  await at(7); await p.click('#answerWidget .match-item[data-side=left][data-i="0"]');
+               await p.click('#answerWidget .match-item[data-side=right][data-i="0"]');
+               await p.click('#answerWidget .match-item[data-side=left][data-i="1"]');
+               await p.click('#answerWidget .match-item[data-side=right][data-i="1"]');
+  await at(8); await p.click('#answerWidget .locate-line[data-line="6"]');
+  await at(9); await p.fill('#answerWidget .maths-input', '(-1,5)');
+  await at(10); await p.fill('#answerWidget .proof-box', 'Suppose n is odd, so n = 2m+1.');
+  await p.waitForTimeout(400);
+
+  const nav = await p.evaluate(() =>
+    [...document.querySelectorAll('#oaNav .oa-dot')].map(d => d.dataset.state));
+  check('the navigator shows ten written and one untouched',
+    nav.filter(x => x === 'attempted').length, 10);
+
+  /* The real reload. Nothing in memory survives this. */
+  await p.reload({ waitUntil: 'networkidle' });
+  await p.waitForTimeout(2200);
+
+  const read = async (i, fn) => { await at(i); return p.evaluate(fn); };
+  check('q1 single choice', await read(1, () =>
+    [...document.querySelectorAll('#answerWidget .opt input')].map(x => x.checked)),
+    [true, false, false, false]);
+  check('q2 select all', await read(2, () =>
+    [...document.querySelectorAll('#answerWidget .opt input')].filter(x => x.checked).length), 2);
+  check('q3 a number', await read(3, () => document.querySelector('#answerWidget input').value), '2');
+  check('q4 a short answer', await read(4, () => document.querySelector('#answerWidget input').value), '.data');
+  check('q5 a predicted output', await read(5, () =>
+    document.querySelector('#answerWidget textarea').value), '-3\n-1\n-3\n1');
+  check('q6 an ordering', await read(6, () =>
+    [...document.querySelectorAll('.order-item')].map(n2 => n2.dataset.i).join(',')),
+    '1,0,2,3,4,5,6');
+  check('q7 a half-made pairing', await read(7, () =>
+    [...document.querySelectorAll('.match-item[data-side=left]')]
+      .map(n2 => n2.dataset.paired ?? '-').join(',')), '0,1,-,-,-');
+  check('q8 a chosen line', await read(8, () =>
+    ([...document.querySelectorAll('.locate-line')]
+      .find(n2 => n2.getAttribute('aria-checked') === 'true') || {}).dataset.line), '6');
+  check('q9 a structured maths answer', await read(9, () =>
+    document.querySelector('#answerWidget .maths-input').value), '(-1,5)');
+  ok('q10 a written proof', (await read(10, () =>
+    document.querySelector('#answerWidget .proof-box').value)).startsWith('Suppose n is odd'));
+
+  /* ---- the feedback policy is enforced, not merely printed ---- */
+  await at(1);
+  await p.click('#submitBtn');
+  await p.waitForTimeout(700);
+  const told = await p.evaluate(() => ({
+    verdict: !!document.querySelector('.verdict'),
+    state: (document.querySelector('.oa-state h4') || {}).textContent || '',
+    says: (document.querySelector('.oa-state p') || {}).textContent || '',
+    marks: document.querySelectorAll('#answerWidget [data-mark]').length,
+  }));
+  ok('submitting reports that it was recorded', /Answer recorded/.test(told.state));
+  ok('and nothing about whether it was right', !told.verdict);
+  check('no option is marked', told.marks, 0);
+  ok(`the policy this assessment declared is the one applied (${told.says.slice(0, 40)}…)`,
+    /Nothing is reported until you finish/.test(told.says));
+
+  /* ---- the written proof is recorded as ungraded ---- */
+  await at(10);
+  await p.click('#submitBtn');
+  await p.waitForTimeout(700);
+  const proof = await p.evaluate(async () => {
+    const a = await window.SystemsLab.Attempts.running();
+    const ans = a.answers['oa-fmt-proof-even-square'] || {};
+    return {
+      head: (document.querySelector('.oa-state h4') || {}).textContent || '',
+      says: (document.querySelector('.oa-state p') || {}).textContent || '',
+      selfReview: !!ans.selfReview,
+      fraction: ans.fraction,
+      rubricOnScreen: !!document.querySelector('.rubric, .oa-rubric'),
+    };
+  });
+  ok('a written proof is saved and not marked', /Saved, not marked/.test(proof.head));
+  ok('and says nothing marks one', /Nothing marks a written proof/.test(proof.says));
+  ok('recorded as a self-review', proof.selfReview);
+  check('with no fraction to add up', proof.fraction, null);
+  ok('and the rubric is not shown during the attempt', !proof.rubricOnScreen);
+
+  /* ---- the coding question gets a neutral starter ---- */
+  await at(11);
+  await p.waitForTimeout(1200);
+  const starter = await p.evaluate(() =>
+    (document.querySelector('.cm-content') || {}).innerText || '');
+  ok('the assessment starter has no coaching in it',
+    !/your code here/i.test(starter) && starter.includes('TODO'));
+  ok('but keeps the signature and the harness',
+    /summarise/.test(starter) && /def main|int main/.test(starter));
+
+  if (process.env.SHOTS) await p.screenshot({ path: path.join(SHOTS, 'oa-mixed-attempt.png') });
+  await ctx.close();
+}
+
+/* ---------------- fullscreen is a bonus, not a requirement ---------- */
+
+section('refusing fullscreen does not break the attempt');
+{
+  const { ctx, p } = await freshPage();
+  /* Make the API refuse, the way a permissions policy would. */
+  await p.addInitScript(() => {
+    Element.prototype.requestFullscreen = () => Promise.reject(new Error('refused'));
+  });
+  await go(p, '#/assess/oa-cpp-foundations');
+  await start(p);
+
+  const m = await p.evaluate(() => ({
+    hash: location.hash,
+    attempt: document.body.dataset.attempt,
+    fullscreen: !!document.fullscreenElement,
+    mainH: Math.round(document.querySelector('.main').getBoundingClientRect().height),
+    winH: window.innerHeight,
+    topbar: getComputedStyle(document.querySelector('.topbar')).display,
+    clock: (document.querySelector('#oaClock') || {}).textContent,
+  }));
+  ok('the attempt started anyway', /\/go/.test(m.hash));
+  ok('fullscreen was not granted', !m.fullscreen);
+  check('and the layout is the full-viewport one regardless', m.mainH, m.winH);
+  check('with the site navigation still gone', m.topbar, 'none');
+  ok(`and a running clock (${m.clock})`, /^\d+:\d\d$/.test(m.clock));
+
+  /* Escape, which is how a reader leaves fullscreen, must not leave the
+     attempt or ask again. */
+  await p.keyboard.press('Escape');
+  await p.waitForTimeout(500);
+  const after = await p.evaluate(() => ({
+    hash: location.hash,
+    attempt: document.body.dataset.attempt,
+    widget: !!document.querySelector('#answerWidget'),
+  }));
+  check('Escape leaves the attempt where it was', after.hash, m.hash);
+  check('still immersive', after.attempt, 'true');
+  ok('and still answerable', after.widget);
   await ctx.close();
 }
 

@@ -401,6 +401,149 @@ section('Settings says where your data actually is');
   await ctx.close();
 }
 
+/* ---------------- an execution failure is recoverable ---------------
+
+   A submission the runner could not run is recorded as ungraded, never
+   as wrong, and the attempt refuses to produce a pass verdict while
+   one is present. On its own that is a dead end: the reader is told
+   the service failed and given nothing to do.
+
+   The retry is the something to do, and the thing that makes it safe
+   is that the ANSWER IS FROZEN. It regrades the submission that was
+   already made; it cannot be used to answer a question after the
+   deadline, and the attempt's own `resolve` refuses any row that was
+   not ungraded. */
+
+section('a grading failure can be retried, and cannot become an edit');
+{
+  const { ctx, p } = await freshPage();
+  await p.goto(`${BASE}/#/assess`, { waitUntil: 'networkidle' });
+  await p.waitForTimeout(1500);
+
+  /* Build a finished attempt with one ungraded row, directly, because
+     making a runner fail on demand in a browser is a test about the
+     runner rather than about this. The shape is exactly what
+     problem.js writes on `noAttempt`. */
+  const built = await p.evaluate(async () => {
+    const { Attempts, Assessments } = window.SystemsLab;
+    await Assessments.load();
+    const def = Assessments.all()[0];
+    const started = await Attempts.start(def, {});
+    const a = started.attempt;
+    /* The ungraded one is the CODING question, because that is the only
+       kind that can fail this way: a grader for a multiple choice
+       cannot be unavailable. The shape is exactly what problem.js
+       writes on `noAttempt`, including the frozen program. */
+    const first = def.problems[0];
+    const second = def.problems.find(id =>
+      (window.SystemsLab.Catalog.meta(id) || {}).type === 'code');
+    await Attempts.record(a.id, first, {
+      submitted: true, errored: false, correct: true, fraction: 1, response: 0,
+    });
+    await Attempts.record(a.id, second, {
+      errored: true,
+      errorWhy: 'the hosted runner is not answering',
+      lang: 'cpp',
+      source: ['#include <iostream>',
+        'int main() { std::cout << "nope" << 10; return 0; }', ''].join('\n'),
+      response: null,
+    });
+    const done = await Attempts.finish(a.id, def);
+    return {
+      id: a.id,
+      ungraded: done.results.ungraded,
+      passed: done.results.passed,
+      outcomes: done.results.rows.map(r => r.outcome),
+      /* The submission is on the attempt, whole. */
+      frozen: (done.answers[second] || {}).source,
+    };
+  });
+  ok('the failed row is ungraded rather than wrong',
+    built.outcomes.includes('errored') && !built.outcomes.includes('wrong'));
+  check('and there is no pass verdict while one is', built.passed, null);
+  ok(`the submission itself was kept (${(built.frozen || '').length} characters)`,
+    /std::cout/.test(built.frozen || ''));
+
+  await p.goto(`${BASE}/#/assess/review/${built.id}`, { waitUntil: 'networkidle' });
+  await p.waitForTimeout(1500);
+
+  const shown = await p.evaluate(() => ({
+    note: (document.querySelector('.oa-note') || {}).textContent || '',
+    retry: !!document.querySelector('[data-regrade]'),
+    says: (document.querySelector('[data-regrade]') || {}).textContent || '',
+    beside: [...document.querySelectorAll('.oa-result')]
+      .map(n => n.textContent).find(t => /could not be run/i.test(t)) || '',
+  }));
+  ok(`the review says something never ran ("${shown.note.slice(0, 60)}…")`,
+    /ungraded rather than wrong/i.test(shown.note));
+  ok('there is a retry', shown.retry);
+  ok(`which says what it will do ("${shown.says}")`, /grading/i.test(shown.says));
+  ok('and says the answer cannot be edited now',
+    /cannot be edited now/.test(shown.beside));
+
+  /* The guard itself: resolve() refuses a row that was graded. */
+  const refused = await p.evaluate(async () => {
+    const { Attempts, Assessments } = window.SystemsLab;
+    const a = await Attempts.get(location.hash.split('/').pop());
+    const def = Assessments.byId(a.assessmentId);
+    const graded = def.problems[0];
+    const r = await Attempts.resolve(a.id, def, graded, { correct: false, fraction: 0 });
+    const after = await Attempts.get(a.id);
+    return { ok: r.ok, why: r.why, still: (after.answers[graded] || {}).correct };
+  });
+  ok(`a graded answer cannot be resolved ("${refused.why}")`, refused.ok === false);
+  check('and is untouched by the attempt', refused.still, true);
+
+  /* And a retry that fails again leaves it ungraded rather than zero. */
+  const again = await p.evaluate(async () => {
+    const { Attempts, Assessments } = window.SystemsLab;
+    const id = location.hash.split('/').pop();
+    const before = await Attempts.get(id);
+    const bad = before.problems.find(x => (before.answers[x] || {}).errored);
+    /* Read out as a primitive, not held as a reference: the store
+       hands back the live object and regrade() rewrites `results` on
+       it in place, so `before.results.passed` afterwards is the AFTER
+       value. */
+    const passedBefore = before.results.passed;
+    const out = await Assessments.regrade(id, bad);
+    const after = await Attempts.get(id);
+    return {
+      graded: out.graded,
+      why: out.why,
+      stillErrored: !!(after.answers[bad] || {}).errored,
+      stillFrozen: (after.answers[bad] || {}).source,
+      outcome: (after.results.rows.find(r => r.id === bad) || {}).outcome,
+      passedBefore,
+      passedAfter: after.results.passed,
+      ungradedAfter: after.results.ungraded,
+      resolvedAt: !!(after.answers[bad] || {}).resolvedAt,
+      passMark: after.results.passMark,
+      total: after.results.total,
+    };
+  }, { timeout: 120_000 });
+
+  if (again.graded) {
+    /* It ran this time. The program was wrong, so the row becomes a
+       graded wrong answer rather than staying ungraded — which is the
+       whole point: the attempt now has a verdict it could not have
+       had before. */
+    check('the retry graded it', again.outcome, 'wrong');
+    ok('it is no longer ungraded', !again.stillErrored && again.ungradedAfter === 0);
+    ok(`the attempt now has a verdict it could not have had before `
+      + `(${JSON.stringify(again.passedBefore)} -> ${JSON.stringify(again.passedAfter)}, `
+      + `pass mark ${again.passMark})`,
+      again.passedBefore === null
+        && (again.passMark == null ? again.passedAfter === null : typeof again.passedAfter === 'boolean'));
+    ok('and it is recorded as having happened after the attempt', again.resolvedAt);
+  } else {
+    ok(`a second failure says why ("${String(again.why).slice(0, 60)}")`, !!again.why);
+    ok('and leaves it ungraded rather than zero', again.stillErrored);
+  }
+  ok('the submission was never altered by any of this',
+    /std::cout/.test(again.stillFrozen || ''));
+  await ctx.close();
+}
+
 section('no uncaught errors');
 ok(errors.length ? `errors: ${errors.join(' | ').slice(0, 300)}` : 'none', errors.length === 0);
 

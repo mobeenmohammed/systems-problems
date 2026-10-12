@@ -450,6 +450,61 @@ section('nothing was sent anywhere');
   await ctx.close();
 }
 
+/* ---------------- checking and running are different things --------
+
+   The Cranelift gap is in code generation, so the front end works on
+   every Rust problem and only two of seven can be run. Reporting one
+   number for both would be wrong in whichever direction it rounded —
+   "Rust works on 2 of 7" hides that the borrow checker is available on
+   all of them, and "7 of 7" would be a lie about running code. */
+
+section('Rust checking and Rust execution are reported separately');
+{
+  const all = JSON.parse(fs.readFileSync('data/index.json', 'utf8'))
+    .filter(x => x.type === 'code' && (x.langs || []).includes('rust'))
+    .map(x => x.id);
+
+  ok(`the support file has both columns (${(support.checks || []).length} check, `
+    + `${(support.browser || []).length} run, of ${all.length})`,
+    Array.isArray(support.checks) && Array.isArray(support.browser));
+  check('every Rust problem type-checks', (support.checks || []).length, all.length);
+  ok('fewer of them run', (support.browser || []).length < (support.checks || []).length);
+  ok('and every runnable one also type-checks',
+    (support.browser || []).every(id => (support.checks || []).includes(id)));
+
+  /* The one that is checked but not run says so, in those words. */
+  const checkedOnly = (support.checks || []).find(id => !(support.browser || []).includes(id)
+    && all.includes(id));
+  ok(`there is one to look at (${checkedOnly})`, !!checkedOnly);
+
+  const { ctx, p } = await freshPage();
+  await p.goto(`${BASE}/#/p/${checkedOnly}`, { waitUntil: 'networkidle' });
+  await p.waitForTimeout(2500);
+  await p.evaluate(() => {
+    const pick = document.querySelector('.lang-pick');
+    if (pick && pick.dataset.lang !== 'rust') {
+      const opt = [...document.querySelectorAll('.lang-opt')].find(o => /rust/i.test(o.textContent));
+      if (opt) opt.click();
+    }
+  });
+  await p.waitForTimeout(2000);
+
+  const said = await p.evaluate(() => ({
+    chip: (document.getElementById('execState') || {}).textContent || '',
+    line: (document.getElementById('codeJudgeText') || {}).textContent || '',
+    setup: (document.getElementById('setupLink') || {}).textContent || '',
+    command: document.body.innerText.includes('npm run runner'),
+  }));
+  ok(`the chip says checked rather than no runner ("${said.chip}")`,
+    /Checked, not run/.test(said.chip) || /Browser/.test(said.chip));
+  ok(`and the line says the front end still runs ("${said.line.slice(0, 70)}…")`,
+    /type-checked here/.test(said.line));
+  ok('the way out is an explanation, not an instruction',
+    !/Set up execution/.test(said.setup));
+  ok('and no shell command is printed under the editor', !said.command);
+  await ctx.close();
+}
+
 section('no uncaught errors');
 ok(errors.length ? `errors: ${errors.join(' | ').slice(0, 300)}` : 'none', errors.length === 0);
 
