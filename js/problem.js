@@ -317,6 +317,36 @@ const ProblemView = (() => {
       ? el('a', { class: 'ws-nav', href: `#/p/${meta.id}`, title: `${title}: ${meta.title}` }, [label])
       : el('span', { class: 'ws-nav', 'aria-disabled': 'true' }, [label]);
 
+    /* Inside an attempt almost all of this is wrong. There is no
+       position in the catalogue, because the problem is not in the
+       catalogue; there is no previous or next, because the navigator
+       in the assessment's own bar is the only correct way through;
+       the practice status is a status this problem does not have; and
+       bookmarking it would be filing an assessment question away to
+       practise later, which is the one thing an assessment bank must
+       not become. What is left is the title, the difficulty, the font
+       size and focus mode — all of which still make sense under a
+       clock. */
+    if (assess) {
+      return el('header', { class: 'ws-head', 'data-mode': 'assessment' }, [
+        el('div', { class: 'ws-head-mid' }, [
+          el('h1', { class: 'ws-title', title: p.title, text: p.title }),
+          el('span', { class: `diff diff-${p.difficulty}`, text: diff.label }),
+          el('span', { class: 'tiny faint', text: `question ${
+            assess.def.problems.indexOf(p.id) + 1} of ${assess.def.problems.length}` }),
+        ]),
+        el('div', { class: 'ws-head-right' }, [
+          p.type === 'code' ? fontSizeControl() : null,
+          el('button', {
+            class: 'btn btn-sm btn-ghost', type: 'button', id: 'focusBtn',
+            'aria-pressed': String(focusOn()),
+            title: focusOn() ? 'Leave focus mode (F)' : 'Focus mode (F)',
+            onclick: () => setFocus(!focusOn()),
+          }, [focusOn() ? 'Unfocus' : 'Focus']),
+        ]),
+      ]);
+    }
+
     return el('header', { class: 'ws-head' }, [
       el('div', { class: 'ws-head-left' }, [
         el('a', { class: 'ws-back', href: '#/problems', title: 'All problems' }, ['←']),

@@ -2167,7 +2167,7 @@ const UI = (() => {
             el('span', { text: topic.label || r.meta.topic }),
             diffTag(r.meta.difficulty),
             r.reviewOn ? el('span', { class: 'tiny', text: `booked for ${r.reviewOn}` }) : null,
-            r.attempts ? el('span', { class: 'tiny faint', text: `${r.attempts} attempts` }) : null,
+            r.attempts ? el('span', { class: 'tiny faint', text: `${r.attempts} ${r.attempts === 1 ? 'attempt' : 'attempts'}` }) : null,
           ]),
           /* Said in your words, because that is the whole point of
              having asked. */
@@ -2940,6 +2940,12 @@ const UI = (() => {
     $('#setName').addEventListener('input', e => {
       Store.state.profile.name = e.target.value.slice(0, 40);
       Store.save();
+      /* The name is also on the avatar menu and on Profile. Saving it
+         and not repainting left the old one in the top right until
+         something else happened to refresh — which, since the only
+         things that do are an XP award and a reload, could be a long
+         time. */
+      paintMe();
     });
 
     $('#setJudge').addEventListener('change', e => {

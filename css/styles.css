@@ -2726,6 +2726,12 @@ body[data-graph="true"] #view-learn { height: 100%; min-height: 0; }
   font-size: .86rem; color: var(--text);
 }
 .rq-concepts { margin: .3rem 0 0; }
+/* .meta is only styled where it is scoped, so a bare one here had no
+   flex and no gap and ran its spans together: "C++•Beginner1 attempts". */
+.rq-main .meta {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .4rem;
+  margin-top: .18rem; font-size: .74rem; color: var(--text-faint);
+}
 
 .rq-side {
   display: flex; flex-wrap: wrap; align-items: center; gap: .4rem;

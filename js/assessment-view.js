@@ -737,6 +737,14 @@ const AssessmentView = (() => {
   function leave() {
     stopTicking();
     live = null;
+    clearTimeout(navTimer);
+    /* And empty it. The view is hidden either way, but a hidden
+       attempt page still holds a clock element, a navigator and a
+       Finish button, and leaving those in the document is how a dead
+       mode comes back: something finds them by id and believes an
+       attempt is running. */
+    const host = $('#assessRun');
+    if (host) host.replaceChildren();
   }
 
   return {

@@ -1587,6 +1587,97 @@ using, and a write that reached only memory is **reported** rather than
 treated as saved: starting an attempt that cannot be written to disk says so
 before the clock, not after the tab closes.
 
+## The audit
+
+`tests/browser/audit.test.mjs` walks the journey the site is for, in one
+browser, in order:
+
+> learn a concept → practise → understand the mistake → revisit the weak
+> area → test yourself
+
+Every other suite tests one leg of that in isolation. This one walks all
+of it, because **the bugs that survive isolated tests are the ones in the
+joins**: a mode flag that outlives its mode, a result that lands on the
+next page, a draft that one feature saves and another overwrites.
+
+It then re-checks, cheaply and across every route, the three failures
+that have each happened here more than once.
+
+### The mode flags, from everywhere to everywhere
+
+Three modes take the window — the code workspace, the Learn graph, an
+assessment attempt — and each sets a flag on `<body>`. Each time one has
+been added it has eventually been left on:
+
+- the code workspace left the dashboard clipped to the window with no
+  scrollbar (422px of it reachable, 29,021px of the reading map not);
+- the graph was given the same mechanism and the same fix in advance;
+- the assessment attempt cleared its flag on any route not *starting
+  with* `assess`, which matched the results page too, so the review
+  arrived full-bleed and pinned to the left edge. Caught by looking at
+  its own screenshot.
+
+So the audit enters **every route from every other route** — 182 pairs —
+and measures the *destination*: no flag survives, `.main` has a
+`max-width` and is not `overflow: hidden`. Adding a fourth mode means
+adding one line to that list.
+
+### Anything you type is text
+
+Four places take free text and show it again: the Notes tab, the "what I
+missed" line, the profile name, and a submitted program. Each is checked
+with `<img src=x onerror=…><b>bold</b>` — nothing runs, nothing is built
+out of it, and the text is shown as the text it is.
+
+The program is the interesting one, because displayed code **is**
+highlighted, which means HTML is inserted rather than text set. It goes
+escape-first, then highlight the escaped text, which is what the
+highlighter is written against.
+
+### A stale something writing to a page it does not belong to
+
+- **A run left behind.** Opening another problem mid-compile used to
+  leave the new problem's bar reading *Running…* for ever: the backend's
+  progress callbacks and the download bar were unguarded. Found by the
+  Rust suite; the fix is in code that runs for every language.
+- **An assessment clock.** Two tabs on one attempt: the second finishes
+  it, and the first — on coming back to the front — re-reads the store,
+  goes to the result rather than carrying on, and records **one**
+  attempt, not two. The dead clock is taken out of the document rather
+  than merely hidden, because something finding it by id and believing
+  an attempt is running is how a mode comes back from the dead.
+
+### What else it checks
+
+- **The last character typed is the one that is run.** Drafts save on a
+  debounce and a run reads from CodeMirror rather than from the draft,
+  which is the only reason this works — so the test types and clicks
+  with no pause at all.
+- **Wrong → edit → retry.** A wrong answer is marked wrong, reveals
+  nothing, and is not recorded as solved; editing relabels the verdict
+  *Previous attempt* and marks it stale rather than re-grading or
+  silently disappearing.
+- **An attempt has no catalogue chrome.** No position in a catalogue the
+  problem is not in, no previous or next, no practice status, and no
+  bookmark — bookmarking an assessment question would file it away to
+  practise later, which is the one thing the bank must not become.
+  Caught by looking at a screenshot that said `0/109`.
+
+### What it found that was real
+
+Everything above that is described as a fix. Plus one small one: typing a
+new name in Settings saved it and never repainted the avatar menu, so the
+old name sat in the top right until an XP award or a reload.
+
+### What it did not find
+
+Worth saying, because an audit that reports only hits is an audit nobody
+can calibrate. No route leaks across the 182 pairs, no injection in any
+of the four free-text fields, no uncaught errors anywhere in the journey,
+no sideways scroll or clipped row on the new views at 390px, 768px or
+1024px, and the last-character and wrong-then-retry paths were already
+correct.
+
 ## Writing a problem
 
 One file per problem, so a diff is readable.
@@ -1698,6 +1789,7 @@ Chromium against a real site:
 | `tests/maths-expr.test.mjs` | The expression engine on its own: equal values comparing equal however they are written, unequal ones never comparing equal, syntax errors and unsupported expressions reported as *different kinds* of failure from a wrong answer, and eleven injection attempts refused |
 | `tests/maths-render.test.mjs` | KaTeX renders, emits MathML, and markdown does not get at the TeX first — `$a_1 + a_2$` must not become `a<em>1 + a</em>2` |
 | `tests/browser/maths.test.mjs` (`npm run test:maths`) | Subject as a filter over one catalogue, typesetting on the page, every one of the six answer formats, a syntax error costing no attempt, a wrong answer explaining the misconception, progressive hints, the figures, a written proof reaching **Self-reviewed** without ever being marked right, and the review being finishable from wherever revealing the model proof leaves you |
+| `tests/browser/audit.test.mjs` (`npm run test:audit`) | The whole journey in one browser, in order — learn a concept, practise the exercise it sends you to, get it wrong and write down why, find it on the review list in those words, then sit the assessment and watch it change no XP — followed by the three failures that keep recurring: **182 route pairs** measured at the destination for a mode flag that outlived its mode, four free-text fields checked for injection, the last character typed reaching the run, and two tabs on one attempt finalising it once |
 | `tests/vault.test.mjs` | The key-value store and the source store driven directly, on the **fallback** path — which is what a private window gets, so it is worth testing rather than skipping: a round trip, a write that cannot land anywhere durable being reported rather than claimed, a program kept whole at 80,000 characters, a program dropped only once its verdict is gone, and a migration that copies the old truncated programs across without deleting them and refuses to mark itself finished when part of it failed |
 | `tests/browser/review.test.mjs` (`npm run test:review`) | The same storage on **real IndexedDB**: a 17,000-character program submitted, surviving a reload, and coming back into the editor whole — plus two more submissions of it growing the progress file by about a hundred and fifty bytes. Then the review queue: the one-line note asked after a wrong answer and appearing on the queue in those words, every reason naming itself, an unrated problem saying "not rated" rather than being given a number, "Done with it" touching nothing but the list, no assessment problem leaking onto it, export and import carrying the programs, and Settings naming both stores |
 | `tests/browser/assessment.test.mjs` (`npm run test:assess`) | The timed mode end to end: that the bank is not in the catalogue and a search cannot find it, that everything is said before the clock exists, that Hints/Notes/Solution are gone during an attempt, that a correct submission moves no XP, no coins, no streak and no solved status, that the navigator tells written-from-submitted, that a **real reload** resumes the same attempt with the draft and a clock that carried on rather than restarting, that finishing is confirmed and names what is unfinished, that **expiry freezes what was saved** and finalises once, that the full-bleed attempt layout does not follow the reader into their results, and that a retake is a separate attempt earning nothing twice |

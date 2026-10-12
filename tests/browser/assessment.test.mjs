@@ -205,6 +205,24 @@ section('an attempt hides what an assessment must hide');
   ok(`the clock is running (${m.clock})`, /^\d+:\d\d$/.test(m.clock));
   check('every problem starts unanswered', [...new Set(m.dots)], ['unanswered']);
 
+  /* Nor the catalogue chrome. A position in a catalogue this problem
+     is not in, a practice status it does not have, and a bookmark
+     that would file an assessment question away to practise later —
+     which is the one thing the bank must not become. */
+  const chrome = await p.evaluate(() => ({
+    count: !!document.querySelector('.ws-count'),
+    bookmark: !!document.getElementById('bookmarkBtn'),
+    status: !!document.querySelector('.ws-head .status-word'),
+    prevNext: document.querySelectorAll('.ws-nav').length,
+    says: (document.querySelector('.ws-head-mid .tiny') || {}).textContent || '',
+  }));
+  ok('there is no position in the catalogue', !chrome.count);
+  ok('no previous or next', chrome.prevNext === 0);
+  ok('no practice status', !chrome.status);
+  ok('and no bookmark', !chrome.bookmark);
+  ok(`it says where you are in the assessment instead (${chrome.says})`,
+    /question \d+ of \d+/.test(chrome.says));
+
   /* The three tabs an assessment must not have. */
   for (const gone of ['hints', 'solution', 'notes']) {
     ok(`there is no ${gone} tab`, !m.tabs.includes(gone));
