@@ -196,7 +196,7 @@ await open('#/');
   }));
   ok('hovering opens it', !open1.hidden);
   check('and says so', open1.expanded, 'true');
-  ok(`grouped (${open1.cols.join(', ')})`, open1.cols.join(',') === 'Practice,Guided');
+  ok(`grouped (${open1.cols.join(', ')})`, open1.cols.join(',') === 'Practice,Guided,Assess');
   ok(`every learning destination is in it (${open1.items.length})`,
     open1.items.length >= 6);
   ok('each has a line saying what it is for',

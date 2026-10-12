@@ -58,6 +58,44 @@ const ProblemView = (() => {
 
   const inAssessment = () => !!assess;
 
+  /* The editor saves on every keystroke and reads on every mount, and
+     both have to be synchronous — but an attempt lives in IndexedDB,
+     which is not. So the attempt's drafts are copied into a plain map
+     when the problem opens, the editor reads and writes that, and the
+     writes go through to the durable store behind it.
+
+     Losing a keystroke to a failed asynchronous write would be losing
+     work under a clock, so the write-through is fire-and-forget and the
+     map is the source of truth for the session. A reload reads the
+     durable copy, which is at most one keystroke behind. */
+  function wireAttemptDrafts(ctx) {
+    const mem = ctx.drafts || (ctx.drafts = {});
+    Store.useDraftStore({
+      get: (id, lang) => (mem[id] || {})[lang || '_'] || '',
+      set: (id, lang, src) => {
+        mem[id] = mem[id] || {};
+        mem[id][lang || '_'] = src;
+        Attempts.saveDraft(ctx.attempt.id, id, lang, src);
+        /* The navigator has a state for "written and not sent", and it
+           is no use if it only appears after a submit — that is the
+           one state it exists to show. */
+        if (ctx.onDraft) ctx.onDraft(id);
+      },
+      setLang: (id, lang) => {
+        ctx.langChoice = ctx.langChoice || {};
+        ctx.langChoice[id] = lang;
+        return lang;
+      },
+    });
+  }
+
+  /* Which tabs an attempt gets. Hints and Solution are the two it must
+     not have, and Notes is left out as well — a notes field that is
+     kept but never shown again is a place to lose fifteen minutes. */
+  const tabsNow = () => (assess
+    ? LEFT_TABS.filter(t => t.id === 'problem' || t.id === 'prereq')
+    : LEFT_TABS);
+
   /* ---------------- entry ---------------- */
 
   async function open(id, mount, opts = {}) {
@@ -395,7 +433,7 @@ const ProblemView = (() => {
     /* Switching the statement for the hints must not rebuild the editor
        beside it; only the pane that changed is repainted. */
     const left = el('section', { class: 'ws-left' }, [
-      tabStrip(LEFT_TABS, activeTab, setLeftTab),
+      tabStrip(tabsNow(), activeTab, setLeftTab),
       el('div', { class: 'ws-pane', id: 'leftPane' }),
     ]);
     fillLeftPane(left.querySelector('#leftPane'));
@@ -959,7 +997,7 @@ const ProblemView = (() => {
     return el('div', { class: 'pwrap reading' }, [
       el('div', { class: 'pmain' }, [
         header(),
-        tabStrip(LEFT_TABS, activeTab, id => { activeTab = id; draw(); }, 'tabs'),
+        tabStrip(tabsNow(), activeTab, id => { activeTab = id; draw(); }, 'tabs'),
         panel,
       ]),
     ]);
@@ -1440,7 +1478,21 @@ const ProblemView = (() => {
     if (result.noAttempt) {
       restore();
       /* Deliberately not recorded as an attempt and not passed to the store:
-         the runner being down must not cost a first-try bonus. */
+         the runner being down must not cost a first-try bonus.
+
+         In an assessment it IS recorded, as `errored` — not as a wrong
+         answer. The scoring keeps that outcome apart and refuses to
+         give a pass verdict when one is present, because a pass
+         computed over the problems that happened to work is not a
+         pass. The reader gets a retry path instead. */
+      if (assess) {
+        await Attempts.record(assess.attempt.id, p.id, {
+          errored: true,
+          errorWhy: result.feedback || 'execution failed',
+          response: null,
+        });
+        if (assess.onAnswer) assess.onAnswer();
+      }
       lastBlocked = result;
       impl.mark(widget, { response, key: solution.key, problem: p, solution, result });
       /* Put the reader in front of the explanation. On the workspace the
@@ -1454,16 +1506,44 @@ const ProblemView = (() => {
     }
     lastBlocked = null;
 
-    const award = Store.submit(p, {
-      correct: result.correct,
-      score: result.score,
-      lang: result.lang,
-      sanitized: result.sanitized,
-      /* A code problem also keeps the program itself, for the Submissions
-         tab. Gated on the type rather than on "does the response happen to
-         have a source field", because the type is the actual question. */
-      ...(p.type === 'code' ? submissionDigest(response, result) : {}),
-    });
+    /* An assessment submission goes to the attempt and nowhere else. No
+       XP, no streak, no change to the problem's solved status, and no
+       row in its practice submission history: a result obtained under a
+       clock, on a problem you had not seen, is a different kind of
+       evidence from a practice solve, and letting them into the same
+       record would make both worth less.
+
+       The program is kept whole. The practice store caps a submission
+       at 6,000 characters to protect the localStorage quota; an attempt
+       lives in IndexedDB precisely so that cap does not apply, because
+       a program cut in half is a program you cannot put back. */
+    let award = null;
+    if (assess) {
+      await Attempts.record(assess.attempt.id, p.id, {
+        submitted: true,
+        errored: false,
+        correct: !!result.correct,
+        fraction: typeof result.score === 'number' ? result.score : (result.correct ? 1 : 0),
+        lang: result.lang || null,
+        source: p.type === 'code' && response && typeof response.source === 'string'
+          ? response.source : null,
+        response: p.type === 'code' ? null : response,
+        passedCases: result.passed != null ? result.passed : null,
+        totalCases: result.total != null ? result.total : null,
+      });
+      if (assess.onAnswer) assess.onAnswer();
+    } else {
+      award = Store.submit(p, {
+        correct: result.correct,
+        score: result.score,
+        lang: result.lang,
+        sanitized: result.sanitized,
+        /* A code problem also keeps the program itself, for the Submissions
+           tab. Gated on the type rather than on "does the response happen to
+           have a source field", because the type is the actual question. */
+        ...(p.type === 'code' ? submissionDigest(response, result) : {}),
+      });
+    }
 
     if (answered) previousAttempts.push(answered);
     answered = { response, result, award };
@@ -1476,13 +1556,16 @@ const ProblemView = (() => {
     /* Only now, and only if it is actually earned. */
     if (result.correct && !solutionShown) solutionShown = true;
 
-    if (result.correct && !award.alreadySolved && award.xp > 0) {
-      UI.toast(`+${award.xp} XP`, 'good');
+    /* No XP, no achievements and no rank from an attempt. The result
+       is the assessment's, and it is reported when the attempt ends. */
+    if (award) {
+      if (result.correct && !award.alreadySolved && award.xp > 0) {
+        UI.toast(`+${award.xp} XP`, 'good');
+      }
+      for (const a of award.newAchievements) UI.toast(`Unlocked: ${a.label}`, 'good');
+      if (award.rankUp) UI.toast(`You are now ${award.rankUp.label}`, 'good');
+      UI.refreshPurse();
     }
-    for (const a of award.newAchievements) UI.toast(`Unlocked: ${a.label}`, 'good');
-    if (award.rankUp) UI.toast(`You are now ${award.rankUp.label}`, 'good');
-
-    UI.refreshPurse();
     draw();
   }
 

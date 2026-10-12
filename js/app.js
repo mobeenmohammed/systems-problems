@@ -10,7 +10,8 @@
 (() => {
 
   const VIEWS = ['home', 'problems', 'problem', 'learn', 'tracks', 'concepts', 'profile',
-    'shop', 'settings', 'setup', '404'];
+    'shop', 'settings', 'setup', '404',
+    'assess', 'assess-brief', 'assess-run', 'assess-review'];
 
   function show(name) {
     /* Every route change comes through here, which makes it the one place
@@ -24,6 +25,18 @@
        the track index, because that route is Learn and is not a graph —
        both, because one of these being missed is the bug. */
     if (name !== 'learn') UI.leaveGraph();
+    /* And the assessment clock. A ticker that outlives the page it was
+       drawn on keeps reading a deadline for an attempt nobody is
+       looking at, and on expiry would navigate the reader out of
+       whatever they had gone to instead. */
+    if (name !== 'assess-run') AssessmentView.leave();
+    /* Only the attempt itself takes the window. The review is an
+       ordinary page and startsWith('assess') matched it too, so the
+       full-bleed layout followed the reader into their results and
+       pinned them to the left edge with no padding. That is the third
+       time a mode flag has outlived its mode here; the rule is the
+       same every time — exactly one view owns it, and it is named. */
+    if (name !== 'assess-run') delete document.body.dataset.attempt;
 
     for (const v of VIEWS) {
       const node = document.getElementById(`view-${v}`);
@@ -72,6 +85,28 @@
           lang: query.lang || '',
           q: query.q || '',
         });
+        break;
+
+      /* #/assess                      the list
+         #/assess/<id>                 before the clock
+         #/assess/<id>/go[/<n>]        the attempt
+         #/assess/review/<attemptId>   afterwards */
+      case 'assess':
+        if (!path[1]) {
+          show('assess');
+          await AssessmentView.renderList();
+        } else if (path[1] === 'review') {
+          show('assess-review');
+          await AssessmentView.renderReview(path[2] || '');
+        } else if (path[2] === 'go') {
+          show('assess-run');
+          document.body.dataset.attempt = 'true';
+          await AssessmentView.renderAttempt(path[1],
+            path[3] ? Number(path[3]) - 1 : null);
+        } else {
+          show('assess-brief');
+          await AssessmentView.renderBrief(path[1]);
+        }
         break;
 
       case 'p':
@@ -229,7 +264,8 @@
   /* A handle for the tests and the console. */
   window.SystemsLab = {
     Store, Catalog, ProblemTypes, ProblemView, UI, route,
-    Runners, Hosted, BrowserCpp, RunHarness, Lint, Editor,
+    Runners, Hosted, BrowserCpp, BrowserRust, RunHarness, Lint, Editor,
     MathsExpr, MathsRender,
+    Vault, Attempts, Assessments, AssessmentView, LearnLayout,
   };
 })();

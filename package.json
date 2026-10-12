@@ -27,7 +27,7 @@
     "test:unit": "node tests/learn-layout.test.mjs && node tests/complete.test.mjs && node tests/maths-expr.test.mjs && node tests/maths-render.test.mjs && node tests/store.test.mjs && node tests/md.test.mjs && node tests/contrast.test.mjs && node tests/grade.test.mjs && node tests/runner.test.mjs && node tests/lint.test.mjs && node tests/judge.test.mjs && node tests/proxy.test.mjs && node tests/rust-toolchain.test.mjs && node tests/content.test.mjs",
     "test:browser": "node tests/browser/app.test.mjs && node tests/browser/styles.test.mjs && node tests/browser/states.test.mjs && node tests/browser/runner.test.mjs",
     "test:journeys": "node tests/browser/journeys.test.mjs",
-    "test:ui": "node tests/browser/landing.test.mjs && node tests/browser/submissions.test.mjs && node tests/browser/results.test.mjs && node tests/browser/complete.test.mjs && node tests/browser/navigation.test.mjs && node tests/browser/resize.test.mjs && node tests/browser/feedback.test.mjs && node tests/browser/usability.test.mjs && node tests/browser/maths.test.mjs && node tests/browser/learn.test.mjs",
+    "test:ui": "node tests/browser/landing.test.mjs && node tests/browser/submissions.test.mjs && node tests/browser/results.test.mjs && node tests/browser/complete.test.mjs && node tests/browser/navigation.test.mjs && node tests/browser/resize.test.mjs && node tests/browser/feedback.test.mjs && node tests/browser/usability.test.mjs && node tests/browser/maths.test.mjs && node tests/browser/learn.test.mjs && node tests/browser/assessment.test.mjs",
     "test:runner": "node tests/browser/runner.test.mjs",
     "serve": "node scripts/serve.mjs",
     "vendor:py": "node scripts/vendor-py.mjs",
@@ -46,7 +46,9 @@
     "check:rust": "node scripts/audit-rust.mjs --check",
     "vendor:rust": "node scripts/vendor-rust.mjs",
     "check:vendor-rust": "node scripts/vendor-rust.mjs --check",
-    "test:rust": "node tests/browser/rust.test.mjs"
+    "test:rust": "node tests/browser/rust.test.mjs",
+    "check:assessments": "node scripts/check-assessments.mjs",
+    "test:assess": "node tests/browser/assessment.test.mjs"
   },
   "devDependencies": {
     "@bjorn3/browser_wasi_shim": "^0.4.2",

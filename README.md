@@ -1294,6 +1294,178 @@ away into a list rather than vanishing. Submitting nothing — or an untouched
 code template, which is not the same thing and no longer claims to be — gets a
 validation message beside the control and costs no attempt.
 
+## Online Assessments
+
+A separate mode, from a separate bank, reached from **Content ▸ Assess**.
+Three problems against a clock, on questions that are not in the catalogue
+and that you therefore have not met.
+
+### The pool is the point
+
+An assessment made of problems you have already practised is not an
+assessment. So a problem carries `"pool": "assessment"` and
+`scripts/build-index.mjs` writes it to **`data/assessment-index.json`**
+rather than to `data/index.json`.
+
+`js/assessments.js` then registers that second index into the catalogue's
+**id lookup only**:
+
+- `Catalog.get(id)` and `Catalog.meta(id)` work, so the ordinary problem
+  page renders an assessment problem with no changes at all;
+- `Catalog.all()` does not contain it, so the catalogue cannot list it, no
+  filter can reach it, a search for it finds nothing, and every count on the
+  site stays a count of the practice catalogue.
+
+All of that is asserted — `tests/content.test.mjs` checks the two files
+cannot overlap, and `tests/browser/assessment.test.mjs` searches the
+catalogue for a bank problem by name and insists on nothing.
+
+The bank is audited like everything else: `oa-run-length` is certified for
+the browser C++ compiler and for Pyodide by `npm run audit:cxx` and
+`npm run audit:py`, which read **both** indexes. An assessment coding
+exercise needs a toolchain like any other.
+
+### Adding one
+
+Data, not code. Nothing in `js/` is edited.
+
+1. Write the problems into `problems/<topic>/` with `"pool": "assessment"`,
+   and their keys into `solutions/` — same schema, same validation, same
+   reference-solution checking as a practice problem.
+2. Add an entry to `data/assessments.json`.
+3. `npm run build:index && npm run check:assessments`
+
+The schema is written into the top of `data/assessments.json` itself, field
+by field, so it is next to the thing it describes. The fields that are not
+obvious:
+
+- **`version`** — bump it when the problems, the weights or the duration
+  change. Every attempt records the version it was sat under, so editing an
+  assessment never re-scores an older attempt against rules nobody took it
+  under.
+- **`langs`** — per problem, a *subset* of what the problem offers. An
+  assessment cannot invent a language, and `check:assessments` refuses one
+  that the problem does not have.
+- **`scoring.weights`** — per problem. The score is the weighted fraction,
+  with partial credit unless `partialCredit: false`.
+- **`feedback.solutions`** — must not be `true`. The validator refuses it:
+  an assessment with a Solution tab is not an assessment.
+
+`npm run check:assessments` also fails on a problem that is in the
+**practice** catalogue — the single easiest mistake to make here — on a
+duplicate id, a weight that is not positive, a pass mark outside 0–1, and
+on a bank problem no assessment uses, which is a problem nothing can ever
+reach.
+
+### Before the clock exists
+
+An assessment that tells you its duration after you have started, or that
+reaches problem three and discovers there is no compiler, has wasted
+something you cannot get back. So `#/assess/<id>` says all of it first:
+duration, the problems by name, the languages, the weights per problem, the
+pass mark, and what feedback you get while it runs. Then it **checks the
+runners** and offers to download the toolchains — before the clock, on
+nobody's time.
+
+It also says what this is not, in four lines, because the alternative is
+implying something false:
+
+- a personal practice mode, not a proctored one. The deadline and the hidden
+  cases are both in this browser and anybody who wants to edit them can;
+- the clock is the device's clock and keeps running while the tab is shut;
+- on expiry, whatever is saved at that moment is graded, once;
+- nothing here touches XP, a streak or a problem's solved status.
+
+### The clock is a deadline, not a counter
+
+This is the part that is easy to get wrong and invisible when you do. A
+counter that decrements once a second **stops in a background tab** —
+browsers throttle timers there to about once a minute and sometimes stop
+them — so a counter hands minutes back to anybody who switches away, and
+loses the attempt entirely on a reload.
+
+So `Attempts` writes down an absolute `deadlineAt` when the attempt starts
+and every question about time is *what is the time now, and what was the
+deadline*. Coming back to the tab re-reads the attempt from storage, which
+also covers the two things a second tab can do: finish it, or start another
+one. There is at most one running attempt and the store is the single answer
+to which — so the tab that comes back adopts what it finds rather than
+trying to resolve a conflict.
+
+Expiry freezes what was **saved**, which is only honest because drafts are
+saved as they are typed rather than on submit. `tests/browser/assessment.test.mjs`
+types a marker, moves the stored deadline, and checks that marker is what
+was frozen.
+
+Finalising happens **once**. The guard is inside the same read-modify-write
+as the scoring, because a deadline firing in one tab while Finish is pressed
+in another is a real race rather than a theoretical one, and the test
+finishes an attempt twice and checks the results do not move.
+
+### During
+
+The same workspace as practice, with three differences:
+
+- **Hints, Notes and Solution are not there.**
+- **Submit records into the attempt** and nowhere else — no XP, no coins, no
+  streak, no change to the problem's solved status, no row in its practice
+  submission history. The test checks all five after a correct submission.
+- **Drafts go to the attempt**, per problem and per language, through a hook
+  in `Store`. Practice work on the same problem id is a separate thing and
+  neither overwrites the other.
+
+**Run is not Submit.** Run checks the visible cases and records nothing;
+Submit records an answer and can be done again.
+
+The **navigator** has three states and they are three different things:
+nothing written, written and not sent, submitted. The middle one is the
+reason it exists, so it updates on a keystroke rather than only on a submit —
+a navigator that says "nothing written" while something is written is worse
+than no navigator.
+
+**Finish assessment** is explicit and confirmed, and the confirmation names
+the problems that have not been submitted rather than asking in the
+abstract.
+
+### Afterwards
+
+A score, a verdict, and a row per problem: the outcome, the weight, the
+fraction, how many cases passed, the language, how many times it was
+submitted, and **the program you sent, whole**. Then links to the concepts
+it rests on, and to the problem itself — which is readable with its solution
+now that the attempt is over.
+
+Three outcomes are kept apart because they mean different things:
+
+| | |
+| --- | --- |
+| graded | the grader looked and said |
+| unanswered | nothing was submitted |
+| **errored** | execution failed — no runner, a backend that threw |
+
+An `errored` problem is **not** counted as wrong and **not** counted in the
+total, and an attempt containing one gets **no pass verdict at all**. A pass
+computed over the problems that happened to work is not a pass, and calling
+a missing compiler a wrong answer is the single most dishonest thing this
+mode could do.
+
+A retake is a separate attempt with its own id and ordinal. Both are kept,
+both are listed, and neither earns anything.
+
+### Where it is stored
+
+Not in `localStorage`. An attempt holds a whole program per problem per
+language, and the practice submission store caps a program at 6,000
+characters to protect the five-megabyte origin quota — a cap that is right
+there and wrong here, because a program cut in half is a program you cannot
+put back in the editor.
+
+`js/vault.js` is IndexedDB behind a key-value interface, with a
+`localStorage` fallback and then an in-memory one. It says which it is
+using, and a write that reached only memory is **reported** rather than
+treated as saved: starting an attempt that cannot be written to disk says so
+before the clock, not after the tab closes.
+
 ## Writing a problem
 
 One file per problem, so a diff is readable.
@@ -1405,6 +1577,7 @@ Chromium against a real site:
 | `tests/maths-expr.test.mjs` | The expression engine on its own: equal values comparing equal however they are written, unequal ones never comparing equal, syntax errors and unsupported expressions reported as *different kinds* of failure from a wrong answer, and eleven injection attempts refused |
 | `tests/maths-render.test.mjs` | KaTeX renders, emits MathML, and markdown does not get at the TeX first — `$a_1 + a_2$` must not become `a<em>1 + a</em>2` |
 | `tests/browser/maths.test.mjs` (`npm run test:maths`) | Subject as a filter over one catalogue, typesetting on the page, every one of the six answer formats, a syntax error costing no attempt, a wrong answer explaining the misconception, progressive hints, the figures, a written proof reaching **Self-reviewed** without ever being marked right, and the review being finishable from wherever revealing the model proof leaves you |
+| `tests/browser/assessment.test.mjs` (`npm run test:assess`) | The timed mode end to end: that the bank is not in the catalogue and a search cannot find it, that everything is said before the clock exists, that Hints/Notes/Solution are gone during an attempt, that a correct submission moves no XP, no coins, no streak and no solved status, that the navigator tells written-from-submitted, that a **real reload** resumes the same attempt with the draft and a clock that carried on rather than restarting, that finishing is confirmed and names what is unfinished, that **expiry freezes what was saved** and finalises once, that the full-bleed attempt layout does not follow the reader into their results, and that a retake is a separate attempt earning nothing twice |
 | `tests/rust-toolchain.test.mjs` | The browser rustc driven directly, no browser involved: that the vendored artifacts are the pinned builds, that it is a real rustc, that a program compiles and reads its stdin, that a panic carries its line, that the borrow checker produces E0382/E0502/E0308/E0621 with lines and rustc's own rendering, that the one unsupported thing is `parse::<i64>()` and not 64-bit arithmetic, and that **every entry in `data/rust-support.json` is true in both directions** — each certified problem really passes its own cases here, and each native-only one really does not build |
 | `tests/browser/rust.test.mjs` (`npm run test:rust`) | Rust on a device with nothing installed, with the local runner pointed at a dead port: the pinned artifacts served, no COOP or COEP header needed, borrow-checker diagnostics appearing as you type on a problem that cannot even be run here, the download reporting megabytes with Stop live beside it, a certified problem running and being accepted, a compile error told apart from a wrong answer, a cancel mid-download followed by a run that works, an infinite loop stopped, a run left behind not landing on the next problem, and no request leaving the origin |
 | `tests/complete.test.mjs` | The C++ word lists driven directly: headers on `#include`, the header beside every `std::` name, declarations a regex can read and the ones it cannot, a known receiver getting only its own members, an unknown one getting every member labelled with its type, and staying quiet on one character |

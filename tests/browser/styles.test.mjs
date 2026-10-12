@@ -122,6 +122,7 @@ const sources = [read('index.html'), ...[
   'js/views.js', 'js/problem.js', 'js/editor.js', 'js/catalog.js', 'js/app.js',
   'js/highlight.js', 'js/md.js', 'js/lint.js', 'js/setup.js',
   'js/maths/render.js', 'js/maths/figures.js',
+  'js/assessments.js', 'js/assessment-view.js',
   'js/types/registry.js', 'js/types/mcq.js', 'js/types/numeric.js',
   'js/types/order.js', 'js/types/match.js', 'js/types/predict.js',
   'js/types/locate.js', 'js/types/code.js', 'js/types/maths.js',

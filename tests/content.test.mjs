@@ -105,6 +105,16 @@ section('the README is current');
     onDisk === generated);
 }
 
+/* ---------------- the assessments ---------------- */
+
+section('data/assessments.json names problems that exist, in the right pool');
+{
+  const { checkAssessments } = await import('../scripts/check-assessments.mjs');
+  const errs = checkAssessments();
+  if (errs.length) for (const e of errs) console.log(`        ${e}`);
+  check('no problems with the assessment definitions', errs.length, 0);
+}
+
 section('the index is current');
 {
   const fsmod = await import('node:fs');

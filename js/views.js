@@ -302,6 +302,7 @@ const UI = (() => {
       + '<circle cx="10.5" cy="11" r="1.9"/>',
     week: '<rect x="2" y="3.2" width="12" height="10.8" rx="1.5"/>'
       + '<path d="M2 6.8h12M5.4 1.8v2.6M10.6 1.8v2.6"/>',
+    assess: '<circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.4 1.6"/>',
   };
 
   function navIcon(name) {
@@ -368,6 +369,16 @@ const UI = (() => {
             },
         ],
       },
+      {
+        title: 'Assess',
+        items: [
+          {
+            icon: 'assess', label: 'Online Assessments', href: '#/assess',
+            blurb: 'Timed, from a separate bank you have not seen. Kept apart from '
+              + 'practice: no XP, and a problem here is not one in the catalogue.',
+          },
+        ],
+      },
     ];
   }
 
@@ -408,6 +419,7 @@ const UI = (() => {
     [/^#\/tracks/, '#/learn'],
     [/^#\/learn/, '#/learn'],
     [/^#\/concepts/, '#/concepts'],
+    [/^#\/assess/, '#/assess'],
   ];
 
   function markNav() {

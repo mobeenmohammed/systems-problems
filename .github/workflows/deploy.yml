@@ -57,6 +57,13 @@ jobs:
       - name: The README matches the catalogue
         run: node scripts/build-readme.mjs --check
 
+      # An assessment that names a practice problem is an assessment made of
+      # questions you have already seen; one that names a problem that does
+      # not exist is a mode that cannot be started. Both are content
+      # mistakes and both are caught here rather than in a browser.
+      - name: The assessment definitions are valid
+        run: npm run check:assessments
+
       # An answer key in problems/ would be served alongside the problem it
       # answers, which defeats the one bit of answer-hiding a static site has.
       - name: No answer key leaked into problems/
