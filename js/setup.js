@@ -151,12 +151,15 @@ const SetupGuide = (() => {
           ? 'JavaScript runs immediately. C++ compiles here too, with a real Clang '
             + 'built for WebAssembly — about 90 MB, fetched the first time you press '
             + 'Run on a C++ problem and cached afterwards. Python runs on a real '
-            + 'CPython built the same way. Rust has a real rustc here as well, and it '
-            + 'is the one with a limit worth knowing: it checks every Rust problem as '
-            + 'you type — the real borrow checker — but it can only build and run some '
-            + 'of them, because its backend cannot compile parse::<i64>(). Each '
-            + 'problem says which it is. A few problems in every language need the '
-            + 'native toolchain and say so.'
+            + 'CPython built the same way, and the hardware exercises compile and '
+            + 'simulate on a real Icarus Verilog, which is 2.9 MB and the smallest '
+            + 'of the four. Rust has a real rustc here as well, and it is the one '
+            + 'with a limit worth knowing: it checks every Rust problem as you type '
+            + '— the real borrow checker, the real trait solver, rustc\u2019s own '
+            + 'diagnostics — but it can only build and run some of them, because its '
+            + 'backend cannot compile parse::<i64>(). Each problem says which it is. '
+            + 'A few exercises in every language need the native toolchain and say '
+            + 'why on the problem itself.'
           : 'Unavailable, which should not happen; reload the page.',
         langs: browserLangs,
       }),
