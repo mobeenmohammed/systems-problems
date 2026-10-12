@@ -41,7 +41,11 @@ const { HARNESS, RECURSION_LIMIT, RUN_LIMITS, RUNTIME } =
 
 /* ---------------- the problems ---------------- */
 
-const index = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/index.json'), 'utf8'));
+/* Both pools. An assessment problem is a problem that has to run, and
+   nothing about its being in the timed bank changes which toolchain can
+   build it — so it is certified here exactly like a practice one. */
+const index = ['data/index.json', 'data/assessment-index.json']
+  .flatMap(f => JSON.parse(fs.readFileSync(path.join(ROOT, f), 'utf8')));
 const problemFiles = fs.readdirSync(path.join(ROOT, 'problems'), { recursive: true })
   .filter(f => String(f).endsWith('.json'));
 

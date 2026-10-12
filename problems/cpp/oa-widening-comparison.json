@@ -1,0 +1,34 @@
+{
+  "id": "oa-widening-comparison",
+  "pool": "assessment",
+  "title": "Four comparisons, and the types behind them",
+  "topic": "cpp",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "predict",
+  "tags": [
+    "integer-promotions",
+    "unsigned",
+    "comparison",
+    "conversion"
+  ],
+  "estimate": 8,
+  "prereqs": [
+    {
+      "concept": "cpp-integer-types",
+      "why": "Every line here is decided by what the operands are converted to before the comparison happens."
+    }
+  ],
+  "statement": "Say exactly what this prints.\n\nEach line is a comparison between two values that look comparable. The\nquestion in every case is what the operands are converted to *before* the\ncomparison runs, and `std::boolalpha` makes the answer readable.\n\nThe `short`s and the `signed char` are promoted; one of the others is not.",
+  "hints": [
+    "Integral promotion happens first: anything smaller than `int` becomes an `int`, whatever its signedness was. That settles two of the four lines before the usual-arithmetic-conversions rule is reached at all.",
+    "When the two operands are the same rank and one is unsigned, the signed one is converted to unsigned. On this platform `int` and `unsigned int` are the same rank; `long long` and `unsigned int` are not."
+  ],
+  "payload": {
+    "lang": "cpp",
+    "lines": 4,
+    "verifyAs": "cpp",
+    "prompt": "Four lines of output, exactly.",
+    "code": "#include <iostream>\n\nint main()\n{\n    std::cout << std::boolalpha;\n\n    short a{ -1 };\n    unsigned short b{ 1 };\n    std::cout << (a < b) << '\\n';\n\n    int c{ -1 };\n    unsigned int d{ 1 };\n    std::cout << (c < d) << '\\n';\n\n    long long e{ -1 };\n    unsigned int f{ 1 };\n    std::cout << (e < f) << '\\n';\n\n    signed char g{ -1 };\n    std::cout << (g == 255) << '\\n';\n\n    return 0;\n}"
+  }
+}

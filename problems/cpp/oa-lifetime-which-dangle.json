@@ -1,0 +1,35 @@
+{
+  "id": "oa-lifetime-which-dangle",
+  "pool": "assessment",
+  "title": "Which of these return a dangling reference",
+  "topic": "cpp",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "multi",
+  "tags": [
+    "lifetime",
+    "references",
+    "dangling",
+    "undefined-behaviour"
+  ],
+  "estimate": 9,
+  "prereqs": [
+    {
+      "concept": "cpp-references",
+      "why": "A reference is a name for something that already exists; the question is whether that something is still alive when the name is used."
+    }
+  ],
+  "statement": "Each function below compiles without an error. **Select every one whose\nreturn value is dangling** — that is, every one where the caller is handed a\nreference or a pointer to storage whose lifetime has already ended.\n\n```cpp\n// A\nconst std::string& first_word(const std::string& line)\n{\n    static const std::string empty{};\n    auto at = line.find(' ');\n    return at == std::string::npos ? line : empty;\n}\n\n// B\nconst std::string& longest(const std::string& a, const std::string& b)\n{\n    return a.size() >= b.size() ? a : b;\n}\n\n// C\nconst char* label(int n)\n{\n    std::string s = \"n = \" + std::to_string(n);\n    return s.c_str();\n}\n\n// D\nstd::string_view trimmed(const std::string& s)\n{\n    return std::string_view{ s }.substr(1);\n}\n```\n\nAssume every caller passes a named `std::string` variable that outlives the\ncall, and uses the result immediately.",
+  "hints": [
+    "Ask of each one: what object does the returned thing name, and when is that object destroyed? A `static` lives for the whole program; a parameter that is a reference names something the caller owns; a local does not survive the `return`.",
+    "`std::string_view` is a reference in all but name — it holds a pointer and a length into somebody else's characters and owns none of them. The question for D is the same as for B, not the same as for C."
+  ],
+  "payload": {
+    "options": [
+      "A — `first_word`",
+      "B — `longest`",
+      "C — `label`",
+      "D — `trimmed`"
+    ]
+  }
+}

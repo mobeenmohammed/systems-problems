@@ -106,10 +106,36 @@ section('the README is current');
 }
 
 section('the index is current');
-const fresh = JSON.stringify(buildIndex(problems), null, 2) + '\n';
-let committed = '';
-try { committed = (await import('node:fs')).readFileSync(new URL('../data/index.json', import.meta.url), 'utf8'); } catch {}
-ok('data/index.json matches the problem files (run npm run build:index)', committed === fresh);
+{
+  const fsmod = await import('node:fs');
+  const { poolOf } = await import('../scripts/build-index.mjs');
+  /* Two indexes, because there are two pools. The catalogue must not be
+     able to list the assessment bank even by accident, which is what
+     the second check here is for. */
+  for (const [rel, pool] of [
+    ['../data/index.json', 'practice'],
+    ['../data/assessment-index.json', 'assessment'],
+  ]) {
+    const fresh = `${JSON.stringify(buildIndex(problems.filter(p => poolOf(p) === pool)), null, 2)}\n`;
+    let committed = '';
+    try { committed = fsmod.readFileSync(new URL(rel, import.meta.url), 'utf8'); } catch {}
+    ok(`${rel.replace('../', '')} matches the problem files (run npm run build:index)`,
+      committed === fresh);
+  }
+
+  const catalogue = JSON.parse(fsmod.readFileSync(
+    new URL('../data/index.json', import.meta.url), 'utf8'));
+  const bank = JSON.parse(fsmod.readFileSync(
+    new URL('../data/assessment-index.json', import.meta.url), 'utf8'));
+  const inBank = new Set(bank.map(p => p.id));
+  check('no assessment problem is in the catalogue',
+    catalogue.filter(p => inBank.has(p.id)).map(p => p.id), []);
+  ok(`the bank has something in it (${bank.length})`, bank.length > 0);
+  /* The counts on every page come from the catalogue, so this is the
+     assertion that "assessment problems do not affect normal totals". */
+  check('and the catalogue is only the practice pool',
+    catalogue.length, problems.filter(p => poolOf(p) === 'practice').length);
+}
 
 /* ---------------- every key grades as correct ---------------- */
 

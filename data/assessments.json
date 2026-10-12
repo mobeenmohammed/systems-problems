@@ -1,0 +1,57 @@
+{
+  "_note": "Online assessments. Data, not code: adding one means adding an entry here and its problems to problems/ with \"pool\": \"assessment\". Nothing in js/ needs editing. See README ▸ Online Assessments for the field-by-field meaning and scripts/check-assessments.mjs for what is validated.",
+  "_schema": {
+    "id": "stable, kebab-case, never reused — attempts are stored against it",
+    "version": "integer. Bump when the problems, the scoring or the duration change. An attempt records the version it was taken under, so an old attempt is never re-scored against new rules.",
+    "title": "what it is called",
+    "description": "one paragraph, shown before starting",
+    "durationMin": "minutes. null means untimed.",
+    "difficulty": "beginner | intermediate | advanced",
+    "problems": "ordered problem ids, all of them pool=assessment",
+    "langs": "optional map of problem id to the languages permitted for it in this assessment. A subset of what the problem itself offers. Absent means all of them.",
+    "scoring": {
+      "policy": "weighted — each problem's score is its grader's 0..1 fraction times its weight",
+      "weights": "map of problem id to weight. Absent entries weigh 1.",
+      "partialCredit": "whether a problem's fractional score counts, or only a full pass does",
+      "passMark": "fraction of the total needed to pass, or null for no pass/fail"
+    },
+    "feedback": {
+      "duringAttempt": "what you are told while it is running: 'samples' runs the visible cases only and reports them; 'none' reports nothing until you finish",
+      "hints": "whether hints are available during the attempt",
+      "solutions": "whether solutions can be revealed during the attempt"
+    }
+  },
+  "assessments": [
+    {
+      "id": "oa-cpp-foundations",
+      "version": 1,
+      "title": "C++ foundations, timed",
+      "description": "Three questions in forty-five minutes: what the compiler does to your types before it compares them, which of four functions hands back a reference to something already destroyed, and one program to write and get right. The problems are not in the practice catalogue, so you have not seen them.",
+      "durationMin": 45,
+      "difficulty": "intermediate",
+      "problems": [
+        "oa-widening-comparison",
+        "oa-lifetime-which-dangle",
+        "oa-run-length"
+      ],
+      "langs": {
+        "oa-run-length": ["cpp", "python"]
+      },
+      "scoring": {
+        "policy": "weighted",
+        "weights": {
+          "oa-widening-comparison": 1,
+          "oa-lifetime-which-dangle": 1,
+          "oa-run-length": 2
+        },
+        "partialCredit": true,
+        "passMark": 0.6
+      },
+      "feedback": {
+        "duringAttempt": "samples",
+        "hints": false,
+        "solutions": false
+      }
+    }
+  ]
+}

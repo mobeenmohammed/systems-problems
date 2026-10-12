@@ -58,6 +58,19 @@ export const TYPES = [
 export const LANGS = ['js', 'python', 'cpp', 'rust'];
 export const PROFILES = ['standard', 'sanitize', 'strict', 'parallel'];
 
+/* Which pool a problem belongs to. "practice" is the catalogue — the
+   thing #/problems lists and every count on the site is a count of.
+   "assessment" is the separate bank the timed mode draws from: the same
+   schema, the same validation, the same reference-solution checking, and
+   a different file.
+
+   Separate because an assessment problem you have already met in
+   practice is not an assessment. Writing it as a field on the problem
+   rather than as a directory convention means the whole of this
+   script's validation applies to both without a second copy of it. */
+export const POOLS = ['practice', 'assessment'];
+export const poolOf = p => (p && p.pool) || 'practice';
+
 /* The fields the catalog needs to list, search and filter. Everything else
    stays in the problem file. */
 const INDEX_FIELDS = ['id', 'title', 'topic', 'subject', 'difficulty', 'lane', 'type', 'tags', 'estimate'];
@@ -588,23 +601,34 @@ function main() {
     process.exit(1);
   }
 
-  const index = buildIndex(loaded.problems);
-  const json = JSON.stringify(index, null, 2) + '\n';
-  const out = path.join(ROOT, 'data/index.json');
+  /* Two files, because they are two pools and the catalogue must not be
+     able to accidentally list the assessment bank. Anything that reads
+     data/index.json gets the practice catalogue and nothing else. */
+  const practice = loaded.problems.filter(p => poolOf(p) === 'practice');
+  const assessment = loaded.problems.filter(p => poolOf(p) === 'assessment');
 
-  if (check) {
-    const existing = fs.existsSync(out) ? fs.readFileSync(out, 'utf8') : '';
-    if (existing !== json) {
-      console.error('data/index.json is out of date. Run: npm run build:index');
-      process.exit(1);
+  const written = [
+    ['data/index.json', buildIndex(practice), 'practice'],
+    ['data/assessment-index.json', buildIndex(assessment), 'assessment'],
+  ];
+
+  for (const [rel, index, what] of written) {
+    const json = `${JSON.stringify(index, null, 2)}\n`;
+    const out = path.join(ROOT, rel);
+    if (check) {
+      const existing = fs.existsSync(out) ? fs.readFileSync(out, 'utf8') : '';
+      if (existing !== json) {
+        console.error(`${rel} is out of date. Run: npm run build:index`);
+        process.exit(1);
+      }
+      console.log(`${rel} is current (${index.length} ${what} problems).`);
+      continue;
     }
-    console.log(`data/index.json is current (${index.length} problems).`);
-    return;
+    fs.mkdirSync(path.dirname(out), { recursive: true });
+    fs.writeFileSync(out, json);
+    console.log(`wrote ${rel} — ${index.length} ${what} problems`);
   }
-
-  fs.mkdirSync(path.dirname(out), { recursive: true });
-  fs.writeFileSync(out, json);
-  console.log(`wrote data/index.json — ${index.length} problems, ${Object.keys(loaded.concepts).length} concepts`);
+  if (!check) console.log(`${Object.keys(loaded.concepts).length} concepts`);
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) main();

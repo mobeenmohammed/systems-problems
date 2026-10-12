@@ -1,0 +1,70 @@
+{
+  "id": "oa-run-length",
+  "key": {
+    "cases": [
+      {
+        "stdin": "encode abc\n",
+        "expect": "abc\n"
+      },
+      {
+        "stdin": "decode abc\n",
+        "expect": "abc\n"
+      },
+      {
+        "stdin": "encode a\n",
+        "expect": "a\n"
+      },
+      {
+        "stdin": "decode a\n",
+        "expect": "a\n"
+      },
+      {
+        "stdin": "encode aaaaaaaaaaaa\n",
+        "expect": "a12\n"
+      },
+      {
+        "stdin": "decode a12\n",
+        "expect": "aaaaaaaaaaaa\n"
+      },
+      {
+        "stdin": "encode aabbbbbbbbbbc\n",
+        "expect": "a2b10c\n"
+      },
+      {
+        "stdin": "decode a2b10c\n",
+        "expect": "aabbbbbbbbbbc\n"
+      },
+      {
+        "stdin": "encode zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz\n",
+        "expect": "z99\n"
+      },
+      {
+        "stdin": "decode z99\n",
+        "expect": "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz\n"
+      },
+      {
+        "stdin": "encode abbaabb\n",
+        "expect": "ab2a2b2\n"
+      },
+      {
+        "stdin": "decode ab2a2b2\n",
+        "expect": "abbaabb\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n#include <string>\n\nstd::string encode(const std::string& s)\n{\n    std::string out{};\n    std::size_t i{ 0 };\n\n    while (i < s.size())\n    {\n        std::size_t j{ i };\n        while (j < s.size() && s[j] == s[i]) ++j;\n\n        const std::size_t run{ j - i };\n        out += s[i];\n        if (run > 1) out += std::to_string(run);\n\n        i = j;\n    }\n\n    return out;\n}\n\nstd::string decode(const std::string& s)\n{\n    std::string out{};\n    std::size_t i{ 0 };\n\n    while (i < s.size())\n    {\n        const char c{ s[i] };\n        ++i;\n\n        std::size_t n{ 0 };\n        while (i < s.size() && s[i] >= '0' && s[i] <= '9')\n        {\n            n = n * 10 + static_cast<std::size_t>(s[i] - '0');\n            ++i;\n        }\n\n        out.append(n == 0 ? 1 : n, c);\n    }\n\n    return out;\n}\n\nint main()\n{\n    std::string what;\n    std::cin >> what;\n\n    std::string payload;\n    std::getline(std::cin, payload);\n    if (!payload.empty() && payload.front() == ' ') payload.erase(0, 1);\n\n    std::cout << (what == \"encode\" ? encode(payload) : decode(payload)) << '\\n';\n    return 0;\n}\n",
+      "python": "import sys\n\n\ndef encode(s):\n    out = []\n    i = 0\n    while i < len(s):\n        j = i\n        while j < len(s) and s[j] == s[i]:\n            j += 1\n        run = j - i\n        out.append(s[i])\n        if run > 1:\n            out.append(str(run))\n        i = j\n    return \"\".join(out)\n\n\ndef decode(s):\n    out = []\n    i = 0\n    while i < len(s):\n        c = s[i]\n        i += 1\n        n = 0\n        while i < len(s) and s[i].isdigit():\n            n = n * 10 + int(s[i])\n            i += 1\n        out.append(c * (n if n else 1))\n    return \"\".join(out)\n\n\ndef main():\n    line = sys.stdin.readline().rstrip(\"\\n\")\n    what, _, payload = line.partition(\" \")\n    print(encode(payload) if what == \"encode\" else decode(payload))\n\n\nmain()\n"
+    }
+  },
+  "explanation": "## Both directions are one pass with an inner loop\n\nThe shape that makes this easy is the same in both: an outer index that jumps by a whole unit, and an inner loop that works out how big that unit is. The mistake that makes it hard is advancing by one and patching up afterwards.\n\n### Encoding\n\n```cpp\nwhile (i < s.size())\n{\n    std::size_t j{ i };\n    while (j < s.size() && s[j] == s[i]) ++j;   // how far does this run go\n\n    out += s[i];\n    if (j - i > 1) out += std::to_string(j - i);\n\n    i = j;                                       // past the RUN, not past one\n}\n```\n\n`i = j` is the line that matters. Writing `++i` there and keeping a separate counter works too, but it needs a flush after the loop ends, and a forgotten flush is the commonest way to lose the last run.\n\n**`std::to_string`, not `'0' + n`.** `out += char('0' + run)` produces the right character for a run of nine and garbage for a run of ten — `'0' + 12` is `'<'`. The hidden cases include a run of twelve and a run of ninety-nine for exactly this reason. It is the same class of mistake as assuming a single digit anywhere else.\n\n### Decoding\n\n```cpp\nconst char c{ s[i] };\n++i;\n\nstd::size_t n{ 0 };\nwhile (i < s.size() && s[i] >= '0' && s[i] <= '9')   // ALL the digits\n{\n    n = n * 10 + (s[i] - '0');\n    ++i;\n}\n\nout.append(n == 0 ? 1 : n, c);\n```\n\nThe inner `while` is the mirror image of the one in `encode`, and omitting it is the mirror-image bug: reading one digit turns `a12` into one `a` followed by a literal `2`, instead of twelve `a`s.\n\n`n == 0 ? 1 : n` is how \"no digits at all\" is spelled. A bare character means one of it, and zero is not a count that encoding can ever produce.\n\n### Why it is a round trip\n\nThe test cases come in pairs on purpose. An encoder and a decoder that agree with each other but not with the specification will pass neither half, and an encoder that is right while the decoder is not will pass exactly half — which tells you immediately which direction to look in.\n\n## The reading that makes it fail\n\nA plausible encoding of `abbaabb` is `a1b2a2b2`, writing the count every time. That is a perfectly good scheme; it is not this one, and it is longer for text with few repeats, which is the case run-length encoding is usually applied to. The specification says a run of one is written bare, so `ab2a2b2` is the answer and `a1b2a2b2` is wrong. Reading the examples closely is part of the exercise.\n\n## Where this actually appears\n\nIn PCX and BMP bitmaps, in fax Group 3 encoding, and inside almost every general-purpose compressor as the cheap first stage before something cleverer. The real versions escape their count byte so the payload may contain digits — which is the restriction lifted here by promising lowercase letters only.",
+  "readMore": [
+    {
+      "title": "cppreference: std::string::append — the fill overload used by the decoder",
+      "url": "https://en.cppreference.com/w/cpp/string/basic_string/append"
+    },
+    {
+      "title": "cppreference: std::to_string",
+      "url": "https://en.cppreference.com/w/cpp/string/basic_string/to_string"
+    }
+  ]
+}

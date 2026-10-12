@@ -1,0 +1,53 @@
+{
+  "id": "oa-run-length",
+  "pool": "assessment",
+  "title": "Run-length encode, and decode it back",
+  "topic": "cpp",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "strings",
+    "parsing",
+    "loops",
+    "round-trip"
+  ],
+  "estimate": 20,
+  "prereqs": [
+    {
+      "concept": "cpp-loops",
+      "why": "Both directions are one pass with a counter that does not reset where you might expect."
+    },
+    {
+      "concept": "cpp-strings",
+      "why": "Building the output a character at a time, and reading a multi-digit number back out of it."
+    }
+  ],
+  "statement": "Read a line of input. The first token is `encode` or `decode`; the rest of the\nline, after exactly one space, is the payload.\n\n**encode** — replace each run of the same character with that character\nfollowed by the run's length, *only when the run is longer than one*. A run of\none is written as the bare character.\n\n```\ninput:   encode aaabccddddd\noutput:  a3bc2d5\n\ninput:   encode abc\noutput:  abc\n```\n\n**decode** — the inverse. A character followed by digits means that character\nrepeated that many times; a character followed by a non-digit (or by nothing)\nmeans one of it.\n\n```\ninput:   decode a3bc2d5\noutput:  aaabccddddd\n\ninput:   decode a12\noutput:  aaaaaaaaaaaa\n```\n\nPrint the result on one line.\n\n### What the cases will try\n\n- A run of exactly one, in the middle and at both ends.\n- A run of ten or more, so the length is **more than one digit** — both when\n  writing it and when reading it back.\n- A payload that is a single character.\n- Digits in the *input* to `decode` that belong to a count, never to the\n  payload: the characters being encoded are always lowercase letters.\n\n### Guarantees\n\nThe payload is non-empty and contains only lowercase letters for `encode`.\nFor `decode` it is the output of a valid `encode`. No run is longer than 99.\nThe payload is at most 200 characters.",
+  "hints": [
+    "Encoding: walk the string, and at each position count how far the identical characters go. Write the character, then write the count only if it is greater than one, then jump past the whole run — not past one character.",
+    "Decoding: after reading a character, read *all* the digits that follow it before you stop, not just one. `a12` is twelve of them, not one `a` then a literal `12`.",
+    "The thing most first attempts get wrong is a two-digit count on the way out: appending `std::to_string(n)` handles it, appending `char('0' + n)` does not."
+  ],
+  "payload": {
+    "langs": [
+      "cpp",
+      "python"
+    ],
+    "profile": "standard",
+    "templates": {
+      "cpp": "#include <iostream>\n#include <string>\n\nstd::string encode(const std::string& s)\n{\n    // your code here: walk s, and for each run of identical characters\n    // append the character and, only if the run is longer than one, its\n    // length. Jump past the whole run, not past one character.\n    return s;\n}\n\nstd::string decode(const std::string& s)\n{\n    // your code here: read a character, then read ALL the digits that\n    // follow it as one number, then append that many of the character.\n    // No digits at all means one of it.\n    return s;\n}\n\nint main()\n{\n    std::string what;\n    std::cin >> what;\n\n    std::string payload;\n    std::getline(std::cin, payload);\n    if (!payload.empty() && payload.front() == ' ') payload.erase(0, 1);\n\n    std::cout << (what == \"encode\" ? encode(payload) : decode(payload)) << '\\n';\n    return 0;\n}\n",
+      "python": "import sys\n\n\ndef encode(s):\n    # your code here: walk s, and for each run of identical characters\n    # append the character and, only if the run is longer than one, its\n    # length. Jump past the whole run, not past one character.\n    return s\n\n\ndef decode(s):\n    # your code here: read a character, then read ALL the digits that\n    # follow it as one number, then append that many of the character.\n    # No digits at all means one of it.\n    return s\n\n\ndef main():\n    line = sys.stdin.readline().rstrip(\"\\n\")\n    what, _, payload = line.partition(\" \")\n    print(encode(payload) if what == \"encode\" else decode(payload))\n\n\nmain()\n"
+    },
+    "cases": [
+      {
+        "stdin": "encode aaabccddddd\n",
+        "expect": "a3bc2d5\n"
+      },
+      {
+        "stdin": "decode a3bc2d5\n",
+        "expect": "aaabccddddd\n"
+      }
+    ]
+  }
+}

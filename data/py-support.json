@@ -6,7 +6,7 @@
     "stdlib": "standard library only, no installable packages",
     "measured": "3.14.2 on emscripten, sys.maxsize 32-bit"
   },
-  "generated": 17,
+  "generated": 18,
   "browser": [
     "algo-impl-circular-queue",
     "algo-impl-count",
@@ -22,6 +22,7 @@
     "fpga-sim-lfsr",
     "fpga-sim-moore-fsm",
     "hpc-inclusive-scan",
+    "oa-run-length",
     "os-sim-page-replacement",
     "os-sim-scheduling",
     "sysdesign-token-bucket"

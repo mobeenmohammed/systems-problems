@@ -96,6 +96,29 @@ const Catalog = (() => {
   const all = () => index;
   const meta = id => byId[id] || null;
 
+  /* A second pool of problems, reachable BY ID and not listed.
+
+     The assessment bank registers itself here. `get` and `meta` then
+     work for one of its problems, so the ordinary problem page renders
+     it with no changes at all — and `all()` does not contain it, so the
+     catalogue cannot list it, no filter can reach it, and every count
+     on the site stays a count of the practice catalogue.
+
+     That separation is the whole requirement: a problem you have
+     already met in practice is not an assessment. */
+  const pooled = new Set();
+
+  function registerPool(metas) {
+    for (const m of metas || []) {
+      if (!m || !m.id || byId[m.id]) continue;
+      byId[m.id] = m;
+      pooled.add(m.id);
+    }
+    return pooled.size;
+  }
+
+  const isPooled = id => pooled.has(id);
+
   function list(filter = {}) {
     const q = String(filter.q || '').trim().toLowerCase();
     const terms = q ? q.split(/\s+/) : [];
@@ -653,7 +676,7 @@ const Catalog = (() => {
     counts, nextUp, problemsForConcept, readStatus, trackTree, treeProgress,
     trackCounts, trackRequired,
     TYPES, TYPE_BY_ID, TRACK_STATE_LABEL, READ_STATE_LABEL,
-    LANGS, LANG_LABEL,
+    LANGS, LANG_LABEL, registerPool, isPooled,
     get loadError() { return loadError; },
   };
 })();

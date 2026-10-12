@@ -609,17 +609,45 @@ const Store = (() => {
     return { xp, coins, alreadyDone: already };
   }
 
+  /* Where drafts go. Normally into the problem's own record; during an
+     assessment attempt, into that attempt instead.
+
+     A hook rather than a branch in the editor, because the editor has
+     no business knowing what mode the page is in — it saves on every
+     keystroke and reads on every mount, and both have to be
+     synchronous. The attempt supplies a synchronous view of itself and
+     writes through to its own durable store behind that. Drafts kept
+     here would also be the WRONG drafts: practice work on the same
+     problem id is a different thing from what was written under a
+     clock, and neither should overwrite the other. */
+  let draftStore = null;
+
+  function useDraftStore(hooks) {
+    draftStore = hooks || null;
+    return draftStore;
+  }
+
   function saveDraft(problem, lang, source) {
+    const id = problem && problem.id ? problem.id : problem;
+    if (draftStore) { draftStore.set(id, lang, String(source)); return; }
     const r = touch(problem);
     r.draft[lang] = String(source);
     save();
   }
-  const draft = (id, lang) => (record(id).draft || {})[lang] || '';
+
+  const draft = (id, lang) => (draftStore
+    ? (draftStore.get(id, lang) || '')
+    : ((record(id).draft || {})[lang] || ''));
 
   /* Which language the reader last chose for this problem. It used to be
      written only on submit, so choosing Rust and then pressing Run put you
      back in C++: the page redraws after a run, and the redraw reads this. */
   function setLang(problem, lang) {
+    /* Inside an attempt the choice belongs to the attempt, not to a
+       practice record that is not being written. */
+    if (draftStore && draftStore.setLang) {
+      return draftStore.setLang(problem && problem.id ? problem.id : problem, lang);
+    }
     const r = touch(problem);
     r.lang = String(lang || '');
     save();
@@ -963,6 +991,7 @@ const Store = (() => {
     submissions, SUBS_MAX, SUBS_CHARS, SUBS_BUDGET,
     openHint, reveal, submit,
     setNotes, setPerceived, setFlag, toggleFlag, setReview, saveDraft, setLang, draft, dueForReview, selfReview,
+    useDraftStore,
     completionPref, completionOn, setCompletion, COMPLETION_LANGS,
     markReading, hasRead, readingCount,
     rankFor, rankProgress,

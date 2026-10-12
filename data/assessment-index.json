@@ -1,0 +1,64 @@
+[
+  {
+    "id": "oa-lifetime-which-dangle",
+    "title": "Which of these return a dangling reference",
+    "topic": "cpp",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "multi",
+    "tags": [
+      "lifetime",
+      "references",
+      "dangling",
+      "undefined-behaviour"
+    ],
+    "estimate": 9,
+    "subject": "systems",
+    "prereqs": [
+      "cpp-references"
+    ]
+  },
+  {
+    "id": "oa-run-length",
+    "title": "Run-length encode, and decode it back",
+    "topic": "cpp",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "strings",
+      "parsing",
+      "loops",
+      "round-trip"
+    ],
+    "estimate": 20,
+    "subject": "systems",
+    "prereqs": [
+      "cpp-loops",
+      "cpp-strings"
+    ],
+    "langs": [
+      "cpp",
+      "python"
+    ]
+  },
+  {
+    "id": "oa-widening-comparison",
+    "title": "Four comparisons, and the types behind them",
+    "topic": "cpp",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "predict",
+    "tags": [
+      "integer-promotions",
+      "unsigned",
+      "comparison",
+      "conversion"
+    ],
+    "estimate": 8,
+    "subject": "systems",
+    "prereqs": [
+      "cpp-integer-types"
+    ]
+  }
+]

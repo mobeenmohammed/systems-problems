@@ -37,14 +37,37 @@ const ProblemView = (() => {
   let host = null;
   let activeTab = 'problem';
 
+  /* ---------------- assessment mode ----------------
+
+     The same workspace, three differences, all of them things the
+     reader is told about before the clock starts:
+
+       · Hints, Notes and Solution are not there. An assessment with a
+         Solution tab is not an assessment.
+       · Submit records into the attempt. It does not touch XP, the
+         streak, the problem's solved status or its submission history
+         — a timed result is a different kind of evidence from a
+         practice solve and mixing them would make both worth less.
+       · Drafts go to the attempt, per problem and per language, via
+         the hook in Store. Practice work on the same problem id is a
+         separate thing and neither overwrites the other.
+
+     `assess` is the whole of it: null in practice, an object with the
+     attempt and the definition during one. */
+  let assess = null;
+
+  const inAssessment = () => !!assess;
+
   /* ---------------- entry ---------------- */
 
-  async function open(id, mount) {
+  async function open(id, mount, opts = {}) {
     /* Opening is leaving the last one first: a second problem must not
        inherit the first one's editor, verdict or attempt history. */
     leave();
 
     host = mount;
+    assess = opts.assess || null;
+    if (assess) wireAttemptDrafts(assess);
     activeTab = 'problem';
     answered = null;
     previousAttempts = [];
@@ -74,7 +97,7 @@ const ProblemView = (() => {
     /* Already finished with it? Then the answer is not a secret any more, and
        hiding it behind a confirm would just be in the way. */
     const r = Store.record(problem.id);
-    if (r.status === 'solved' || r.status === 'read' || r.revealed) {
+    if (!assess && (r.status === 'solved' || r.status === 'read' || r.revealed)) {
       solution = await Catalog.solution(problem.id);
     }
 
@@ -107,6 +130,11 @@ const ProblemView = (() => {
 
     delete document.body.dataset.workspace;
     document.documentElement.removeAttribute('data-focus');
+
+    /* Hand the drafts back to the practice store. Left in place, every
+       problem opened after an attempt would read and write that
+       attempt's drafts. */
+    if (assess) { Store.useDraftStore(null); assess = null; }
 
     if (host && host.isConnected) host.replaceChildren();
     current = null;
