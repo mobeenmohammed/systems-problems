@@ -386,7 +386,8 @@ const ProblemView = (() => {
     /* CodeMirror holds listeners on the document and a mutation observer on
        its own DOM. Hiding the view does not stop any of that, and thirty
        crossings used to leave thirty of them. */
-    for (const impl of [ProblemTypes.get('code')]) {
+    for (const id of WORKSPACE_TYPES) {
+      const impl = ProblemTypes.get(id);
       if (impl && impl.teardown) impl.teardown();
     }
 
@@ -410,6 +411,29 @@ const ProblemView = (() => {
     solutionShown = false;
     attempting = false;
     host = null;
+  }
+
+  /* Open a pane from inside a type module.
+
+     A run whose only visible effect is in a tab nobody opened has no
+     visible effect, so every run opens Results before it starts — and
+     the type cannot do that itself, because the strip belongs to the
+     page. */
+  function openPane(id) {
+    if (!current || !host || !host.isConnected) return;
+    if (!workTabs().some(t => t.id === id)) return;
+    if (workTab === id) { repaintPane(); return; }
+    setWorkTab(id);
+  }
+
+  /* Repaint whatever pane is open. Called by a type when its own
+     state changed — a simulation came back — rather than redrawing the
+     whole workspace, which would rebuild the editor underneath it. */
+  function repaintPane() {
+    if (!host || !host.isConnected) return;
+    if (workTab === 'editor') return;
+    const pane = host.querySelector('#resultPane');
+    if (pane) fillResultPane(pane);
   }
 
   /* Any pointer drag in flight, so that navigating mid-drag cannot leave the
@@ -515,11 +539,32 @@ const ProblemView = (() => {
     { id: 'compiler', label: 'Compiler output' },
   ];
 
+  /* A type may supply its own strip. The hardware exercises need six
+     tabs rather than five — a read-only testbench beside the design,
+     and waveforms — and the alternative was a flag per tab here, which
+     is how a page ends up knowing about every type in the catalogue.
+
+     Asked of the type rather than branched on the type's name, so the
+     next one that needs a different strip needs nothing here. */
+  function workTabs() {
+    const impl = current && ProblemTypes.get(current.type);
+    return (impl && impl.TABS) || WORK_TABS;
+  }
+
+  /* Which types own the window: an editor and a result pane side by
+     side, rather than a statement with an answer under it. */
+  const WORKSPACE_TYPES = new Set(['code', 'hdl']);
+  const isWorkspace = p => WORKSPACE_TYPES.has(p.type);
+
   let workTab = 'editor';
 
   function draw() {
     const p = current;
-    const workspace = p.type === 'code';
+    const workspace = isWorkspace(p);
+    /* A tab the previous problem had and this one does not. Left alone
+       it would paint an empty pane and leave the strip with nothing
+       selected. */
+    if (!workTabs().some(t => t.id === workTab)) workTab = 'editor';
     /* Removed rather than set to "false": the attribute exists only while it
        means something, so a stale one is visible in the DOM rather than
        hiding behind a falsy-looking string. */
@@ -534,8 +579,11 @@ const ProblemView = (() => {
     }
   }
 
+  /* The editor of whatever type is on screen. It used to ask the code
+     type unconditionally, which was right while that was the only type
+     with one. */
   const codeEditor = () => {
-    const impl = ProblemTypes.get('code');
+    const impl = current ? ProblemTypes.get(current.type) : null;
     return impl && impl.editor ? impl.editor() : null;
   };
 
@@ -588,7 +636,7 @@ const ProblemView = (() => {
            there. The font size stays: it is about being able to read
            the code, which matters more under a clock, not less. */
         el('div', { class: 'ws-head-right' }, [
-          p.type === 'code' ? fontSizeControl() : null,
+          isWorkspace(p) ? fontSizeControl() : null,
         ]),
       ]);
     }
@@ -622,7 +670,7 @@ const ProblemView = (() => {
       ]),
 
       el('div', { class: 'ws-head-right' }, [
-        p.type === 'code' ? fontSizeControl() : null,
+        isWorkspace(p) ? fontSizeControl() : null,
         el('button', {
           class: 'btn btn-sm btn-ghost', type: 'button', id: 'bookmarkBtn',
           'aria-pressed': String(!!r.flagged),
@@ -667,6 +715,124 @@ const ProblemView = (() => {
     ]);
   }
 
+  /* ---------------- reporting a problem with a problem ----------------
+
+     A wrong expected output, a statement that contradicts its own
+     cases, a testbench that is stricter than the words — these happen,
+     and the reader is the only person who will ever notice. What they
+     need is somewhere to put it that does not lose the details they
+     would otherwise have to go and look up.
+
+     So it prepares a report and puts it on the clipboard. It does NOT
+     send anything: there is no backend here, nothing is posted
+     anywhere, and a feature that quietly transmitted what somebody was
+     working on would be a worse thing than the bug it was reporting.
+
+     The source code is included only if the reader ticks the box. It
+     is often exactly what makes a report useful and it is also their
+     work, so it is their decision, made each time, rather than a
+     setting somebody turned on once. */
+  /* FNV-1a over the fields a reader could be looking at. Eight hex
+     digits: enough to tell two versions of one exercise apart, which is
+     all it is for, and not a security claim. */
+  function fingerprint(p) {
+    const text = JSON.stringify([p.id, p.title, p.statement, p.payload, p.hints]);
+    let h = 0x811c9dc5;
+    for (let i = 0; i < text.length; i += 1) {
+      h ^= text.charCodeAt(i);
+      h = Math.imul(h, 0x01000193) >>> 0;
+    }
+    return h.toString(16).padStart(8, '0');
+  }
+
+  function reportNode() {
+    const p = current;
+    const r = Store.record(p.id);
+    const impl = ProblemTypes.get(p.type);
+    /* Asked for lazily. The header — and this menu with it — is built
+       before the editor is mounted, so `codeEditor()` is null at this
+       moment and gating the checkbox on it meant a problem with an
+       editor never offered to include the code. */
+    const hasEditor = isWorkspace(p);
+    const editorNow = () => codeEditor();
+
+    const what = el('textarea', {
+      class: 'report-what', rows: '4', id: 'reportWhat',
+      placeholder: 'What is wrong? For example: the statement says the counter wraps, '
+        + 'but the third sample case expects it to saturate.',
+    });
+    const withCode = el('input', { type: 'checkbox', id: 'reportCode' });
+    const note = el('span', { class: 'tiny faint', id: 'reportNote' });
+
+    const build = () => {
+      const lines = [
+        `Problem:  ${p.id}`,
+        `Title:    ${p.title}`,
+        /* Problems do not carry a version number, and adding one to a
+           hundred and thirteen files would mean remembering to bump it.
+           A fingerprint of the content answers the question a version
+           number is asked for — "is this the same exercise I was
+           looking at?" — and cannot be forgotten. */
+        `Version:  ${p.version != null ? `${p.version} ` : ''}content ${fingerprint(p)}`,
+        `Type:     ${p.type}`,
+        `Topic:    ${p.topic}`,
+      ];
+      const ed = editorNow();
+      if (ed) {
+        const lang = ed.lang || ((p.payload || {}).langs || [])[0] || null;
+        if (lang) lines.push(`Language: ${Catalog.LANG_LABEL[lang] || lang}`);
+      }
+      const engine = lastRun && lastRun.backend ? lastRun.backend : null;
+      lines.push(`Runtime:  ${engine ? Runners.label(engine) : 'nothing has run yet'}`);
+      lines.push(`Status:   ${statusWord(r)}${r.attempts ? `, ${r.attempts} attempts` : ''}`);
+      lines.push(`Page:     ${location.href}`);
+      lines.push(`When:     ${new Date().toISOString()}`);
+      lines.push('');
+      lines.push('What is wrong:');
+      lines.push(what.value.trim() || '(nothing written)');
+      if (withCode.checked && ed && ed.value) {
+        lines.push('');
+        lines.push('My code at the time:');
+        lines.push('```');
+        lines.push(String(ed.value || ''));
+        lines.push('```');
+      }
+      return lines.join('\n');
+    };
+
+    return el('details', { class: 'report' }, [
+      el('summary', { class: 'tiny' }, ['Report a problem with this exercise']),
+      el('div', { class: 'report-body' }, [
+        el('p', { class: 'tiny faint', text: 'This prepares a report and copies it. '
+          + 'Nothing is sent anywhere — there is no server here to send it to.' }),
+        what,
+        hasEditor ? el('label', { class: 'tiny' }, [
+          withCode, ' Include the code currently in the editor',
+        ]) : null,
+        el('div', { class: 'row', style: 'gap:.4rem;align-items:center;margin-top:.4rem' }, [
+          el('button', {
+            class: 'btn btn-sm', type: 'button', id: 'reportCopy',
+            onclick: async () => {
+              const text = build();
+              let copied = false;
+              try {
+                await navigator.clipboard.writeText(text);
+                copied = true;
+              } catch { /* no permission, or an insecure origin */ }
+              note.textContent = copied
+                ? 'Copied. Paste it wherever you keep these.'
+                : 'Could not reach the clipboard — the report is below, select and copy it.';
+              const out = host && host.querySelector('#reportOut');
+              if (out) { out.textContent = text; out.hidden = copied; }
+            },
+          }, ['Copy the report']),
+          note,
+        ]),
+        el('pre', { class: 'report-out', id: 'reportOut', hidden: true }),
+      ]),
+    ]);
+  }
+
   /* Scoring, revealing and revisit scheduling: real, and not what the reader
      is doing right now, so they live behind one button rather than taking a
      column of the workspace. */
@@ -697,7 +863,10 @@ const ProblemView = (() => {
         r.reviewOn ? el('p', { class: 'tiny faint', style: 'margin:.4rem 0 0', text: `Booked for ${r.reviewOn}.` }) : null,
       ]) : null,
 
-      p.type === 'code' ? el('div', {}, [
+      el('hr', { class: 'ws-menu-rule' }),
+      reportNode(),
+
+      isWorkspace(p) ? el('div', {}, [
         el('hr', { class: 'ws-menu-rule' }),
         el('button', {
           class: 'btn btn-sm btn-ghost', type: 'button', id: 'resetLayoutBtn',
@@ -762,7 +931,7 @@ const ProblemView = (() => {
      code.js builds the picker, because it is the thing that knows which
      languages a problem takes and which of them can actually run. */
   function workStrip() {
-    const strip = tabStrip(WORK_TABS, workTab, setWorkTab, 'ws-tabs ws-tabs-work');
+    const strip = tabStrip(workTabs(), workTab, setWorkTab, 'ws-tabs ws-tabs-work');
     const editorTab = strip.querySelector('[data-tab="editor"]');
     if (editorTab) editorTab.after(el('div', { class: 'ws-lang-slot', id: 'langSlot' }));
     return strip;
@@ -876,10 +1045,32 @@ const ProblemView = (() => {
        program, and the other two are already here. */
     bar.replaceChildren(
       el('div', { class: 'ws-foot-left' }, [
+        /* Reset throws away everything written since the problem was
+           opened, which on a half-finished design is the afternoon.
+           It asks first, and the question says how much is at stake
+           rather than asking in the abstract — and it does not ask at
+           all when there is nothing to lose. */
         el('button', {
           class: 'btn btn-sm btn-ghost', type: 'button', id: 'resetBtn',
           title: 'Put the starting template back',
-          onclick: () => { if (impl.resetTemplate) impl.resetTemplate(); },
+          onclick: () => {
+            if (!impl.resetTemplate) return;
+            const ed = codeEditor();
+            const now = ed ? String(ed.value || '') : '';
+            const starter = impl.startingSource ? impl.startingSource(p) : null;
+            const untouched = starter != null && now.trim() === String(starter).trim();
+            if (!untouched && now.trim()) {
+              const lines = now.split('\n').length;
+              const ok = confirm(
+                'Put the starting template back?\n\n'
+                + `This replaces the ${lines} line${lines === 1 ? '' : 's'} in the editor `
+                + 'with the template the problem came with. It cannot be undone from '
+                + 'here, and the draft is overwritten.\n\n'
+                + 'Your submissions are kept either way.');
+              if (!ok) return;
+            }
+            impl.resetTemplate();
+          },
         }, ['Reset']),
         el('span', { class: 'tiny faint', id: 'draftNote' }, ['']),
       ]),
@@ -910,7 +1101,10 @@ const ProblemView = (() => {
         el('button', {
           class: 'btn btn-sm btn-run', type: 'button', id: 'runBtn',
           onclick: () => impl.run && impl.run(false),
-        }, ['Run tests']),
+          title: p.type === 'hdl'
+            ? 'Compile your design with the sample testbench and simulate it'
+            : 'Run the visible sample cases',
+        }, [p.type === 'hdl' ? 'Run simulation' : 'Run tests']),
         el('button', {
           class: 'btn btn-sm btn-primary', type: 'button', id: 'submitBtn',
           onclick: doSubmit,
@@ -997,6 +1191,14 @@ const ProblemView = (() => {
   function fillResultPane(pane) {
     if (!pane) return;
     pane.replaceChildren();
+
+    /* A type with its own tabs fills its own panes. It returns true
+       when it handled the tab, so a type can take some and leave the
+       rest — the hardware type takes its testbench, results, waveforms
+       and diagnostics, and leaves Submissions to the shared code
+       below, which is the same list of submitted programs either way. */
+    const own = current && ProblemTypes.get(current.type);
+    if (own && own.fillPane && own.fillPane(pane, workTab, current)) return;
 
     if (workTab === 'cases') {
       const cases = ((current.payload || {}).cases) || [];
@@ -1992,9 +2194,9 @@ const ProblemView = (() => {
           errored: true,
           errorWhy: result.feedback || 'execution failed',
           lang: result.lang || (response && response.lang) || null,
-          source: p.type === 'code' && response && typeof response.source === 'string'
+          source: isWorkspace(p) && response && typeof response.source === 'string'
             ? response.source : null,
-          response: p.type === 'code' ? null : response,
+          response: isWorkspace(p) ? null : response,
         });
         if (assess.onAnswer) assess.onAnswer();
       }
@@ -2030,9 +2232,9 @@ const ProblemView = (() => {
         correct: !!result.correct,
         fraction: typeof result.score === 'number' ? result.score : (result.correct ? 1 : 0),
         lang: result.lang || null,
-        source: p.type === 'code' && response && typeof response.source === 'string'
+        source: isWorkspace(p) && response && typeof response.source === 'string'
           ? response.source : null,
-        response: p.type === 'code' ? null : response,
+        response: isWorkspace(p) ? null : response,
         passedCases: result.passed != null ? result.passed : null,
         totalCases: result.total != null ? result.total : null,
       });
@@ -2049,7 +2251,7 @@ const ProblemView = (() => {
         /* A code problem also keeps the program itself, for the Submissions
            tab. Gated on the type rather than on "does the response happen to
            have a source field", because the type is the actual question. */
-        ...(p.type === 'code' ? submissionDigest(response, result) : {}),
+        ...(isWorkspace(p) ? submissionDigest(response, result) : {}),
       });
     }
 
@@ -2316,6 +2518,9 @@ const ProblemView = (() => {
   return {
     open, leave, toggleFocus, setSplit, splitFraction,
     showResults, resetLayout, setWorkTab,
+    /* For a type module that owns a pane: open it, and repaint it. The
+       strip belongs to the page, so a type cannot reach it directly. */
+    openPane, repaintPane,
     /* The code type paints the results pane and wants to say how long a run
        took in the same words the submissions list uses. One formatter, so
        the two cannot drift into "0 ms" and "<1 ms" for the same number. */

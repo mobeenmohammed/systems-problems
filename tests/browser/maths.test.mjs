@@ -164,12 +164,18 @@ section('tracks and reading are no longer half hidden');
 {
   await page.goto(`${BASE}/#/tracks`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(900);
+  /* By title rather than by a container's class. `#trackList .tcard`
+     matched nothing — the page has not used that markup for a while —
+     so this only ever checked a hard-coded count of eleven, which is
+     a check on how much content exists rather than on the page. */
   const tracks = await page.evaluate(() => ({
-    shown: document.querySelectorAll('#trackList .tcard, #trackList .track-card').length,
-    all: window.SystemsLab.Catalog.allTracks().length,
+    titles: window.SystemsLab.Catalog.allTracks().map(t => t.title),
     text: document.body.textContent,
   }));
-  ok(`every track is listed (${tracks.all})`, tracks.all === 11);
+  const missing = tracks.titles.filter(t => !tracks.text.includes(t));
+  ok(`every one of the ${tracks.titles.length} tracks is on the page`
+    + `${missing.length ? ` (missing: ${missing.join(', ')})` : ''}`,
+    tracks.titles.length > 0 && missing.length === 0);
   ok('including both subjects',
     /Metric spaces/i.test(tracks.text) && /C\+\+ foundations/i.test(tracks.text));
 }

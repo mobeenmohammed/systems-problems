@@ -182,5 +182,20 @@
       "prob-joint-marginal",
       "prob-continuous-uniform"
     ]
+  },
+  {
+    "id": "hardware-first-designs",
+    "title": "Writing hardware, and watching it run",
+    "blurb": "Four designs you write in SystemVerilog and simulate in this tab — a multiplexer, a counter, an edge detector and a state machine that finds a pattern — with the waveform beside each one. The questions around them are the vocabulary: what blocking assignment does to a shift register, what the fabric actually contains, and where the clock rate comes from.",
+    "goal": "Finish this and a timing diagram is something you can read off a trace rather than something you take on trust. It is simulation throughout: nothing here says a design would synthesise, meet timing, or work on a device, and the exercises say so.",
+    "problems": [
+      "hdl-mux",
+      "fpga-fabric-primitives",
+      "hdl-counter",
+      "fpga-blocking-shift-register",
+      "hdl-edge-detector",
+      "hdl-sequence-fsm",
+      "fpga-max-clock-frequency"
+    ]
   }
 ]

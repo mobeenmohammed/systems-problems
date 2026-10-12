@@ -843,6 +843,7 @@
 <script src="js/runners/browsercpp.js"></script>
 <script src="js/runners/browserpy.js"></script>
 <script src="js/runners/browserrust.js"></script>
+<script src="js/runners/browserhdl.js"></script>
 <script src="js/runners/index.js"></script>
 <script src="js/lint.js"></script>
 <script src="js/complete-cpp.js"></script>
@@ -857,6 +858,15 @@
 <script src="js/types/locate.js"></script>
 <script src="js/types/maths.js"></script>
 <script src="js/types/code.js"></script>
+<!-- The hardware exercises. grade.js carries the rules that say what a
+     passed simulation is, and is loaded before the type that applies
+     them and before the viewer that marks a failing instant; vcd.js
+     reads the waveform file and wave.js draws it. The simulator itself
+     is three WebAssembly modules fetched on the first Run, not here. -->
+<script src="js/hdl/grade.js"></script>
+<script src="js/hdl/vcd.js"></script>
+<script src="js/hdl/wave.js"></script>
+<script src="js/types/hdl.js"></script>
 <script src="js/problem.js"></script>
 <script src="js/setup.js"></script>
 <script src="js/assessments.js"></script>

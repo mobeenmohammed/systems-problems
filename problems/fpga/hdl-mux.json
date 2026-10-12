@@ -1,0 +1,39 @@
+{
+  "id": "hdl-mux",
+  "title": "A 4-to-1 multiplexer",
+  "topic": "fpga",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "hdl",
+  "tags": [
+    "combinational",
+    "multiplexer",
+    "always_comb",
+    "bit-vectors"
+  ],
+  "estimate": 15,
+  "prereqs": [
+    {
+      "concept": "hdl-assignments",
+      "why": "A multiplexer is combinational, and which assignment operator that calls for is the first thing to get right."
+    }
+  ],
+  "statement": "Write a **4-to-1 multiplexer**, `W` bits wide.\n\n```\nmodule mux4 #(parameter int W = 8) (\n  input  logic [W-1:0] d0, d1, d2, d3,\n  input  logic [1:0]   sel,\n  output logic [W-1:0] y\n);\n```\n\n### What it must do\n\n| `sel` | `y` |\n| --- | --- |\n| `2'b00` | `d0` |\n| `2'b01` | `d1` |\n| `2'b10` | `d2` |\n| `2'b11` | `d3` |\n\nPurely combinational: `y` follows its inputs with no clock and no state. There is no reset, because there is nothing to reset.\n\n### Precisely\n\n- `W` is a parameter and the testbench sets it. Do not assume 8.\n- Every one of the four `sel` values must be covered. A `case` with no `default` and three branches leaves `y` holding its last value, which is a latch — and in simulation it is a bug you can see in the waveform.\n- If `sel` is `x`, `y` may be anything. The checks do not test that.\n\nThis is **simulation**. Passing says your design behaves correctly under the testbench; it says nothing about whether it would synthesise, meet timing, or work on a device.",
+  "hints": [
+    "Combinational logic is `always_comb` or a continuous `assign`, and in both cases every output must be assigned on every path through the block. That is the difference between combinational logic and a latch.",
+    "A `case (sel)` inside `always_comb` is the clearest form. Give it all four values, or a `default`, so there is no path that leaves `y` unassigned.",
+    "The widths come from the parameter: declare nothing as `[7:0]`. `logic [W-1:0]` in the port list is already done for you — the point is not to hard-code 8 anywhere inside."
+  ],
+  "payload": {
+    "top": "mux4",
+    "generation": "2012",
+    "template": "module mux4 #(parameter int W = 8) (\n  input  logic [W-1:0] d0, d1, d2, d3,\n  input  logic [1:0]   sel,\n  output logic [W-1:0] y\n);\n\n  // your code here: select one of the four inputs according to sel.\n  // Combinational — every path must assign y, or you have built a\n  // latch rather than a multiplexer.\n\nendmodule\n",
+    "testbench": "`timescale 1ns/1ps\n// The sample testbench. Run uses this one; Submit uses a different\n// one that tries cases this does not.\nmodule tb;\n  localparam int W = 8;\n  logic [W-1:0] d0, d1, d2, d3, y;\n  logic [1:0]   sel;\n\n  mux4 #(.W(W)) dut (.d0(d0), .d1(d1), .d2(d2), .d3(d3), .sel(sel), .y(y));\n\n  initial begin\n    $dumpfile(\"dump.vcd\");\n    $dumpvars(0, tb);\n\n    d0 = 8'h11; d1 = 8'h22; d2 = 8'h33; d3 = 8'h44;\n\n    sel = 2'b00; #1;\n    $display(\"CHECK sel0 %h %h AT %0d\", 8'h11, y, $time);\n    sel = 2'b01; #1;\n    $display(\"CHECK sel1 %h %h AT %0d\", 8'h22, y, $time);\n    sel = 2'b10; #1;\n    $display(\"CHECK sel2 %h %h AT %0d\", 8'h33, y, $time);\n    sel = 2'b11; #1;\n    $display(\"CHECK sel3 %h %h AT %0d\", 8'h44, y, $time);\n\n    #2;\n    $display(\"DONE 4\");\n    $finish;\n  end\nendmodule\n",
+    "checks": [
+      "sel0",
+      "sel1",
+      "sel2",
+      "sel3"
+    ]
+  }
+}

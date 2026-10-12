@@ -2877,6 +2877,36 @@ body[data-graph="true"] #view-learn { height: 100%; min-height: 0; }
 .oa-start { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3); margin: var(--s4) 0; }
 .oa-start .small { max-width: 44ch; color: var(--text-dim); }
 
+/* An attempt that is still open, said at the top of the page. The
+   clock is a deadline, so one left behind is running down whether or
+   not anybody is looking at it — which makes this the most useful
+   thing this page can say, not a decoration. */
+.oa-resume {
+  display: flex; align-items: center; gap: var(--s4); flex-wrap: wrap;
+  margin: 0 0 var(--s4); padding: var(--s4);
+  border-radius: var(--radius); background: var(--bg-elev);
+  border: 1px solid var(--accent); border-left-width: 3px;
+}
+.oa-resume[data-urgent="true"] { border-color: var(--warn); }
+.oa-resume-text { flex: 1 1 22rem; min-width: 0; }
+.oa-resume-text p { margin: .2rem 0 0; color: var(--text-dim); }
+
+/* Reporting a bad exercise. Prepared and copied; never sent. */
+.report { margin-top: .2rem; }
+.report summary { cursor: pointer; color: var(--text-dim); }
+.report-body { padding-top: .3rem; display: flex; flex-direction: column; gap: .3rem; }
+.report-what {
+  width: 100%; font: inherit; font-size: .82rem; padding: .4rem;
+  background: var(--bg-inset); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius-s);
+  resize: vertical;
+}
+.report-out {
+  margin: .4rem 0 0; padding: .5rem; max-height: 14rem; overflow: auto;
+  background: var(--bg-inset); border-radius: var(--radius-s);
+  font-size: .72rem; white-space: pre-wrap; overflow-wrap: anywhere;
+}
+
 /* ---- the attempt ----
 
    The window, like the code workspace and the graph: the clock and the
@@ -3060,6 +3090,113 @@ body[data-attempt="true"] .pwrap.reading .pmain { padding-bottom: var(--s6); }
   .oa-bar-acts { flex: 1 1 100%; margin-left: 0; justify-content: flex-end; }
   .oa-progress { flex: 1 1 auto; }
 }
+
+/* ---------------- hardware exercises ----------------
+
+   The result pane of an hdl problem: a list of named checks, each with
+   what was expected and what happened, and the console under it. The
+   waveform is its own tab and its own set of rules below.
+
+   Three states per check and they are three different things: passed,
+   failed, and never ran. The third is why the colour is not enough on
+   its own — "missing" is a hole in the run rather than a wrong value,
+   and it says so in words. */
+.hdl-checks { display: flex; flex-direction: column; gap: 2px; margin: var(--s3) 0; }
+.hdl-check {
+  display: flex; align-items: baseline; gap: var(--s3); flex-wrap: wrap;
+  padding: .3rem var(--s3); border-radius: var(--radius-s);
+  background: var(--bg-inset); border-left: 3px solid var(--border);
+}
+.hdl-check[data-state="pass"]    { border-left-color: var(--ok); }
+.hdl-check[data-state="fail"]    { border-left-color: var(--danger); }
+.hdl-check[data-state="missing"] { border-left-color: var(--warn); border-style: dashed;
+  border-left-style: solid; }
+.hdl-check-name { font-weight: 600; font-size: .82rem; min-width: 11ch; }
+.hdl-head { margin: var(--s4) 0 .3rem; font-size: .8rem; color: var(--text-dim); }
+/* Everything the design and the testbench printed, verbatim. Bounded,
+   because a $monitor on a wide bus produces megabytes in a few
+   simulated microseconds and the runner caps what it keeps. */
+.run-out-pre {
+  margin: 0; padding: var(--s3); max-height: 22rem; overflow: auto;
+  background: var(--bg-inset); border-radius: var(--radius-s);
+  font-size: .78rem; white-space: pre-wrap; overflow-wrap: anywhere;
+}
+
+/* Compiler messages, with the file and the line in front of each. */
+.diags { display: flex; flex-direction: column; gap: 2px; }
+.diag {
+  display: grid; grid-template-columns: auto auto minmax(0, 1fr); gap: var(--s3);
+  align-items: baseline; padding: .3rem var(--s3);
+  border-radius: var(--radius-s); background: var(--bg-inset);
+  border-left: 3px solid var(--border);
+}
+.diag[data-level="error"] { border-left-color: var(--danger); }
+.diag[data-level="warning"] { border-left-color: var(--warn); }
+.diag[data-level="sorry"] { border-left-color: var(--accent); }
+.diag-where { color: var(--text-dim); white-space: nowrap; }
+.diag-level { color: var(--text-faint); text-transform: lowercase; }
+.diag-msg { font-size: .85rem; overflow-wrap: anywhere; }
+@media (max-width: 700px) {
+  .diag { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ---------------- the waveform viewer ----------------
+
+   A canvas for the traces, DOM for everything else. The names column
+   is a fixed width so the lanes line up with their labels, and the
+   canvas takes the rest — the lane height is in wave.js and the two
+   have to agree, which is why the row height is written here as a
+   variable rather than twice. */
+.wave { display: flex; flex-direction: column; gap: var(--s2); }
+.wave-bar {
+  display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap;
+}
+.wave-bar .btn { padding: .15rem .5rem; }
+.wave-baselab { display: inline-flex; align-items: center; gap: .3rem; }
+.wave-base {
+  font: inherit; font-size: .78rem; padding: .1rem .2rem;
+  background: var(--bg-inset); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius-s);
+}
+.wave-at { margin-left: auto; color: var(--accent); }
+
+.wave-pick summary { cursor: pointer; color: var(--text-dim); }
+.wave-pick-body {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: 0 var(--s3); max-height: 9rem; overflow-y: auto;
+  padding: var(--s2) 0; overscroll-behavior: contain;
+}
+.wave-pick-row { display: flex; align-items: center; gap: .35rem; min-width: 0; }
+.wave-pick-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.wave-plot {
+  display: grid; grid-template-columns: 11rem minmax(0, 1fr);
+  background: var(--bg-inset); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden;
+}
+.wave-names { display: flex; flex-direction: column; border-right: 1px solid var(--border); }
+/* Matches AXIS_H in wave.js: the first row of the names column is the
+   space the time axis takes, so the names line up with their lanes. */
+.wave-name-axis { height: 22px; flex: none; }
+.wave-name {
+  height: 26px; margin-bottom: 4px; flex: none;
+  display: flex; align-items: center; gap: .3rem;
+  padding: 0 var(--s3); font-size: .76rem;
+  overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+.wave-canvas { display: block; width: 100%; }
+.wave-canvas:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+.wave-cursor-info {
+  display: flex; flex-wrap: wrap; gap: var(--s3) var(--s4);
+  padding: var(--s2) 0; min-height: 1.4rem;
+}
+.wave-val b { color: var(--text); }
+/* A value with an x or a z in it is not a number and is not shown as
+   one. Marked so it cannot be skimmed past. */
+.wave-val b[data-unknown="true"] { color: var(--danger); }
+
+.wave-host { min-width: 0; }
 
 /* ---------------- mathematics ----------------
 

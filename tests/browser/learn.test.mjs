@@ -59,7 +59,10 @@ await open('#/learn');
     toConcepts: !!document.querySelector('#learnIndex a[href="#/concepts"]'),
   }));
   check('every track has a card', m.cards, m.all);
-  ok(`and there are eleven of them (${m.cards})`, m.cards === 11);
+  /* Counted from the data rather than written down: a number typed
+     into a test is a test that fails when content is added, which is
+     not a failure. */
+  ok(`and there is a card for each (${m.cards})`, m.cards === m.all && m.cards > 0);
   ok('grouped by subject', m.groups.includes('Systems') && m.groups.includes('Mathematics'));
   check('Learn is the entry marked as the page you are on', m.nav.trim(), 'Learn');
   check('Tracks and Reading are no longer their own tabs', m.gone, 0);

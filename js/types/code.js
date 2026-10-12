@@ -1013,6 +1013,10 @@ fn main() {
     /* Reset is a button in the bar at the foot of the column, which the
        problem page builds; the template it puts back is this module's. */
     resetTemplate,
+    /* What Reset would put back, so the page can tell "nothing to lose"
+       from "an afternoon to lose" before asking. */
+    startingSource: problem => templateFor(problem,
+      state ? state.lang : (problem.payload.langs || [])[0]),
 
     /* The language names, so the Submissions tab can say "C++" without a
        fourth copy of the same four words. */

@@ -126,6 +126,9 @@ const sources = [read('index.html'), ...[
   'js/types/registry.js', 'js/types/mcq.js', 'js/types/numeric.js',
   'js/types/order.js', 'js/types/match.js', 'js/types/predict.js',
   'js/types/locate.js', 'js/types/code.js', 'js/types/maths.js',
+  /* The hardware exercises: the type, and the waveform viewer, which
+     builds its own chrome rather than being handed markup. */
+  'js/types/hdl.js', 'js/hdl/wave.js',
 ].map(read)].join('\n');
 
 /* Candidates come from the obvious forms; membership is then decided by plain

@@ -278,7 +278,14 @@ section('a language nothing can run is still offered, with the reason');
   check('and the button renamed', picked.name, 'Rust');
   ok(`the Rust template is in the editor (${picked.doc.length} chars)`,
     /fn main/.test(picked.doc));
-  ok(`the bar says it cannot run ("${picked.chip}")`, /No runner/.test(picked.chip || ''));
+  /* "No runner" was the whole truth when nothing could check Rust
+     either. It is not any more: the browser rustc type-checks every
+     Rust problem on every keystroke and only code generation is
+     missing, so the chip says which of the two states this is. Either
+     message is acceptable here — the assertion is that it does not
+     claim the problem can be run. */
+  ok(`the bar says it cannot be run ("${picked.chip}")`,
+    /No runner|Checked, not run/.test(picked.chip || ''));
   ok('and offers the way out', picked.setup);
 }
 

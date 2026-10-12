@@ -54,6 +54,12 @@ export const TYPES = [
      stated tolerance is something the reader must be told, and a type is
      harder to forget than a field. */
   'exact', 'approx', 'structured', 'proofsteps', 'counterexample', 'proof',
+  /* Hardware. A module to write, a testbench to run it against, and a
+     waveform. Not `code` with a language of its own, because almost
+     nothing about it is shared: two sources rather than one, a grading
+     testbench rather than a list of stdin/expect pairs, and a result
+     that is a set of named checks rather than a diff. */
+  'hdl',
 ];
 export const LANGS = ['js', 'python', 'cpp', 'rust'];
 export const PROFILES = ['standard', 'sanitize', 'strict', 'parallel'];
@@ -281,6 +287,46 @@ function validatePayload(p, err, where) {
         if (typeof c.expect === 'string' && c.expect.includes(LITERAL_NL)) {
           err(where, `visible case ${i} expect contains a literal backslash-n`);
         }
+      }
+      break;
+
+    case 'hdl':
+      if (!pay.top) err(where, 'hdl needs payload.top — the module the testbench instantiates');
+      if (!pay.template) err(where, 'hdl needs payload.template: the design starter');
+      if (!pay.testbench) err(where, 'hdl needs payload.testbench: the sample testbench Run uses');
+      if (!Array.isArray(pay.checks) || !pay.checks.length) {
+        err(where, 'hdl needs payload.checks: the names the SAMPLE testbench prints');
+      }
+      if (pay.generation && !['2005', '2009', '2012'].includes(String(pay.generation))) {
+        err(where, `unknown generation "${pay.generation}" (2005, 2009 or 2012)`);
+      }
+      /* The sample testbench has to instantiate the module the problem
+         says it does, or the starter and the harness are about different
+         designs and the first Run fails for a reason the reader cannot
+         see. */
+      if (pay.top && pay.testbench && !new RegExp(`\\b${pay.top}\\b`).test(pay.testbench)) {
+        err(where, `payload.testbench never mentions "${pay.top}"`);
+      }
+      if (pay.top && pay.template && !new RegExp(`module\\s+${pay.top}\\b`).test(pay.template)) {
+        err(where, `payload.template does not declare "module ${pay.top}"`);
+      }
+      /* Every check the sample testbench is said to print must actually
+         be printed by it, or Run reports a check that never runs and
+         the reader goes looking for a bug in their design. */
+      for (const name of pay.checks || []) {
+        if (!new RegExp(`CHECK\\s+${name}\\b`).test(String(pay.testbench || ''))) {
+          err(where, `payload.checks names "${name}", which the sample testbench never prints`);
+        }
+      }
+      /* It must terminate. A sample testbench with no $finish is an
+         exercise whose Run always ends in the ten-second timeout. */
+      if (pay.testbench && !/\$finish/.test(pay.testbench)) {
+        err(where, 'the sample testbench has no $finish, so every Run would hit the time limit');
+      }
+      /* And it must dump, or there is no waveform to look at, which is
+         half the point of a hardware exercise. */
+      if (pay.testbench && !/\$dumpvars/.test(pay.testbench)) {
+        err(where, 'the sample testbench has no $dumpvars, so there would be no waveform');
       }
       break;
 
@@ -535,6 +581,57 @@ function validateKey(p, sol, err, where) {
       const lines = String(p.payload.code || '').split('\n').length;
       if (!Number.isInteger(k.line)) err(where, 'locate key needs a line number');
       else if (k.line < 1 || k.line > lines) err(where, `line ${k.line} is outside the ${lines}-line listing`);
+      break;
+    }
+    case 'hdl': {
+      if (!k.harness) err(where, 'hdl key needs a grading testbench in key.harness');
+      if (!Array.isArray(k.checks) || !k.checks.length) {
+        err(where, 'hdl key needs key.checks: the names the GRADING testbench prints');
+      }
+      if (!k.reference || !k.reference.sv) {
+        err(where, 'hdl key needs a reference design in key.reference.sv, so the '
+          + 'exercise can be proved solvable');
+      }
+      const harness = String(k.harness || '');
+      for (const name of k.checks || []) {
+        if (!new RegExp(`CHECK\\s+${name}\\b`).test(harness)) {
+          err(where, `key.checks names "${name}", which the grading testbench never prints`);
+        }
+      }
+      /* The DONE line is what tells a finished run from a hung one, so a
+         grading testbench without one can never report a pass. */
+      if (!/DONE\s/.test(harness)) {
+        err(where, 'the grading testbench never prints a DONE line, so no run of it '
+          + 'could ever be counted as complete');
+      }
+      if (!/\$finish/.test(harness)) {
+        err(where, 'the grading testbench has no $finish, so every submission would '
+          + 'hit the time limit');
+      }
+      /* The count on the DONE line has to match the number of checks, or
+         every run is reported as incomplete. */
+      const done = /DONE\s+(\d+)/.exec(harness);
+      const printed = (harness.match(/CHECK\s+\S+/g) || []).length;
+      if (done && Number(done[1]) !== printed) {
+        err(where, `the grading testbench prints ${printed} checks and says DONE ${done[1]}`);
+      }
+      /* The grading testbench must instantiate the module the problem
+         names, or it is grading something else. */
+      if (p.payload && p.payload.top && !new RegExp(`\\b${p.payload.top}\\b`).test(harness)) {
+        err(where, `the grading testbench never mentions "${p.payload.top}"`);
+      }
+      /* A grading testbench that is the sample one is not a grading
+         testbench: Submit would try exactly what Run already showed. */
+      if (p.payload && String(p.payload.testbench || '').trim() === harness.trim()) {
+        err(where, 'the grading testbench is identical to the sample one, so Submit '
+          + 'tries nothing Run did not');
+      }
+      if (p.payload && (p.payload.checks || []).length
+        && (k.checks || []).length <= (p.payload.checks || []).length
+        && (k.checks || []).every(c => (p.payload.checks || []).includes(c))) {
+        err(where, 'the grading checks are a subset of the visible ones, so the hidden '
+          + 'testbench adds nothing');
+      }
       break;
     }
     case 'code': {

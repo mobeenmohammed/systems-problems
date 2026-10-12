@@ -1569,6 +1569,46 @@
     ]
   },
   {
+    "id": "hdl-counter",
+    "title": "A counter with reset and enable",
+    "topic": "fpga",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "hdl",
+    "tags": [
+      "sequential",
+      "always_ff",
+      "non-blocking",
+      "reset",
+      "overflow"
+    ],
+    "estimate": 20,
+    "subject": "systems",
+    "prereqs": [
+      "hdl-assignments",
+      "state-machines"
+    ]
+  },
+  {
+    "id": "hdl-mux",
+    "title": "A 4-to-1 multiplexer",
+    "topic": "fpga",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "hdl",
+    "tags": [
+      "combinational",
+      "multiplexer",
+      "always_comb",
+      "bit-vectors"
+    ],
+    "estimate": 15,
+    "subject": "systems",
+    "prereqs": [
+      "hdl-assignments"
+    ]
+  },
+  {
     "id": "fpga-max-clock-frequency",
     "title": "The fastest this design can be clocked",
     "topic": "fpga",
@@ -1663,6 +1703,47 @@
     "langs": [
       "cpp",
       "python"
+    ]
+  },
+  {
+    "id": "hdl-edge-detector",
+    "title": "A rising-edge detector",
+    "topic": "fpga",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "hdl",
+    "tags": [
+      "sequential",
+      "edge-detection",
+      "registers",
+      "output-timing"
+    ],
+    "estimate": 20,
+    "subject": "systems",
+    "prereqs": [
+      "hdl-assignments",
+      "shift-registers"
+    ]
+  },
+  {
+    "id": "hdl-sequence-fsm",
+    "title": "A state machine that finds 1101",
+    "topic": "fpga",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "hdl",
+    "tags": [
+      "fsm",
+      "state-machines",
+      "overlapping",
+      "enum",
+      "moore-mealy"
+    ],
+    "estimate": 30,
+    "subject": "systems",
+    "prereqs": [
+      "state-machines",
+      "finite-state-machines"
     ]
   },
   {

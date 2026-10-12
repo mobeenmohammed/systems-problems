@@ -1,0 +1,44 @@
+{
+  "id": "hdl-edge-detector",
+  "title": "A rising-edge detector",
+  "topic": "fpga",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "hdl",
+  "tags": [
+    "sequential",
+    "edge-detection",
+    "registers",
+    "output-timing"
+  ],
+  "estimate": 20,
+  "prereqs": [
+    {
+      "concept": "hdl-assignments",
+      "why": "The whole exercise is one register and what it means to compare a signal with its own previous value."
+    },
+    {
+      "concept": "shift-registers",
+      "why": "A one-bit shift register is exactly what remembering the last sample is."
+    }
+  ],
+  "statement": "Write a **rising-edge detector**.\n\n```\nmodule edge_detect (\n  input  logic clk,\n  input  logic rst,\n  input  logic din,\n  output logic rise\n);\n```\n\n### Precisely\n\n`rise` is **registered**, and it is high for exactly one clock cycle, in the cycle **after** the one in which `din` went from 0 to 1.\n\n```\ncycle    0   1   2   3   4   5\ndin      0   1   1   0   1   0\nrise     0   0   1   0   0   1\n```\n\nRead that carefully: `din` rises during cycle 1, and `rise` is high in cycle **2**. There is one cycle of latency, and the exercise is as much about that as about the comparison.\n\n- Rising edge of `clk` only.\n- `rst` is synchronous and active high: it clears both the remembered sample and `rise`.\n- A **falling** edge of `din` must produce nothing.\n- `din` held high for many cycles produces exactly **one** pulse, not a run of them.\n- After a reset, the first sample of `din` is not an edge. Coming out of reset with `din` already high must not produce a pulse.\n\nThis is **simulation**. Passing says nothing about synthesis or timing.",
+  "hints": [
+    "You need one bit of memory: what `din` was on the previous rising edge. Everything else follows from comparing that with what it is now.",
+    "A rising edge is \"high now, low before\". With `din_prev` holding the previous sample, that is one AND of two bits — and because `rise` is registered, it is assigned in the same clocked block, from the values *before* this edge.",
+    "The reset case decides the \"coming out of reset with din high\" requirement. Think about what `din_prev` should be while reset is asserted, and what that makes the first comparison after it."
+  ],
+  "payload": {
+    "top": "edge_detect",
+    "generation": "2012",
+    "template": "module edge_detect (\n  input  logic clk,\n  input  logic rst,\n  input  logic din,\n  output logic rise\n);\n\n  // your code here: remember what din was on the previous rising edge,\n  // and drive rise high for exactly one cycle after din goes 0 -> 1.\n  //\n  // rise is registered: it appears one cycle after the change, not in\n  // the same cycle. Clocked logic, so non-blocking assignment.\n\nendmodule\n",
+    "testbench": "`timescale 1ns/1ps\n// The sample testbench. Run uses this one; Submit uses a different\n// one that tries cases this does not.\nmodule tb;\n  logic clk = 1'b0, rst = 1'b1, din = 1'b0, rise;\n  int pulses = 0;\n\n  edge_detect dut (.clk(clk), .rst(rst), .din(din), .rise(rise));\n\n  always #5 clk = ~clk;\n\n  // Count every cycle in which rise is high, sampled away from the edge.\n  always @(negedge clk) if (rise) pulses++;\n\n  initial begin\n    $dumpfile(\"dump.vcd\");\n    $dumpvars(0, tb);\n\n    @(posedge clk); @(negedge clk);\n    $display(\"CHECK after_reset 0 %b AT %0d\", rise, $time);\n    rst = 1'b0;\n\n    // din rises during this cycle...\n    @(negedge clk) din = 1'b1;\n    // ...so rise should be high in the NEXT one.\n    @(posedge clk); #1;\n    $display(\"CHECK one_cycle_later 1 %b AT %0d\", rise, $time);\n\n    // and low again in the one after that, with din still high.\n    @(posedge clk); #1;\n    $display(\"CHECK single_pulse 0 %b AT %0d\", rise, $time);\n\n    // A falling edge is not an edge we care about.\n    @(negedge clk) din = 1'b0;\n    @(posedge clk); #1;\n    $display(\"CHECK no_fall 0 %b AT %0d\", rise, $time);\n\n    repeat (2) @(posedge clk);\n    @(negedge clk); #1;\n    $display(\"CHECK total 1 %0d AT %0d\", pulses, $time);\n    $display(\"DONE 5\");\n    $finish;\n  end\nendmodule\n",
+    "checks": [
+      "after_reset",
+      "one_cycle_later",
+      "single_pulse",
+      "no_fall",
+      "total"
+    ]
+  }
+}

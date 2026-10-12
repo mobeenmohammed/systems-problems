@@ -107,6 +107,23 @@ jobs:
       - name: The vendored Rust toolchain is the pinned build
         run: npm run check:vendor-rust
 
+      # And for the hardware exercises. The support list is produced by
+      # compiling each reference design with BOTH its sample and its
+      # grading testbench and requiring every named check to pass, and
+      # the feature table is a program per language feature with its
+      # expected output stated in advance. A stale file would publish a
+      # supported subset that nothing had verified.
+      - name: The SystemVerilog support list and feature table match
+        run: npm run check:hdl
+
+      # The simulator is pinned by sha256, like the Rust one, and for
+      # the same reason: it is a dependency that executes code. It is
+      # also GPL-2.0-or-later, so the pin is what makes "redistributed
+      # unmodified, from this exact commit" a checkable claim rather
+      # than a sentence in a README.
+      - name: The vendored Verilog simulator is the pinned build
+        run: npm run check:vendor-hdl
+
       # The local runner writes data/judge-token.json on every start. It is in
       # .gitignore, but the deploy job publishes the whole checkout, so a
       # mistake here would put a live credential on a public URL.

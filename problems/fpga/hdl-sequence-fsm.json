@@ -1,0 +1,44 @@
+{
+  "id": "hdl-sequence-fsm",
+  "title": "A state machine that finds 1101",
+  "topic": "fpga",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "hdl",
+  "tags": [
+    "fsm",
+    "state-machines",
+    "overlapping",
+    "enum",
+    "moore-mealy"
+  ],
+  "estimate": 30,
+  "prereqs": [
+    {
+      "concept": "state-machines",
+      "why": "This is the smallest machine with a genuinely interesting state transition: what to do when a match fails part way through."
+    },
+    {
+      "concept": "finite-state-machines",
+      "why": "The states are prefixes of the pattern, which is the idea the whole exercise turns on."
+    }
+  ],
+  "statement": "Write a state machine that watches a serial input and reports every occurrence of the bit pattern **1101**, most significant bit first, **including overlapping ones**.\n\n```\nmodule seq1101 (\n  input  logic clk,\n  input  logic rst,\n  input  logic din,\n  output logic found\n);\n```\n\n### Precisely\n\n- One bit of `din` is consumed on each **rising edge** of `clk`.\n- `found` is **registered**: it is high for exactly one cycle, in the cycle **after** the edge on which the last bit of the pattern arrived.\n- `rst` is synchronous and active high, and returns the machine to its initial state with `found` low.\n- **Overlapping matches count.** The input `1101101` contains two: at bits 1–4 and at bits 4–7. The trailing `1` of one match is the leading `1` of the next.\n\n```\ndin    1  1  0  1  1  0  1\nfound  0  0  0  0  1  0  0  1\n                   ^        ^\n                   |        the second match, one cycle after its last bit\n                   the first match, one cycle after its last bit\n```\n\nThe overlapping requirement is the whole exercise. A machine that returns to its initial state after a match finds only the first one.\n\nThis is **simulation**. Passing says nothing about synthesis or timing.",
+  "hints": [
+    "Name the states after how much of the pattern you have seen: nothing, \"1\", \"11\", \"110\". Four states, and the one you are in is a statement about the recent past.",
+    "The interesting transitions are the failures. From \"110\", a 0 arrives — you now have \"1100\", which ends in 00, so nothing useful is left: go back to the start. From \"11\", a 1 arrives — you have \"111\", whose longest useful suffix is \"1\", so you stay in \"11\" rather than starting over.",
+    "For overlapping: after the final 1 completes 1101, the input so far ends in \"1\". That is a one-bit prefix of the pattern, so the next state is the \"seen 1\" state and not the initial one. Getting this wrong is what makes a detector find only every other match."
+  ],
+  "payload": {
+    "top": "seq1101",
+    "generation": "2012",
+    "template": "module seq1101 (\n  input  logic clk,\n  input  logic rst,\n  input  logic din,\n  output logic found\n);\n\n  // your code here.\n  //\n  // Suggested shape: a state register holding how much of the pattern\n  // has been seen, a next-state decision, and a registered found.\n  //\n  // The transition to get right is what happens after a match: the\n  // last bit of 1101 is a 1, and a 1 is the start of the next 1101.\n\nendmodule\n",
+    "testbench": "`timescale 1ns/1ps\n// The sample testbench. Run uses this one; Submit uses a different\n// one that tries cases this does not.\nmodule tb;\n  logic clk = 1'b0, rst = 1'b1, din = 1'b0, found;\n  int hits = 0;\n\n  seq1101 dut (.clk(clk), .rst(rst), .din(din), .found(found));\n\n  always #5 clk = ~clk;\n  always @(negedge clk) if (found) hits++;\n\n  // Drive one bit per cycle, most significant first.\n  task automatic feed(input logic [31:0] bits, input int n);\n    for (int i = n - 1; i >= 0; i--) begin\n      @(negedge clk) din = bits[i];\n      @(posedge clk);\n    end\n  endtask\n\n  initial begin\n    $dumpfile(\"dump.vcd\");\n    $dumpvars(0, tb);\n\n    @(posedge clk); @(negedge clk);\n    $display(\"CHECK after_reset 0 %b AT %0d\", found, $time);\n    rst = 1'b0;\n\n    // One clean match.\n    feed(32'b1101, 4);\n    @(negedge clk); #1;\n    $display(\"CHECK one_match 1 %0d AT %0d\", hits, $time);\n\n    // Nothing in a pattern that never completes.\n    feed(32'b1001001, 7);\n    @(negedge clk); #1;\n    $display(\"CHECK no_false_positive 1 %0d AT %0d\", hits, $time);\n\n    repeat (2) @(posedge clk);\n    @(negedge clk); #1;\n    $display(\"CHECK stays 1 %0d AT %0d\", hits, $time);\n    $display(\"DONE 4\");\n    $finish;\n  end\nendmodule\n",
+    "checks": [
+      "after_reset",
+      "one_match",
+      "no_false_positive",
+      "stays"
+    ]
+  }
+}

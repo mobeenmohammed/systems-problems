@@ -31,6 +31,7 @@ const Catalog = (() => {
     { id: 'predict', label: 'Predict output',  note: 'Say exactly what it prints.' },
     { id: 'locate',  label: 'Find the bug',    note: 'Click the offending line.' },
     { id: 'code',    label: 'Write code',      note: 'Compiled and run against tests.' },
+    { id: 'hdl',     label: 'Design hardware', note: 'Written in SystemVerilog and simulated against a testbench.' },
   ];
   const TYPE_BY_ID = Object.fromEntries(TYPES.map(t => [t.id, t]));
 
@@ -40,7 +41,16 @@ const Catalog = (() => {
      two maps that have to agree eventually disagree. The build validates
      every problem's `langs` against this same list. */
   const LANGS = ['cpp', 'python', 'rust', 'js'];
-  const LANG_LABEL = { js: 'JavaScript', python: 'Python', cpp: 'C++', rust: 'Rust' };
+  /* `sv` is in the labels and NOT in LANGS, deliberately. A hardware
+     exercise is not "solvable in SystemVerilog" in the sense the
+     language filter means — it is solvable in nothing else — so it
+     does not belong in a filter that offers four programming
+     languages. But a submitted design still has to be listed as
+     something, and "sv" is not a word. */
+  const LANG_LABEL = {
+    js: 'JavaScript', python: 'Python', cpp: 'C++', rust: 'Rust',
+    sv: 'SystemVerilog',
+  };
 
   let index     = [];
   let byId      = {};

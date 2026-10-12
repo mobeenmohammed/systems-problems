@@ -1,0 +1,29 @@
+{
+  "id": "hdl-mux",
+  "key": {
+    "checks": [
+      "sel0",
+      "sel1",
+      "sel2",
+      "sel3",
+      "width4",
+      "follows_input",
+      "no_latch"
+    ],
+    "harness": "`timescale 1ns/1ps\n// The grading testbench. Four things the sample one does not do:\n// a different width, a change on the *selected* input while sel is\n// held, a latch test, and an x on sel.\nmodule tb;\n  logic [3:0] a0, a1, a2, a3, y4;\n  logic [1:0] sel;\n  logic [3:0] before_change;\n\n  mux4 #(.W(4)) narrow (.d0(a0), .d1(a1), .d2(a2), .d3(a3), .sel(sel), .y(y4));\n\n  initial begin\n    a0 = 4'h1; a1 = 4'h2; a2 = 4'h4; a3 = 4'h8;\n\n    sel = 2'b00; #1; $display(\"CHECK sel0 %h %h AT %0d\", 4'h1, y4, $time);\n    sel = 2'b01; #1; $display(\"CHECK sel1 %h %h AT %0d\", 4'h2, y4, $time);\n    sel = 2'b10; #1; $display(\"CHECK sel2 %h %h AT %0d\", 4'h4, y4, $time);\n    sel = 2'b11; #1; $display(\"CHECK sel3 %h %h AT %0d\", 4'h8, y4, $time);\n\n    // A narrower instance must still work: anything hard-coded to 8\n    // bits fails here and nowhere else.\n    sel = 2'b01; a1 = 4'hF; #1;\n    $display(\"CHECK width4 %h %h AT %0d\", 4'hf, y4, $time);\n\n    // Combinational: changing the selected input changes the output\n    // with no edge anywhere.\n    a1 = 4'h3; #1;\n    $display(\"CHECK follows_input %h %h AT %0d\", 4'h3, y4, $time);\n\n    // A latch would hold the old value when sel moves to an input the\n    // design forgot to cover. Walk every sel once more, reading each.\n    begin\n      logic ok;\n      ok = 1'b1;\n      a0 = 4'h5; a1 = 4'h6; a2 = 4'h7; a3 = 4'h9;\n      sel = 2'b00; #1; if (y4 !== 4'h5) ok = 1'b0;\n      sel = 2'b01; #1; if (y4 !== 4'h6) ok = 1'b0;\n      sel = 2'b10; #1; if (y4 !== 4'h7) ok = 1'b0;\n      sel = 2'b11; #1; if (y4 !== 4'h9) ok = 1'b0;\n      $display(\"CHECK no_latch 1 %b AT %0d\", ok, $time);\n    end\n\n    $display(\"DONE 7\");\n    $finish;\n  end\nendmodule\n",
+    "reference": {
+      "sv": "module mux4 #(parameter int W = 8) (\n  input  logic [W-1:0] d0, d1, d2, d3,\n  input  logic [1:0]   sel,\n  output logic [W-1:0] y\n);\n\n  always_comb begin\n    unique case (sel)\n      2'b00:   y = d0;\n      2'b01:   y = d1;\n      2'b10:   y = d2;\n      2'b11:   y = d3;\n      default: y = '0;\n    endcase\n  end\n\nendmodule\n"
+    }
+  },
+  "explanation": "## The shape\n\n```systemverilog\nalways_comb begin\n  unique case (sel)\n    2'b00:   y = d0;\n    2'b01:   y = d1;\n    2'b10:   y = d2;\n    2'b11:   y = d3;\n    default: y = '0;\n  endcase\nend\n```\n\nFour things in that are deliberate.\n\n**`always_comb`, not `always @(*)`.** They behave almost identically, and the difference is that `always_comb` is checked: the tool verifies that nothing else drives the variables it assigns, and it is evaluated once at time zero whether or not anything has changed. `always @(*)` waits for a change, which means a design can start in a state it would never reach again.\n\n**`=`, not `<=`.** Blocking assignment inside combinational logic, non-blocking inside clocked logic. Mixing them up is the single most common HDL bug and it does not always show in simulation, which is what makes it expensive.\n\n**A `default`.** The four cases are exhaustive for a two-bit `sel` with no `x` in it — and the `default` is still worth writing, because without it a tool is entitled to infer a latch for the `sel = x` path. A latch where you meant a multiplexer is a design that holds a value nobody asked it to hold.\n\n**`unique`.** An assertion, not a hint: it says the branches are mutually exclusive and one of them matches. A simulator can check it; a synthesiser can use it to drop priority logic it would otherwise have to build. If you are ever wrong about it, you would rather be told.\n\n## The one that fails only under the grading testbench\n\n```systemverilog\n// wrong: W is a parameter\noutput logic [7:0] y\n// wrong: so is this\nlocalparam int W = 8;\n```\n\nThe sample testbench instantiates `mux4 #(.W(8))`, so a design that assumes eight bits passes every visible check. The grading one instantiates `#(.W(4))`, and then an eight-bit internal signal leaves the top four bits of the result as whatever they were. That is the point of a parameter, and it is why the grading testbench is a different testbench rather than more of the same.\n\n## And the one that looks right\n\n```systemverilog\nalways_comb begin\n  case (sel)\n    2'b00: y = d0;\n    2'b01: y = d1;\n    2'b10: y = d2;\n  endcase\nend\n```\n\nThree branches of four. For `sel = 2'b11` nothing assigns `y`, so it keeps its previous value — storage, in a block that was supposed to have none. In the waveform this is visible as `y` not changing when it should, and it is exactly what the `no_latch` check looks for.\n\n## What passing does and does not mean\n\nIt means the design produced the right values at the right times under this testbench, in an event-driven simulator. It does not mean the design is synthesisable, that it would meet timing at any clock rate, that it fits a particular device, or that it works on hardware. Those are four more questions, asked by tools that are not this one.",
+  "readMore": [
+    {
+      "title": "SystemVerilog: always_comb, and why it is not always @(*)",
+      "url": "https://www.verilogpro.com/systemverilog-always_comb-always_ff/"
+    },
+    {
+      "title": "Icarus Verilog",
+      "url": "https://steveicarus.github.io/iverilog/"
+    }
+  ]
+}

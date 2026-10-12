@@ -216,6 +216,38 @@ const AssessmentView = (() => {
     const attempts = await Attempts.all();
     const running = await Attempts.running();
 
+    /* An attempt that is open, said first and said plainly.
+
+       The clock is a deadline, so an attempt left behind is still
+       running down whether or not anybody is looking at it — which
+       makes "there is one open, here is the way back in, and here is
+       how much is left" the single most useful thing this page can
+       say. It was previously visible only as a different border colour
+       on one of the cards. */
+    const resume = [];
+    if (running) {
+      const live = Assessments.byId(running.assessmentId);
+      const ms = Attempts.msLeft(running);
+      resume.push(el('div', {
+        class: 'oa-resume', id: 'oaResume',
+        'data-urgent': ms != null && ms <= 5 * 60_000 ? 'true' : undefined,
+      }, [
+        el('div', { class: 'oa-resume-text' }, [
+          el('b', { text: `${running.title} is open` }),
+          el('p', { class: 'small', text: ms == null
+            ? 'Untimed, so it waits for you. Your answers are saved as you work.'
+            : ms > 0
+              ? `${clockText(ms)} left. The clock does not stop while you are away — `
+                + 'it is a deadline, not a counter.'
+              : 'The time is up. Opening it will finalise whatever was saved.' }),
+        ]),
+        el('a', { class: 'btn btn-primary', href: `#/assess/${running.assessmentId}/go` },
+          [ms != null && ms <= 0 ? 'Finish it' : 'Resume']),
+        live ? el('a', { class: 'btn btn-sm btn-ghost', href: `#/assess/${running.assessmentId}` },
+          ['Details']) : null,
+      ]));
+    }
+
     const cards = defs.map(def => {
       const mine = attempts.filter(a => a.assessmentId === def.id);
       const best = mine.filter(a => a.score != null)
@@ -254,7 +286,7 @@ const AssessmentView = (() => {
       ]);
     });
 
-    const parts = [el('div', { class: 'oa-cards' }, cards)];
+    const parts = [...resume, el('div', { class: 'oa-cards' }, cards)];
 
     if (attempts.length) {
       parts.push(el('h2', { class: 'oa-head', text: 'Attempt history' }));

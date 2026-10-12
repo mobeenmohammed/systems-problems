@@ -1,0 +1,43 @@
+{
+  "id": "hdl-counter",
+  "title": "A counter with reset and enable",
+  "topic": "fpga",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "hdl",
+  "tags": [
+    "sequential",
+    "always_ff",
+    "non-blocking",
+    "reset",
+    "overflow"
+  ],
+  "estimate": 20,
+  "prereqs": [
+    {
+      "concept": "hdl-assignments",
+      "why": "Clocked logic is where non-blocking assignment stops being a style preference."
+    },
+    {
+      "concept": "state-machines",
+      "why": "A counter is the smallest state machine there is: one register and one rule."
+    }
+  ],
+  "statement": "Write an **N-bit up counter** with a synchronous reset and an enable.\n\n```\nmodule counter #(parameter int N = 4) (\n  input  logic         clk,\n  input  logic         rst,\n  input  logic         en,\n  output logic [N-1:0] q\n);\n```\n\n### Precisely\n\n- Everything happens on the **rising edge** of `clk`. Nothing happens on the falling edge.\n- `rst` is **synchronous** and **active high**, and it wins over `en`. On a rising edge with `rst` high, `q` becomes 0 whatever `en` is.\n- With `rst` low and `en` high, `q` increases by one on each rising edge.\n- With `rst` low and `en` low, `q` holds.\n- **Overflow wraps.** From all ones the next value is zero. There is no carry output and no saturation.\n- `q` is the register itself, so it changes just after the edge and is stable for the rest of the cycle. The testbenches read it away from the edge.\n\nThis is **simulation**. Passing says nothing about synthesis or timing.",
+  "hints": [
+    "Clocked logic is `always_ff @(posedge clk)` with non-blocking assignment (`<=`) to everything it drives. The non-blocking part is what makes every register in the design see the *old* values of the others, which is what a clock edge means.",
+    "The order of the conditions is the priority. Reset first, then enable, and nothing else: `if (rst) ... else if (en) ...` with no final `else` is a register that holds, which is exactly what it should do when neither applies.",
+    "Wrapping needs no code. `q <= q + 1` on an N-bit vector already wraps, because the addition is N bits wide. Writing `if (q == {N{1'b1}}) q <= 0;` is the same behaviour spelled out, and a chance to get the width wrong."
+  ],
+  "payload": {
+    "top": "counter",
+    "generation": "2012",
+    "template": "module counter #(parameter int N = 4) (\n  input  logic         clk,\n  input  logic         rst,\n  input  logic         en,\n  output logic [N-1:0] q\n);\n\n  // your code here: on each rising edge of clk,\n  //   rst high  -> q becomes 0 (it wins over en)\n  //   else en    -> q increases by one, wrapping at the top\n  //   else       -> q holds\n  // Clocked logic: non-blocking assignment.\n\nendmodule\n",
+    "testbench": "`timescale 1ns/1ps\n// The sample testbench. Run uses this one; Submit uses a different\n// one that tries cases this does not.\nmodule tb;\n  localparam int N = 4;\n  logic clk = 1'b0;\n  logic rst = 1'b1;\n  logic en  = 1'b0;\n  logic [N-1:0] q;\n\n  counter #(.N(N)) dut (.clk(clk), .rst(rst), .en(en), .q(q));\n\n  // 10 ns period\n  always #5 clk = ~clk;\n\n  initial begin\n    $dumpfile(\"dump.vcd\");\n    $dumpvars(0, tb);\n\n    // One edge with reset high, then read away from the edge.\n    @(posedge clk); @(negedge clk);\n    $display(\"CHECK reset 0 %0d AT %0d\", q, $time);\n\n    rst = 1'b0; en = 1'b1;\n    repeat (3) @(posedge clk);\n    @(negedge clk);\n    $display(\"CHECK counted 3 %0d AT %0d\", q, $time);\n\n    en = 1'b0;\n    repeat (2) @(posedge clk);\n    @(negedge clk);\n    $display(\"CHECK held 3 %0d AT %0d\", q, $time);\n\n    $display(\"DONE 3\");\n    $finish;\n  end\nendmodule\n",
+    "checks": [
+      "reset",
+      "counted",
+      "held"
+    ]
+  }
+}
