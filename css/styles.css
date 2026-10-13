@@ -800,6 +800,13 @@ pre.code-block[data-lang]::before {
   transition: background .12s;
 }
 .prow:last-child { border-bottom: 0; }
+/* The language tag on a catalogue row. Same shape as the type tag it
+   sits beside, in the accent, because it is the more specific of the
+   two and the one somebody is scanning for. */
+.prow .tag-lang {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  color: var(--accent);
+}
 .prow:hover { background: var(--bg-elev-2); }
 .prow:focus-within { background: var(--bg-elev-2); }
 .prow .tick { font-size: .95rem; text-align: center; }

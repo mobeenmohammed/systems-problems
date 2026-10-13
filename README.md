@@ -357,6 +357,36 @@ what AddressSanitizer says. The site says so on the problem itself — "CPP
 needs the native toolchain for this problem" — rather than offering a
 compiler that would mark it passed.
 
+### What it says while you wait, and what it says when the fetch fails
+
+Four stages, each of them a thing that is actually happening: **fetching the
+compiler** (with the real byte count, from the worker, never an invented
+percentage), **compiling**, **running case *n* of *m***, and then where it
+ran. `Running…` on a fourteen-case problem is indistinguishable from stuck,
+and the difference matters most on exactly the runs that are slow. The count
+comes from the backend, which knows.
+
+Submit reports the same stages, which it did not before: a submission on a
+cold toolchain fetches a compiler, builds, and runs a case set the reader
+cannot see, and the only feedback for those thirty seconds was a disabled
+button. It does not say how many cases there are — the hidden ones are
+hidden, and `case 9 of 23` would announce the number of them.
+
+**A download that did not finish is its own kind of failure.** 90 MB over
+somebody's hotel wifi is the likeliest way for a first run to fail, and it
+was being reported in the words written for a compiler that cannot build the
+exercise at all — permanent, and pointing at a local toolchain nobody needs
+to install. It now says what happened, keeps the raw reason behind a
+disclosure, offers **Try again**, and does not link the installation page.
+`tests/browser/cxx.test.mjs` cuts the connection with a route handler, checks
+the wording, the untouched draft and the uncounted attempt, puts the
+connection back, presses Try again, and requires every sample case to pass.
+
+The retry is offered where retrying could work — a download, a runner that
+did not answer — and not on a compiler gap, where it would reproduce the same
+message instantly and invite somebody to sit there pressing it. Run stays
+enabled either way, so nothing is ever locked.
+
 ### The in-site guide
 
 Everything below is also in the site itself, at **#/setup**, reachable from
@@ -778,6 +808,42 @@ have run and passed. Three consequences, each of them the point:
 `npm run check:hdl` compiles every reference design against **both**
 testbenches and requires every check in both, so an exercise that its own
 answer cannot pass is a failed build.
+
+### Three testbenches, and which is which
+
+There are now three, and a reader can see two of them:
+
+| | Whose | Visible | Editable | What it is for |
+|---|---|---|---|---|
+| **Grading testbench** | the site's | never | no | Submit. Drives cases the sample one does not. |
+| **Sample testbench** | the problem's | yes | no | Run simulation. The checks you are shown. |
+| **My testbench** | the reader's | yes | yes | Anything you want to try. |
+
+The third one is new, and it exists for the same reason the custom stdin
+inputs do: the sample answers whether the design passes the example, and the
+question a reader has is what the design does when they poke it like *this*.
+Before, the testbench was read-only, so there was no way to ask.
+
+`My testbench` is its own tab with its own editor, empty until asked for —
+a tab that already contains something invites editing it by accident. **Start
+from the sample** copies the problem's testbench in, to change. **Run my
+testbench** compiles it with the design from the `Design` tab, through the
+same simulator, with the same Stop and the same time limit, and produces a
+console and a waveform.
+
+It is not graded, and the result pane says so in those words. There are no
+check rows, there is no fraction, and the status word beside the buttons
+takes neither the green of a pass nor the red of a failure — nothing here
+declared what the right answer was, so there is nothing to be right about.
+The toolbar's **Run simulation** still means the sample checks, whichever tab
+is open: a button that changes meaning depending on what you are looking at
+is a button nobody trusts.
+
+The waveform's time unit comes from whichever testbench ran. A check reports
+`t=20` in the testbench's time *unit* and a VCD counts in its *precision*;
+with `` `timescale 1ns/1ps `` those differ by a thousand, so a personal
+testbench with a different timescale from the sample would otherwise put the
+cursor a thousand times too early.
 
 ### Nothing here is a synthesiser
 
@@ -1377,6 +1443,53 @@ not keep it" but a claim about the case.
 A submission is described as what it is: *7 cases: the samples and the
 hidden ones*. The old wording was "7 hidden cases passed", which was never
 true of a submission — it runs the visible ones as well.
+
+### Inputs of your own
+
+The samples answer *does it work on the example*. The question somebody
+actually has at the keyboard is *what does it do on **this***, and until now
+the only way to ask it was to hard-code the input into the program, run,
+read the answer and edit it back out.
+
+The **Test cases** pane is two sections now. Above: the problem's samples,
+read-only, which is what Run uses. Below: *Your own inputs* — a list you add
+to, edit, remove from, and run with one button.
+
+```
+┌ The problem's samples ─────────────────────────────────┐
+│ Case 1   stdin 1024        expected 4                  │
+│ Case 2   stdin 7           expected 1                  │
+├ Your own inputs ───────────────────────────────────────┤
+│ Input 1                                     [Remove]   │
+│ ┌────────────────────────────┐  output                 │
+│ │ 999999999999               │  12                     │
+│ └────────────────────────────┘                         │
+│ [Add an input] [Run my inputs]  Ran 1 of your inputs.  │
+│                                 Nothing was graded or  │
+│                                 recorded.              │
+└────────────────────────────────────────────────────────┘
+```
+
+Three things about them, each of which is the point:
+
+**They are not graded, and there is no expected output to give.** You wrote
+the stimulus; the site has no idea what the right answer to it is, and a box
+asking you to type one would be asking you to invent an answer and then be
+told whether you agree with yourself. The output is shown and that is all.
+Submit does not know they exist.
+
+**They are kept with the draft**, in the same store, under the same problem
+id, in a reserved slot beside the code. So they survive a reload, they travel
+in an export, and inside an assessment they go to the attempt rather than to
+the practice record — which is where a reader scratching at a timed problem
+would expect them to go.
+
+**The sentence that says what happened survives the repaint.** The first
+version wrote `Ran 2 of your inputs` into the note element and then repainted
+the pane to show the outputs — which built a fresh, empty note. The message
+was wiped a frame later by the very repaint it was reporting, every time. It
+is state now, and the pane renders it; `tests/browser/usability.test.mjs`
+asserts the sentence is there *after* the outputs are.
 
 ### Where your code goes
 
@@ -2166,7 +2279,9 @@ BASE=https://mobeenmohammed.github.io/systems-problems npm run test:ui
 | `tests/browser/review.test.mjs` (`npm run test:review`) | The same storage on **real IndexedDB**: a 17,000-character program submitted, surviving a reload, and coming back into the editor whole — plus two more submissions of it growing the progress file by about a hundred and fifty bytes. Then the review queue: the one-line note asked after a wrong answer and appearing on the queue in those words, every reason naming itself, an unrated problem saying "not rated" rather than being given a number, "Done with it" touching nothing but the list, no assessment problem leaking onto it, export and import carrying the programs, and Settings naming both stores |
 | `tests/browser/assessment.test.mjs` (`npm run test:assess`) | The timed mode end to end: that the bank is not in the catalogue and a search cannot find it, that everything is said before the clock exists, that Hints/Notes/Solution are gone during an attempt, that a correct submission moves no XP, no coins, no streak and no solved status, that the navigator tells written-from-submitted, that a **real reload** resumes the same attempt with the draft and a clock that carried on rather than restarting, that finishing is confirmed and names what is unfinished, that **expiry freezes what was saved** and finalises once, that the full-bleed attempt layout does not follow the reader into their results, and that a retake is a separate attempt earning nothing twice |
 | `tests/rust-toolchain.test.mjs` | The browser rustc driven directly, no browser involved: that the vendored artifacts are the pinned builds, that it is a real rustc, that a program compiles and reads its stdin, that a panic carries its line, that the borrow checker produces E0382/E0502/E0308/E0621 with lines and rustc's own rendering, that the one unsupported thing is `parse::<i64>()` and not 64-bit arithmetic, and that **every entry in `data/rust-support.json` is true in both directions** — each certified problem really passes its own cases here, and each native-only one really does not build |
-| `tests/browser/hdl.test.mjs` (`npm run test:hdl`) | SystemVerilog, in a real tab: the six-tab workspace, a correct design passing every check and drawing a waveform with a cursor and a base control, a design that compiles and prints the word PASS scoring nothing, a run that stops part way reported as **incomplete** rather than as a fraction, a wrong design failing at a named check with expected and actual, a compile error carrying a file and a line, an endless simulation leaving the navigation answering and then stopped — by hand and by the time limit — with a good run working straight afterwards, the grading testbench and its waveform nowhere on the page, a design kept whole as a submission, every certified exercise passing its own grading testbench, and no request leaving the origin |
+| `tests/browser/hdl.test.mjs` (`npm run test:hdl`) | SystemVerilog, in a real tab: the seven-tab workspace, a correct design passing every check and drawing a waveform with a cursor and a base control, a design that compiles and prints the word PASS scoring nothing, a run that stops part way reported as **incomplete** rather than as a fraction, a wrong design failing at a named check with expected and actual, a compile error carrying a file and a line, an endless simulation leaving the navigation answering and then stopped — by hand and by the time limit — with a good run working straight afterwards, the grading testbench and its waveform nowhere on the page, a design kept whole as a submission, every certified exercise passing its own grading testbench, a testbench of the reader's own — seeded from the sample, edited, run, drawing its own waveform, graded by nothing and leaving the record untouched, with Run simulation still meaning the sample checks — and no request leaving the origin |
+| `tests/browser/journeys-hdl.test.mjs` | The hardware journeys through the visible UI, from the homepage: the Content menu's Digital logic entry, the catalogue, a search for SystemVerilog, Verilog, FPGA and the titles, then the multiplexer — a wrong design failing at named checks, a failed check clicked to put the waveform cursor on the instant it went wrong, a correct one passing, a submission marked and its waveform withheld, every one of the five exercises run and submitted, a syntax error reported with its line, a simulation that never advances left stoppable and then stopped, and the problems, Learn, mathematics, C++, Python, assessments and setup pages still rendering |
+| `tests/browser/journeys-rust.test.mjs` | The Rust exercise from the report, through its own workflow: no mention of WSL or a local runner anywhere before or after pressing Run, the toolchain gap named as not the reader's doing with the reason behind a disclosure, nothing graded and no attempt counted, a borrow error reported as the reader's error rather than the platform's, both runnable exercises compiled, run and submitted, a wrong program failing on its cases, a type error reported as a build failure, and the site's claim about each of the seven checked against the audit |
 | `tests/browser/rust.test.mjs` (`npm run test:rust`) | Rust on a device with nothing installed, with the local runner pointed at a dead port: the pinned artifacts served, no COOP or COEP header needed, borrow-checker diagnostics appearing as you type on a problem that cannot even be run here, the download reporting megabytes with Stop live beside it, a certified problem running and being accepted, a compile error told apart from a wrong answer, a cancel mid-download followed by a run that works, an infinite loop stopped, a run left behind not landing on the next problem, and no request leaving the origin |
 | `tests/complete.test.mjs` | The C++ word lists driven directly: headers on `#include`, the header beside every `std::` name, declarations a regex can read and the ones it cannot, a known receiver getting only its own members, an unknown one getting every member labelled with its type, and staying quiet on one character |
 | `tests/browser/complete.test.mjs` | The same thing through real keystrokes, Rust included, plus the switch (off stops the popup but Ctrl+Space still works; one language can be off while another is on) and the keys it could have broken: Enter still Enter, Tab still indenting, Ctrl+Enter still running with a popup open, and the first Escape closing the popup without throwing you out of the editor |

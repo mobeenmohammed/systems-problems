@@ -144,8 +144,22 @@ const UI = (() => {
         el('div', { class: 'meta' }, [
           el('span', { text: (Store.TOPIC_BY_ID[p.topic] || {}).label || p.topic }),
           el('span', { class: 'tag', text: type.label || p.type }),
+          /* The language, when there is only one.
+
+             A row said "Design hardware", which is what the exercise
+             asks for rather than what it is written in — so somebody
+             scanning the catalogue for SystemVerilog found five
+             exercises and no mention of the word anywhere on them.
+             Shown only for a single-language exercise: on a problem
+             that takes C++, Python and Rust the choice belongs in the
+             workspace, and three tags on every row is noise. */
+          (p.langs || []).length === 1
+            ? el('span', { class: 'tag tag-lang',
+              title: 'The language this exercise is written in',
+              text: Catalog.LANG_LABEL[p.langs[0]] || p.langs[0] })
+            : null,
           ...(p.tags || []).slice(0, 2).map(t => el('span', { text: `#${t}` })),
-        ]),
+        ].filter(Boolean)),
       ]),
       el('span', { class: `status-word status-${r.status}`, text: STATUS_LABEL[r.status] || r.status }),
       diffTag(p.difficulty),

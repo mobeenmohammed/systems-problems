@@ -55,7 +55,9 @@
     "check:vendor-hdl": "node scripts/vendor-hdl.mjs --check",
     "audit:hdl": "node scripts/audit-hdl.mjs",
     "check:hdl": "node scripts/audit-hdl.mjs --check",
-    "test:hdl": "node tests/browser/hdl.test.mjs"
+    "test:hdl": "node tests/browser/hdl.test.mjs",
+    "test:journeys-hdl": "node tests/browser/journeys-hdl.test.mjs",
+    "test:journeys-rust": "node tests/browser/journeys-rust.test.mjs"
   },
   "devDependencies": {
     "@bjorn3/browser_wasi_shim": "^0.4.2",
