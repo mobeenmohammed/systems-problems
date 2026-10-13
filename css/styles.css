@@ -1701,7 +1701,15 @@ body[data-workspace="true"] #problemHost { height: 100%; min-height: 0; }
 /* An editor living inside a result pane rather than in the workspace
    column: it has no column height to fill, so it gets a sensible one of
    its own and scrolls inside it. */
-.ed-host-sm { height: 15rem; min-height: 8rem; resize: vertical; overflow: hidden; }
+.ed-host-sm {
+  /* Enough of the pane to write in without pushing the buttons off the
+     bottom of a short window, and draggable from the corner for anyone
+     who wants more. */
+  height: clamp(15rem, 48vh, 34rem);
+  min-height: 8rem;
+  resize: vertical;
+  overflow: hidden;
+}
 .ed-host-sm .cm-editor { height: 100%; }
 
 /* Execution status, as a word next to the buttons that cause it. */

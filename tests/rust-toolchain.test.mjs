@@ -157,7 +157,7 @@ section('a correct program has nothing to say about it');
 
 /* ---------------- the gap, named exactly ---------------- */
 
-section('the one thing this backend cannot do is parse a 64-bit integer');
+section('the one thing this backend cannot do is the high half of a 64-bit multiply');
 {
   const parses = async ty => {
     const r = await build(

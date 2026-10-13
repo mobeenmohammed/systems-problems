@@ -32,7 +32,13 @@ const Wave = (() => {
 
   const LANE_H = 26;
   const LANE_GAP = 4;
-  const AXIS_H = 22;
+/* Two rows of 10px text live in here: the time ticks on top, and the
+   label of a mark under them. At 22 it held one, so a check name landed
+   on a tick whenever the two were near each other and both became
+   unreadable. */
+  const AXIS_H = 34;
+  const TICK_Y = 2;
+  const MARK_Y = 17;
   const PAD_L = 8;
   const PAD_R = 10;
 
@@ -211,6 +217,11 @@ const Wave = (() => {
       const accent = css('--accent') || '#6cf';
       const bad = css('--danger') || '#f66';
       const warn = css('--warn') || '#fb0';
+      /* For the chip behind a mark's label. A check name drawn straight
+         onto the axis lands on top of a time tick whenever the two are
+         near each other, and two 10px labels in different colours on
+         the same pixels are both unreadable. */
+      const panel = css('--bg-elev') || css('--bg') || '#111';
 
       /* ---- the time axis ---- */
       ctx.font = '10px var(--mono, monospace)';
@@ -230,7 +241,8 @@ const Wave = (() => {
       for (const t of ticks) {
         const label = sayTime(t);
         const x = xOf(t);
-        ctx.fillText(label, Math.min(w - ctx.measureText(label).width - 2, Math.max(2, x + 2)), 2);
+        ctx.fillText(label,
+          Math.min(w - ctx.measureText(label).width - 2, Math.max(2, x + 2)), TICK_Y);
       }
 
       /* ---- the lanes ---- */
@@ -251,8 +263,20 @@ const Wave = (() => {
         ctx.lineTo(x, h);
         ctx.stroke();
         ctx.setLineDash([]);
-        ctx.fillStyle = m.kind === 'fail' ? bad : warn;
-        ctx.fillText(m.label || '', x + 3, AXIS_H - 12);
+
+        /* The label, in its own band under the time ticks, kept on
+           screen, and on a background of its own so that a tick behind
+           it does not turn both into noise. */
+        const text = m.label || '';
+        if (text) {
+          const tw = ctx.measureText(text).width;
+          const lx = Math.max(2, Math.min(w - tw - 4, x + 3));
+          const ly = MARK_Y;
+          ctx.fillStyle = panel;
+          ctx.fillRect(lx - 2, ly - 1, tw + 4, 12);
+          ctx.fillStyle = m.kind === 'fail' ? bad : warn;
+          ctx.fillText(text, lx, ly);
+        }
       }
 
       /* ---- the cursor ---- */
