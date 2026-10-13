@@ -407,6 +407,75 @@ section('a sanitizer problem is marked native-only rather than quietly relaxed')
   await ctx.close();
 }
 
+/* ---------------- a download that did not finish ----------------
+
+   90 MB over somebody's hotel wifi. This is the most likely way for a
+   first run to fail, and it is not the reader's fault, not permanent,
+   and not fixed by anything in the local-runner instructions. What it
+   needs is to be named for what it is and to be retryable with the
+   code untouched. */
+
+section('an interrupted download says so, and Try again picks it up');
+{
+  const { ctx, p } = await freshPage();
+  let cut = true;
+  await p.route('**/vendor/cxx/**', r => (cut ? r.abort('connectionfailed') : r.continue()));
+
+  await p.goto(`${BASE}/#/p/cpp-count-digits`, { waitUntil: 'networkidle' });
+  await p.waitForTimeout(1600);
+  const marked = `${DIGITS_OK}\n// a line only this test would write\n`;
+  await paste(p, marked);
+
+  await p.locator('#runBtn').click();
+  await settled(p);
+
+  const failed = await p.evaluate(() => ({
+    kind: (document.querySelector('.platform') || {}).dataset?.kind,
+    head: (document.querySelector('.platform-head') || {}).textContent || '',
+    say: (document.querySelector('.platform-say') || {}).textContent || '',
+    detail: (document.querySelector('.platform-detail p') || {}).textContent || '',
+    retry: !!document.querySelector('#retryRunBtn'),
+    setup: !!document.querySelector('.platform-acts a[href="#/setup"]'),
+    verdict: !!document.querySelector('.verdict'),
+    runEnabled: !document.querySelector('#runBtn').disabled,
+    code: window.SystemsLab.ProblemTypes.get('code').editor().value,
+    status: window.SystemsLab.Store.record('cpp-count-digits').status,
+    attempts: window.SystemsLab.Store.record('cpp-count-digits').attempts,
+  }));
+
+  check('it is reported as a download, not as a missing toolchain', failed.kind, 'download');
+  ok(`and said so in words (${failed.head})`, /did not finish downloading/.test(failed.head));
+  ok('it says plainly that it was not the reader\u2019s code', /Not your code/.test(failed.head));
+  ok('and that nothing was graded or recorded',
+    /nothing was graded/i.test(failed.say) && /recorded/.test(failed.say));
+  ok('there is no verdict, because nothing ran', !failed.verdict);
+  ok('the technical reason is there to expand', failed.detail.length > 10);
+  ok('Try again is offered', failed.retry);
+  ok('and nothing sends them off to install a local runner', !failed.setup);
+  ok('Run is usable again', failed.runEnabled);
+  ok('the draft is exactly as it was', failed.code.includes('a line only this test would write'));
+  check('nothing was recorded', failed.status, 'unsolved');
+  check('and no attempt was counted', failed.attempts, 0);
+
+  /* The connection comes back. */
+  cut = false;
+  await p.locator('#retryRunBtn').click();
+  await settled(p, '#runBtn', 300000);
+
+  const after = await p.evaluate(() => ({
+    exec: (document.querySelector('#execState') || {}).textContent || '',
+    platform: !!document.querySelector('.platform'),
+    code: window.SystemsLab.ProblemTypes.get('code').editor().value,
+  }));
+  const ran = await cases(p);
+  ok(`Try again compiled and ran (${after.exec})`, /Ran on/.test(after.exec));
+  ok('the platform message is gone', !after.platform);
+  check('every sample case passed', ran.passed, ran.total);
+  ok('and the code is still the reader\u2019s',
+    after.code.includes('a line only this test would write'));
+  await ctx.close();
+}
+
 /* ---------------- nothing left the machine ---------------- */
 
 section('nothing was sent anywhere');

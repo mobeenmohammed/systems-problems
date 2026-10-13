@@ -558,10 +558,22 @@ fn main() {
         compileMs: (pay.limits || {}).compileMs,
         runMs: (pay.limits || {}).runMs,
         signal: state.abort.signal,
-        onStage: stage => {
+        /* The stage AND how far through it.
+
+           "Running…" on a fourteen-case problem is indistinguishable
+           from stuck, and the difference matters most on exactly the
+           runs that are slow. The count comes from the backend, which
+           knows; nothing here estimates, and no percentage is invented
+           for a stage whose length is not known. */
+        onStage: (stage, detail) => {
           if (!current()) return;
+          if (stage === 'running' && detail && detail.total > 1) {
+            setExec('running',
+              `Running case ${Math.min(detail.done + 1, detail.total)} of ${detail.total}…`);
+            return;
+          }
           setExec('running', {
-            downloading: 'Fetching the compiler…',
+            downloading: `Fetching the ${lang === 'python' ? 'interpreter' : 'compiler'}…`,
             compiling: 'Compiling…',
             running: 'Running…',
           }[stage] || 'Working…');
@@ -728,6 +740,15 @@ fn main() {
         + 'code is exactly where you left it.',
       how: 'What you can do',
     },
+    download: {
+      head: 'Not your code — the compiler did not finish downloading',
+      say: 'The compiler runs in this tab, which means it has to be fetched '
+        + 'first — once, and then it is cached. That fetch did not finish. '
+        + 'Nothing was graded, nothing was recorded, and your code is exactly '
+        + 'where you left it, so pressing Try again picks up where this left '
+        + 'off.',
+      how: 'What you can do',
+    },
     service: {
       head: 'Not your code — the runner did not answer',
       say: 'Your program was not run, so nothing has been graded or recorded '
@@ -755,7 +776,10 @@ fn main() {
       /* Only when it adds something. On a toolchain gap the headline
          and the paragraph above have already said it, and a third
          sentence saying it again reads as padding. */
-      (kind !== 'toolchain' && reply.judgeError)
+      /* Only when it adds something: on a toolchain gap and on an
+         interrupted download the headline and the paragraph above have
+         already said it, and the raw reason is behind the disclosure. */
+      (kind !== 'toolchain' && kind !== 'download' && reply.judgeError)
         ? el('p', { class: 'platform-why small', text: reply.judgeError }) : null,
     ]);
 
@@ -768,7 +792,12 @@ fn main() {
         ? el('a', { class: 'btn btn-sm btn-ghost', href: '#/problems?type=code' },
           ['Other exercises in this language'])
         : null,
-      el('a', { class: 'btn btn-sm btn-ghost', href: '#/setup' }, ['Where code runs']),
+      /* Where code runs explains the optional local runner. On an
+         interrupted download it is a wrong turn: nothing needs
+         installing, the fetch just has to finish. */
+      kind === 'download'
+        ? null
+        : el('a', { class: 'btn btn-sm btn-ghost', href: '#/setup' }, ['Where code runs']),
     ].filter(Boolean));
     box.append(acts);
 
@@ -1167,13 +1196,48 @@ fn main() {
       /* problemId matters: the in-browser compiler is only offered for
          problems whose reference solution was verified against it, and
          leaving it out here meant Run worked and Submit did not. */
-      const reply = await Runners.run(response.lang, response.source, all, {
-        problemId: problem.id,
-        profile: pay.profile || 'standard',
-        compileMs: (pay.limits || {}).compileMs,
-        runMs: (pay.limits || {}).runMs,
-        signal: state && state.abort ? state.abort.signal : undefined,
-      });
+      /* Submit used to be silent. A submission on a cold toolchain
+         fetches a compiler, builds, and runs a case set the reader
+         cannot see — thirty seconds in which the only feedback was a
+         disabled button, which is how a slow submission comes to look
+         like a broken one. Same stages as Run, same download bar, and
+         the same guard: a submission the reader has walked away from
+         writes to nothing.
+
+         The case COUNT is deliberately not shown here. The hidden
+         cases are hidden, and "case 9 of 23" tells a reader exactly
+         how many there are. */
+      const mine = runEpoch;
+      const live = () => mine === runEpoch && state && state.problem.id === problem.id;
+      const engine = response.lang === 'python'
+        ? (typeof BrowserPy !== 'undefined' ? BrowserPy : null)
+        : response.lang === 'rust'
+          ? (typeof BrowserRust !== 'undefined' ? BrowserRust : null)
+          : (typeof BrowserCpp !== 'undefined' ? BrowserCpp : null);
+      const unwatch = (engine && !engine.ready)
+        ? engine.onProgress(p => { if (live()) showDownload(p, response.lang); }) : null;
+
+      let reply;
+      try {
+        reply = await Runners.run(response.lang, response.source, all, {
+          problemId: problem.id,
+          profile: pay.profile || 'standard',
+          compileMs: (pay.limits || {}).compileMs,
+          runMs: (pay.limits || {}).runMs,
+          signal: state && state.abort ? state.abort.signal : undefined,
+          onStage: (stage) => {
+            if (!live()) return;
+            setExec('running', {
+              downloading: `Fetching the ${response.lang === 'python' ? 'interpreter' : 'compiler'}…`,
+              compiling: 'Compiling…',
+              running: 'Running the full case set…',
+            }[stage] || 'Working…');
+          },
+        });
+      } finally {
+        if (unwatch) unwatch();
+        if (live()) showDownload(null);
+      }
 
       const verdict = RunHarness.judgeRun(reply, all.map(c => c.expect), { requireClean: !!pay.requireClean });
 

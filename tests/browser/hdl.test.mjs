@@ -114,6 +114,7 @@ const openTab = async (p, label) => {
 };
 
 const COUNTER = 'hdl-counter';
+const MUX = 'hdl-mux2';
 const RIGHT = solutionOf(COUNTER).key.reference.sv;
 
 /* ---------------- the toolchain is pinned and local ---------------- */
@@ -152,7 +153,7 @@ section('the hardware workspace');
   check('it owns the window like a coding exercise', shape.workspace, 'true');
   check('the design, a read-only testbench, results, waveforms, submissions and diagnostics',
     shape.tabs,
-    ['Design', 'Sample testbench', 'Results', 'Waveforms', 'Submissions', 'Diagnostics']);
+    ['Design', 'Sample testbench', 'My testbench', 'Results', 'Waveforms', 'Submissions', 'Diagnostics']);
   check('Run says what it does', shape.run.trim(), 'Run simulation');
   ok('there is an editor', shape.editor);
   ok(`the top module is named (${shape.top.join(' ')})`,
@@ -508,6 +509,126 @@ section('the grading testbench is not shown, and neither is its waveform');
 
   const after = await p.evaluate(() => document.body.innerText);
   ok('the grading source is still nowhere on the page', !after.includes(marker.trim()));
+  await ctx.close();
+}
+
+/* ---------------- a testbench of the reader's own ----------------
+
+   The grading testbench is the site's, the sample one is the
+   problem's, and this third one is the reader's. The ways it could go
+   wrong are the interesting part: it must not be graded, it must not
+   touch the record, it must not be confused with the sample by the Run
+   button, its waveform must work, and it must still be there after a
+   reload. */
+
+section('a testbench of your own runs, draws a waveform, and is graded by nothing');
+{
+  const { ctx, p } = await freshPage();
+  await go(p, `#/p/${MUX}`);
+  const right = solutionOf(MUX).key.reference.sv;
+  await setSource(p, right);
+  await p.waitForTimeout(300);
+
+  ok('there is a tab for it', await openTab(p, 'My testbench'));
+  await p.waitForTimeout(500);
+
+  const empty = await p.evaluate(() => ({
+    run: (document.querySelector('#runMyTb') || {}).disabled,
+    seed: !!document.querySelector('#seedMyTb'),
+    editor: !!document.querySelector('#resultPane .ed-host-sm'),
+  }));
+  ok('with an editor of its own', empty.editor);
+  ok('a way to start from the sample', empty.seed);
+  check('and nothing to run until something is written', empty.run, true);
+
+  await p.click('#seedMyTb');
+  await p.waitForTimeout(500);
+  const seeded = await p.evaluate(() => ({
+    stored: window.SystemsLab.Store.draft('hdl-mux2', '_mytb') || '',
+    run: document.querySelector('#runMyTb').disabled,
+    note: (document.querySelector('#myTbNote') || {}).textContent || '',
+  }));
+  ok('the sample copies in', seeded.stored.includes('module tb'));
+  check('the copy is the sample, character for character',
+    seeded.stored === problemOf(MUX).payload.testbench, true);
+  ok('and now it can be run', !seeded.run);
+  ok(`it says the sample is untouched (${seeded.note.slice(0, 40)}…)`,
+    /untouched/.test(seeded.note));
+
+  /* Stimulus the sample does not drive, printing something only this
+     testbench could have printed. */
+  const MINE = ['`timescale 1ns/1ps', 'module tb;',
+    '  logic a, b, sel; wire y;',
+    `  ${problemOf(MUX).payload.top} dut(.a(a), .b(b), .sel(sel), .y(y));`,
+    '  initial begin',
+    '    $dumpfile("dump.vcd"); $dumpvars(0, tb);',
+    '    a = 1; b = 0; sel = 0; #10;',
+    '    $display("MINE sel=%b y=%b", sel, y);',
+    '    sel = 1; #10;',
+    '    $display("MINE sel=%b y=%b", sel, y);',
+    '    $finish;', '  end', 'endmodule', ''].join('\n');
+
+  await p.evaluate(src => {
+    window.SystemsLab.ProblemTypes.get('hdl').myTestbench().value = src;
+  }, MINE);
+  await p.waitForTimeout(500);
+  ok('editing it saves it',
+    (await p.evaluate(() => window.SystemsLab.Store.draft('hdl-mux2', '_mytb'))).includes('MINE'));
+
+  await p.click('#runMyTb');
+  await runSettled(p);
+  await p.waitForTimeout(600);
+
+  const ran = await p.evaluate(() => ({
+    exec: (document.querySelector('#execState') || {}).textContent || '',
+    state: (document.querySelector('#execState') || {}).dataset.state,
+    verdict: (document.querySelector('.verdict h4') || {}).textContent || '',
+    body: (document.querySelector('.verdict') || {}).textContent || '',
+    out: (document.querySelector('.run-out-pre') || {}).textContent || '',
+    checks: document.querySelectorAll('.hdl-check').length,
+    status: window.SystemsLab.Store.record('hdl-mux2').status,
+    attempts: window.SystemsLab.Store.record('hdl-mux2').attempts,
+  }));
+  check('it ran', ran.verdict, 'Your testbench ran');
+  ok(`and the status word says so without a colour it did not earn (${ran.exec})`,
+    ran.state === 'ran' && /your testbench/i.test(ran.exec));
+  ok('it says nothing was graded', /Nothing was graded/.test(ran.body));
+  ok('there is no score', !/passed/.test(ran.verdict));
+  check('and no check rows, because it declared no expected values', ran.checks, 0);
+  ok('what my testbench printed is there', /MINE sel=0 y=1/.test(ran.out)
+    && /MINE sel=1 y=0/.test(ran.out));
+  check('the problem is still unsolved', ran.status, 'unsolved');
+  check('and no attempt was recorded', ran.attempts, 0);
+
+  await openTab(p, 'Waveforms');
+  await p.waitForTimeout(900);
+  const waves = await p.evaluate(() => ({
+    canvas: !!document.querySelector('.wave-canvas'),
+    names: [...document.querySelectorAll('.wave-name .mono')].map(n => n.textContent.trim()),
+  }));
+  ok('my testbench has a waveform', waves.canvas);
+  ok(`with my signals on it (${waves.names.join(' ')})`,
+    ['a', 'b', 'sel', 'y'].every(n => waves.names.includes(n)));
+
+  /* Run simulation has not changed its meaning. */
+  await p.click('#runBtn');
+  await runSettled(p);
+  await p.waitForTimeout(500);
+  const sample = await p.evaluate(() => ({
+    exec: (document.querySelector('#execState') || {}).textContent || '',
+    verdict: (document.querySelector('.verdict h4') || {}).textContent || '',
+  }));
+  ok(`Run simulation still means the sample checks (${sample.exec})`,
+    /sample checks/.test(sample.exec) && /checks passed/.test(sample.verdict));
+
+  await p.reload({ waitUntil: 'networkidle' });
+  await p.waitForTimeout(2200);
+  await openTab(p, 'My testbench');
+  await p.waitForTimeout(600);
+  ok('and my testbench is still there after a reload',
+    (await p.evaluate(() =>
+      (window.SystemsLab.ProblemTypes.get('hdl').myTestbench() || {}).value || '')).includes('MINE'));
+
   await ctx.close();
 }
 

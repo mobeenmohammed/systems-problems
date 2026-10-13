@@ -57,6 +57,28 @@
   const testbenchOf = p => (p.payload || {}).testbench || '';
   const topOf = p => (p.payload || {}).top || 'dut';
 
+  /* The reader's own testbench.
+
+     The sample one answers "does my design pass the example". The
+     question somebody actually has is "what does my design do when I
+     poke it like THIS", and the only way to ask it was to edit a
+     read-only file, which is to say there was no way.
+
+     So: a second testbench that belongs to the reader, kept with their
+     draft under the same problem id. It is run through the same
+     simulator and it is NOT graded — there are no expected values
+     here, because the reader wrote the stimulus and inventing an
+     expectation for it would be inventing an answer. It gets a console
+     and a waveform, and that is all. Submit never sees it, and the
+     grading testbench is still never shown.
+
+     Empty until asked for, rather than pre-filled with a copy of the
+     sample: a tab that already contains something invites editing it
+     by accident, and "Start from the sample" is one button away. */
+  const MYTB_SLOT = '_mytb';
+  const myTbOf = problem => Store.draft(problem.id, MYTB_SLOT) || '';
+  const setMyTb = (problem, src) => Store.saveDraft(problem, MYTB_SLOT, src);
+
   function sourceFor(problem) {
     const draft = Store.draft(problem.id, 'sv');
     return draft || designOf(problem);
@@ -146,9 +168,16 @@
     if (b) b.hidden = !on;
     const r = document.getElementById('runBtn');
     if (r) r.disabled = !!on;
+    /* One simulator, so one run at a time, whichever button started it. */
+    const m = document.getElementById('runMyTb');
+    if (m) m.disabled = !!on || !((tbEditor && tbEditor.value) || '').trim();
   };
 
-  async function doRun() {
+  /* Run, with either testbench. `own` picks the reader's; everything
+     downstream of here is identical, which is the point — the same
+     simulator, the same cancellation, the same waveform. What differs
+     is that a run of the reader's testbench is not graded. */
+  async function doRun({ own = false } = {}) {
     if (!state || !state.editor) return;
     const engine = ENGINE();
     if (!engine) {
@@ -156,6 +185,11 @@
       return;
     }
     const problem = state.problem;
+    const tbSource = own ? myTbOf(problem) : testbenchOf(problem);
+    if (own && !tbSource.trim()) {
+      setExec('blocked', 'Nothing to run');
+      return;
+    }
     const mine = epoch += 1;
 
     /* The result pane, open, before anything slow starts: a run whose
@@ -179,7 +213,7 @@
     try {
       reply = await engine.run({
         'design.sv': state.editor.value,
-        'testbench.sv': testbenchOf(problem),
+        'testbench.sv': tbSource,
       }, {
         generation: (problem.payload || {}).generation || '2012',
         wantWaveform: true,
@@ -198,18 +232,24 @@
     state.abort = null;
     showStop(false);
 
-    const graded = gradeSample(problem, reply);
-    last = { problemId: problem.id, kind: 'sample', reply, graded, at: Date.now() };
+    const graded = own ? null : gradeSample(problem, reply);
+    last = { problemId: problem.id, kind: own ? 'mine' : 'sample', reply, graded,
+      at: Date.now() };
     jumpAt = null;
 
     setExec(
       (reply.cancelled || reply.timedOut) ? 'blocked'
         : !reply.ok ? 'bad'
-          : graded.correct ? 'ok' : 'bad',
+          /* A run of the reader's own testbench has no verdict to
+             report, so it reports that it ran rather than borrowing
+             the green of a pass it never established. */
+          : own ? 'ran'
+            : graded.correct ? 'ok' : 'bad',
       reply.cancelled ? 'Stopped'
         : reply.timedOut ? `Stopped after ${Math.round(reply.ms / 1000)}s`
           : !reply.built ? 'Did not compile'
-            : `${graded.passed}/${graded.total} sample checks`,
+            : own ? 'Ran your testbench'
+              : `${graded.passed}/${graded.total} sample checks`,
     );
 
     repaintResult();
@@ -247,6 +287,7 @@
   const TABS = [
     { id: 'editor', label: 'Design' },
     { id: 'tb', label: 'Sample testbench' },
+    { id: 'mytb', label: 'My testbench' },
     { id: 'results', label: 'Results' },
     { id: 'waves', label: 'Waveforms' },
     { id: 'subs', label: 'Submissions' },
@@ -254,11 +295,17 @@
   ];
 
   let viewer = null;
+  /* The reader's testbench editor. A pane is rebuilt from nothing every
+     time it is painted, so an editor left behind here is a CodeMirror
+     instance with listeners on a node nobody can see. */
+  let tbEditor = null;
 
   function fillPane(pane, tab, problem) {
     if (viewer) { viewer.destroy(); viewer = null; }
+    if (tbEditor) { tbEditor.destroy(); tbEditor = null; }
 
     if (tab === 'tb') { fillTestbench(pane, problem); return true; }
+    if (tab === 'mytb') { fillMyTestbench(pane, problem); return true; }
     if (tab === 'results') { fillResults(pane, problem); return true; }
     if (tab === 'waves') { fillWaves(pane, problem); return true; }
     if (tab === 'compiler') { fillDiagnostics(pane, problem); return true; }
@@ -282,6 +329,102 @@
     }
     pane.append(el('pre', { class: 'code-block', 'data-lang': 'verilog' },
       [el('code', { text: src })]));
+  }
+
+  /* The reader's testbench, editable, with its own Run.
+
+     Deliberately not wired to the toolbar's Run simulation button:
+     that button means "the problem's sample cases", everywhere on the
+     site, and quietly changing what it does depending on which tab is
+     open is how a reader comes to distrust a button. This one says
+     what it runs. */
+  function fillMyTestbench(pane, problem) {
+    const checks = ((problem.payload || {}).checks) || [];
+    pane.append(el('p', { class: 'tiny faint' }, [
+      'Stimulus of your own, for trying things the sample does not. It is '
+      + 'yours to edit, it is kept with your draft, and nothing here is '
+      + 'graded — you wrote the inputs, so there is no expected output to '
+      + 'compare against. Submit does not use it.',
+    ]));
+    pane.append(el('p', { class: 'tiny faint' }, [
+      'It is compiled with your design from the ',
+      el('b', { text: 'Design' }),
+      ' tab, so it should instantiate ',
+      el('span', { class: 'mono', text: topOf(problem) }),
+      '. For a waveform, call ',
+      el('span', { class: 'mono', text: '$dumpfile' }),
+      ' and ',
+      el('span', { class: 'mono', text: '$dumpvars' }),
+      ', and end with ',
+      el('span', { class: 'mono', text: '$finish' }),
+      ' — a testbench that never finishes is stopped by the time limit.',
+    ]));
+
+    const host = el('div', { class: 'ed-host ed-host-sm' });
+    pane.append(host);
+
+    const buttons = el('div', { class: 'row', style: 'gap:.4rem;flex-wrap:wrap;margin-top:.5rem' });
+    const note = el('span', { class: 'tiny faint', id: 'myTbNote', text: myTbNote });
+
+    tbEditor = Editor.create(host, {
+      value: myTbOf(problem),
+      lang: 'verilog',
+      profile: 'standard',
+      onChange: src => { setMyTb(problem, src); noteSaved(); refreshMyTbButtons(); },
+      onRun: () => doRun({ own: true }),
+    });
+
+    const runBtn = el('button', {
+      class: 'btn btn-sm btn-primary', type: 'button', id: 'runMyTb',
+      onclick: () => {
+        myTbNote = '';
+        note.textContent = '';
+        doRun({ own: true });
+      },
+    }, ['Run my testbench']);
+
+    const seedBtn = el('button', {
+      class: 'btn btn-sm', type: 'button', id: 'seedMyTb',
+      title: 'Copy the sample testbench in here, to change',
+      onclick: () => {
+        const have = (tbEditor && tbEditor.value) || '';
+        /* Only ever a question when there is work to lose. */
+        if (have.trim()
+          && !window.confirm('Replace what is here with a copy of the sample testbench?')) return;
+        const copy = testbenchOf(problem);
+        tbEditor.value = copy;
+        setMyTb(problem, copy);
+        noteSaved();
+        myTbNote = 'Copied. Change it however you like — the sample itself is untouched.';
+        note.textContent = myTbNote;
+        refreshMyTbButtons();
+      },
+    }, ['Start from the sample']);
+
+    buttons.append(runBtn, seedBtn, note);
+    pane.append(buttons);
+
+    if (checks.length) {
+      pane.append(el('p', { class: 'tiny faint' }, [
+        'The sample prints checks the site reads — ',
+        el('span', { class: 'mono', text: checks.join(', ') }),
+        '. Yours does not have to print anything of the sort; if it does, '
+        + 'the names are not graded either.',
+      ]));
+    }
+    refreshMyTbButtons();
+  }
+
+  let myTbNote = '';
+
+  /* Nothing to run is nothing to run, and a button that does nothing is
+     worse than a disabled one. */
+  function refreshMyTbButtons() {
+    const b = document.getElementById('runMyTb');
+    if (!b) return;
+    const empty = !((tbEditor && tbEditor.value) || '').trim();
+    b.disabled = empty || !!(state && state.running);
+    b.title = empty ? 'Write a testbench first' : 'Compile your design with this testbench';
   }
 
   /* What the four tabs are for, before anything has run.
@@ -386,6 +529,42 @@
       return;
     }
 
+    /* A run of the reader's own testbench. It built and it ran; what it
+       did is in the console and on the waveform, and there is no score
+       because nothing here declared what the right answer was. Said
+       plainly, so that a reader who gets what they hoped for out of
+       their own stimulus does not read it as having passed the
+       exercise. */
+    if (kind === 'mine') {
+      pane.append(el('div', { class: 'verdict', 'data-kind': 'part' }, [
+        el('div', { class: 'verdict-head' }, [
+          el('h4', { text: 'Your testbench ran' }),
+          el('span', { class: 'tiny faint', text: 'your testbench' }),
+        ]),
+        el('p', { class: 'small', text: 'Nothing was graded and nothing was recorded. '
+          + 'This is what your design did under the stimulus you wrote — to be '
+          + 'marked, press Run simulation for the sample checks, or Submit.' }),
+        reply.finishedAt != null
+          ? el('p', { class: 'tiny faint', text: `$finish at ${reply.finishedAt} (simulated), `
+            + `${reply.ms} ms of real time.` })
+          : el('p', { class: 'tiny faint', text: `${reply.ms} ms of real time; the simulation `
+            + 'ended without $finish.' }),
+      ]));
+      pane.append(el('h5', { class: 'hdl-head', text: 'Console' }));
+      pane.append(el('pre', { class: 'run-out-pre', text: reply.output || '(nothing printed)' }));
+      if (reply.vcd) {
+        pane.append(el('p', { class: 'tiny faint', text: 'The Waveforms tab has the trace.' }));
+      } else {
+        pane.append(el('p', { class: 'tiny faint', text: 'No waveform: add $dumpfile and '
+          + '$dumpvars to your testbench for one.' }));
+      }
+      if (reply.clipped) {
+        pane.append(el('p', { class: 'tiny', style: 'color:var(--warn)',
+          text: 'Output was longer than the limit and has been cut off here.' }));
+      }
+      return;
+    }
+
     /* The verdict, and it is about the checks rather than about the
        compile. */
     const kindWord = graded.incomplete ? 'part'
@@ -470,7 +649,9 @@
         ? 'No waveform from a submission. The grading testbench drives cases the '
           + 'sample one does not, and showing its waveform would show them. '
           + 'Press Run simulation to see your design under the sample testbench.'
-        : 'Run the simulation and the waveform appears here.' }));
+        : last && last.kind === 'mine'
+          ? 'Your testbench produced no waveform. Add $dumpfile and $dumpvars to it.'
+          : 'Run the simulation and the waveform appears here.' }));
       return;
     }
 
@@ -492,7 +673,8 @@
        thousand, so every time that crosses from a check to the
        waveform has to be scaled — the axis mark below and the cursor
        a click on a check asks for. */
-    const scale = VCD.timescaleOf(testbenchOf(problem));
+    const scale = VCD.timescaleOf(
+      last.kind === 'mine' ? myTbOf(problem) : testbenchOf(problem));
     /* One tick back from the reported instant.
 
        A testbench typically checks a value and then immediately drives
@@ -595,10 +777,21 @@
     startingSource: problem => templateFor(problem,
       'sv'),
     editor: () => (state ? state.editor : null),
+    /* The reader's own testbench, as the pane's editor if that tab is
+       open and as the stored text either way. The tests drive it
+       through here for the same reason they drive the design editor
+       through editor(): reaching into CodeMirror's internals from
+       outside is a test that breaks when CodeMirror is upgraded. */
+    myTestbench: () => tbEditor,
 
     teardown() {
       epoch += 1;
       if (viewer) { viewer.destroy(); viewer = null; }
+      if (tbEditor) {
+        try { tbEditor.destroy(); } catch { /* already gone */ }
+        tbEditor = null;
+      }
+      myTbNote = '';
       const engine = ENGINE();
       if (engine) engine.stop();
       if (state && state.editor && state.editor.destroy) {

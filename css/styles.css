@@ -282,6 +282,33 @@ select { cursor: pointer; }
 .main { max-width: 1180px; margin: 0 auto; padding: var(--s5) var(--s5) var(--s8); }
 .main.wide { max-width: 1480px; }
 
+/* Inputs the reader added, beside the problem's own samples. Visibly
+   theirs: a different heading, and no "expected" column, because there
+   is no expected — that is the whole difference between these and the
+   samples. */
+.cases-head { margin: var(--s4) 0 .3rem; font-size: .8rem; color: var(--text-dim); }
+.cases-head:first-child { margin-top: 0; }
+.mycases { margin-top: var(--s4); padding-top: var(--s3); border-top: 1px dashed var(--border); }
+.mycase-list { display: flex; flex-direction: column; gap: var(--s3); margin-top: var(--s3); }
+.mycase {
+  padding: var(--s3); border-radius: var(--radius-s);
+  background: var(--bg-inset); border: 1px solid var(--border);
+}
+.mycase-top { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); }
+.mycase-in {
+  width: 100%; margin-top: .3rem; font-family: var(--mono); font-size: .8rem;
+  padding: .4rem; background: var(--bg); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius-s);
+  resize: vertical;
+}
+.mycase-out { margin-top: .4rem; }
+.mycase-out h5 { margin: 0 0 .2rem; font-size: .7rem; color: var(--text-faint);
+  text-transform: uppercase; letter-spacing: .05em; }
+.mycase-out pre {
+  margin: 0; padding: .4rem; max-height: 12rem; overflow: auto;
+  background: var(--bg); border-radius: var(--radius-s); font-size: .78rem;
+}
+
 /* ---------------- the one dialog ----------------
 
    Importing is the only thing on this site that can destroy work in
@@ -1664,6 +1691,12 @@ body[data-workspace="true"] #problemHost { height: 100%; min-height: 0; }
   background: color-mix(in srgb, var(--ok) 12%, transparent);
 }
 
+/* An editor living inside a result pane rather than in the workspace
+   column: it has no column height to fill, so it gets a sensible one of
+   its own and scrolls inside it. */
+.ed-host-sm { height: 15rem; min-height: 8rem; resize: vertical; overflow: hidden; }
+.ed-host-sm .cm-editor { height: 100%; }
+
 /* Execution status, as a word next to the buttons that cause it. */
 .ws-exec { font-size: .76rem; color: var(--text-faint); white-space: nowrap; }
 .ws-exec[data-state="running"] { color: var(--accent); }
@@ -1674,6 +1707,10 @@ body[data-workspace="true"] #problemHost { height: 100%; min-height: 0; }
    front end is running on every keystroke, so this is not the same
    state as having no runner at all and does not borrow its colour. */
 .ws-exec[data-state="check"]   { color: var(--text-dim); }
+/* A run of the reader's own testbench. It ran; whether what it printed
+   is what they hoped for is not something the site knows, so this takes
+   neither the green of a pass nor the red of a failure. */
+.ws-exec[data-state="ran"]     { color: var(--text-dim); }
 
 /* Grid rows all the way down, not percentage heights through a flex chain.
    A flex item with height:100% and content taller than its container does not

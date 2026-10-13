@@ -340,6 +340,8 @@ const ProblemView = (() => {
     solutionShown = false;
     attempting = false;
     solution = null;
+    myRun = null;
+    myNote = '';
 
     host.replaceChildren(el('p', { class: 'muted', text: 'Loading…' }));
 
@@ -1247,22 +1249,24 @@ const ProblemView = (() => {
 
     if (workTab === 'cases') {
       const cases = ((current.payload || {}).cases) || [];
+      pane.append(el('h5', { class: 'cases-head', text: 'The problem\u2019s samples' }));
       if (!cases.length) {
         pane.append(el('p', { class: 'muted small', text: 'This problem has no visible sample cases.' }));
-        return;
+      } else {
+        pane.append(el('p', { class: 'tiny faint', text:
+          `${cases.length} sample ${cases.length === 1 ? 'case' : 'cases'}. `
+          + 'Run uses these; Submit also runs hidden ones.' }));
+        cases.forEach((c, i) => {
+          pane.append(el('div', { class: 'case' }, [
+            el('div', { class: 'case-head' }, [el('span', { text: `Case ${i + 1}` })]),
+            el('div', { class: 'io' }, [
+              el('div', {}, [el('h5', { text: 'stdin' }), el('pre', { text: c.stdin || '(none)' })]),
+              el('div', {}, [el('h5', { text: 'expected' }), el('pre', { text: c.expect || '(nothing)' })]),
+            ]),
+          ]));
+        });
       }
-      pane.append(el('p', { class: 'tiny faint', text:
-        `${cases.length} sample ${cases.length === 1 ? 'case' : 'cases'}. `
-        + 'Submit also runs hidden ones.' }));
-      cases.forEach((c, i) => {
-        pane.append(el('div', { class: 'case' }, [
-          el('div', { class: 'case-head' }, [el('span', { text: `Case ${i + 1}` })]),
-          el('div', { class: 'io' }, [
-            el('div', {}, [el('h5', { text: 'stdin' }), el('pre', { text: c.stdin || '(none)' })]),
-            el('div', {}, [el('h5', { text: 'expected' }), el('pre', { text: c.expect || '(nothing)' })]),
-          ]),
-        ]));
-      });
+      pane.append(myCasesNode());
       return;
     }
 
@@ -1292,6 +1296,195 @@ const ProblemView = (() => {
       return;
     }
     pane.append(impl.diagnosticsNode(text, impl.lastBuildOk ? impl.lastBuildOk() : true));
+  }
+
+  /* ---------------- inputs of your own ----------------
+
+     The samples answer "does it work on the example". The question
+     somebody actually has at the keyboard is "what does it do on
+     THIS", and until now the only way to ask it was to edit the
+     program to hard-code the input, run, and edit it back.
+
+     So: a list of stdin values that belong to the reader, kept with
+     their draft, under the same problem id, in the same store. They
+     are run through the same engine as everything else and they are
+     NOT graded — there is no expected output here, because inventing
+     one would be inventing an answer. The output is shown and that is
+     all. Submit does not know these exist.
+
+     Kept in the draft store under a reserved slot, like the answer
+     drafts: it survives a reload, it travels in an export, and inside
+     an assessment it goes to the attempt rather than to the practice
+     record, which is what a reader scratching at a timed problem
+     would expect. */
+  const CASES_SLOT = '_mycases';
+
+  function myCases() {
+    const raw = Store.draft(current.id, CASES_SLOT);
+    if (!raw) return [];
+    try {
+      const v = JSON.parse(raw);
+      return Array.isArray(v) ? v.map(String) : [];
+    } catch { return []; }
+  }
+
+  function setMyCases(list) {
+    Store.saveDraft(current, CASES_SLOT, JSON.stringify(list.map(String)));
+  }
+
+  /* The last run of the reader's own inputs, so changing tabs does not
+     throw the output away.
+
+     myNote is the message beside the buttons, and it is state rather
+     than a DOM write for one reason: the moment a run finishes, the
+     pane is repainted to show the outputs, which builds a fresh empty
+     note element. Writing the result into the old one and then
+     repainting means the reader never sees the sentence that says what
+     happened. Progress during the run goes straight to the node
+     because nothing repaints while it is in flight; anything that
+     outlives the run goes here. */
+  let myRun = null;
+  let myNote = '';
+
+  function myCasesNode() {
+    const p = current;
+    const impl = ProblemTypes.get(p.type);
+    const list = myCases();
+
+    const wrap = el('div', { class: 'mycases' }, [
+      el('h5', { class: 'cases-head' }, ['Your own inputs']),
+      el('p', { class: 'tiny faint' }, [
+        'Anything you want to try. These are yours, they are kept with your '
+        + 'draft, and they are never graded \u2014 there is no expected output, '
+        + 'so this shows you what your program does and nothing more. Submit '
+        + 'does not use them.',
+      ]),
+    ]);
+
+    const rows = el('div', { class: 'mycase-list' });
+    list.forEach((stdin, i) => {
+      const box = el('textarea', {
+        class: 'mycase-in', rows: String(Math.min(6, Math.max(2, stdin.split('\n').length))),
+        spellcheck: 'false',
+        'aria-label': `Input ${i + 1}`,
+        placeholder: 'what to feed the program on stdin',
+      });
+      box.value = stdin;
+      let t = null;
+      box.addEventListener('input', () => {
+        clearTimeout(t);
+        t = setTimeout(() => {
+          const next = myCases();
+          next[i] = box.value;
+          setMyCases(next);
+        }, 250);
+      });
+
+      const got = myRun && myRun.id === p.id ? (myRun.cases || [])[i] : null;
+      rows.append(el('div', { class: 'mycase' }, [
+        el('div', { class: 'mycase-top' }, [
+          el('span', { class: 'tiny faint', text: `Input ${i + 1}` }),
+          el('button', {
+            class: 'btn btn-sm btn-ghost', type: 'button',
+            title: 'Remove this input',
+            'aria-label': `Remove input ${i + 1}`,
+            onclick: () => {
+              const next = myCases();
+              next.splice(i, 1);
+              setMyCases(next);
+              repaintPane();
+            },
+          }, ['Remove']),
+        ]),
+        box,
+        got ? el('div', { class: 'mycase-out' }, [
+          el('h5', { text: got.timedOut ? 'timed out' : got.exit ? `exit ${got.exit}` : 'output' }),
+          el('pre', { text: (got.stdout || '').trim() || '(nothing)' }),
+          (got.stderr || '').trim()
+            ? el('pre', { class: 'diff-bad', text: got.stderr.trim() }) : null,
+        ].filter(Boolean)) : null,
+      ].filter(Boolean)));
+    });
+    wrap.append(rows);
+
+    wrap.append(el('div', { class: 'row', style: 'gap:.4rem;flex-wrap:wrap;margin-top:.5rem' }, [
+      el('button', {
+        class: 'btn btn-sm', type: 'button', id: 'addMyCase',
+        onclick: () => { setMyCases([...myCases(), '']); repaintPane(); },
+      }, ['Add an input']),
+      list.length ? el('button', {
+        class: 'btn btn-sm btn-primary', type: 'button', id: 'runMyCases',
+        onclick: () => runMyCases(),
+      }, ['Run my inputs']) : null,
+      el('span', { class: 'tiny faint', id: 'myCasesNote', text: myNote }),
+    ].filter(Boolean)));
+
+    if (!impl || !impl.collect) {
+      wrap.append(el('p', { class: 'tiny faint', text:
+        'This problem type has no program to feed, so there is nothing to run them against.' }));
+    }
+    return wrap;
+  }
+
+  async function runMyCases() {
+    const p = current;
+    const impl = ProblemTypes.get(p.type);
+    const widget = host && host.querySelector('#answerWidget');
+    const response = impl && impl.collect ? impl.collect(widget, p) : null;
+    const note = host && host.querySelector('#myCasesNote');
+    /* say() for progress, which is thrown away by the next repaint;
+       settle() for the outcome, which has to survive it. */
+    const say = t => { if (note) note.textContent = t; };
+    const settle = t => { myNote = t; say(t); };
+
+    if (!response || !response.source) {
+      settle('Write a program first.');
+      return;
+    }
+    const list = myCases();
+    if (!list.length) { settle('Add an input first.'); return; }
+
+    const btn = host && host.querySelector('#runMyCases');
+    if (btn) { btn.disabled = true; btn.textContent = 'Running…'; }
+    say('');
+
+    try {
+      const reply = await Runners.run(response.lang, response.source,
+        list.map(stdin => ({ stdin })), {
+          problemId: p.id,
+          profile: (p.payload || {}).profile || 'standard',
+          onStage: (stage, detail) => {
+            if (stage === 'running' && detail && detail.total > 1) {
+              say(`Input ${Math.min(detail.done + 1, detail.total)} of ${detail.total}…`);
+            } else {
+              say({ downloading: 'Fetching the compiler…', compiling: 'Compiling…',
+                running: 'Running…' }[stage] || '');
+            }
+          },
+        });
+      if (!current || current.id !== p.id) return;   /* they left */
+      if (reply.judgeDown) {
+        myRun = null;
+        settle('');
+        repaintPane();
+        const pane = host && host.querySelector('#resultPane');
+        if (pane && impl.platformNode) pane.prepend(impl.platformNode(reply));
+        return;
+      }
+      if (reply.compile && !reply.compile.ok) {
+        myRun = null;
+        settle('It did not compile — the Compiler output tab has the errors.');
+        return;
+      }
+      myRun = { id: p.id, cases: reply.cases || [] };
+      settle(`Ran ${list.length} of your ${list.length === 1 ? 'input' : 'inputs'}. Nothing was graded or recorded.`);
+      repaintPane();
+    } catch (err) {
+      settle(`Could not run: ${(err && err.message) || err}`);
+    } finally {
+      const b2 = host && host.querySelector('#runMyCases');
+      if (b2) { b2.disabled = false; b2.textContent = 'Run my inputs'; }
+    }
   }
 
   /* ---------------- what you have sent ----------------

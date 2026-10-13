@@ -329,7 +329,9 @@ const BrowserRust = (() => {
   /* ---------------- the runner interface ---------------- */
 
   async function run(source, cases, { runMs = RUN_MS, signal, onStage } = {}) {
-    const say = s => { if (onStage) onStage(s); };
+    /* `running` carries which case, because "Running…" on a
+       fourteen-case problem is indistinguishable from stuck. */
+    const say = (s, detail) => { if (onStage) onStage(s, detail); };
 
     if (!capable()) return down('this browser cannot run WebAssembly in a worker');
     if (String(source).length > MAX_SOURCE) {
@@ -341,7 +343,7 @@ const BrowserRust = (() => {
       await prepare();
     } catch (err) {
       if (err && err.name === 'AbortError') return cancelled();
-      return down(err.message);
+      return down(err.message, 'download');
     }
 
     say('compiling');
@@ -362,9 +364,10 @@ const BrowserRust = (() => {
       };
     }
 
-    say('running');
+    const all = cases || [];
+    say('running', { done: 0, total: all.length });
     const results = [];
-    for (const c of (cases || [])) {
+    for (const c of all) {
       if (signal && signal.aborted) return cancelled();
       /* eslint-disable-next-line no-await-in-loop -- cases are deliberately
          sequential: a fresh instance each, and an early abort should not
@@ -372,6 +375,7 @@ const BrowserRust = (() => {
       const r = await runOne(built.bytes, c.stdin, { runMs, signal });
       if (r.cancelled) return cancelled();
       results.push(r);
+      say('running', { done: results.length, total: all.length });
     }
 
     return {
@@ -382,10 +386,20 @@ const BrowserRust = (() => {
     };
   }
 
-  const down = why => ({
+  /* `kind` travels with the reply so the page can tell a toolchain
+     that will never build this from a download that was interrupted.
+     The second is transient and the answer is Try again; saying so in
+     the words of the first sends a reader off to install things they
+     do not need. */
+  const down = (why, kind = 'service') => ({
     lang: 'rust', backend: 'browserrust',
     compile: { ok: false, stdout: '', stderr: '', ms: 0, timedOut: false },
     cases: [], judgeDown: true,
+    kind,
+    /* The raw reason, for the disclosure the page puts it behind. The
+       sentence below is for a reader; this is for whoever they show it
+       to. */
+    detail: String(why),
     judgeError: `The in-browser Rust compiler could not be used: ${why}.`,
   });
 

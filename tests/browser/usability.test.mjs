@@ -516,6 +516,86 @@ section('resetting the editor touches nothing else');
   ok('and progress is intact', typeof after.xp === 'number');
 }
 
+/* ---------------- inputs of your own ----------------
+
+   The feature is small and the ways to get it wrong are not: an input
+   that is graded, an input that is lost on reload, an outcome message
+   wiped by the repaint that shows the outputs (which is exactly what
+   happened the first time), or Submit quietly picking them up. */
+
+section('your own inputs run, show their output, and are graded by nothing');
+{
+  await open('#/p/cpp-count-digits', 2600);
+
+  await page.evaluate(src => {
+    window.SystemsLab.ProblemTypes.get('code').editor().value = src;
+  }, ['#include <iostream>', '#include <string>',
+      'int main() { std::string s; std::cin >> s; std::cout << s.size() << "\\n"; return 0; }']
+    .join('\n'));
+  await page.waitForTimeout(400);
+
+  const toCases = async () => {
+    for (const t of await page.$$('.ws-tabs-work .tab')) {
+      if ((await t.textContent()).trim().startsWith('Test cases')) { await t.click(); return true; }
+    }
+    return false;
+  };
+  ok('there is a test-cases pane', await toCases());
+  await page.waitForTimeout(400);
+
+  const heads = await page.evaluate(() =>
+    [...document.querySelectorAll('#resultPane .cases-head')].map(h => h.textContent));
+  ok(`the problem's samples and mine are separate sections (${heads.join(' / ')})`,
+    heads.length === 2 && /samples/.test(heads[0]) && /own/.test(heads[1]));
+
+  await page.locator('#addMyCase').click();
+  await page.waitForTimeout(250);
+  await page.locator('.mycase-in').first().fill('hello');
+  await page.waitForTimeout(450);
+  await page.locator('#addMyCase').click();
+  await page.waitForTimeout(250);
+  await page.locator('.mycase-in').nth(1).fill('a-longer-word');
+  await page.waitForTimeout(450);
+
+  await page.locator('#runMyCases').click();
+  await page.waitForFunction(() => {
+    const n = document.querySelector('#myCasesNote');
+    return n && /Ran \d+|not compile|Could not|first/.test(n.textContent);
+  }, { timeout: 180_000 });
+  await page.waitForTimeout(500);
+
+  const mine = await page.evaluate(() => ({
+    note: (document.querySelector('#myCasesNote') || {}).textContent,
+    outs: [...document.querySelectorAll('.mycase-out pre')].map(n => n.textContent.trim()),
+    status: window.SystemsLab.Store.record('cpp-count-digits').status,
+    attempts: window.SystemsLab.Store.record('cpp-count-digits').attempts,
+  }));
+  check('both of my inputs ran', mine.outs, ['5', '13']);
+  ok(`the outcome survives the repaint that draws the outputs ("${mine.note}")`,
+    /Ran 2 of your inputs/.test(mine.note));
+  ok('and says plainly that nothing was graded', /graded|recorded/.test(mine.note));
+  check('the problem is still unsolved', mine.status, 'unsolved');
+  check('and no attempt was recorded', mine.attempts, 0);
+
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForTimeout(2600);
+  await toCases();
+  await page.waitForTimeout(500);
+  const back = await page.evaluate(() => ({
+    ins: [...document.querySelectorAll('.mycase-in')].map(n => n.value),
+    outs: document.querySelectorAll('.mycase-out').length,
+  }));
+  check('the inputs come back with the draft', back.ins, ['hello', 'a-longer-word']);
+  check('the outputs do not, because they belong to a run that is over', back.outs, 0);
+
+  /* Removing one leaves the other, and the store agrees. */
+  await page.locator('.mycase button').first().click();
+  await page.waitForTimeout(400);
+  check('removing one keeps the rest', await page.evaluate(() =>
+    JSON.parse(window.SystemsLab.Store.draft('cpp-count-digits', '_mycases'))),
+  ['a-longer-word']);
+}
+
 check('no uncaught errors', errors, []);
 await browser.close();
 report('browser/usability');

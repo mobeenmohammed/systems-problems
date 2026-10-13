@@ -202,10 +202,20 @@ const BrowserPy = (() => {
 
   /* ---------------- the shape everything downstream expects ---------------- */
 
-  const down = why => ({
+  /* `kind` travels with the reply so the page can tell a toolchain
+     that will never build this from a download that was interrupted.
+     The second is transient and the answer is Try again; saying so in
+     the words of the first sends a reader off to install things they
+     do not need. */
+  const down = (why, kind = 'service') => ({
     lang: 'python', backend: 'browserpy',
     compile: { ok: false, stdout: '', stderr: '', ms: 0, timedOut: false },
     cases: [], judgeDown: true,
+    kind,
+    /* The raw reason, for the disclosure the page puts it behind. The
+       sentence below is for a reader; this is for whoever they show it
+       to. */
+    detail: String(why),
     judgeError: `The in-browser interpreter could not be used: ${why}.`,
   });
 
@@ -220,7 +230,9 @@ const BrowserPy = (() => {
   });
 
   async function run(source, cases, { runMs = RUN_MS, signal, onStage } = {}) {
-    const say = s => { if (onStage) onStage(s); };
+    /* `running` carries which case, because "Running…" on a
+       fourteen-case problem is indistinguishable from stuck. */
+    const say = (s, detail) => { if (onStage) onStage(s, detail); };
 
     if (!capable()) return down('this browser cannot run WebAssembly in a worker');
     if (String(source || '').length > MAX_SOURCE) {
@@ -233,13 +245,18 @@ const BrowserPy = (() => {
     } catch (err) {
       if (signal && signal.aborted) return cancelled();
       if (err && err.name === 'AbortError') return cancelled();
-      return down(err.message);
+      return down(err.message, 'download');
     }
 
-    say('running');
+    const all = cases || [];
+    say('running', { done: 0, total: all.length });
     const results = [];
-    for (let i = 0; i < (cases || []).length; i += 1) {
+    for (let i = 0; i < all.length; i += 1) {
       if (signal && signal.aborted) return cancelled();
+      /* Reported at the top rather than after each push: this loop has
+         two ways out of its body, and a counter maintained in two
+         places is a counter that disagrees with itself. */
+      say('running', { done: i, total: all.length });
       const c = cases[i];
       /* eslint-disable-next-line no-await-in-loop -- sequential on purpose:
          one interpreter, and an early abort should not leave another case
