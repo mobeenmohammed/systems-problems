@@ -282,6 +282,40 @@ select { cursor: pointer; }
 .main { max-width: 1180px; margin: 0 auto; padding: var(--s5) var(--s5) var(--s8); }
 .main.wide { max-width: 1480px; }
 
+/* ---------------- the one dialog ----------------
+
+   Importing is the only thing on this site that can destroy work in
+   one click, so it is the only thing that gets a dialog. Everything
+   else asks with a confirm() or does not need asking. */
+.modal {
+  position: fixed; inset: 0; z-index: 90;
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--s4); background: rgba(0, 0, 0, .55);
+  overflow-y: auto;
+}
+.modal-card {
+  background: var(--bg-elev); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow-2);
+  padding: var(--s5); max-width: 40rem; width: 100%;
+  max-height: calc(100vh - 2 * var(--s4)); overflow-y: auto;
+}
+.modal-card h2 { margin: 0 0 .2rem; font-size: 1.15rem; }
+.imp-head { margin: var(--s4) 0 .3rem; font-size: .82rem; color: var(--text-dim); }
+.imp-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0 var(--s4);
+}
+.imp-row {
+  display: flex; justify-content: space-between; gap: var(--s3);
+  padding: .18rem 0; font-size: .85rem; border-bottom: 1px solid var(--border);
+}
+.imp-k { color: var(--text-dim); }
+.imp-v { font-family: var(--mono); color: var(--text); }
+.imp-impact { margin: .3rem 0 0; padding-left: 1.1rem; }
+.imp-impact li { margin: .4rem 0; font-size: .86rem; color: var(--text-dim); }
+.imp-impact b { color: var(--text); }
+.imp-warn { color: var(--warn); margin: var(--s3) 0 0; }
+
 /* ---------------- scrollbars ----------------
 
    The reported bug: a bright scrollbar under a code block on a dark

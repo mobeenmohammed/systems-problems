@@ -443,6 +443,91 @@ section('two tabs on one attempt finalise it once');
   check('the attempt page was emptied, not just hidden', m.clockLeft, false);
 }
 
+/* ---------------- stale work, after the page moved on ----------------
+
+   The fourth recurring failure, and the one that was reported from the
+   deployed site rather than found here:
+
+     TypeError: Cannot read properties of null (reading 'replaceChildren')
+       at draw (js/problem.js)
+       at Object.open (js/problem.js)
+       at async route (js/app.js)
+
+   `open()` captures its host, awaits the problem's JSON, and paints.
+   Navigate away while that fetch is in the air and the router calls
+   `leave()`, which nulls the host — then the fetch lands and the paint
+   dereferences it. Over localhost the window is a few milliseconds
+   wide, which is why this was invisible here and showed up against the
+   published site.
+
+   So: make the window wide on purpose, and walk through it. */
+
+section('nothing paints into a page that has moved on');
+{
+  const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+  const p2 = await ctx.newPage();
+  const stale = [];
+  p2.on('pageerror', e => stale.push(`${e.message} @ ${(e.stack || '').split('\n')[1] || ''}`.trim()));
+
+  /* Two and a half seconds for a problem file, which is what a bad
+     connection does and what the deployed site does on a cold cache. */
+  await p2.route('**/problems/**/*.json', async r => {
+    await new Promise(res => setTimeout(res, 2500));
+    await r.continue();
+  });
+
+  await p2.goto(`${BASE}/#/problems`, { waitUntil: 'networkidle' });
+  await p2.waitForTimeout(1000);
+
+  const trips = [
+    ['#/p/cpp-count-digits', '#/problems'],
+    ['#/p/hdl-mux2', '#/'],
+    ['#/p/metric-axioms-which-fails', '#/review'],
+    ['#/p/cpp-count-digits', '#/learn'],
+    /* And the harder one: a second problem, where the host is not null
+       but belongs to somebody else. */
+    ['#/p/cpp-count-digits', '#/p/hdl-counter'],
+  ];
+  for (const [to, away] of trips) {
+    await p2.evaluate(h => { location.hash = h; }, to);
+    await p2.waitForTimeout(500);
+    await p2.evaluate(h => { location.hash = h; }, away);
+    await p2.waitForTimeout(2600);
+  }
+  check(`${trips.length} navigations away from a loading problem`, stale, []);
+
+  /* The page still works afterwards, which is the point of not
+     throwing: a half-applied paint leaves the workspace in a state
+     nothing can recover. */
+  await p2.unroute('**/problems/**/*.json');
+  await p2.evaluate(() => { location.hash = '#/p/cpp-count-digits'; });
+  await p2.waitForTimeout(2200);
+  const alive = await p2.evaluate(() => ({
+    title: (document.querySelector('.ws-title') || {}).textContent || null,
+    editor: !!document.querySelector('.cm-content'),
+    flag: document.body.dataset.workspace || null,
+  }));
+  ok(`and the next problem opens normally (${alive.title})`, !!alive.title && alive.editor);
+  check('with its workspace flag set', alive.flag, 'true');
+
+  /* Switching tabs and language while something is in flight. */
+  await p2.evaluate(() => {
+    const t = [...document.querySelectorAll('.ws-tabs-work .tab')];
+    t.forEach((x, i) => setTimeout(() => x.click(), i * 40));
+  });
+  await p2.waitForTimeout(900);
+  await p2.evaluate(() => {
+    const opt = [...document.querySelectorAll('.lang-opt')].find(o => /python/i.test(o.textContent));
+    if (opt) opt.click();
+  });
+  await p2.waitForTimeout(1200);
+  await p2.evaluate(() => { location.hash = '#/problems'; });
+  await p2.waitForTimeout(1200);
+  check('tab and language changes leave nothing behind', stale, []);
+
+  await ctx.close();
+}
+
 section('no uncaught errors anywhere in all of that');
 ok(errors.length ? `errors: ${errors.join(' | ').slice(0, 400)}` : 'none', errors.length === 0);
 

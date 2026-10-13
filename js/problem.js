@@ -294,10 +294,39 @@ const ProblemView = (() => {
 
   /* ---------------- entry ---------------- */
 
+  /* Which open() is the current one.
+
+     THE BUG THIS FIXES, with its stack:
+
+       TypeError: Cannot read properties of null (reading 'replaceChildren')
+         at draw (js/problem.js)
+         at Object.open (js/problem.js)
+         at async route (js/app.js)
+
+     open() captures `host`, then awaits the problem's JSON. If the
+     reader navigates away while that fetch is in flight — easy over a
+     real network, which is why this showed up against the deployed
+     site and not against localhost — the router calls leave(), which
+     sets `host = null`. The fetch then lands, open() resumes, and
+     draw() dereferences it.
+
+     Reproduced deterministically by delaying the problem JSON by 2.5s
+     and navigating away after 0.5s: four page errors in five trips.
+
+     An epoch rather than a null check at each site, because the real
+     condition is "this open() has been superseded" — which is also
+     true when the reader opened a DIFFERENT problem while this one was
+     loading, where `host` is not null but belongs to somebody else.
+     Checked after every await. */
+  let openEpoch = 0;
+
   async function open(id, mount, opts = {}) {
     /* Opening is leaving the last one first: a second problem must not
        inherit the first one's editor, verdict or attempt history. */
     leave();
+
+    const mine = (openEpoch += 1);
+    const current_ = () => openEpoch === mine && host === mount && !!host;
 
     host = mount;
     assess = opts.assess || null;
@@ -324,6 +353,7 @@ const ProblemView = (() => {
        typed or bookmarked that URL should be told what happened. */
     if (!assess && Catalog.isPooled(id) && typeof Attempts !== 'undefined') {
       const live = await Attempts.running();
+      if (!current_()) return;
       if (live && (live.problems || []).includes(id)) {
         host.replaceChildren(el('div', { class: 'empty' }, [
           el('h2', { text: 'That question is in the assessment you are sitting' }),
@@ -338,6 +368,9 @@ const ProblemView = (() => {
     }
 
     const problem = await Catalog.get(id);
+    /* The reader left while that was in the air. Everything below
+       belongs to a page that is no longer on screen. */
+    if (!current_()) return;
     if (!problem) {
       host.replaceChildren(el('div', { class: 'empty' }, [
         el('h2', { text: 'Problem not found' }),
@@ -356,6 +389,7 @@ const ProblemView = (() => {
     const r = Store.record(problem.id);
     if (!assess && (r.status === 'solved' || r.status === 'read' || r.revealed)) {
       solution = await Catalog.solution(problem.id);
+      if (!current_()) return;
     }
 
     draw();
@@ -376,6 +410,11 @@ const ProblemView = (() => {
      route that is not a problem. It is written to be safe to call twice, and
      safe to call when no problem was ever open. */
   function leave() {
+    /* Anything still loading now belongs to a page nobody is looking
+       at. Bumping the epoch is what makes it return quietly instead of
+       painting into a host that is about to be null. */
+    openEpoch += 1;
+
     /* Before anything is torn down: a debounced answer that has not been
        written yet is work, and going to the next question must not be the
        thing that loses it. */
@@ -559,6 +598,12 @@ const ProblemView = (() => {
   let workTab = 'editor';
 
   function draw() {
+    /* The last line of defence. Everything that calls draw() should
+       already have checked, and this is here because the symptom of
+       one that did not is an uncaught TypeError in the console and a
+       half-painted page — which is a worse way to find out than a
+       quiet return and a test that catches it. */
+    if (!host || !current) return;
     const p = current;
     const workspace = isWorkspace(p);
     /* A tab the previous problem had and this one does not. Left alone

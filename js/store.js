@@ -1009,6 +1009,163 @@ const Store = (() => {
     return state;
   }
 
+  /* ---------------- reading a file before trusting it ----------------
+
+     `importState` REPLACES everything. That is the right thing for
+     "I am moving to a new browser" and the wrong thing for anything
+     else, and it used to happen the moment a file was chosen — no
+     preview, no confirmation, and progress gone.
+
+     So: describe it first. Pure, so it can be tested without a page,
+     and it answers the two questions somebody picking a file actually
+     has — what is in this, and what will happen to what I have. */
+
+  /* How far along each status is, which is NOT the order STATUSES
+     above lists them in — that one is the set of legal values. "read"
+     and "reviewed" both mean the answer has been seen, so they sit
+     below "solved" and above "attempted". A merge takes the higher. */
+  const PROGRESS_ORDER = ['unsolved', 'attempted', 'reviewed', 'read', 'solved'];
+  const rank = st => Math.max(0, PROGRESS_ORDER.indexOf(st || 'unsolved'));
+
+  function describeImport(doc) {
+    const problems = [];
+    if (!doc || typeof doc !== 'object') {
+      return { ok: false, why: 'That file is not JSON this site wrote.' };
+    }
+
+    /* Two shapes, both legitimate: a v1 file IS the progress object; a
+       v2 file has it under `progress` with programs and attempts
+       beside it. Refusing the old one for lacking a wrapper would be
+       refusing somebody their own data.
+
+       The discriminator cannot be "has a `progress` key", which was the
+       first attempt and is true of BOTH — a v1 file's own records live
+       under `progress` too. A v2 file is the one whose `progress` has a
+       `progress` inside it. */
+    const v2 = !!(doc.progress && typeof doc.progress === 'object' && doc.progress.progress);
+    const prog = v2 ? doc.progress : doc;
+    if (!prog || typeof prog !== 'object' || !prog.progress || typeof prog.progress !== 'object') {
+      return {
+        ok: false,
+        why: 'There is no progress in that file. An export from this site has a '
+          + '"progress" object in it; this one does not.',
+      };
+    }
+
+    const rows = Object.values(prog.progress).filter(r => r && r.id);
+    const count = st => rows.filter(r => r.status === st).length;
+    const drafts = rows.filter(r => r.draft && Object.keys(r.draft).length).length;
+    const notes = rows.filter(r => (r.notes || '').trim()).length;
+    /* `subs`, not `submissions`. The record has called it that since it
+       was written, and reading the wrong name here made the preview
+       report "0 submission verdicts" for a file full of them — which
+       is worse than not showing the number at all, because it is a
+       number somebody would believe. */
+    const subs = rows.reduce((n, r) => n + ((r.subs || []).length), 0);
+    const sources = doc.sources
+      ? Object.values(doc.sources).reduce((n, m) => n + Object.keys(m || {}).length, 0) : 0;
+    const attempts = ((doc.attempts || {}).attempts || []).length;
+
+    /* What it would do to what is here now. */
+    const have = Object.values(state.progress).filter(r => r && r.id);
+    const haveIds = new Set(have.map(r => r.id));
+    const incomingIds = new Set(rows.map(r => r.id));
+    const onlyHere = have.filter(r => !incomingIds.has(r.id) && rank(r.status) > 0).length;
+    const onlyThere = rows.filter(r => !haveIds.has(r.id) && rank(r.status) > 0).length;
+    /* "Would go backwards" means present in BOTH and further along
+       here. A problem the file has never heard of is not going
+       backwards, it is being deleted — which is `onlyHere`, and
+       counting it in both made the dialog say the same loss twice. */
+    const wouldLose = have.filter(r => {
+      const other = prog.progress[r.id];
+      return other && rank(r.status) > rank(other.status);
+    }).length;
+
+    return {
+      ok: true,
+      format: v2 ? (doc._format || 'invariant/export/v2') : 'invariant/export/v1',
+      exportedAt: doc.exportedAt || null,
+      has: {
+        problems: rows.length,
+        solved: count('solved'),
+        attempted: count('attempted'),
+        read: count('read'),
+        drafts, notes, submissions: subs, programs: sources, attempts,
+        xp: prog.xp || 0,
+      },
+      /* The sentence that matters. */
+      impact: {
+        onlyHere,     /* progress you have that the file does not */
+        onlyThere,    /* progress the file has that you do not */
+        wouldLose,    /* problems where replacing goes backwards */
+      },
+      problems,
+    };
+  }
+
+  /* Keep both. Per problem the further-along record wins, drafts and
+     notes are taken where this browser has none, submissions are
+     unioned by timestamp, and the counters take the larger.
+
+     Deliberately conservative: a merge may not make anything worse
+     than it was. That is the property that makes it safe to offer
+     beside a replace. */
+  function mergeState(raw) {
+    const incoming = normalize(raw);
+    const mine = state.progress;
+
+    for (const [id, other] of Object.entries(incoming.progress || {})) {
+      const r = mine[id];
+      if (!r) { mine[id] = other; continue; }
+
+      if (rank(other.status) > rank(r.status)) {
+        r.status = other.status;
+        r.xpEarned = Math.max(r.xpEarned || 0, other.xpEarned || 0);
+        r.revealed = r.revealed || other.revealed;
+      }
+      r.attempts = Math.max(r.attempts || 0, other.attempts || 0);
+      r.flagged = r.flagged || other.flagged;
+      if (!(r.notes || '').trim() && (other.notes || '').trim()) r.notes = other.notes;
+      if (!(r.missed || '').trim() && (other.missed || '').trim()) {
+        r.missed = other.missed;
+        r.missedAt = other.missedAt;
+      }
+      /* A draft is only taken where there is none: overwriting what is
+         in somebody's editor is the one thing a merge must never do. */
+      for (const [lang, src] of Object.entries(other.draft || {})) {
+        if (!(r.draft || {})[lang]) {
+          r.draft = r.draft || {};
+          r.draft[lang] = src;
+        }
+      }
+      /* Submissions are unioned by their timestamp, which is what makes
+         this idempotent: importing the same file twice adds nothing the
+         second time. Oldest-first, like the record keeps them, and
+         capped at the same limit. */
+      const seen = new Set((r.subs || []).map(x => x.at));
+      r.subs = [...(r.subs || []),
+        ...(other.subs || []).filter(x => x && !seen.has(x.at))]
+        .sort((a, b) => String(a.at).localeCompare(String(b.at)))
+        .slice(-SUBS_MAX);
+      if (!r.reviewOn || (other.reviewOn && other.reviewOn < r.reviewOn)) {
+        r.reviewOn = other.reviewOn || r.reviewOn;
+      }
+    }
+
+    state.xp = Math.max(state.xp || 0, incoming.xp || 0);
+    state.coins = Math.max(state.coins || 0, incoming.coins || 0);
+    state.streak = (incoming.streak && incoming.streak.best > (state.streak || {}).best)
+      ? { ...state.streak, best: incoming.streak.best } : state.streak;
+    for (const owned of incoming.owned || []) {
+      if (!state.owned.includes(owned)) state.owned.push(owned);
+    }
+
+    rollStreak();
+    recomputeAchievements();
+    save(); emit('import', state);
+    return state;
+  }
+
   function reset() {
     state = blankState();
     save(); emit('reset', state);
@@ -1156,6 +1313,7 @@ const Store = (() => {
     submissions, SUBS_MAX, SUBS_KEEP_WHEN_FULL,
     openHint, reveal, submit,
     setNotes, setMissed, setPerceived, setFlag, toggleFlag, setReview, saveDraft, setLang, draft, dueForReview, selfReview,
+    describeImport, mergeState,
     reviewQueue, REVIEW_REASONS, REVIEW_BY_ID,
     useDraftStore,
     completionPref, completionOn, setCompletion, COMPLETION_LANGS,

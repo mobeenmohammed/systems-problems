@@ -3123,45 +3123,149 @@ const UI = (() => {
       toast(`${solves.length} solves exported. Import via **Data ▸ Import solved problems**.`, 'good');
     });
 
+    /* ---------------- importing, with the lid off ----------------
+
+       `Store.importState` REPLACES everything, and this used to call it
+       the moment a file was chosen: no preview, no confirmation, and a
+       browser's worth of progress gone if the file turned out to be the
+       wrong one or three months old.
+
+       So now: read it, check it, say what is in it, say what it would
+       do to what is here, and offer the two things somebody actually
+       wants — keep both, or start again from the file. Nothing happens
+       until one of those is pressed. */
     $('#setImport').addEventListener('click', () => {
       const input = el('input', { type: 'file', accept: 'application/json,.json' });
       input.addEventListener('change', async () => {
         const file = input.files && input.files[0];
         if (!file) return;
+        let doc;
         try {
-          const doc = JSON.parse(await file.text());
-          /* Both shapes. A v1 file is the progress object itself; a v2
-             file has it under `progress` with the rest beside it.
-             Refusing the old one because it lacks a wrapper would be
-             refusing somebody their own data. */
-          const isV2 = doc && typeof doc === 'object' && doc.progress;
-          Store.importState(isV2 ? doc.progress : doc);
-
-          const said = ['progress'];
-          if (isV2 && doc.sources && typeof Sources !== 'undefined') {
-            const r = await Sources.load(doc.sources);
-            const n = Object.values(doc.sources)
-              .reduce((a, m) => a + Object.keys(m).length, 0);
-            said.push(`${n} ${n === 1 ? 'program' : 'programs'}`);
-            if (r.failed.length) {
-              toast(`${r.failed.length} could not be stored — see Storage, below.`, 'bad');
-            }
-          }
-          if (isV2 && doc.attempts && doc.attempts.attempts) {
-            const w = await Vault.set(Attempts.KEY, doc.attempts);
-            Attempts._reset();
-            said.push(`${doc.attempts.attempts.length} attempts`);
-            if (!w.ok) toast('The attempts could not be stored — see Storage, below.', 'bad');
-          }
-
-          applyCosmetics(); refreshPurse(); renderSettings();
-          toast(`Imported: ${said.join(', ')}.`, 'good');
+          doc = JSON.parse(await file.text());
         } catch (err) {
-          toast(`That file could not be read: ${err.message}`, 'bad');
+          toast(`That file is not JSON: ${err.message}`, 'bad');
+          return;
         }
+        const look = Store.describeImport(doc);
+        if (!look.ok) { toast(look.why, 'bad', 9000); return; }
+        showImportPreview(file.name, doc, look);
       });
       input.click();
     });
+
+    function applyImport(doc, how) {
+      /* Same discriminator as Store.describeImport: a v1 file has a
+         `progress` key too, so "has one" cannot be the test. */
+      const v2 = !!(doc.progress && typeof doc.progress === 'object' && doc.progress.progress);
+      const prog = v2 ? doc.progress : doc;
+      if (how === 'merge') Store.mergeState(prog);
+      else Store.importState(prog);
+      return (async () => {
+        const said = [how === 'merge' ? 'merged progress' : 'replaced progress'];
+        if (v2 && doc.sources && typeof Sources !== 'undefined') {
+          const r = await Sources.load(doc.sources);
+          const n = Object.values(doc.sources)
+            .reduce((a, m) => a + Object.keys(m).length, 0);
+          said.push(`${n} ${n === 1 ? 'program' : 'programs'}`);
+          if (r.failed.length) {
+            toast(`${r.failed.length} could not be stored — see Storage, below.`, 'bad');
+          }
+        }
+        if (v2 && doc.attempts && doc.attempts.attempts) {
+          /* Attempts are replaced either way: an attempt is a sealed
+             record of one sitting, and half-merging two sets of them
+             would produce a history that never happened. */
+          const w = await Vault.set(Attempts.KEY, doc.attempts);
+          Attempts._reset();
+          said.push(`${doc.attempts.attempts.length} attempts`);
+          if (!w.ok) toast('The attempts could not be stored — see Storage, below.', 'bad');
+        }
+        applyCosmetics(); refreshPurse(); renderSettings();
+        toast(`Imported: ${said.join(', ')}.`, 'good');
+      })();
+    }
+
+    function showImportPreview(name, doc, look) {
+      const h = look.has;
+      const i = look.impact;
+      const line = (k, v) => el('div', { class: 'imp-row' }, [
+        el('span', { class: 'imp-k', text: k }),
+        el('span', { class: 'imp-v', text: String(v) }),
+      ]);
+
+      const box = el('div', { class: 'modal-card imp' }, [
+        el('h2', { text: 'Import this file?' }),
+        el('p', { class: 'small muted' }, [
+          el('b', { text: name }), ' — ', look.format,
+          look.exportedAt ? `, written ${new Date(look.exportedAt).toLocaleString()}` : '',
+        ]),
+
+        el('h3', { class: 'imp-head', text: 'What is in it' }),
+        el('div', { class: 'imp-grid' }, [
+          line('problems with a record', h.problems),
+          line('solved', h.solved),
+          line('attempted', h.attempted),
+          line('solution reviewed', h.read),
+          line('drafts', h.drafts),
+          line('notes', h.notes),
+          line('submission verdicts', h.submissions),
+          line('submitted programs', h.programs),
+          line('assessment attempts', h.attempts),
+          line('XP', h.xp),
+        ]),
+
+        el('h3', { class: 'imp-head', text: 'What it would do' }),
+        el('ul', { class: 'imp-impact' }, [
+          el('li', {}, [el('b', { text: 'Keep both' }),
+            ' — for each problem the further-along record wins, notes and drafts '
+            + 'are taken only where this browser has none, and submissions are '
+            + 'combined. Nothing you have gets worse.'
+            + (i.onlyThere ? ` This would add ${i.onlyThere} problem${i.onlyThere === 1 ? '' : 's'} you have not started here.` : '')]),
+          el('li', {}, [el('b', { text: 'Replace' }),
+            ' — this browser ends up with exactly what is in the file.'
+            + (i.wouldLose
+              ? ` ${i.wouldLose} problem${i.wouldLose === 1 ? '' : 's'} would go backwards, `
+                + `and ${i.onlyHere} you have progress on ${i.onlyHere === 1 ? 'is' : 'are'} not in the file at all.`
+              : ' Nothing here is further along than the file, so nothing is lost.')]),
+        ]),
+        i.wouldLose || i.onlyHere
+          ? el('p', { class: 'imp-warn small' }, [
+            'Export what you have first if you are not sure — the button is '
+            + 'just above this one.',
+          ])
+          : null,
+
+        el('div', { class: 'row', style: 'gap:.5rem;flex-wrap:wrap;margin-top:1rem' }, [
+          el('button', { class: 'btn btn-primary', type: 'button', id: 'impMerge' }, ['Keep both']),
+          el('button', { class: 'btn', type: 'button', id: 'impReplace' }, ['Replace everything']),
+          el('button', { class: 'btn btn-ghost', type: 'button', id: 'impCancel' }, ['Cancel']),
+        ]),
+      ].filter(Boolean));
+
+      const shade = el('div', { class: 'modal', id: 'importModal' }, [box]);
+      const shut = () => shade.remove();
+      shade.addEventListener('click', e => { if (e.target === shade) shut(); });
+      document.addEventListener('keydown', function esc(e) {
+        if (e.key !== 'Escape') return;
+        document.removeEventListener('keydown', esc);
+        shut();
+      });
+      box.querySelector('#impCancel').addEventListener('click', shut);
+      box.querySelector('#impMerge').addEventListener('click', async () => {
+        shut(); await applyImport(doc, 'merge');
+      });
+      box.querySelector('#impReplace').addEventListener('click', async () => {
+        if (!confirm('Replace everything in this browser with the file?\n\n'
+          + (i.onlyHere
+            ? `${i.onlyHere} problem(s) you have progress on are not in the file and `
+              + 'that progress will be gone.\n\n'
+            : '')
+          + 'This cannot be undone from here.')) return;
+        shut(); await applyImport(doc, 'replace');
+      });
+      document.body.append(shade);
+      box.querySelector('#impMerge').focus();
+    }
 
     $('#setReset').addEventListener('click', () => {
       if (!confirm('Reset everything?\n\nEvery solve, all XP and coins, and everything you own. This cannot be undone.')) return;

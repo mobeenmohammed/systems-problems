@@ -647,4 +647,129 @@ await fresh();
   check('and a source that is not text is no source at all', sub.source, null);
 }
 
+/* ---------------- reading an import before trusting it ----------------
+
+   `importState` replaces everything, and used to run the moment a file
+   was chosen. These are the two functions that let the page say what a
+   file holds and what it would do, and the merge that is the safe
+   answer to "I have two browsers". */
+
+section('an import can be described before it is applied');
+{
+  await fresh();
+
+  check('rubbish is refused', Store.describeImport(null).ok, false);
+  check('and so is JSON that is not an export',
+    Store.describeImport({ hello: 'world' }).ok, false);
+  ok('with a reason somebody can act on',
+    /no progress in that file/i.test(Store.describeImport({ hello: 'world' }).why));
+
+  /* A file from another browser. */
+  const file = {
+    _format: 'invariant/export/v2',
+    exportedAt: '2026-01-02T03:04:05.000Z',
+    progress: {
+      xp: 120,
+      progress: {
+        a: { id: 'a', status: 'solved', xpEarned: 30, subs: [{ at: '1', outcome: 'passed' }] },
+        b: { id: 'b', status: 'attempted', attempts: 2, notes: 'from the file' },
+        c: { id: 'c', status: 'solved', draft: { cpp: 'int main(){}' } },
+      },
+    },
+    sources: { a: { 1: 'int main(){}' } },
+    attempts: { version: 1, attempts: [{ id: 'x' }] },
+  };
+
+  const look = Store.describeImport(file);
+  check('it reads', look.ok, true);
+  check('the format', look.format, 'invariant/export/v2');
+  check('how many problems', look.has.problems, 3);
+  check('how many solved', look.has.solved, 2);
+  check('how many drafts', look.has.drafts, 1);
+  check('how many notes', look.has.notes, 1);
+  check('how many submission verdicts', look.has.submissions, 1);
+  check('how many programs', look.has.programs, 1);
+  check('how many attempts', look.has.attempts, 1);
+
+  /* A v1 file is the progress object itself, and must still read. */
+  check('an older export is still readable',
+    Store.describeImport(file.progress).ok, true);
+  check('and says which it is',
+    Store.describeImport(file.progress).format, 'invariant/export/v1');
+
+  /* Nothing has been applied by describing it. */
+  check('describing changes nothing', Store.record('a').status, 'unsolved');
+}
+
+section('and the impact is computed against what is here');
+{
+  await fresh();
+  Store.submit({ id: 'b', difficulty: 'beginner' }, { correct: true, score: 1 });
+  Store.submit({ id: 'z', difficulty: 'beginner' }, { correct: true, score: 1 });
+
+  const file = {
+    progress: {
+      progress: {
+        a: { id: 'a', status: 'solved' },
+        b: { id: 'b', status: 'attempted' },
+      },
+    },
+  };
+  const look = Store.describeImport(file);
+  check('one problem is only in the file', look.impact.onlyThere, 1);
+  check('one is only here', look.impact.onlyHere, 1);
+  check('and one would go backwards on a replace', look.impact.wouldLose, 1);
+}
+
+section('keeping both never makes anything worse');
+{
+  await fresh();
+
+  Store.submit({ id: 'solved-here', difficulty: 'beginner' }, { correct: true, score: 1 });
+  Store.saveDraft({ id: 'drafted-here' }, 'cpp', 'MINE');
+  Store.setNotes({ id: 'noted-here' }, 'my note');
+
+  const before = Store.record('solved-here').status;
+
+  Store.mergeState({
+    xp: 9999,
+    progress: {
+      'solved-here': { id: 'solved-here', status: 'attempted', attempts: 7 },
+      'drafted-here': { id: 'drafted-here', status: 'solved', draft: { cpp: 'THEIRS' } },
+      'noted-here': { id: 'noted-here', status: 'unsolved', notes: 'their note' },
+      'new-one': { id: 'new-one', status: 'solved', xpEarned: 20 },
+    },
+  });
+
+  check('a solved problem is not downgraded', Store.record('solved-here').status, before);
+  check('but a higher attempt count is taken', Store.record('solved-here').attempts, 7);
+  check('a draft in this browser is never overwritten',
+    Store.draft('drafted-here', 'cpp'), 'MINE');
+  check('while the status beside it is taken', Store.record('drafted-here').status, 'solved');
+  check('a note here is kept', Store.record('noted-here').notes, 'my note');
+  check('and one the file has alone arrives', Store.record('new-one').status, 'solved');
+  check('XP takes the larger', Store.state.xp, 9999);
+}
+
+section('and merging the same file twice adds nothing the second time');
+{
+  await fresh();
+
+  const file = {
+    progress: {
+      p: {
+        id: 'p', status: 'solved',
+        subs: [{ at: '2026-01-01T00:00:00.000Z', outcome: 'passed' },
+          { at: '2026-01-02T00:00:00.000Z', outcome: 'failed' }],
+      },
+    },
+  };
+  Store.mergeState(file);
+  const once = Store.submissions('p').length;
+  Store.mergeState(file);
+  const twice = Store.submissions('p').length;
+  check('submissions arrive', once, 2);
+  check('and are not duplicated', twice, once);
+}
+
 report('store');
