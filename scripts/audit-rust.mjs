@@ -132,8 +132,9 @@ function explain(stderr) {
       + '`parse::<i64>()` does not compile with this backend: the Cranelift → '
       + 'WebAssembly lowering has no `smulhi` for i64, which is what '
       + '`core::num::from_ascii_radix` needs. 64-bit arithmetic and printing are '
-      + 'both fine — this is parsing specifically. The exercise is unchanged and '
-      + 'runs on the native toolchain.';
+      + 'both fine — it is reading a 64-bit integer out of a string, and nothing '
+      + 'else. The exercise itself is unchanged; the gap is in the WebAssembly '
+      + 'backend of the compiler, not in the exercise.';
   }
   const first = stderr.split('\n').find(l => /^error/.test(l)) || '';
   return 'The reference solution does not compile for WebAssembly'

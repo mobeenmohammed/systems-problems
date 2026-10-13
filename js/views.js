@@ -304,6 +304,10 @@ const UI = (() => {
       + '<path d="M2 6.8h12M5.4 1.8v2.6M10.6 1.8v2.6"/>',
     assess: '<circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.4 1.6"/>',
     review: '<path d="M3 2.6h10v10.8l-5-2.6-5 2.6z"/><path d="M5.8 6.2h4.4"/>',
+    /* A package with legs: the one picture everybody reads as hardware. */
+    chip: '<rect x="4.6" y="4.6" width="6.8" height="6.8" rx="1"/>'
+      + '<path d="M6.4 1.9v2.7M9.6 1.9v2.7M6.4 11.4v2.7M9.6 11.4v2.7'
+      + 'M1.9 6.4h2.7M1.9 9.6h2.7M11.4 6.4h2.7M11.4 9.6h2.7"/>',
   };
 
   function navIcon(name) {
@@ -319,8 +323,9 @@ const UI = (() => {
      time; the menu is repainted whenever a solve could have changed one. */
   function contentSections() {
     const all = Catalog.all();
-    const questions = all.filter(p => p.type !== 'code').length;
+    const questions = all.filter(p => !Catalog.WRITTEN_TYPES.has(p.type)).length;
     const coding = all.length - questions;
+    const hardware = all.filter(p => p.type === 'hdl').length;
     const tracks = Catalog.allTracks().length;
     const concepts = Catalog.allConcepts().length;
     const week = Catalog.thisWeek();
@@ -351,7 +356,21 @@ const UI = (() => {
             blurb: 'Write a program and run it against the cases. Filter by the language '
               + 'you want to write in — most of these are C++ because C++ is the subject.',
           },
-        ],
+          /* Its own door.
+
+             These were in the catalogue and reachable by id from the day
+             they were written, and a reader could not find them: the
+             Content menu had no destination for them, "Coding exercises"
+             excluded them because it tested `type === 'code'`, and
+             searching "SystemVerilog" matched nothing anywhere. A thing
+             with no door is a thing that does not exist. */
+          hardware ? {
+            icon: 'chip', label: 'Digital logic', href: '#/problems?type=hdl',
+            count: hardware,
+            blurb: 'Write SystemVerilog and simulate it here — a real Icarus Verilog '
+              + 'compiled to WebAssembly, with waveforms. Simulation, not synthesis.',
+          } : null,
+        ].filter(Boolean),
       },
       {
         title: 'Guided',
@@ -2052,7 +2071,8 @@ const UI = (() => {
     const label = filter.subject ? Store.SUBJECT_BY_ID[filter.subject].label : '';
     const inPool = p => (!filter.subject || p.subject === filter.subject)
       && (!filter.kind
-        || (filter.kind === 'code' ? p.type === 'code' : p.type !== 'code'))
+        || (filter.kind === 'code'
+          ? Catalog.WRITTEN_TYPES.has(p.type) : !Catalog.WRITTEN_TYPES.has(p.type)))
       && (!filter.lang || (p.langs || []).includes(filter.lang));
     const pool = (filter.subject || filter.kind || filter.lang)
       ? Catalog.all().filter(inPool).length

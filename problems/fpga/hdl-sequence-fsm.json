@@ -10,7 +10,10 @@
     "state-machines",
     "overlapping",
     "enum",
-    "moore-mealy"
+    "moore-mealy",
+    "systemverilog",
+    "verilog",
+    "simulation"
   ],
   "estimate": 30,
   "prereqs": [

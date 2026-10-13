@@ -9,7 +9,10 @@
     "sequential",
     "edge-detection",
     "registers",
-    "output-timing"
+    "output-timing",
+    "systemverilog",
+    "verilog",
+    "simulation"
   ],
   "estimate": 20,
   "prereqs": [

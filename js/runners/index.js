@@ -660,23 +660,42 @@ const Runners = (() => {
         cases: [],
         judgeDown: true,
         nativeOnly: nativeWhy,
-        judgeError: `This problem needs the native toolchain. ${nativeWhy}`,
+        /* The KIND, not just the words. "could not run" was being used
+           for three different situations — a browser compiler that
+           cannot build this program, a local runner that is not
+           running, and a hosted service that is down — and the advice
+           attached to it was written for the second. A reader on the
+           published site got told to install WSL for a limitation of
+           the compiler they were already using. */
+        kind: 'toolchain',
+        /* One sentence. The detail belongs behind a disclosure, which
+           is the renderer's job rather than this string's. */
+        judgeError: 'The in-browser Rust compiler cannot build this exercise.',
+        detail: nativeWhy,
       };
     }
 
     const judge = await checkJudge();
     let why;
+    let kind = 'nothing';
+    let detail = null;
     if (hostedAvailable()) {
       const h = await Hosted.check();
-      why = `The hosted runner is not answering${h.error ? ` (${h.error})` : ''}.`;
+      kind = 'service';
+      why = 'The hosted runner is not answering.';
+      detail = h.error || null;
     } else if (judge.state === 'unauthed') {
-      why = `A runner is listening at ${judge.url} but refused this page. `
-        + 'Reload, or paste its token under Settings.';
+      kind = 'service';
+      why = 'A runner is listening on this machine but refused this page.';
+      detail = `It is at ${judge.url}. Reload, or paste its token under Settings.`;
     } else if (judge.state === 'down') {
-      why = `No runner is listening at ${judge.url}. Start one with npm run runner, `
-        + 'or turn on hosted execution in Settings.';
+      kind = 'nothing';
+      why = `Nothing on this device can run ${LANG_NAME[lang] || lang} for this exercise.`;
+      detail = `No runner answered at ${judge.url}. A local toolchain is optional and `
+        + 'is explained under Running code; it is not needed for the rest of the site.';
     } else {
-      why = 'No runner is configured for this language.';
+      kind = 'nothing';
+      why = `Nothing available can run ${LANG_NAME[lang] || lang}.`;
     }
 
     return {
@@ -685,6 +704,8 @@ const Runners = (() => {
       compile: { ok: false, stdout: '', stderr: '', ms: 0, timedOut: false },
       cases: [],
       judgeDown: true,
+      kind,
+      detail,
       judgeError: why,
     };
   }

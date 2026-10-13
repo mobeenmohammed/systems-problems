@@ -9,7 +9,11 @@
     "combinational",
     "multiplexer",
     "always_comb",
-    "bit-vectors"
+    "bit-vectors",
+    "systemverilog",
+    "verilog",
+    "simulation",
+    "mux"
   ],
   "estimate": 15,
   "prereqs": [

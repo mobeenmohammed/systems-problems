@@ -61,7 +61,13 @@ export const TYPES = [
      that is a set of named checks rather than a diff. */
   'hdl',
 ];
-export const LANGS = ['js', 'python', 'cpp', 'rust'];
+/* `sv` is a language the catalogue filters by — there are four
+   exercises you write in it — but it is not a language a `code` problem
+   may declare: it has its own type, its own toolchain and its own
+   workspace. CODE_LANGS is what a code problem may ask for; LANGS is
+   what the filter offers. */
+export const CODE_LANGS = ['js', 'python', 'cpp', 'rust'];
+export const LANGS = [...CODE_LANGS, 'sv'];
 export const PROFILES = ['standard', 'sanitize', 'strict', 'parallel'];
 
 /* Which pool a problem belongs to. "practice" is the catalogue — the
@@ -265,7 +271,9 @@ function validatePayload(p, err, where) {
 
     case 'code':
       if (!Array.isArray(pay.langs) || !pay.langs.length) err(where, 'code needs langs');
-      for (const l of pay.langs || []) if (!LANGS.includes(l)) err(where, `unknown lang "${l}"`);
+      for (const l of pay.langs || []) {
+        if (!CODE_LANGS.includes(l)) err(where, `unknown lang "${l}" for a code problem`);
+      }
       if (pay.profile && !PROFILES.includes(pay.profile)) err(where, `unknown profile "${pay.profile}"`);
       if (!Array.isArray(pay.cases) || !pay.cases.length) err(where, 'code needs at least one visible case');
       /* A problem whose answer depends on type widths, byte order or
@@ -673,6 +681,10 @@ export function buildIndex(problems) {
       /* So the catalog can show a prerequisite count without fetching. */
       row.prereqs = (p.prereqs || []).map(x => x.concept);
       if (p.type === 'code') row.langs = (p.payload || {}).langs || [];
+      /* A hardware exercise is written in SystemVerilog and in nothing
+         else, so the index says so rather than leaving the language
+         filter unable to see it. */
+      if (p.type === 'hdl') row.langs = ['sv'];
       return row;
     })
     .sort((a, b) =>

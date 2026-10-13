@@ -1580,13 +1580,19 @@
       "always_ff",
       "non-blocking",
       "reset",
-      "overflow"
+      "overflow",
+      "systemverilog",
+      "verilog",
+      "simulation"
     ],
     "estimate": 20,
     "subject": "systems",
     "prereqs": [
       "hdl-assignments",
       "state-machines"
+    ],
+    "langs": [
+      "sv"
     ]
   },
   {
@@ -1600,12 +1606,19 @@
       "combinational",
       "multiplexer",
       "always_comb",
-      "bit-vectors"
+      "bit-vectors",
+      "systemverilog",
+      "verilog",
+      "simulation",
+      "mux"
     ],
     "estimate": 15,
     "subject": "systems",
     "prereqs": [
       "hdl-assignments"
+    ],
+    "langs": [
+      "sv"
     ]
   },
   {
@@ -1716,13 +1729,19 @@
       "sequential",
       "edge-detection",
       "registers",
-      "output-timing"
+      "output-timing",
+      "systemverilog",
+      "verilog",
+      "simulation"
     ],
     "estimate": 20,
     "subject": "systems",
     "prereqs": [
       "hdl-assignments",
       "shift-registers"
+    ],
+    "langs": [
+      "sv"
     ]
   },
   {
@@ -1737,13 +1756,19 @@
       "state-machines",
       "overlapping",
       "enum",
-      "moore-mealy"
+      "moore-mealy",
+      "systemverilog",
+      "verilog",
+      "simulation"
     ],
     "estimate": 30,
     "subject": "systems",
     "prereqs": [
       "state-machines",
       "finite-state-machines"
+    ],
+    "langs": [
+      "sv"
     ]
   },
   {

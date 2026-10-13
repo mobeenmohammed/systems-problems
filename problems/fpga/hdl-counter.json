@@ -10,7 +10,10 @@
     "always_ff",
     "non-blocking",
     "reset",
-    "overflow"
+    "overflow",
+    "systemverilog",
+    "verilog",
+    "simulation"
   ],
   "estimate": 20,
   "prereqs": [

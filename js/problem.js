@@ -2034,12 +2034,25 @@ const ProblemView = (() => {
      nothing was judged. Saying "Not right" here would be a lie about the
      reader's answer, and it is the lie that makes a flaky runner feel like a
      flaky grader. */
+  /* A submission that never ran.
+
+     Delegated to the code type when it has a renderer, because that is
+     where the taxonomy lives and two renderers for one event is how a
+     page comes to describe it two different ways. This keeps the
+     fallback for everything else — a maths grader that threw, an answer
+     key that would not load — which has no backend and no kind. */
   function executionFailureNode(blocked) {
-    const where = blocked && blocked.backend
-      ? Runners.label(blocked.backend)
-      : null;
+    const impl = ProblemTypes.get('code');
+    if (impl && impl.platformNode && blocked && (blocked.kind || blocked.reply)) {
+      return impl.platformNode({
+        kind: blocked.kind,
+        detail: blocked.detail,
+        judgeError: blocked.feedback,
+        backend: blocked.backend,
+      });
+    }
     return el('div', { class: 'verdict', 'data-kind': 'blocked' }, [
-      el('h4', { text: where ? `Could not run — ${where}` : 'Could not run' }),
+      el('h4', { text: 'Could not run' }),
       el('p', { html: MD.renderInline((blocked && blocked.feedback) || 'Nothing could run this.') }),
       el('p', { class: 'tiny faint' }, [
         'Nothing was recorded against the problem and your work is still here. '

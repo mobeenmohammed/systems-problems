@@ -1,0 +1,169 @@
+Implement smulhi/umulhi on i64 in the CLIF-to-wasm translator
+
+`parse::<i64>()` and `parse::<u64>()` do not compile with this backend.
+`core::num::from_ascii_radix` accumulates digits with `checked_mul`,
+Cranelift emits `smulhi.i64` for the overflow half, and the translator's
+binary-opcode table maps one CLIF opcode to one wasm operator — so an
+opcode needing a sequence falls through to:
+
+    unimplemented binary opcode smulhi on i64
+
+WebAssembly has no high-half multiply, but the translator already builds
+one: `i128_lower::mul` computes `umulhi64` inline from 32-bit partial
+products to get its own high word. This lifts that out as a helper, uses
+it from both places, and adds the signed correction
+
+    smulhi(a, b) = umulhi(a, b) - ((a >> 63) & b) - ((b >> 63) & a)
+
+An arithmetic shift by 63 is all-ones when the operand is negative and
+zero otherwise, so each term subtracts the other operand exactly when
+this one is negative.
+
+Verified by assembling the emitted sequence into a WebAssembly module and
+comparing against exact 128-bit arithmetic over i64::MIN, i64::MAX, their
+neighbours, the powers of two either side of the 32-bit split, every step
+of an i64 decimal parse in both signs, and 500,000 random pairs:
+1,001,998 comparisons, no disagreements.
+
+---
+ compiler/rustc_codegen_cranelift/clif2wasm/src/i128_lower.rs | 71 ++++++++----
+ compiler/rustc_codegen_cranelift/clif2wasm/src/ops.rs        | 26 +++++
+ 2 files changed, 78 insertions(+), 19 deletions(-)
+
+diff --git a/compiler/rustc_codegen_cranelift/clif2wasm/src/i128_lower.rs b/compiler/rustc_codegen_cranelift/clif2wasm/src/i128_lower.rs
+--- a/compiler/rustc_codegen_cranelift/clif2wasm/src/i128_lower.rs
++++ b/compiler/rustc_codegen_cranelift/clif2wasm/src/i128_lower.rs
+@@ -44,6 +44,54 @@ pub fn sub(body: &mut FunctionBody, wb: waffle::Block, a: Pair, b: Pair) -> Pair
+     (lo, hi)
+ }
+
++/// High 64 bits of the UNSIGNED 64x64 product, from 32-bit partial
++/// products with the carries propagated.
++///
++/// wasm has no high-half multiply, so this is the only way to get one.
++/// It was written inline inside `mul` below; it is a helper now because
++/// `smulhi`/`umulhi` on plain i64 need exactly the same thing, and two
++/// copies of a carry chain is one copy too many.
++pub fn umulhi64(body: &mut FunctionBody, wb: waffle::Block, a: Value, b: Value) -> Value {
++    use Operator::*;
++    let mask32 = c64(body, wb, 0xFFFF_FFFF);
++    let c32 = c64(body, wb, 32);
++    let lo32 = |body: &mut FunctionBody, v: Value| op1(body, wb, I64And, &[v, mask32], Type::I64);
++    let hi32 = |body: &mut FunctionBody, v: Value| op1(body, wb, I64ShrU, &[v, c32], Type::I64);
++
++    let al = lo32(body, a);
++    let ah = hi32(body, a);
++    let bl = lo32(body, b);
++    let bh = hi32(body, b);
++
++    let lo_lo = op1(body, wb, I64Mul, &[al, bl], Type::I64);
++    let t1 = op1(body, wb, I64Mul, &[ah, bl], Type::I64);
++    let mid1 = {
++        let h = hi32(body, lo_lo);
++        op1(body, wb, I64Add, &[t1, h], Type::I64)
++    };
++    let t2 = op1(body, wb, I64Mul, &[al, bh], Type::I64);
++    let mid2 = {
++        let l = lo32(body, mid1);
++        op1(body, wb, I64Add, &[t2, l], Type::I64)
++    };
++    let t3 = op1(body, wb, I64Mul, &[ah, bh], Type::I64);
++    let h1 = hi32(body, mid1);
++    let h2 = hi32(body, mid2);
++    let s = op1(body, wb, I64Add, &[t3, h1], Type::I64);
++    op1(body, wb, I64Add, &[s, h2], Type::I64)
++}
++
++/// High 64 bits of the SIGNED 64x64 product.
++///
++/// `smulhi(a,b) = umulhi(a,b) - ((a >> 63) & b) - ((b >> 63) & a)`.
++/// An arithmetic shift by 63 is all-ones for a negative value and zero
++/// otherwise, so each term subtracts the other operand exactly when this
++/// one is negative. Branchless, and correct at i64::MIN, where negating
++/// an operand would not be.
++pub fn smulhi64(body: &mut FunctionBody, wb: waffle::Block, a: Value, b: Value) -> Value {
++    use Operator::*;
++    let hi = umulhi64(body, wb, a, b);
++    let c63 = c64(body, wb, 63);
++    let sa = op1(body, wb, I64ShrS, &[a, c63], Type::I64);
++    let sb = op1(body, wb, I64ShrS, &[b, c63], Type::I64);
++    let ca = op1(body, wb, I64And, &[sa, b], Type::I64);
++    let cb = op1(body, wb, I64And, &[sb, a], Type::I64);
++    let t = op1(body, wb, I64Sub, &[hi, ca], Type::I64);
++    op1(body, wb, I64Sub, &[t, cb], Type::I64)
++}
++
+ /// Full 128-bit multiply from 64-bit halves: lo = lo(a.0*b.0);
+ /// hi = a.1*b.0 + a.0*b.1 + umulhi64(a.0, b.0), with umulhi64 built from 32-bit
+ /// partial products.
+ pub fn mul(body: &mut FunctionBody, wb: waffle::Block, a: Pair, b: Pair) -> Pair {
+     use Operator::*;
+-    let mask32 = c64(body, wb, 0xFFFF_FFFF);
+-    let c32 = c64(body, wb, 32);
+-    let lo32 = |body: &mut FunctionBody, v: Value| op1(body, wb, I64And, &[v, mask32], Type::I64);
+-    let hi32 = |body: &mut FunctionBody, v: Value| op1(body, wb, I64ShrU, &[v, c32], Type::I64);
+-
+-    let al = lo32(body, a.0);
+-    let ah = hi32(body, a.0);
+-    let bl = lo32(body, b.0);
+-    let bh = hi32(body, b.0);
+-
+-    // umulhi64(a.0, b.0) with carry-correct 32-bit partials.
+-    let lo_lo = op1(body, wb, I64Mul, &[al, bl], Type::I64);
+-    let t1 = op1(body, wb, I64Mul, &[ah, bl], Type::I64);
+-    let mid1 = {
+-        let h = hi32(body, lo_lo);
+-        op1(body, wb, I64Add, &[t1, h], Type::I64)
+-    };
+-    let t2 = op1(body, wb, I64Mul, &[al, bh], Type::I64);
+-    let mid2 = {
+-        let l = lo32(body, mid1);
+-        op1(body, wb, I64Add, &[t2, l], Type::I64)
+-    };
+-    let t3 = op1(body, wb, I64Mul, &[ah, bh], Type::I64);
+-    let hi_of_lo = {
+-        let h1 = hi32(body, mid1);
+-        let h2 = hi32(body, mid2);
+-        let s = op1(body, wb, I64Add, &[t3, h1], Type::I64);
+-        op1(body, wb, I64Add, &[s, h2], Type::I64)
+-    };
++    // The high word of the low product, which is the same unsigned
++    // high-half multiply `umulhi.i64` needs.
++    let hi_of_lo = umulhi64(body, wb, a.0, b.0);
+
+     let lo = op1(body, wb, I64Mul, &[a.0, b.0], Type::I64);
+     let cross1 = op1(body, wb, I64Mul, &[a.1, b.0], Type::I64);
+
+diff --git a/compiler/rustc_codegen_cranelift/clif2wasm/src/ops.rs b/compiler/rustc_codegen_cranelift/clif2wasm/src/ops.rs
+--- a/compiler/rustc_codegen_cranelift/clif2wasm/src/ops.rs
++++ b/compiler/rustc_codegen_cranelift/clif2wasm/src/ops.rs
+@@ -196,6 +196,32 @@ pub fn lower_inst(
+             let a = cx.one(args[0])?;
+             let b = cx.one(args[1])?;
+
++            // High-half multiplies have no single wasm operator, so they
++            // cannot live in the table below: they are a sequence, and
++            // they are handled here before it.
++            //
++            // This is what stopped `parse::<i64>()` compiling.
++            // `core::num::from_ascii_radix` accumulates digits with
++            // `checked_mul`, Cranelift asks for the overflow half with
++            // `smulhi.i64`, and every program that reads a 64-bit
++            // integer out of a string failed to build.
++            if matches!(opcode, Opcode::Smulhi | Opcode::Umulhi) {
++                ensure!(
++                    matches!(wty, Type::I64),
++                    "{opcode} is only lowered for i64 (got {rty})"
++                );
++                let v = if opcode == Opcode::Smulhi {
++                    crate::i128_lower::smulhi64(body, wb, a, b)
++                } else {
++                    crate::i128_lower::umulhi64(body, wb, a, b)
++                };
++                cx.define(result, v);
++                return Ok(());
++            }
++
+             // Shifts: wasm requires amount type == operand type; CLIF allows a
+             // mismatch. Both agree the amount is taken mod bit-width, so a plain
+             // wrap/extend preserves semantics. (Rotates share the fixup.)

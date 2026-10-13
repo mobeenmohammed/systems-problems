@@ -35,18 +35,39 @@ const Catalog = (() => {
   ];
   const TYPE_BY_ID = Object.fromEntries(TYPES.map(t => [t.id, t]));
 
+  /* Types you write something runnable for, as opposed to answer. The
+     "Coding exercises" door and the catalogue's own counts both ask
+     this question, and they used to ask it as `type === 'code'` in two
+     different files. */
+  const WRITTEN_TYPES = new Set(['code', 'hdl']);
+
+  /* What people call each kind, for the search. Not shown anywhere: it
+     exists so that typing the obvious word finds the thing. */
+  const TYPE_WORDS = {
+    hdl: ['systemverilog', 'verilog', 'hdl', 'rtl', 'hardware', 'digital logic',
+      'simulation', 'testbench', 'waveform'],
+    code: ['code', 'program', 'coding exercise'],
+    mcq: ['multiple choice', 'quiz'],
+    multi: ['select all', 'multiple choice'],
+    proof: ['proof'],
+  };
+
   /* The languages an exercise can declare, in the order a filter should
      offer them, and what each is called in front of a reader. Here rather
      than in the code type module because the catalogue filters on it and
      two maps that have to agree eventually disagree. The build validates
      every problem's `langs` against this same list. */
-  const LANGS = ['cpp', 'python', 'rust', 'js'];
-  /* `sv` is in the labels and NOT in LANGS, deliberately. A hardware
-     exercise is not "solvable in SystemVerilog" in the sense the
-     language filter means — it is solvable in nothing else — so it
-     does not belong in a filter that offers four programming
-     languages. But a submitted design still has to be listed as
-     something, and "sv" is not a word. */
+  /* `sv` was deliberately kept OUT of this list, on the reasoning that a
+     hardware exercise is not "solvable in SystemVerilog" in the way the
+     filter means — it is solvable in nothing else.
+
+     That reasoning was wrong, and the symptom was that the language
+     filter offered C++, Python, Rust and JavaScript and a reader
+     looking for SystemVerilog concluded there was none. The filter
+     means "exercises you can write in this language", and there are
+     four. Nothing else follows from listing it: only `hdl` problems
+     declare `sv`, so no C++ exercise offers to switch to it. */
+  const LANGS = ['cpp', 'python', 'rust', 'js', 'sv'];
   const LANG_LABEL = {
     js: 'JavaScript', python: 'Python', cpp: 'C++', rust: 'Rust',
     sv: 'SystemVerilog',
@@ -145,7 +166,12 @@ const Catalog = (() => {
          for something by name should find it whichever door you came
          through. */
       if (filter.kind && !terms.length) {
-        const isCode = p.type === 'code';
+        /* A hardware exercise is one you write and run, so it belongs
+           under "Coding exercises". It was excluded because the test was
+           `type === 'code'` — which meant the four SystemVerilog
+           exercises were in the catalogue and in no door that leads to
+           it. That was most of why they could not be found. */
+        const isCode = WRITTEN_TYPES.has(p.type);
         if (filter.kind === 'code' && !isCode) return false;
         if (filter.kind === 'questions' && isCode) return false;
       }
@@ -169,7 +195,18 @@ const Catalog = (() => {
       }
 
       if (terms.length) {
+        /* The words somebody actually types. Searching "SystemVerilog"
+           used to find nothing at all, and "Verilog" found the two older
+           C++ simulations of hardware rather than the four exercises
+           written in it — because the haystack was the title, the topic,
+           the bare type id and the tags, and none of those is the name
+           of the language.
+
+           So the language names go in, and each type carries the words
+           people use for it. One list, beside the types themselves. */
         const hay = (`${p.title} ${p.topic} ${p.subject || ''} ${p.type} `
+          + `${(p.langs || []).map(l => LANG_LABEL[l] || l).join(' ')} `
+          + `${(TYPE_WORDS[p.type] || []).join(' ')} `
           + `${(p.tags || []).join(' ')}`).toLowerCase();
         if (!terms.every(t => hay.includes(t))) return false;
       }
@@ -686,7 +723,7 @@ const Catalog = (() => {
     counts, nextUp, problemsForConcept, readStatus, trackTree, treeProgress,
     trackCounts, trackRequired,
     TYPES, TYPE_BY_ID, TRACK_STATE_LABEL, READ_STATE_LABEL,
-    LANGS, LANG_LABEL, registerPool, isPooled,
+    LANGS, LANG_LABEL, registerPool, isPooled, WRITTEN_TYPES, TYPE_WORDS,
     get loadError() { return loadError; },
   };
 })();

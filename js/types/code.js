@@ -692,30 +692,93 @@ fn main() {
     node.textContent = text;
   }
 
-  /* What to tell someone whose run did not happen. An execution failure is
-     not a wrong answer, and the advice has to match the backend that actually
-     failed: telling a visitor on the public site to run `npm run runner` is
-     wrong, and so is telling someone whose own runner died to go and wait for
-     a hosted service to recover. */
-  function downAdvice(backend, reply) {
-    /* Not a runner that is missing: a problem that is deliberately not run
-       here. Offering to start one would be the wrong advice. */
-    if (reply && reply.nativeOnly) {
-      return 'This is not something Settings can fix. Run it on a real Linux '
-        + 'toolchain with the flags the problem names — npm run runner, with '
-        + 'WSL — or read it and move on; the other problems in this track run '
-        + 'in the browser.';
+  /* ---------------- why a run did not happen ----------------
+
+     Five things can go wrong with a submission and they are not the
+     same thing. Four of them are the reader's to act on and one is
+     not, and the one that is not used to be reported in the words of
+     the ones that are — a reader on the published site pressed Run on
+     a Rust exercise and was told to install WSL and run `npm run
+     runner`, for a limitation of the compiler they were already using.
+
+       template    the editor still holds the starting template
+       build       the compiler rejected their program
+       wrong       it ran and printed something else
+       runtime     it ran and crashed, or took too long
+       platform    nothing here could build or run it
+
+     Only `platform` is this function's business. The others are
+     reported by the verdict and the diagnostics, which is right,
+     because they are facts about the program.
+
+     A platform failure: says what happened in one sentence, blames
+     nobody, never counts as an attempt, keeps the draft exactly where
+     it is, and offers the one useful action, which is to try again.
+     The technical detail is real and is kept — behind a disclosure,
+     because "the Cranelift → WebAssembly lowering has no smulhi for
+     i64" is the right answer to a question most readers are not
+     asking. */
+
+  const PLATFORM = {
+    toolchain: {
+      head: 'Not your code — this exercise cannot be built here',
+      say: 'The compiler that runs in this tab cannot build this particular '
+        + 'exercise. That is a gap in the compiler, not a mistake in what you '
+        + 'wrote: nothing has been graded, nothing has been recorded, and your '
+        + 'code is exactly where you left it.',
+      how: 'What you can do',
+    },
+    service: {
+      head: 'Not your code — the runner did not answer',
+      say: 'Your program was not run, so nothing has been graded or recorded '
+        + 'and your code is where you left it.',
+      how: 'What you can do',
+    },
+    nothing: {
+      head: 'Not your code — nothing here can run this',
+      say: 'Nothing available on this device can run this exercise, so nothing '
+        + 'has been graded or recorded. Your code is where you left it.',
+      how: 'What you can do',
+    },
+  };
+
+  /* The node for a platform failure. Deliberately not a verdict: it has
+     no score, no case list and no "not right" anywhere in it. */
+  function platformNode(reply) {
+    const kind = (reply && reply.kind) || (reply && reply.nativeOnly ? 'toolchain' : 'nothing');
+    const words = PLATFORM[kind] || PLATFORM.nothing;
+    const detail = (reply && reply.detail) || (reply && reply.nativeOnly) || '';
+
+    const box = el('div', { class: 'platform', 'data-kind': kind }, [
+      el('h4', { class: 'platform-head', text: words.head }),
+      el('p', { class: 'platform-say', text: words.say }),
+      /* Only when it adds something. On a toolchain gap the headline
+         and the paragraph above have already said it, and a third
+         sentence saying it again reads as padding. */
+      (kind !== 'toolchain' && reply.judgeError)
+        ? el('p', { class: 'platform-why small', text: reply.judgeError }) : null,
+    ]);
+
+    const acts = el('div', { class: 'platform-acts' }, [
+      el('button', {
+        class: 'btn btn-sm btn-primary', type: 'button', id: 'retryRunBtn',
+        onclick: () => doRun(last.submission),
+      }, ['Try again']),
+      kind === 'toolchain'
+        ? el('a', { class: 'btn btn-sm btn-ghost', href: '#/problems?type=code' },
+          ['Other exercises in this language'])
+        : null,
+      el('a', { class: 'btn btn-sm btn-ghost', href: '#/setup' }, ['Where code runs']),
+    ].filter(Boolean));
+    box.append(acts);
+
+    if (detail) {
+      box.append(el('details', { class: 'platform-detail' }, [
+        el('summary', { class: 'tiny' }, ['The technical reason']),
+        el('p', { class: 'small', text: detail }),
+      ]));
     }
-    if (backend === 'local') {
-      return 'Start it with:\n  npm run runner\n\nThen press Check connection in '
-        + `Settings. The address it is trying is ${Store.config.judgeUrl}.`;
-    }
-    if (backend === 'hosted') {
-      return 'That is the hosted runner, not your code. Your work is saved — try '
-        + 'again in a moment, or start a local runner and point Settings at it.';
-    }
-    return 'Nothing available can run this language. Settings can point the page '
-      + 'at a hosted runner, or you can start a local one with npm run runner.';
+    return box;
   }
 
   function paint(verdict, reply, isSubmission, into) {
@@ -724,10 +787,7 @@ fn main() {
     host.replaceChildren();
 
     if (reply.judgeDown) {
-      host.append(el('div', { class: 'compile-out', 'data-kind': 'error' }, [
-        el('span', { class: 'lbl', text: `could not run — ${reply.backend ? Runners.label(reply.backend) : 'no runner'}` }),
-        `${reply.judgeError || 'no connection'}\n\n${downAdvice(reply.backend, reply)}`,
-      ]));
+      host.append(platformNode(reply));
       return;
     }
 
@@ -1069,6 +1129,10 @@ fn main() {
        parser's job is turning one blob into rows, and that is checkable
        against captured compiler output. */
     parseDiagnostics, diagnosticsNode,
+    /* One renderer for a platform failure, shared with the problem
+       page's own failure box so the two cannot drift into saying
+       different things about the same event. */
+    platformNode,
     render,
 
     /* collect() returns null for two quite different reasons, and saying
@@ -1125,6 +1189,11 @@ fn main() {
         return {
           correct: false, score: 0, lang: response.lang,
           backend: reply.backend || null,
+          /* The kind travels with it, so the page can render the same
+             taxonomy on a submission as on a Run rather than falling
+             back to a sentence and a shrug. */
+          kind: reply.kind || (reply.nativeOnly ? 'toolchain' : 'nothing'),
+          detail: reply.detail || reply.nativeOnly || null,
           feedback: reply.judgeError
             || `${reply.backend ? Runners.label(reply.backend) : 'Nothing available'} could not run this.`,
           noAttempt: true, reply, verdict, at: Date.now(),

@@ -1103,15 +1103,18 @@ pre.code-block[data-lang]::before {
 }
 
 .run-out { margin-top: var(--s3); display: flex; flex-direction: column; gap: var(--s2); }
-.compile-out {
-  font-family: var(--mono); font-size: .8rem; white-space: pre-wrap;
-  padding: .6rem .8rem; border-radius: var(--radius-s);
-  background: var(--bg-inset); border: 1px solid var(--border);
-  max-height: 16rem; overflow: auto;
+/* There used to be one box that every failed run was poured into: a
+   monospace blob with an uppercase label, used for a compiler error, a
+   runner that was not running, and a browser toolchain that cannot
+   build the exercise — three different events in one costume. They now
+   have `.diags` and `.platform`, and the blob is gone.
+
+   `.lbl` stays: it is the little uppercase label, and `.diags-head`
+   still uses it. */
+.lbl {
+  display: block; font-size: .66rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--text-faint); margin-bottom: .3rem;
 }
-.compile-out[data-kind="error"] { border-left: 3px solid var(--danger); }
-.compile-out[data-kind="warn"]  { border-left: 3px solid var(--warn); }
-.compile-out .lbl { display: block; font-size: .66rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-faint); margin-bottom: .3rem; }
 
 /* The summary above the cases: did it pass, how many, how long, and what
    went wrong first. The border carries the answer so it is readable before
@@ -3090,6 +3093,25 @@ body[data-attempt="true"] .pwrap.reading .pmain { padding-bottom: var(--s6); }
   .oa-bar-acts { flex: 1 1 100%; margin-left: 0; justify-content: flex-end; }
   .oa-progress { flex: 1 1 auto; }
 }
+
+/* A run that never happened, as opposed to one that went wrong.
+
+   Deliberately not styled as a verdict: no score, no case list, and
+   none of the red a wrong answer gets. It is information about the
+   site, and the reader did nothing to cause it. */
+.platform {
+  margin: var(--s3) 0; padding: var(--s4);
+  border-radius: var(--radius); background: var(--bg-elev);
+  border: 1px solid var(--border); border-left: 3px solid var(--accent);
+}
+.platform[data-kind="service"] { border-left-color: var(--warn); }
+.platform-head { margin: 0 0 .3rem; font-size: 1rem; }
+.platform-say { margin: 0 0 .4rem; color: var(--text-dim); font-size: .88rem; }
+.platform-why { margin: 0 0 .6rem; }
+.platform-acts { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.platform-detail { margin-top: var(--s3); }
+.platform-detail summary { cursor: pointer; color: var(--text-faint); }
+.platform-detail p { margin: .3rem 0 0; color: var(--text-dim); }
 
 /* ---------------- hardware exercises ----------------
 
