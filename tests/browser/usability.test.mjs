@@ -100,12 +100,25 @@ section('a failed run never leaves the button disabled');
   const after = await p.evaluate(() => ({
     submit: document.getElementById('submitBtn').disabled,
     label: document.getElementById('submitBtn').textContent,
+    /* A run that never happened is no longer rendered as a verdict: it
+       has no score and no case list, and calling it one was how a
+       platform failure came to read like a wrong answer. */
     verdict: (document.querySelector('.verdict h4') || {}).textContent || null,
+    platform: (document.querySelector('.platform-head') || {}).textContent || null,
+    kind: (document.querySelector('.platform') || {}).dataset?.kind || null,
+    blames: (document.querySelector('.platform') || {}).textContent || '',
+    retry: !!document.querySelector('#retryRunBtn'),
     status: window.SystemsLab.Store.record('algo-running-max').status,
+    editorKept: (document.querySelector('.cm-content') || {}).textContent || '',
   }));
   check('Submit comes back after a failed submission', after.submit, false);
   check('with its own label', after.label, 'Submit');
-  ok(`it is reported as not having run ("${after.verdict}")`, /could not run/i.test(after.verdict || ''));
+  ok(`it is reported as a platform failure ("${after.platform}")`, !!after.platform);
+  ok('and not as a verdict on the answer', after.verdict === null);
+  ok(`which says whose doing it was ("${after.blames.slice(0, 28)}…")`,
+    /not your code/i.test(after.blames));
+  ok('with a way to try again', after.retry);
+  ok('and the draft is still in the editor', after.editorKept.includes('// mine'));
   check('and nothing was recorded against the problem', after.status, 'unsolved');
   await p.close();
 }

@@ -228,8 +228,13 @@ section('the counts beside the entries are the catalogue, not a guess');
       questions: n(by('Questions')),
       coding: n(by('Coding exercises')),
       realAll: all.length,
-      realQuestions: all.filter(p => p.type !== 'code').length,
-      realCoding: all.filter(p => p.type === 'code').length,
+      /* "Do you write something runnable, or answer a question" — and
+         a SystemVerilog exercise is one you write. It used to be
+         `type === 'code'` here and in two other files, which is why
+         the four hardware exercises were in the catalogue and in no
+         door that led to it. */
+      realQuestions: all.filter(p => !window.SystemsLab.Catalog.WRITTEN_TYPES.has(p.type)).length,
+      realCoding: all.filter(p => window.SystemsLab.Catalog.WRITTEN_TYPES.has(p.type)).length,
       concepts: n(by('Reading')),
       realConcepts: window.SystemsLab.Catalog.allConcepts().length,
     };
@@ -284,7 +289,9 @@ section('a menu entry lands on the catalogue already filtered');
       sel: document.getElementById('fKind').value,
       rows: document.querySelectorAll('#catalogList .prow').length,
       expected: window.SystemsLab.Catalog.all()
-        .filter(p => (k === 'code' ? p.type === 'code' : p.type !== 'code')).length,
+        .filter(p => (k === 'code'
+          ? window.SystemsLab.Catalog.WRITTEN_TYPES.has(p.type)
+          : !window.SystemsLab.Catalog.WRITTEN_TYPES.has(p.type))).length,
       count: document.getElementById('catalogCount').textContent,
       menuShut: document.getElementById('contentPanel').hidden,
     }), kind);

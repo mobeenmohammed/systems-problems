@@ -282,6 +282,91 @@ select { cursor: pointer; }
 .main { max-width: 1180px; margin: 0 auto; padding: var(--s5) var(--s5) var(--s8); }
 .main.wide { max-width: 1480px; }
 
+/* ---------------- scrollbars ----------------
+
+   The reported bug: a bright scrollbar under a code block on a dark
+   page. The cause was not a missing scrollbar rule — it was a missing
+   `color-scheme`. Without it the browser has no idea the page is dark
+   and paints its light native scrollbar, which is the single most
+   visible thing on the screen in the attached screenshot.
+
+   So, in order:
+
+     1. `color-scheme` tells the browser what kind of page this is. It
+        is what makes the NATIVE scrollbar dark, and it also fixes form
+        controls, the resize handle and the space between two
+        scrollbars — none of which a `::-webkit-scrollbar` rule can
+        reach.
+     2. `scrollbar-color` is the standard property, honoured by Firefox
+        and by Chromium. It inherits, so declaring it once at the root
+        reaches every scroll container on the site, including ones no
+        rule here knows about.
+     3. the `::-webkit-scrollbar` pseudo-elements are the only way to
+        style the track, the thumb's hover and active states, and the
+        corner where a horizontal and a vertical scrollbar meet. They
+        do not inherit, so they are declared universally.
+
+   Everything is a theme token, so switching theme repaints them with
+   the rest of the page and no component has to be told.
+
+   What this deliberately does NOT do: hide anything, or replace native
+   scrolling with JavaScript. The wheel, the trackpad, the keyboard,
+   touch, and dragging the thumb all keep working because none of them
+   is touched. */
+
+:root {
+  /* The browser's own idea of the page, which is what darkens the
+     native scrollbar. Every theme but one is dark. */
+  color-scheme: dark;
+
+  /* Derived from the existing palette rather than invented, so a theme
+     that defines the palette gets scrollbars for free. A theme that
+     wants different ones can set these three. */
+  --scroll-thumb:       var(--border-strong);
+  --scroll-thumb-hover: var(--text-faint);
+  --scroll-track:       var(--bg-inset);
+}
+
+html[data-theme="theme-paper"],
+[data-theme-preview="theme-paper"] { color-scheme: light; }
+
+/* Firefox, and Chromium's standard path. Inherited, so this is the
+   whole of it for most of the site. */
+:root {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-thumb) var(--scroll-track);
+}
+
+/* WebKit and Chromium's pseudo-elements, for the parts the standard
+   property cannot express. */
+::-webkit-scrollbar { width: 11px; height: 11px; }
+::-webkit-scrollbar-track { background: var(--scroll-track); }
+::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb);
+  border-radius: 7px;
+  /* A border in the track's colour is what makes the thumb look inset
+     rather than filling the gutter edge to edge. */
+  border: 2px solid var(--scroll-track);
+}
+::-webkit-scrollbar-thumb:hover  { background: var(--scroll-thumb-hover); }
+::-webkit-scrollbar-thumb:active { background: var(--accent); }
+/* The square where a horizontal and a vertical scrollbar meet. Left
+   alone it is the one remaining patch of browser default, and on a dark
+   page it is a white square in the corner. */
+::-webkit-scrollbar-corner { background: var(--scroll-track); }
+/* The resize handle some browsers draw in that corner. */
+::-webkit-resizer { background: var(--scroll-track); }
+
+/* High contrast and forced colours: hand it all back. The system is
+   making a deliberate choice about legibility and a theme token is not
+   better informed than it is. */
+@media (forced-colors: active) {
+  :root { scrollbar-color: auto; }
+  ::-webkit-scrollbar-thumb,
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner { background: Canvas; }
+}
+
 /* ---------------- shared bits ---------------- */
 
 .card {
@@ -1456,7 +1541,48 @@ body[data-workspace="true"] #problemHost { height: 100%; min-height: 0; }
   overflow: auto; min-height: 0; padding: var(--s4);
   scrollbar-width: thin;
 }
-.ws-pane > .prose { max-width: 70ch; }
+/* The reported bug, and the columns were never the problem.
+
+   Measured at 1600px, dragging the divider right: the left column went
+   672 -> 941 -> 1029px and `left + divider + right` stayed exactly
+   1600px every time, so the grid was doing its job. The statement
+   inside it stayed 566px wide the whole way, because the cap below was
+   `max-width: 70ch` on the whole block — which computes to 566px. At
+   the DEFAULT split that is already 106px of dead space, and at the far
+   end it is 463px. Dragging to give the statement more room gave it
+   more room and it did not use any of it.
+
+   The cap itself is not wrong: a paragraph 185 characters wide is
+   unreadable, and that is what an uncapped statement becomes on a wide
+   screen at a wide split. What was wrong is that it applied to
+   EVERYTHING — including the code blocks and tables that are the usual
+   reason for dragging in the first place. The screenshot that reported
+   this has a horizontal scrollbar under a code block in a panel with
+   375px of unused space beside it.
+
+   So: the measure belongs to the prose, and the things that want width
+   take the panel. */
+.ws-pane > .prose { max-width: none; }
+.ws-pane > .prose > p,
+.ws-pane > .prose > ul,
+.ws-pane > .prose > ol,
+.ws-pane > .prose > blockquote,
+.ws-pane > .prose > h1,
+.ws-pane > .prose > h2,
+.ws-pane > .prose > h3,
+.ws-pane > .prose > h4 {
+  /* 86ch rather than 70: wide enough that dragging moves it over the
+     range anybody actually drags, narrow enough to stay readable. */
+  max-width: 86ch;
+}
+/* Code, tables and figures take the width they are given. These are
+   what the reader widened the panel for. */
+.ws-pane > .prose > pre,
+.ws-pane > .prose > .code-block,
+.ws-pane > .prose > table,
+.ws-pane > .prose > .table-wrap,
+.ws-pane > .prose > figure,
+.ws-pane > .prose > svg { max-width: none; width: 100%; }
 
 .ws-tabs {
   display: flex; gap: 1px; overflow-x: auto; flex: none;
