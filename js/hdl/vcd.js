@@ -223,5 +223,40 @@ const VCD = (() => {
     return [...clocks, ...rest].slice(0, limit).map(v => v.id);
   }
 
-  return { parse, valueAt, format, pad, hasUnknown, timeText, defaultSelection, UNITS };
+  /* ---------------- two clocks, and they do not agree ----------------
+
+     A testbench's `$time` is in its TIME UNIT; a VCD's timestamps are
+     in its PRECISION. With the usual `timescale 1ns/1ps` those differ
+     by a thousand, so a check that says "wrong at t=20" and a waveform
+     tick numbered 20 are 20ns and 20ps — different instants by three
+     orders of magnitude.
+
+     That was a real bug in the click-to-the-failure feature: the
+     cursor landed at 20ps, which is before anything in the simulation
+     has happened, and the values it read out were all zero.
+
+     The ratio is recoverable because the testbench declares both. This
+     reads it from the source, which is the only place it is written
+     down. Defaults to 1 when there is no directive, which is what a
+     simulator does. */
+  const EXP = { s: 0, ms: -3, us: -6, ns: -9, ps: -12, fs: -15 };
+
+  function timescaleOf(source) {
+    const m = /`timescale\s+(\d+)\s*(s|ms|us|ns|ps|fs)\s*\/\s*(\d+)\s*(s|ms|us|ns|ps|fs)/
+      .exec(String(source || ''));
+    if (!m) return { ratio: 1, unit: null, magnitude: 1 };
+    const [, uMag, uUnit, pMag, pUnit] = m;
+    const ratio = (Number(uMag) / Number(pMag)) * (10 ** (EXP[uUnit] - EXP[pUnit]));
+    return {
+      /* VCD ticks per one of the testbench's time units. */
+      ratio: Number.isFinite(ratio) && ratio > 0 ? ratio : 1,
+      unit: uUnit,
+      magnitude: Number(uMag),
+    };
+  }
+
+  return {
+    parse, valueAt, format, pad, hasUnknown, timeText, defaultSelection, UNITS,
+    timescaleOf,
+  };
 })();

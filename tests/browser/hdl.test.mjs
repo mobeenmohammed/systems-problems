@@ -151,13 +151,14 @@ section('the hardware workspace');
   }));
   check('it owns the window like a coding exercise', shape.workspace, 'true');
   check('the design, a read-only testbench, results, waveforms, submissions and diagnostics',
-    shape.tabs, ['Design', 'Testbench', 'Results', 'Waveforms', 'Submissions', 'Diagnostics']);
+    shape.tabs,
+    ['Design', 'Sample testbench', 'Results', 'Waveforms', 'Submissions', 'Diagnostics']);
   check('Run says what it does', shape.run.trim(), 'Run simulation');
   ok('there is an editor', shape.editor);
   ok(`the top module is named (${shape.top.join(' ')})`,
     shape.top.some(t => /top: \w+/.test(t)));
 
-  await openTab(p, 'Testbench');
+  await openTab(p, 'Sample testbench');
   await p.waitForTimeout(300);
   const tb = await p.evaluate(() => ({
     text: (document.querySelector('#resultPane pre code') || {}).textContent || '',
@@ -231,8 +232,11 @@ let waveState = null;
     values: [...document.querySelectorAll('.wave-val')].map(n => n.textContent.trim()),
     peek: null,
   }));
+  /* The time is said in the TESTBENCH's unit rather than the VCD's
+     precision, so that a check reporting "wrong at t=30" and the cursor
+     agree. It is therefore not always a whole number. */
   ok(`clicking puts a cursor down with a time and a unit (${cursor.at})`,
-    /t = \d+ (ps|ns|us|ms|s|fs)/.test(cursor.at));
+    /t = [\d.]+ (ps|ns|us|ms|s|fs)/.test(cursor.at));
   ok(`and every trace's value at it (${cursor.values.slice(0, 3).join(' | ')})`,
     cursor.values.length === waveState.names.length);
 

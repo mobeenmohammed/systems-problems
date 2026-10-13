@@ -3260,6 +3260,40 @@ body[data-attempt="true"] .pwrap.reading .pmain { padding-bottom: var(--s6); }
 .hdl-check[data-state="missing"] { border-left-color: var(--warn); border-style: dashed;
   border-left-style: solid; }
 .hdl-check-name { font-weight: 600; font-size: .82rem; min-width: 11ch; }
+/* A check with a waveform behind it is a button: pressing it opens the
+   instant the check is about. It has to look like one without becoming
+   a different shape from the rows that are not. */
+button.hdl-check {
+  font: inherit; text-align: left; width: 100%; cursor: pointer;
+  border-top: 0; border-right: 0; border-bottom: 0;
+}
+button.hdl-check:hover { background: var(--bg-elev-2); }
+button.hdl-check:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.hdl-check-go { margin-left: auto; color: var(--accent); white-space: nowrap; }
+button.hdl-check:hover .hdl-check-go { text-decoration: underline; }
+
+/* The one-time explanation of the four tabs. */
+.hdl-walk {
+  margin: 0 0 var(--s4); padding: var(--s3) var(--s4);
+  border-radius: var(--radius); background: var(--bg-elev);
+  border: 1px solid var(--border); border-left: 3px solid var(--accent);
+}
+.hdl-walk summary { cursor: pointer; font-weight: 600; }
+.hdl-walk-body { padding-top: .4rem; }
+.hdl-walk-body ol { margin: 0 0 .5rem; padding-left: 1.2rem; }
+.hdl-walk-body li { margin: .3rem 0; font-size: .88rem; color: var(--text-dim); }
+.hdl-walk-body li b { color: var(--text); }
+.hdl-walk-body p { margin: .3rem 0; }
+
+/* What x and z mean, beside the colours they are drawn in. */
+.wave-legend { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s4); margin: .3rem 0; }
+.wave-key { display: flex; align-items: baseline; gap: .35rem; color: var(--text-dim);
+  flex: 1 1 22rem; }
+.wave-key i { width: .7rem; height: .7rem; border-radius: 2px; flex: none;
+  position: relative; top: .1rem; }
+.wave-key[data-v="x"] i { background: var(--danger); opacity: .45; }
+.wave-key[data-v="z"] i { background: var(--warn); opacity: .45; }
+.wave-key b { font-family: var(--mono); color: var(--text); }
 .hdl-head { margin: var(--s4) 0 .3rem; font-size: .8rem; color: var(--text-dim); }
 /* Everything the design and the testbench printed, verbatim. Bounded,
    because a $monitor on a wide bus produces megabytes in a few

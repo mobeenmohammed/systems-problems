@@ -200,6 +200,7 @@
 
     const graded = gradeSample(problem, reply);
     last = { problemId: problem.id, kind: 'sample', reply, graded, at: Date.now() };
+    jumpAt = null;
 
     setExec(
       (reply.cancelled || reply.timedOut) ? 'blocked'
@@ -240,9 +241,12 @@
 
   /* Which extra tabs this type puts in the work strip. The problem page
      asks, rather than knowing. */
+  /* "Testbench" next to "Design" read as though it might be yours to
+     edit. It is the problem's, it is read-only, and Submit uses a
+     different one — so the strip says which. */
   const TABS = [
     { id: 'editor', label: 'Design' },
-    { id: 'tb', label: 'Testbench' },
+    { id: 'tb', label: 'Sample testbench' },
     { id: 'results', label: 'Results' },
     { id: 'waves', label: 'Waveforms' },
     { id: 'subs', label: 'Submissions' },
@@ -280,8 +284,62 @@
       [el('code', { text: src })]));
   }
 
+  /* What the four tabs are for, before anything has run.
+
+     Shown only on the first hardware exercise somebody opens, because
+     after that it is in the way; dismissible, because it is in the way
+     for some people immediately. Not a tour, not a modal, and nothing
+     to click through — a reader who ignores it entirely loses nothing,
+     which is the test of whether an explanation is optional. */
+  const SEEN_KEY = 'hdlWalkthrough';
+
+  function walkthrough(problem) {
+    if (Store.pref(SEEN_KEY, false)) return null;
+
+    const box = el('details', { class: 'hdl-walk', open: true }, [
+      el('summary', { class: 'small' }, ['New to this? How a hardware exercise works']),
+      el('div', { class: 'hdl-walk-body' }, [
+        el('ol', {}, [
+          el('li', {}, [el('b', { text: 'Design' }),
+            ' — your module. It is the tab you write in, and it saves as you type.']),
+          el('li', {}, [el('b', { text: 'Sample testbench' }),
+            ' — the problem\u2019s, not yours, and read-only. It drives your module '
+            + 'and prints a check for each thing it tries. Run uses this one.']),
+          el('li', {}, [el('b', { text: 'Results' }),
+            ' — every check with what was expected, what your design produced, and '
+            + 'the simulated time. Click a check to see that instant on the waveform.']),
+          el('li', {}, [el('b', { text: 'Waveforms' }),
+            ' — the signals over time. Click to put a cursor down and read every '
+            + 'value at that moment; the arrow keys move it.']),
+        ]),
+        el('p', { class: 'tiny faint' }, [
+          'Run compiles and simulates with the sample testbench. ',
+          el('b', { text: 'Submit' }),
+          ' uses a different testbench that tries cases the sample one does not, '
+          + 'so passing Run is not the same as passing. Everything happens in this '
+          + 'tab \u2014 there is nothing to install.',
+        ]),
+        el('p', { class: 'tiny faint' }, [
+          'This is simulation. It says nothing about whether a design would '
+          + 'synthesise, meet timing, or work on a real device.',
+        ]),
+        el('button', {
+          class: 'btn btn-sm btn-ghost', type: 'button', id: 'hdlWalkDone',
+          onclick: () => {
+            Store.setPref(SEEN_KEY, true);
+            const n = document.querySelector('.hdl-walk');
+            if (n) n.remove();
+          },
+        }, ['Got it, do not show this again']),
+      ]),
+    ]);
+    return box;
+  }
+
   function fillResults(pane, problem) {
     if (!last || last.problemId !== problem.id) {
+      const walk = walkthrough(problem);
+      if (walk) pane.append(walk);
       pane.append(el('p', { class: 'muted small',
         text: 'Press Run simulation, or Submit.' }));
       return;
@@ -350,20 +408,42 @@
           + 'ended without $finish.' }),
     ]));
 
-    /* Per check: expected, actual, and when. */
+    /* Per check: expected, actual, and when — and, when there is a
+       waveform to look at, a way in.
+
+       A failed check tells you a value was wrong at t=30. The useful
+       question is what the inputs were at t=30, and the answer is on
+       the waveform. Clicking the check opens it with the cursor on
+       that instant, which turns a number into a picture of the moment
+       it went wrong.
+
+       Only for the SAMPLE run: a grading run has no waveform, on
+       purpose, because its cases are not the reader's to see. */
+    const canJump = kind !== 'grade' && reply.vcd;
     if (graded.rows.length) {
-      pane.append(el('div', { class: 'hdl-checks' }, graded.rows.map(r => el('div', {
-        class: 'hdl-check', 'data-state': r.missing ? 'missing' : r.pass ? 'pass' : 'fail',
-      }, [
-        el('span', { class: 'hdl-check-name mono', text: r.name }),
-        r.missing
-          ? el('span', { class: 'tiny', text: 'never ran' })
-          : el('span', { class: 'tiny mono' }, [
-            'expected ', el('b', { text: String(r.expect) }),
-            ', got ', el('b', { text: String(r.actual) }),
-            r.at != null ? ` at t=${r.at}` : '',
-          ]),
-      ]))));
+      pane.append(el('div', { class: 'hdl-checks' }, graded.rows.map(r => {
+        const state = r.missing ? 'missing' : r.pass ? 'pass' : 'fail';
+        const body = [
+          el('span', { class: 'hdl-check-name mono', text: r.name }),
+          r.missing
+            ? el('span', { class: 'tiny', text: 'never ran' })
+            : el('span', { class: 'tiny mono' }, [
+              'expected ', el('b', { text: String(r.expect) }),
+              ', got ', el('b', { text: String(r.actual) }),
+              r.at != null ? ` at t=${r.at}` : '',
+            ]),
+        ];
+        if (canJump && r.at != null) {
+          body.push(el('span', { class: 'hdl-check-go tiny' },
+            [r.pass ? 'show me' : 'show me when']));
+          return el('button', {
+            class: 'hdl-check', type: 'button', 'data-state': state,
+            title: `Open the waveform with the cursor at t=${r.at}`,
+            onclick: () => jumpTo(r.at),
+          }, body);
+        }
+        return el('div', { class: 'hdl-check', 'data-state': state }, body);
+      })));
     }
 
     /* The console. Everything the design and the testbench printed. */
@@ -373,6 +453,15 @@
       pane.append(el('p', { class: 'tiny', style: 'color:var(--warn)',
         text: 'Output was longer than the limit and has been cut off here.' }));
     }
+  }
+
+  /* Open the waveform at an instant. The viewer is rebuilt whenever
+     the pane is painted, so the time is remembered and applied by
+     fillWaves rather than reached into from here. */
+  let jumpAt = null;
+  function jumpTo(t) {
+    jumpAt = t;
+    if (typeof ProblemView !== 'undefined' && ProblemView.openPane) ProblemView.openPane('waves');
   }
 
   function fillWaves(pane, problem) {
@@ -398,11 +487,29 @@
       return;
     }
 
+    /* A check's `AT` is in the testbench's time unit; a VCD counts in
+       its precision. With `timescale 1ns/1ps` those differ by a
+       thousand, so every time that crosses from a check to the
+       waveform has to be scaled — the axis mark below and the cursor
+       a click on a check asks for. */
+    const scale = VCD.timescaleOf(testbenchOf(problem));
+    /* One tick back from the reported instant.
+
+       A testbench typically checks a value and then immediately drives
+       the next case, both at the same simulated time. A VCD records the
+       SETTLED value for a timestamp, so reading the trace at exactly
+       the reported instant shows the inputs for the case AFTER the one
+       that failed — which was observed, and was baffling: the check
+       said a=0 b=1 and the cursor said a=1 b=0.
+
+       One precision tick earlier is the state the check actually saw. */
+    const toTicks = t => Math.max(0, Math.round(t * scale.ratio) - 1);
+
     /* A failing check's time, marked on the axis, so "it went wrong at
        t=35" is something you can see rather than read. */
     const marks = [];
     const f = last.graded && last.graded.firstFailure;
-    if (f && f.at != null) marks.push({ t: f.at, label: f.name, kind: 'fail' });
+    if (f && f.at != null) marks.push({ t: toTicks(f.at), label: f.name, kind: 'fail' });
 
     const box = el('div', { class: 'wave-host' });
     pane.append(box);
@@ -410,12 +517,32 @@
       pane.append(el('p', { class: 'tiny', style: 'color:var(--warn)',
         text: 'The waveform file hit the size limit and was cut off; what is shown is the start of it.' }));
     }
-    pane.append(el('p', { class: 'tiny faint', text: 'Shift+drag to pan, Ctrl+scroll to zoom, '
-      + 'click to put the cursor down, arrow keys to move it. This is a simulation: passing '
-      + 'here says nothing about synthesis, timing or a real device.' }));
+    /* Two values that are not 0 or 1, explained where they are drawn.
+       A red band is the first thing a reader meets on their first
+       simulation — before anything has driven a signal — and "x" on its
+       own explains nothing. */
+    pane.append(el('div', { class: 'wave-legend tiny' }, [
+      el('span', { class: 'wave-key', 'data-v': 'x' }, [
+        el('i'), el('b', { text: 'x' }),
+        ' unknown — nothing has driven this yet, or two things drive it differently. '
+        + 'The simulator will not guess a value it does not have.',
+      ]),
+      el('span', { class: 'wave-key', 'data-v': 'z' }, [
+        el('i'), el('b', { text: 'z' }),
+        ' high impedance — nothing is driving it at all. A floating wire.',
+      ]),
+    ]));
+    pane.append(el('p', { class: 'tiny faint', text: 'Click to put the cursor down and read '
+      + 'every value at that instant; arrow keys move it, Home and End jump to the ends. '
+      + 'Shift+drag pans, Ctrl+scroll zooms, f fits. This is a simulation: passing here says '
+      + 'nothing about synthesis, timing or a real device.' }));
 
     viewer = Wave.create(box, doc, {
       marks,
+      scale,
+      /* Where a click on a failed check asked to be, in the same unit
+         the check reported. */
+      cursor: jumpAt == null ? null : toTicks(jumpAt),
       onDownload: () => {
         const blob = new Blob([last.reply.vcd], { type: 'text/plain' });
         const a = document.createElement('a');

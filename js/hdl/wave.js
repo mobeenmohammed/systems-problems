@@ -51,6 +51,13 @@ const Wave = (() => {
       cursor: null,
       marks: (opts.marks || []).slice(),   /* [{ t, label, kind }] */
       dpr: 1,
+      /* How to SAY a time. A VCD counts in its precision — picoseconds,
+         usually — while the testbench, its `$time` and therefore every
+         check count in its time unit. Reporting picoseconds while the
+         results report nanoseconds leaves the reader doing arithmetic
+         to connect the two, so when the ratio is known the viewer
+         speaks the testbench's unit. */
+      scale: opts.scale || { ratio: 1, unit: null },
     };
 
     mount.replaceChildren();
@@ -125,6 +132,17 @@ const Wave = (() => {
     mount.append(cursorInfo);
 
     /* ---------------- geometry ---------------- */
+
+    /* One instant, in words. In the testbench's own unit when it is
+       known, so that "wrong at t=30" and the cursor agree. */
+    function sayTime(t) {
+      const { ratio, unit } = state.scale;
+      if (ratio && ratio !== 1 && unit) {
+        const v = t / ratio;
+        return `${Number.isInteger(v) ? v : v.toFixed(2)} ${unit}`;
+      }
+      return VCD.timeText(t, doc.timescale);
+    }
 
     const lanes = () => state.selected.map(id => doc.vars[id]).filter(Boolean);
     const plotW = () => Math.max(50, canvas.clientWidth - PAD_L - PAD_R);
@@ -210,7 +228,7 @@ const Wave = (() => {
       }
       ctx.stroke();
       for (const t of ticks) {
-        const label = VCD.timeText(t, doc.timescale);
+        const label = sayTime(t);
         const x = xOf(t);
         ctx.fillText(label, Math.min(w - ctx.measureText(label).width - 2, Math.max(2, x + 2)), 2);
       }
@@ -339,7 +357,7 @@ const Wave = (() => {
           text: 'Click the waveform to put a cursor on it; the arrow keys move it.' }));
         return;
       }
-      readout.textContent = `t = ${VCD.timeText(t, doc.timescale)}`;
+      readout.textContent = `t = ${sayTime(t)}`;
       cursorInfo.replaceChildren(...lanes().map(v => {
         const raw = VCD.valueAt(v, t);
         const shown = VCD.format(raw, v.width, state.base);
@@ -439,14 +457,17 @@ const Wave = (() => {
 
     layout();
     fit();
-    /* The cursor starts on the first interesting instant when there is
-       one — a failing check's time, if a mark says so. */
+    /* The cursor starts where it was asked to, or on the first
+       interesting instant when there is one — a failing check's time,
+       if a mark says so. `opts.cursor` is a click on a check in the
+       results, which is the more specific request and wins. */
     const failMark = state.marks.find(m => m.kind === 'fail');
-    if (failMark) {
-      state.cursor = failMark.t;
+    const startAt = opts.cursor != null ? opts.cursor : (failMark ? failMark.t : null);
+    if (startAt != null) {
+      state.cursor = startAt;
       if (doc.end > 0) {
         const span = Math.max(1, Math.round(doc.end / 4));
-        state.t0 = Math.max(0, failMark.t - span / 2);
+        state.t0 = Math.max(0, startAt - span / 2);
         state.t1 = state.t0 + span;
       }
     }

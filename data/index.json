@@ -1622,6 +1622,32 @@
     ]
   },
   {
+    "id": "hdl-mux2",
+    "title": "A 2-to-1 multiplexer",
+    "topic": "fpga",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "hdl",
+    "tags": [
+      "combinational",
+      "multiplexer",
+      "truth-table",
+      "first-hdl",
+      "systemverilog",
+      "verilog",
+      "simulation",
+      "mux"
+    ],
+    "estimate": 12,
+    "subject": "systems",
+    "prereqs": [
+      "hdl-assignments"
+    ],
+    "langs": [
+      "sv"
+    ]
+  },
+  {
     "id": "fpga-max-clock-frequency",
     "title": "The fastest this design can be clocked",
     "topic": "fpga",

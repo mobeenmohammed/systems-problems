@@ -244,6 +244,41 @@ export function validate({ problems, concepts, solutions }) {
   return errors;
 }
 
+/* Does this testbench print a check called `name`?
+
+   Literally, usually — `$display("CHECK wraps %0d ...")`. But a
+   testbench that walks a truth table prints its names with a format
+   string:
+
+     $display("CHECK row%0d_sel%0b_a%0b_b%0b %0b %0b AT %0d", ...)
+
+   which produces `row3_sel0_a1_b1` and is not findable by searching
+   for the literal. Unrolling the loop into eight copies to satisfy a
+   checker would be letting the checker write the content.
+
+   So a format specifier stands for one run of word characters, and the
+   name has to match the whole shape. `row%0d_sel%0b` matches
+   `row3_sel0` and does not match `rowsel` or `counted` — which keeps
+   the check doing its job, which is to catch a name in the key that
+   nothing prints. */
+const printsCheck = (source, name) => {
+  const text = String(source || '');
+  if (new RegExp(`CHECK\\s+${name}\\b`).test(text)) return true;
+  const esc = t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  for (const m of text.matchAll(/CHECK\s+(\S+)/g)) {
+    const spec = m[1];
+    if (!spec.includes('%')) continue;
+    /* A specifier stands for what %d, %b, %h and %s actually print:
+       digits and letters. NOT a word-character class, which includes
+       the underscore and so swallows the separators — `row%0d_sel%0b`
+       would then match `row3_sel0_a1_b1_extra`, and a key could name
+       a check nothing prints and still pass. */
+    const shape = spec.split(/%[-0-9.]*[a-zA-Z]/).map(esc).join('[A-Za-z0-9]+');
+    if (new RegExp(`^${shape}$`).test(name)) return true;
+  }
+  return false;
+};
+
 function validatePayload(p, err, where) {
   const pay = p.payload || {};
 
@@ -322,7 +357,7 @@ function validatePayload(p, err, where) {
          be printed by it, or Run reports a check that never runs and
          the reader goes looking for a bug in their design. */
       for (const name of pay.checks || []) {
-        if (!new RegExp(`CHECK\\s+${name}\\b`).test(String(pay.testbench || ''))) {
+        if (!printsCheck(pay.testbench, name)) {
           err(where, `payload.checks names "${name}", which the sample testbench never prints`);
         }
       }
@@ -602,7 +637,7 @@ function validateKey(p, sol, err, where) {
       }
       const harness = String(k.harness || '');
       for (const name of k.checks || []) {
-        if (!new RegExp(`CHECK\\s+${name}\\b`).test(harness)) {
+        if (!printsCheck(harness, name)) {
           err(where, `key.checks names "${name}", which the grading testbench never prints`);
         }
       }
@@ -618,10 +653,17 @@ function validateKey(p, sol, err, where) {
       }
       /* The count on the DONE line has to match the number of checks, or
          every run is reported as incomplete. */
+      /* DONE has to match the number of checks the run actually prints,
+         and a `$display` inside a loop prints more than once — so this
+         can only be compared when every CHECK in the file is a literal.
+         When one is a format string the count is checked for real at
+         run time instead, by npm run audit:hdl, which runs the thing
+         and reports an incomplete grading. */
       const done = /DONE\s+(\d+)/.exec(harness);
-      const printed = (harness.match(/CHECK\s+\S+/g) || []).length;
-      if (done && Number(done[1]) !== printed) {
-        err(where, `the grading testbench prints ${printed} checks and says DONE ${done[1]}`);
+      const printed = (harness.match(/CHECK\s+\S+/g) || []);
+      const generated = printed.some(x => x.includes('%'));
+      if (done && !generated && Number(done[1]) !== printed.length) {
+        err(where, `the grading testbench prints ${printed.length} checks and says DONE ${done[1]}`);
       }
       /* The grading testbench must instantiate the module the problem
          names, or it is grading something else. */

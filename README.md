@@ -21,13 +21,13 @@ serves it directly.
 ## What is in it
 
 <!-- generated:counts -->
-**113 problems** across 13 topics, 37 of them compiled and run in C++, Rust, Python, JavaScript. **115 concepts** carry **316 readings** between them, every one naming a book and a chapter or a specific page, with 33 more for learning a topic from scratch. **12 tracks** order subsets of the problems so there is always an obvious next one, and the weekly schedule runs to 2027-04-05.
+**114 problems** across 13 topics, 37 of them compiled and run in C++, Rust, Python, JavaScript. **115 concepts** carry **316 readings** between them, every one naming a book and a chapter or a specific page, with 33 more for learning a topic from scratch. **12 tracks** order subsets of the problems so there is always an obvious next one, and the weekly schedule runs to 2027-04-05.
 
 ```
 Topics        cpp · rust · arch · os · linux · compilers · hpc · dist · fpga · algo · sysdesign · metric · prob
 Difficulty    Beginner · Intermediate · Advanced
 Types         mcq · multi · numeric · short · order · match · predict · locate · code · approx · counterexample · exact · hdl · proof · proofsteps · structured
-Total time    about 30 hours at the stated estimates
+Total time    about 31 hours at the stated estimates
 ```
 <!-- /generated:counts -->
 
@@ -47,7 +47,7 @@ across ten topics" by hand, and both numbers were wrong within a day.
 | **Compilers & Interpreters** | 5 — 2 / 2 / 1 by difficulty | 1 | ~1 h |
 | **HPC & Parallelism** | 5 — 2 / 2 / 1 by difficulty | 1 | ~1 h |
 | **Distributed Systems** | 5 — 2 / 2 / 1 by difficulty | 0 | ~1 h |
-| **FPGAs & Hardware** | 11 — 4 / 6 / 1 by difficulty | 3 | ~4 h |
+| **FPGAs & Hardware** | 12 — 5 / 6 / 1 by difficulty | 3 | ~4 h |
 | **Algorithms** | 11 — 5 / 5 / 1 by difficulty | 8 | ~4 h |
 | **System Design** | 5 — 2 / 2 / 1 by difficulty | 1 | ~1 h |
 | **Metric Spaces** | 12 — 5 / 5 / 2 by difficulty | 0 | ~2 h |
@@ -1247,7 +1247,7 @@ beside the catalogue — and three data files back it up:
 | **Problems you write code for** | 7 | Every code problem on the site, easiest first. |
 | **Metric spaces, from the axioms up** | 12 | Distance as four conditions rather than a formula, and then everything that follows from them: balls, open and closed sets, convergence, completeness, continuity and a first look at compactness. |
 | **Probability, in the order it makes sense** | 12 | Sample spaces and counting first, because most errors are made before any arithmetic; then conditioning, independence, random variables, expectation and variance, and a first continuous distribution. |
-| **Writing hardware, and watching it run** | 7 | Four designs you write in SystemVerilog and simulate in this tab — a multiplexer, a counter, an edge detector and a state machine that finds a pattern — with the waveform beside each one. |
+| **Writing hardware, and watching it run** | 8 | Five designs you write in SystemVerilog and simulate in this tab — a 2-to-1 multiplexer and a 4-to-1, a counter, an edge detector and a state machine that finds a pattern — with the waveform beside each one. |
 <!-- /generated:tracks -->
 
 ### The workspace

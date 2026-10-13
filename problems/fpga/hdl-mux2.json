@@ -1,0 +1,47 @@
+{
+  "id": "hdl-mux2",
+  "title": "A 2-to-1 multiplexer",
+  "topic": "fpga",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "hdl",
+  "tags": [
+    "combinational",
+    "multiplexer",
+    "truth-table",
+    "first-hdl",
+    "systemverilog",
+    "verilog",
+    "simulation",
+    "mux"
+  ],
+  "estimate": 12,
+  "prereqs": [
+    {
+      "concept": "hdl-assignments",
+      "why": "The whole exercise is one assignment, and which kind it is is the thing to get right."
+    }
+  ],
+  "statement": "This is the first hardware exercise. You write a module in **SystemVerilog**, and it is compiled and simulated **in this tab** — there is nothing to install.\n\n### What to build\n\nA **2-to-1 multiplexer**: a switch that passes one of two inputs through to the output, chosen by a third.\n\n```\nmodule mux2 (\n  input  logic a,     // passed through when sel is 0\n  input  logic b,     // passed through when sel is 1\n  input  logic sel,   // which one\n  output logic y      // the result\n);\n```\n\nThe module must be called **`mux2`** and the four ports must have exactly those names — the testbench connects to them by name. Every one is a single bit (`logic`, with no `[..]` range).\n\n### The whole truth table\n\nThree one-bit inputs, so there are eight rows, and that is all of them:\n\n| `sel` | `a` | `b` | `y` | |\n| :-: | :-: | :-: | :-: | --- |\n| 0 | 0 | 0 | **0** | `sel` is 0, so `y` follows `a` |\n| 0 | 0 | 1 | **0** | `b` is 1 and is ignored |\n| 0 | 1 | 0 | **1** | |\n| 0 | 1 | 1 | **1** | |\n| 1 | 0 | 0 | **0** | `sel` is 1, so `y` follows `b` |\n| 1 | 0 | 1 | **1** | `a` is 0 and is ignored |\n| 1 | 1 | 0 | **0** | |\n| 1 | 1 | 1 | **1** | |\n\nIn one sentence: **`y` is `a` when `sel` is 0, and `b` when `sel` is 1.**\n\n### Precisely\n\n- Purely **combinational**. There is no clock in this module and no reset, because there is nothing to remember: `y` depends only on what `a`, `b` and `sel` are *now*.\n- `y` must change as soon as any input changes. If it holds an old value, you have accidentally built a latch, and the testbench will catch it.\n- The sample testbench drives all eight rows above and prints a check for each. Submit uses a different testbench that drives the same eight and a few more.\n\nThis is **simulation**. Passing means your design behaved correctly under the testbench, in an event-driven simulator. It says nothing about whether the design would synthesise, meet timing, or work on a real device.",
+  "hints": [
+    "Combinational logic is a continuous `assign`, or an `always_comb` block. Either is right here. The one thing that is not right is `always_ff`, which is for logic that has a clock.",
+    "There are three natural ways to write it: a conditional expression `sel ? b : a`, an `if`/`else` inside `always_comb`, or the boolean form `(~sel & a) | (sel & b)`. They produce the same circuit. Pick whichever you find clearest and read the explanation afterwards for why.",
+    "Watch the order in a conditional: `sel ? b : a` means \"when sel is true, take b\". Writing `sel ? a : b` swaps the two inputs, passes four of the eight rows, and is the single most common way to get this wrong."
+  ],
+  "payload": {
+    "top": "mux2",
+    "generation": "2012",
+    "template": "module mux2 (\n  input  logic a,     // passed through when sel is 0\n  input  logic b,     // passed through when sel is 1\n  input  logic sel,   // which one\n  output logic y      // the result\n);\n\n  // ---- your code goes here ----------------------------------------\n  //\n  // Drive y from a, b and sel: y is a when sel is 0, and b when sel\n  // is 1. One line is enough.\n  //\n  // Combinational, so: a continuous \"assign\", or an always_comb block.\n  // Not always_ff — there is no clock in this module.\n\n  assign y = 1'b0;   // <- replace this\n\n  // ------------------------------------------------------------------\n\nendmodule\n",
+    "testbench": "`timescale 1ns/1ps\n// The sample testbench. Run uses this one, and you can read all of\n// it. Submit uses a different one that drives these eight rows and a\n// few more besides.\n//\n// It walks the whole truth table: three one-bit inputs is eight\n// combinations, and every one of them is checked.\nmodule tb;\n  logic a, b, sel, y;\n\n  mux2 dut (.a(a), .b(b), .sel(sel), .y(y));\n\n  // What the answer should be, written out as the specification rather\n  // than as a second implementation: y follows a when sel is 0.\n  function automatic logic expected(logic xa, logic xb, logic xsel);\n    return xsel ? xb : xa;\n  endfunction\n\n  initial begin\n    $dumpfile(\"dump.vcd\");\n    $dumpvars(0, tb);\n\n    // Row by row, 10 ns apart so each one is a clear step in the\n    // waveform rather than a spike.\n    for (int i = 0; i < 8; i++) begin\n      {sel, a, b} = i[2:0];\n      #10;\n      $display(\"CHECK row%0d_sel%0b_a%0b_b%0b %0b %0b AT %0d\",\n               i, sel, a, b, expected(a, b, sel), y, $time);\n    end\n\n    #10;\n    $display(\"DONE 8\");\n    $finish;\n  end\nendmodule\n",
+    "checks": [
+      "row0_sel0_a0_b0",
+      "row1_sel0_a0_b1",
+      "row2_sel0_a1_b0",
+      "row3_sel0_a1_b1",
+      "row4_sel1_a0_b0",
+      "row5_sel1_a0_b1",
+      "row6_sel1_a1_b0",
+      "row7_sel1_a1_b1"
+    ]
+  }
+}
