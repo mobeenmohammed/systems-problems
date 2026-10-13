@@ -71,6 +71,63 @@ signs, up to the digit that must overflow.
 The verifier has teeth: deleting one of the two signed corrections
 produces 25,207 disagreements, the first at `smulhi(1, -1)`.
 
+**How big the gap actually is.** Bigger than the parse, and this was
+measured rather than assumed. `scripts/probe-rust-gap.mjs` compiles
+sixteen small programs with the real browser compiler under the site's
+own flags (`--edition 2024 -O -Cpanic=abort`):
+
+```
+  i64 multiply           builds and runs
+  i64 add, sub, div, rem builds and runs
+  i64 wrapping_mul       builds and runs
+  i64 checked_mul        NO — smulhi.i64
+  i64 overflowing_mul    NO — smulhi.i64
+  i64 saturating_mul     NO — smulhi.i64
+  u64 checked_mul        NO — umulhi.i64
+  i128 multiply          builds and runs
+  usize multiply         builds and runs
+  sum() over i64         builds and runs
+  product() over i64     NO — smulhi.i64
+  parse::<i32>()         builds and runs
+  parse::<i64>()         NO — smulhi.i64
+  parse::<u64>()         NO — umulhi.i64
+  parse::<f64>()         builds and runs
+  i64 to_string()        builds and runs
+```
+
+So it is *anything that checks a 64-bit multiply for overflow*, by
+whichever road it arrives — and `umulhi.i64` is missing as well as
+`smulhi.i64`, which is why this patch adds both. The one-line summary
+the site used to show a reader ("reading a 64-bit integer out of a
+string, and nothing else") was too narrow, and the README's claim that
+`checked_mul` was fine was simply wrong: the test that said so
+multiplied two compile-time constants, which rustc folds before any
+lowering is reached.
+
+**Can a flag avoid it instead?** No, and this was worth asking, because
+the sysroot is precompiled and did not come through the broken
+translator — a program that *called* core's parse rather than inlining a
+copy and codegening that copy locally would never reach the gap. The
+same script tries it:
+
+```
+  the site’s own flags        smulhi.i64  in core::num::from_ascii_radix
+  no cross-crate inlining     smulhi.i64  in core::num::from_ascii_radix
+  no MIR inlining             smulhi.i64  in core::num::from_ascii_radix
+  no MIR optimisation         smulhi.i64  in core::num::from_ascii_radix
+  no shared generics          smulhi.i64  in core::num::from_ascii_radix
+  both, together              smulhi.i64  in core::num::from_ascii_radix
+  optimise for size           smulhi.i64  in core::num::from_ascii_radix
+  no optimisation at all      smulhi.i64  in prog::main
+```
+
+`from_ascii_radix` is generic, so the caller's crate monomorphises it
+whatever the inlining settings say, and codegen for that copy goes
+through the translator with no lowering. The last line is the
+interesting one: with optimisation off the failure moves **into `main`**,
+because a debug build checks `n * 2` for overflow too. There is no flag
+behind which this hides.
+
 **What it does not do.** It is not built. Turning this into a browser
 artifact means building a patched rustc for wasm32 — `AngelOnFira/rust`
 at `riw-wasm20` through the `AngelOnFira/wasm-rustc` build repository,
@@ -79,3 +136,13 @@ multi-hour bootstrap on Linux and it is not something this repository
 does or should do. The patch and its evidence are here so that it can be
 sent upstream; `data/rust-support.json` still says 2 of 7, because 2 of
 7 is what the shipped compiler does.
+
+The other route is `rubrc`, and it is blocked for a different reason:
+it needs `SharedArrayBuffer`, which needs cross-origin isolation, which
+needs COOP and COEP headers that GitHub Pages does not send. A service
+worker can synthesise them — `prototype/coi/` is a working one, and it
+reports `crossOriginIsolated` true with a shared-memory round-trip
+through a worker. What that does not solve is that rubrc publishes no
+prebuilt artifacts and loads 13.7 MB of its own UI before it compiles
+anything. The prototype is kept because the isolation question comes up
+again for anything threaded, not because this is the way in.

@@ -57,7 +57,8 @@
     "check:hdl": "node scripts/audit-hdl.mjs --check",
     "test:hdl": "node tests/browser/hdl.test.mjs",
     "test:journeys-hdl": "node tests/browser/journeys-hdl.test.mjs",
-    "test:journeys-rust": "node tests/browser/journeys-rust.test.mjs"
+    "test:journeys-rust": "node tests/browser/journeys-rust.test.mjs",
+    "probe:rust-gap": "node scripts/probe-rust-gap.mjs"
   },
   "devDependencies": {
     "@bjorn3/browser_wasi_shim": "^0.4.2",

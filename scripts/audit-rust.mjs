@@ -12,7 +12,10 @@
    release. What is not complete is the Cranelift → wasm lowering, and the
    gap that matters here is narrow and specific:
 
-     parse::<i64>() and parse::<u64>() do not compile.
+     parse::<i64>() and parse::<u64>() do not compile, and nor does
+     anything else needing the high half of a 64-bit product:
+     checked_mul, overflowing_mul, saturating_mul, product() over i64.
+     scripts/probe-rust-gap.mjs maps that boundary exactly.
 
    `core::num::from_ascii_radix` lowers a `smulhi.i64`, and that opcode is
    not implemented for i64 in this backend. 64-bit arithmetic is fine;
@@ -123,18 +126,27 @@ function disqualify(problem) {
 }
 
 /* The one known gap, recognised so the report says what it is rather than
-   quoting an internal Cranelift opcode at somebody. */
-const SMULHI = /unimplemented binary opcode smulhi on i64/;
+   quoting an internal Cranelift opcode at somebody.
+
+   Both halves of it: `smulhi.i64` for the signed high half and
+   `umulhi.i64` for the unsigned one. This matched only smulhi, so a u64
+   program fell through to "does not compile" and the generic sentence,
+   which is the same gap reported as an unknown. */
+const MULHI = /unimplemented binary opcode (smulhi|umulhi) on i64/;
 
 function explain(stderr) {
-  if (SMULHI.test(stderr)) {
-    return 'The reference solution reads a 64-bit integer out of a string, and '
-      + '`parse::<i64>()` does not compile with this backend: the Cranelift → '
-      + 'WebAssembly lowering has no `smulhi` for i64, which is what '
-      + '`core::num::from_ascii_radix` needs. 64-bit arithmetic and printing are '
-      + 'both fine — it is reading a 64-bit integer out of a string, and nothing '
-      + 'else. The exercise itself is unchanged; the gap is in the WebAssembly '
-      + 'backend of the compiler, not in the exercise.';
+  if (MULHI.test(stderr)) {
+    return 'The reference solution needs the high half of a 64-bit '
+      + 'multiplication, and this backend has no lowering for it: the Cranelift '
+      + '→ WebAssembly translator implements neither `smulhi` nor `umulhi` on '
+      + 'i64. What reaches it is anything that CHECKS a 64-bit multiply for '
+      + 'overflow — `checked_mul`, `overflowing_mul`, `saturating_mul`, '
+      + '`product()` over i64, and `parse::<i64>()` and `parse::<u64>()`, which '
+      + 'check as they accumulate digits. Ordinary 64-bit arithmetic is fine: '
+      + '`*`, `wrapping_mul`, addition, division, remainder, i128 multiplication '
+      + 'and printing all compile and run here. The exercise itself is '
+      + 'unchanged; the gap is in the WebAssembly backend of the compiler, not '
+      + 'in the exercise.';
   }
   const first = stderr.split('\n').find(l => /^error/.test(l)) || '';
   return 'The reference solution does not compile for WebAssembly'

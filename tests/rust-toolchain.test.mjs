@@ -175,17 +175,65 @@ section('the one thing this backend cannot do is parse a 64-bit integer');
 
   /* The point of pinning it this precisely: "64-bit is broken" would be
      wrong, and would be the kind of wrong that makes somebody stop
-     looking for the real boundary. */
+     looking for the real boundary.
+
+     This block used to assert that `checked_mul` was fine, and it
+     passed — on compile-time constants, which rustc folds before any
+     lowering is reached. On values that arrive at RUNTIME the same call
+     emits `smulhi.i64` and does not build, so the assertion was true of
+     the program it ran and false of the claim it was making. Both sides
+     are pinned now, and `scripts/probe-rust-gap.mjs` maps the whole
+     boundary against the real compiler. */
   const arith = await runSource(`
 fn main(){
     let a: i64 = 9_007_199_254_740_993;
     let b: u64 = 18_446_744_073_709_551_615;
-    println!("{} {} {} {}", a, b, a / 7, a.checked_mul(a).is_none());
+    println!("{} {} {}", a, b, a / 7);
 }
 `);
   ok('64-bit arithmetic and printing are fine', arith.built && arith.exit === 0);
   check('and give the right answers', arith.stdout.trim(),
-    '9007199254740993 18446744073709551615 1286742750677284 true');
+    '9007199254740993 18446744073709551615 1286742750677284');
+
+  /* Runtime values, which is the case that matters: a reader's program
+     multiplies what it read, not what the author typed. */
+  const runtime = async (expr) => {
+    const r = await build(`
+use std::io::{self, Read};
+fn main(){
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let a: i64 = s.trim().len() as i64;
+    let b: i64 = 3;
+    println!("{:?}", ${expr});
+}
+`, BROWSER_FLAGS);
+    return { ok: r.ok, mulhi: /opcode (smulhi|umulhi) on i64/.test(JSON.stringify(r.diagnostics || []) + String(r.log || '')) };
+  };
+
+  for (const expr of ['a * b', 'a.wrapping_mul(b)', 'a + b', 'a / b', 'a % b',
+    '(a as i128) * (b as i128)', 'a as usize * b as usize']) {
+    const r = await runtime(expr);
+    ok(`${expr} builds on runtime values`, r.ok);
+  }
+  for (const expr of ['a.checked_mul(b)', 'a.overflowing_mul(b)', 'a.saturating_mul(b)',
+    '(a as u64).checked_mul(b as u64)']) {
+    const r = await runtime(expr);
+    ok(`${expr} does not \u2014 it needs the high half`, !r.ok && r.mulhi);
+  }
+
+  /* So the generated reason has to say that, rather than naming only
+     the parse. A reader who reads "64-bit arithmetic is fine" and then
+     writes checked_mul has been told something false. */
+  const support = readJson('data/rust-support.json');
+  const reason = Object.values(support.nativeOnly || {})
+    .find(t => /high half|smulhi/.test(t)) || '';
+  ok('the generated reason names the high half of a 64-bit multiply',
+    /high half of a 64-bit multiplication/.test(reason));
+  ok('and names checked_mul among what reaches it', /checked_mul/.test(reason));
+  ok('and both opcodes', /smulhi/.test(reason) && /umulhi/.test(reason));
+  ok('while still saying ordinary 64-bit arithmetic is fine',
+    /wrapping_mul/.test(reason) && /is fine/.test(reason));
 
   /* And the gap is in code generation, not in checking — which is what
      makes the editor's diagnostics work on every Rust problem. */

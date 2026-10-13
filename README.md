@@ -641,7 +641,7 @@ different jobs and were already separated here.
 A warm compile is about **0.1 s**, which is an order of magnitude faster
 than the C++ one.
 
-### The limit: `parse::<i64>()`
+### The limit: the high half of a 64-bit multiply
 
 ```
 error: wasm emission failed: translating function `core::num::from_ascii_radix`:
@@ -649,21 +649,54 @@ error: wasm emission failed: translating function `core::num::from_ascii_radix`:
        unimplemented binary opcode smulhi on i64
 ```
 
-The Cranelift → wasm lowering has no `smulhi` for i64, and parsing a 64-bit
-integer out of a string needs one. It is not the optimisation level — tested
-at `-O`, `0`, `1`, `2`, `3`, `s` and `z`, and on both editions.
+The Cranelift → wasm translator implements neither `smulhi.i64` nor
+`umulhi.i64` — the signed and unsigned high halves of a 64×64 product — and
+it maps each CLIF opcode onto exactly one wasm operator, so an opcode that
+needs a *sequence* falls off the end of the table and becomes a hard error.
 
-It is **that specifically**, and saying "64-bit is broken" would be wrong in
-a way that stops somebody looking for the real boundary. All of this works:
-`i64` and `u64` arithmetic, division, `checked_mul`, printing an `i64`, a
-`u64` or an `i128`, and parsing `i32`, `u32`, `usize` and `f64`.
-`tests/rust-toolchain.test.mjs` pins the boundary from both sides.
+What reaches it is anything that **checks** a 64-bit multiply for overflow.
+`scripts/probe-rust-gap.mjs` compiles each of these with the real compiler
+under the site's own flags, so the boundary is measured rather than
+reasoned about:
 
-Three of the six Rust exercises and `algo-running-max` read an `i64` from
+| builds and runs | does not build |
+| --- | --- |
+| `a * b`, `a.wrapping_mul(b)` | `a.checked_mul(b)` |
+| `+`, `-`, `/`, `%` | `a.overflowing_mul(b)` |
+| `(a as i128) * (b as i128)` | `a.saturating_mul(b)` |
+| `a as usize * b as usize` | `(a as u64).checked_mul(b)` |
+| `sum()` over `i64` | `product()` over `i64` |
+| `parse::<i32>()`, `<u32>`, `<usize>`, `<f64>` | `parse::<i64>()`, `parse::<u64>()` |
+| printing an `i64`, `u64` or `i128` | |
+
+`parse::<i64>()` is on the right because `from_ascii_radix` accumulates
+digits with a checked multiply, which is the same thing arriving by a
+different road.
+
+It is not the optimisation level, and it is not a flag. Tested at `-O`, `0`,
+`1`, `2`, `3`, `s` and `z`, on both editions, and with
+`-Zcross-crate-inline-threshold=never`, `-Zinline-mir=no`,
+`-Zmir-opt-level=0` and `-Zshare-generics=off` — the idea being that the
+sysroot is precompiled and did not come through that translator, so a
+program that *called* core's parse instead of inlining a copy and
+codegening it locally would never reach the gap. It does not work: the
+function is generic, so the caller's crate monomorphises it whatever the
+inlining settings say. With optimisation off the failure moves **into
+`main`**, because a debug build checks `n * 2` for overflow too.
+
+**This README used to say `checked_mul` was fine, and a test asserted it.**
+Both were wrong in the same way: the test multiplied two compile-time
+constants, which rustc folds before any lowering is reached. On values that
+arrive at runtime — which is what a reader's program does — it emits
+`smulhi.i64` and does not build. The test now pins both sides on runtime
+values, and the sentence the site shows a reader was rewritten to match.
+
+Four of the seven Rust exercises and `algo-running-max` need an `i64` out of
 input, so they cannot be *run* here. They were not rewritten to fit the
-compiler — the exercise is the exercise. They say why, in those words, and
-keep the native path. **Checking still works on all of them**, because the
-gap is in code generation.
+compiler — the exercise is the exercise. They say why, in those words.
+**Checking still works on all of them**, because the gap is in code
+generation.
+
 
 ### Which problems
 
