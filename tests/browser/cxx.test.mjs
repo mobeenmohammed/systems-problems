@@ -393,16 +393,29 @@ section('a sanitizer problem is marked native-only rather than quietly relaxed')
      the exercise needs the native toolchain in the first place. */
   await p.locator('#runBtn').click();
   await p.waitForTimeout(3500);
-  const pressed = await p.evaluate(() => ({
-    pane: (document.getElementById('resultPane') || {}).textContent
-      .replace(/\s+/g, ' ').trim(),
-    status: window.SystemsLab.Store.record('algo-running-max').status,
-  }));
-  ok('pressing Run says it is the problem, not a missing runner',
-    /needs the native toolchain/i.test(pressed.pane));
+  const pressed = await p.evaluate(() => {
+    /* The reason sits behind a disclosure, which is where a technical
+       reason belongs; a reader opens it, so the test does too. */
+    const d = document.querySelector('.platform-detail');
+    if (d) d.open = true;
+    return {
+      pane: (document.getElementById('resultPane') || {}).textContent
+        .replace(/\s+/g, ' ').trim(),
+      kind: (document.querySelector('.platform') || {}).dataset?.kind,
+      verdict: !!document.querySelector('.verdict'),
+      retry: !!document.querySelector('#retryRunBtn'),
+      status: window.SystemsLab.Store.record('algo-running-max').status,
+    };
+  });
+  check('pressing Run reports a toolchain gap', pressed.kind, 'toolchain');
+  ok('it says it is the compiler here, not a missing runner',
+    /cannot be built here/i.test(pressed.pane) && /gap in the compiler/i.test(pressed.pane));
+  ok('and not a mistake in what they wrote', /not a mistake in what you wrote/i.test(pressed.pane));
+  ok('there is no verdict and no score', !pressed.verdict && !/passed/i.test(pressed.pane));
   ok('and repeats the sanitizer reason there too', /sanitizer/i.test(pressed.pane));
   ok('without telling anyone to start a local runner for it',
     !/start one with|npm run runner, or turn on hosted/i.test(pressed.pane));
+  ok('and without a Try again that could never work', !pressed.retry);
   check('and nothing is recorded', pressed.status, 'unsolved');
   await ctx.close();
 }

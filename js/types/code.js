@@ -784,7 +784,15 @@ fn main() {
     ]);
 
     const acts = el('div', { class: 'platform-acts' }, [
-      el('button', {
+      /* Try again, but only where trying again could work.
+
+         A download that was cut off and a runner that did not answer
+         are both transient, and the button is the whole answer. A
+         compiler that cannot build this exercise is not transient:
+         pressing it would reproduce the same message instantly, which
+         is an invitation to sit there pressing it. Run is still
+         enabled either way, so nothing is locked. */
+      kind === 'toolchain' ? null : el('button', {
         class: 'btn btn-sm btn-primary', type: 'button', id: 'retryRunBtn',
         onclick: () => doRun(last.submission),
       }, ['Try again']),
