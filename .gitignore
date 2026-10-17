@@ -15,6 +15,10 @@ data/judge-token.json
 # particular run, not part of the site — and the deploy job publishes the
 # whole checkout.
 _shots/
+# The rustc build tree's output. vendor/rust is the pinned copy and is
+# what the site serves; a second 161 MB of the same two files in the
+# repository is 161 MB nobody clones on purpose.
+_rustbuild/
 
 # Throwaway reproduction scripts
 _repro*.mjs
