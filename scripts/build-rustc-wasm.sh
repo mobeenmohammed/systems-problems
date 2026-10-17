@@ -119,36 +119,32 @@ if ! done_marker llvm; then
 fi
 say "LLVM $("$LLVM_DIR/bin/llvm-config" --version)"
 
-# The official LLVM release is built with Clang against libc++, so
-# `llvm-config --cxxflags` hands out `-stdlib=libc++`. rustc_llvm's
-# build script passes those flags straight to the host C++ compiler,
-# and g++ does not know that option:
+# The official LLVM release is built with Clang against libc++, and
+# `llvm-config --cxxflags` says so with `-stdlib=libc++`. Filtering
+# that flag out and building the glue with g++ gets further and then
+# fails at the link, because the LLVM libraries themselves want libc++:
 #
-#   c++: error: unrecognized command-line option '-stdlib=libc++'
+#   rust-lld: error: undefined symbol: std::__1::recursive_mutex::lock()
 #
-# Clang++ would accept it and then need libc++ headers, which are not
-# installed and need root. So the flag is filtered out instead: a
-# wrapper around llvm-config that is the real one in every respect
-# except that --cxxflags comes back without it. Nothing else in the
-# build looks at it, and the glue compiles against libstdc++ as it
-# would with any distribution LLVM.
-LLVM_CFG="$WORK/llvm-config-filtered"
-if ! done_marker wrapper; then
-  say "writing an llvm-config wrapper that drops -stdlib=libc++"
-  cat > "$LLVM_CFG" <<WRAP
-#!/usr/bin/env bash
-real="$LLVM_DIR/bin/llvm-config"
-out="\$("\$real" "\$@")" || exit \$?
-printf '%s\\n' "\${out//-stdlib=libc++/}"
-WRAP
-  chmod +x "$LLVM_CFG"
-  "$LLVM_CFG" --version >/dev/null
-  mark wrapper
-fi
+# `std::__1` is libc++'s namespace. The flag was not the problem; it
+# was the truth. There is no libstdc++ build of LLVM 21 to download
+# instead — llvm.org ships only the CMake package for Linux x64 now —
+# and installing libc++ needs root.
+#
+# It does not need to be installed. The package ships its own clang,
+# its own libc++ headers and its own libc++ libraries; they are simply
+# in lib/<triple> rather than lib. So the host C++ compiler becomes the
+# release's clang++, and the link gets that directory.
+LLVM_LIBS="$LLVM_DIR/lib/x86_64-unknown-linux-gnu"
+export LIBRARY_PATH="$LLVM_LIBS${LIBRARY_PATH:+:$LIBRARY_PATH}"
+export LD_LIBRARY_PATH="$LLVM_LIBS${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+# cc-rs asks for a C++ standard library by name; the default is
+# libstdc++, and every object here is libc++'s.
+export CXXSTDLIB=c++
 
 if ! done_marker config; then
   say "pointing bootstrap at it"
-  python3 - "$LLVM_CFG" <<'PY'
+  python3 - "$LLVM_DIR" <<'PY'
 import io, sys
 llvm = sys.argv[1]
 p = 'rust/bootstrap.toml'
