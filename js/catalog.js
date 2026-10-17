@@ -179,6 +179,11 @@ const Catalog = (() => {
       if (filter.difficulty && p.difficulty !== filter.difficulty) return false;
       if (filter.type       && p.type       !== filter.type)       return false;
       if (filter.lane       && (p.lane || 'core') !== filter.lane)  return false;
+      /* Debugging challenges: a starter that is a complete wrong program
+         rather than a hole to fill. They stay in their own topics and
+         tracks — this is a way to ask for them, not a place to put
+         them. */
+      if (filter.debugging  && !p.debugging)                        return false;
 
       /* "Can be solved in this language" — a property of the exercise, not
          of what is installed. A problem declaring C++ only stays C++ only
@@ -207,7 +212,8 @@ const Catalog = (() => {
         const hay = (`${p.title} ${p.topic} ${p.subject || ''} ${p.type} `
           + `${(p.langs || []).map(l => LANG_LABEL[l] || l).join(' ')} `
           + `${(TYPE_WORDS[p.type] || []).join(' ')} `
-          + `${(p.tags || []).join(' ')}`).toLowerCase();
+          + `${(p.tags || []).join(' ')} `
+          + `${p.debugging ? 'debugging debug bug fix broken faulty' : ''}`).toLowerCase();
         if (!terms.every(t => hay.includes(t))) return false;
       }
       return true;

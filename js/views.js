@@ -138,6 +138,10 @@ const UI = (() => {
         el('div', { class: 'title' }, [
           el('a', { class: 'prow-link', href: `#/p/${p.id}`, text: p.title }),
           isWeekly ? el('span', { class: 'badge badge-weekly', text: 'Weekly' }) : null,
+          /* A starter that is already written and already wrong. Worth
+             saying on the row: it changes what the exercise is before
+             anybody opens it. */
+          p.debugging ? el('span', { class: 'badge badge-debug', text: 'Debugging' }) : null,
           optional ? el('span', { class: 'badge badge-optional', text: 'Optional' }) : null,
           due ? el('span', { class: 'badge badge-due', title: `Due for revisit on ${r.reviewOn}`, text: 'Revisit' }) : null,
         ]),
@@ -318,6 +322,10 @@ const UI = (() => {
       + '<path d="M2 6.8h12M5.4 1.8v2.6M10.6 1.8v2.6"/>',
     assess: '<circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.4 1.6"/>',
     review: '<path d="M3 2.6h10v10.8l-5-2.6-5 2.6z"/><path d="M5.8 6.2h4.4"/>',
+    /* A bug: a body, legs, and antennae. One path string, because
+       splitting a `d` across two strings once closed it early. */
+    debug: '<path d="M6.2 4.2a1.8 1.8 0 0 1 3.6 0"/><path d="M4.6 6.2h6.8v3.2a3.4 3.4 0 0 1-6.8 0z"/>'
+      + '<path d="M4.6 7.6H2.4M11.4 7.6h2.2M5 10.9l-1.8 1.6M11 10.9l1.8 1.6M5.2 5l-1.4-1.3M10.8 5l1.4-1.3"/>',
     /* A package with legs: the one picture everybody reads as hardware. */
     chip: '<rect x="4.6" y="4.6" width="6.8" height="6.8" rx="1"/>'
       + '<path d="M6.4 1.9v2.7M9.6 1.9v2.7M6.4 11.4v2.7M9.6 11.4v2.7'
@@ -411,6 +419,11 @@ const UI = (() => {
       {
         title: 'Assess',
         items: [
+          {
+            icon: 'debug', label: 'Debugging', href: '#/problems?debugging=1',
+            blurb: 'Exercises that start from a program that is already written '
+              + 'and already wrong. Find out why, and fix it.',
+          },
           {
             icon: 'review', label: 'Review', href: '#/review',
             count: reviewCount,
@@ -1930,7 +1943,7 @@ const UI = (() => {
 
   let filter = {
     q: '', subject: '', kind: '', topic: '', difficulty: '', type: '',
-    status: '', lane: '', lang: '',
+    status: '', lane: '', lang: '', debugging: '',
   };
 
   /* ---------------- subject ----------------
@@ -2021,6 +2034,7 @@ const UI = (() => {
     $('#fType').value   = filter.type;
     $('#fStatus').value = filter.status;
     $('#fLane').value   = filter.lane;
+    if ($('#fDebug')) $('#fDebug').value = filter.debugging;
     if ($('#fLang')) $('#fLang').value = filter.lang;
     if (!silent) renderCatalog();
   }
@@ -2129,7 +2143,8 @@ const UI = (() => {
         el('button', {
           class: 'btn btn-sm', type: 'button',
           onclick: () => setFilter({
-            q: '', topic: '', difficulty: '', type: '', status: '', lane: '', lang: '',
+            q: '', topic: '', difficulty: '', type: '', status: '', lane: '',
+            lang: '', debugging: '',
           }),
         }, ['Clear all filters']),
       ]));
@@ -2155,12 +2170,15 @@ const UI = (() => {
     $('#fType').addEventListener('change',   e => setFilter({ type: e.target.value }));
     $('#fStatus').addEventListener('change', e => setFilter({ status: e.target.value }));
     $('#fLane').addEventListener('change',   e => setFilter({ lane: e.target.value }));
+    if ($('#fDebug')) {
+      $('#fDebug').addEventListener('change', e => setFilter({ debugging: e.target.value }));
+    }
     if ($('#fLang')) {
       $('#fLang').addEventListener('change', e => setFilter({ lang: e.target.value }));
     }
     $('#fClear').addEventListener('click', () => setFilter({
       q: '', subject: '', kind: '', topic: '', difficulty: '', type: '',
-      status: '', lane: '', lang: '',
+      status: '', lane: '', lang: '', debugging: '',
     }));
   }
 

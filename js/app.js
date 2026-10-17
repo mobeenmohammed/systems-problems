@@ -83,6 +83,8 @@
           type: query.type || '',
           status: query.status || '',
           lang: query.lang || '',
+          /* #/problems?debugging=1 — the door the Content menu uses. */
+          debugging: query.debugging || query.debug || '',
           q: query.q || '',
         });
         break;

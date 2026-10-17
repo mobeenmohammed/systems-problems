@@ -85,7 +85,12 @@ export const poolOf = p => (p && p.pool) || 'practice';
 
 /* The fields the catalog needs to list, search and filter. Everything else
    stays in the problem file. */
-const INDEX_FIELDS = ['id', 'title', 'topic', 'subject', 'difficulty', 'lane', 'type', 'tags', 'estimate'];
+const INDEX_FIELDS = ['id', 'title', 'topic', 'subject', 'difficulty', 'lane', 'type', 'tags', 'estimate',
+  /* A debugging challenge: the starter is a complete program that is
+     wrong, and the exercise is to find out why. Not a type — it is an
+     ordinary code or hdl problem in every other respect — so it rides
+     as a flag the catalogue can filter and badge. */
+  'debugging'];
 
 /* The two characters a mis-escaped newline leaves behind. Built from a char
    code rather than written as an escape so that there is no backslash in this
@@ -207,6 +212,15 @@ export function validate({ problems, concepts, solutions }) {
     if (!p.statement) err(where, 'has no statement');
     if (p.tags && !Array.isArray(p.tags)) err(where, 'tags is not an array');
     if (p.hints && !Array.isArray(p.hints)) err(where, 'hints is not an array');
+    if (p.debugging !== undefined && p.debugging !== true) {
+      err(where, 'debugging is a flag: set it to true or leave it out');
+    }
+    /* A debugging challenge has to say so in the statement, or a reader
+       meets a wrong program with no warning and concludes the site is
+       broken rather than the exercise. */
+    if (p.debugging && !/already written, and it is wrong/i.test(String(p.statement || ''))) {
+      err(where, 'a debugging problem must say in its statement that the starter is wrong');
+    }
 
     /* The prerequisites tab is the reason this site exists, so a problem
        without any is a content bug rather than a style choice. */

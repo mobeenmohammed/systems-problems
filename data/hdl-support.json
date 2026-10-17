@@ -12,8 +12,9 @@
     "bytes": 2994577
   },
   "_notSynthesis": "This is simulation. A design that passes every check has not been shown to be synthesisable, to meet timing, to fit a device, or to work on hardware. There is no synthesiser here and no place-and-route.",
-  "generated": 5,
+  "generated": 6,
   "browser": [
+    "debug-tickgen",
     "hdl-counter",
     "hdl-edge-detector",
     "hdl-mux",

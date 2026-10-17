@@ -1,0 +1,62 @@
+{
+  "id": "debug-lower-bound",
+  "title": "The search that skips past what it was looking for",
+  "topic": "rust",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "code",
+  "debugging": true,
+  "tags": [
+    "binary-search",
+    "debugging",
+    "boundaries",
+    "invariants"
+  ],
+  "estimate": 20,
+  "prereqs": [
+    {
+      "concept": "binary-search",
+      "why": "The broken loop is a correct binary search for a different question; telling the two apart is the exercise."
+    },
+    {
+      "concept": "loop-invariants",
+      "why": "The invariant on the two halves is what says which side an element equal to x belongs on."
+    },
+    {
+      "concept": "rust-slices",
+      "why": "The search takes &[i64], and the empty-slice case is a boundary the loop has to survive."
+    }
+  ],
+  "statement": "**This one is already written, and it is wrong.** Your job is to find out why and fix it.\n\n`lower_bound(v, x)` answers: **what is the index of the first element of `v` that is not less than `x`?** The slice is sorted and may contain repeats. If every element is smaller than `x`, the answer is `v.len()` — one past the end, which is where `x` would be inserted.\n\n```\nn                 0 <= n <= 100000\nv[0] .. v[n-1]    sorted, non-decreasing, each fits in i64\nq                 number of queries\nx  (q of them)    one per line\n```\n\nPrint one index per query, one per line.\n\n### The failing sample\n\n```\nv = [10, 20, 20, 30]\n\n  x = 5   -> 0    nothing is smaller than 5\n  x = 20  -> 1    the FIRST 20 is at index 1\n  x = 25  -> 3    the first element not less than 25 is the 30\n  x = 99  -> 4    everything is smaller; one past the end\n```\n\nThe code in the editor gets two of those four right. It answers `3` for `x = 20`, and it answers `1` for `x = 10`. Absent values are fine; it is **values that are actually in the slice** that come back wrong, and the error is exactly the number of times the value appears.\n\n### What is being asked\n\nAny implementation meeting the specification passes — a hand-written loop, `partition_point`, anything. You are not reproducing a particular patch. The exercise is to say precisely which question the loop is answering, and why that is not the question that was asked.\n\nThe hidden tests include an empty slice, a slice that is all one value, queries below and above everything, and a hundred thousand elements — so a linear scan will be too slow.",
+  "hints": [
+    "Run it. Two of the four sample queries are right. Write down, for a value that IS present, what the code returns and what it should return: the gap is the number of copies of that value. A search that lands just after a run of equal values is not broken by accident — it is answering a different, equally reasonable question.",
+    "There are two standard answers for a sorted slice: the first index where `x` could be inserted keeping order (`lower_bound`), and the last such index (`upper_bound`). They differ only on values that are present, and by exactly the number of copies. The loop in the editor is a correct implementation — of the other one.",
+    "Look at the comparison inside the loop. The invariant you want is that everything below `lo` is `< x` and everything from `hi` up is `>= x`. When `v[mid]` is **equal** to `x`, which side of that line is it on? The code moves `lo` past it, which is the rule for `>` rather than for `>=`."
+  ],
+  "payload": {
+    "langs": [
+      "rust"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 5000
+    },
+    "templates": {
+      "rust": "use std::io::{self, Read, Write};\n\n// The index of the first element of `v` that is NOT LESS than `x`.\n// If every element is smaller, the answer is v.len().\n//\n// This implementation is BROKEN. Find the bug and fix it; the\n// specification is in the problem statement, and any implementation\n// that meets it is accepted.\nfn lower_bound(v: &[i64], x: i64) -> usize {\n    let mut lo = 0usize;\n    let mut hi = v.len();\n\n    while lo < hi {\n        let mid = lo + (hi - lo) / 2;\n        if v[mid] <= x {\n            lo = mid + 1;\n        } else {\n            hi = mid;\n        }\n    }\n\n    lo\n}\n\nfn main() {\n    let mut s = String::new();\n    io::stdin().read_to_string(&mut s).unwrap();\n    let mut it = s.split_ascii_whitespace().map(|t| t.parse::<i64>().unwrap());\n\n    let n = it.next().unwrap_or(0) as usize;\n    let v: Vec<i64> = (0..n).map(|_| it.next().unwrap()).collect();\n    let q = it.next().unwrap_or(0) as usize;\n\n    let out = io::stdout();\n    let mut out = io::BufWriter::new(out.lock());\n    for _ in 0..q {\n        let x = it.next().unwrap();\n        writeln!(out, \"{}\", lower_bound(&v, x)).unwrap();\n    }\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "4\n10 20 20 30\n4\n5\n20\n25\n99\n",
+        "expect": "0\n1\n3\n4\n"
+      },
+      {
+        "stdin": "3\n1 3 5\n3\n0\n2\n6\n",
+        "expect": "0\n1\n3\n"
+      },
+      {
+        "stdin": "5\n7 7 7 7 7\n3\n6\n7\n8\n",
+        "expect": "0\n0\n5\n"
+      }
+    ]
+  }
+}

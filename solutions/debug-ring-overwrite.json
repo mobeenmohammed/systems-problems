@@ -1,0 +1,42 @@
+{
+  "id": "debug-ring-overwrite",
+  "key": {
+    "reference": {
+      "cpp": "#include <iostream>\n#include <string>\n#include <vector>\n\nint main()\n{\n    int cap{};\n    int m{};\n    std::cin >> cap >> m;\n\n    std::vector<int> buf(static_cast<std::size_t>(cap), 0);\n    int start{ 0 };\n    int n{ 0 };\n\n    for (int i = 0; i < m; ++i)\n    {\n        std::string cmd;\n        std::cin >> cmd;\n\n        if (cmd == \"write\")\n        {\n            int v{};\n            std::cin >> v;\n            buf[static_cast<std::size_t>((start + n) % cap)] = v;\n            if (n == cap) { start = (start + 1) % cap; }\n            else          { ++n; }\n        }\n        else if (cmd == \"count\")\n        {\n            std::cout << n << \"\\n\";\n        }\n        else if (cmd == \"dump\")\n        {\n            if (n == 0)\n            {\n                std::cout << \"empty\\n\";\n                continue;\n            }\n            for (int k = 0; k < n; ++k)\n            {\n                std::cout << buf[static_cast<std::size_t>((start + k) % cap)]\n                          << (k + 1 == n ? '\\n' : ' ');\n            }\n        }\n    }\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "3 9\nwrite 1\nwrite 2\nwrite 3\nwrite 4\nwrite 5\nwrite 6\nwrite 7\ndump\ncount\n",
+        "expect": "5 6 7\n3\n"
+      },
+      {
+        "stdin": "1 5\nwrite 10\ndump\nwrite 20\ndump\ncount\n",
+        "expect": "10\n20\n1\n"
+      },
+      {
+        "stdin": "4 11\nwrite 1\nwrite 2\nwrite 3\ndump\nwrite 4\nwrite 5\ndump\nwrite 6\ndump\ncount\ndump\n",
+        "expect": "1 2 3\n2 3 4 5\n3 4 5 6\n4\n3 4 5 6\n"
+      },
+      {
+        "stdin": "5 3\nwrite -7\nwrite 0\ndump\n",
+        "expect": "-7 0\n"
+      },
+      {
+        "stdin": "2 8\nwrite 1\nwrite 2\nwrite 3\nwrite 4\nwrite 5\ndump\ncount\ndump\n",
+        "expect": "4 5\n2\n4 5\n"
+      },
+      {
+        "stdin": "3 1\ncount\n",
+        "expect": "0\n"
+      },
+      {
+        "stdin": "1 4\ndump\nwrite 9\ndump\ncount\n",
+        "expect": "empty\n9\n1\n"
+      }
+    ]
+  },
+  "explanation": "### The bug\n\nOne line, in `write`:\n\n```cpp\nbuf[(start + n) % cap] = v;\nif (n < cap) { ++n; }          // and nothing else happens when n == cap\n```\n\nThe slot it writes to is right in both cases. When the recorder is not full, `(start + n) % cap` is the first free slot. When it **is** full, `n == cap`, so `(start + n) % cap` is `(start + cap) % cap`, which is `start` — the oldest slot, which is exactly the one to reuse.\n\nWhat it forgets is that reusing that slot *changes which value is the oldest*. The value that used to live at `start` has just been overwritten; the oldest surviving value is the one at `start + 1`. Nothing moves `start`, so `dump` keeps reading from a slot that now holds the newest value.\n\nThat is why it prints `4 2 3`: the 4 is sitting in slot 0 where the 1 was, and `dump` still believes slot 0 is the beginning.\n\n### The fix\n\n```cpp\nbuf[(start + n) % cap] = v;\nif (n == cap) { start = (start + 1) % cap; }   // the oldest has been dropped\nelse          { ++n; }\n```\n\nExactly one of the two numbers moves on every write: `n` while there is room, `start` once there is not. That is the whole invariant of a ring buffer with overwrite, and it is worth saying out loud because it is the thing the broken version half-knew.\n\n### Why it looked fine at first\n\nThe failure needs `cap + 1` writes before it can show, and even then the count and the set of values stay correct — only the order is wrong. A test that writes fewer values than the capacity passes. A test that checks `count` passes. A test that sorts the output before comparing passes. This is the ordinary shape of an off-by-one in a wrapping index: correct until it wraps, and then wrong in a way that still looks plausible.\n\n### Other ways to fix it\n\nAny implementation meeting the specification is accepted. Two common alternatives:\n\n- **Keep `start` and `end` and a `full` flag.** Writing advances `end`; if the buffer was full it advances `start` too. The flag exists because `start == end` is ambiguous between empty and full.\n- **Keep a monotonically increasing write counter** `w`, and compute everything from it: the number held is `min(w, cap)`, and the oldest sits at `w <= cap ? 0 : w % cap`. No special case on write at all, which is why some people prefer it.\n",
+  "readMore": [
+    { "label": "Circular buffer — the full/empty ambiguity", "url": "https://en.wikipedia.org/wiki/Circular_buffer" }
+  ]
+}

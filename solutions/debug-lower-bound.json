@@ -1,0 +1,38 @@
+{
+  "id": "debug-lower-bound",
+  "key": {
+    "reference": {
+      "rust": "use std::io::{self, Read, Write};\n\nfn lower_bound(v: &[i64], x: i64) -> usize {\n    let mut lo = 0usize;\n    let mut hi = v.len();\n\n    while lo < hi {\n        let mid = lo + (hi - lo) / 2;\n        if v[mid] < x {\n            lo = mid + 1;\n        } else {\n            hi = mid;\n        }\n    }\n\n    lo\n}\n\nfn main() {\n    let mut s = String::new();\n    io::stdin().read_to_string(&mut s).unwrap();\n    let mut it = s.split_ascii_whitespace().map(|t| t.parse::<i64>().unwrap());\n\n    let n = it.next().unwrap_or(0) as usize;\n    let v: Vec<i64> = (0..n).map(|_| it.next().unwrap()).collect();\n    let q = it.next().unwrap_or(0) as usize;\n\n    let out = io::stdout();\n    let mut out = io::BufWriter::new(out.lock());\n    for _ in 0..q {\n        let x = it.next().unwrap();\n        writeln!(out, \"{}\", lower_bound(&v, x)).unwrap();\n    }\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "0\n\n3\n-1\n0\n1\n",
+        "expect": "0\n0\n0\n"
+      },
+      {
+        "stdin": "1\n42\n4\n41\n42\n43\n-9223372036854775808\n",
+        "expect": "0\n0\n1\n0\n"
+      },
+      {
+        "stdin": "6\n-5 -5 0 0 0 9\n6\n-6\n-5\n-4\n0\n1\n9\n",
+        "expect": "0\n0\n2\n2\n5\n5\n"
+      },
+      {
+        "stdin": "4\n-9223372036854775808 -1 0 9223372036854775807\n4\n-9223372036854775808\n-1\n0\n9223372036854775807\n",
+        "expect": "0\n1\n2\n3\n"
+      },
+      {
+        "stdin": "8\n2 4 6 8 10 12 14 16\n5\n1\n2\n9\n16\n17\n",
+        "expect": "0\n0\n4\n7\n8\n"
+      },
+      {
+        "stdin": "3\n5 5 5\n2\n5\n6\n",
+        "expect": "0\n3\n"
+      }
+    ]
+  },
+  "explanation": "### The bug\n\nOne character, in the comparison:\n\n```rust\nif v[mid] <= x { lo = mid + 1; } else { hi = mid; }\n//        ^^ should be <\n```\n\nThe loop is a correct binary search. It is a correct binary search for **`upper_bound`** — the index one past the last element equal to `x` — and the problem asked for `lower_bound`.\n\nThe way to see it is the invariant. The loop narrows `[lo, hi)` while maintaining:\n\n- everything below `lo` is on the \"too small\" side,\n- everything from `hi` upwards is on the \"not too small\" side.\n\nFor `lower_bound` the dividing line is `< x` against `>= x`, so an element **equal** to `x` belongs above the line and `hi` must move to it. Writing `<=` puts the equal element below the line instead, and `lo` steps past every copy of `x` — which is why the answer is wrong by exactly the number of copies, and why absent values come out right: with no copies, the two searches agree.\n\n### The fix\n\n```rust\nif v[mid] < x { lo = mid + 1; } else { hi = mid; }\n```\n\n### Why the samples looked half-right\n\nTwo of the four sample queries ask about values that are not in the slice (`5` and `25`), and for an absent value `lower_bound` and `upper_bound` are the same index. Only the queries that hit a present value can tell the two apart. A test set built from random queries over a wide range mostly misses, which is how a search like this survives review.\n\n### Other ways to fix it\n\nAny implementation that meets the specification is accepted:\n\n- `v.partition_point(|&a| a < x)` — the standard library's name for exactly this loop, with the predicate spelled out.\n- `v.binary_search(&x)` and then walking back over equal elements — correct, but linear in the number of duplicates, so the all-equal hidden case is the one that catches it.\n- Keeping the `<=` and subtracting the run of equal values afterwards — also linear, and also caught.\n",
+  "readMore": [
+    { "label": "slice::partition_point", "url": "https://doc.rust-lang.org/std/primitive.slice.html#method.partition_point" }
+  ]
+}

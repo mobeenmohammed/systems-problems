@@ -847,6 +847,10 @@ pre.code-block[data-lang]::before {
 .badge-weekly   { color: var(--accent);        border-color: color-mix(in srgb, var(--accent) 50%, var(--border)); background: var(--accent-soft); }
 .badge-optional { color: var(--text-dim);      border-color: var(--border-strong); }
 .badge-due      { color: var(--st-attempted);  border-color: color-mix(in srgb, var(--st-attempted) 45%, var(--border)); }
+/* A starter that is already written and already wrong. In the warning
+   colour rather than the accent: it is a fact about the exercise a
+   reader wants before they open it, not something being promoted. */
+.badge-debug    { color: var(--warn);          border-color: color-mix(in srgb, var(--warn) 45%, var(--border)); }
 .tag-lane       { color: var(--text-dim); }
 
 .bookmark {

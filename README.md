@@ -21,13 +21,13 @@ serves it directly.
 ## What is in it
 
 <!-- generated:counts -->
-**114 problems** across 13 topics, 37 of them compiled and run in C++, Rust, Python, JavaScript. **115 concepts** carry **316 readings** between them, every one naming a book and a chapter or a specific page, with 33 more for learning a topic from scratch. **12 tracks** order subsets of the problems so there is always an obvious next one, and the weekly schedule runs to 2027-04-05.
+**117 problems** across 13 topics, 39 of them compiled and run in C++, Rust, Python, JavaScript. **115 concepts** carry **316 readings** between them, every one naming a book and a chapter or a specific page, with 33 more for learning a topic from scratch. **12 tracks** order subsets of the problems so there is always an obvious next one, and the weekly schedule runs to 2027-04-05.
 
 ```
 Topics        cpp · rust · arch · os · linux · compilers · hpc · dist · fpga · algo · sysdesign · metric · prob
 Difficulty    Beginner · Intermediate · Advanced
 Types         mcq · multi · numeric · short · order · match · predict · locate · code · approx · counterexample · exact · hdl · proof · proofsteps · structured
-Total time    about 31 hours at the stated estimates
+Total time    about 32 hours at the stated estimates
 ```
 <!-- /generated:counts -->
 
@@ -40,15 +40,15 @@ across ten topics" by hand, and both numbers were wrong within a day.
 | Topic | Problems | Code | Time |
 | --- | --- | --- | --- |
 | **C++** | 22 — 18 / 4 / 0 by difficulty | 13 | ~6 h |
-| **Rust** | 6 — 3 / 2 / 1 by difficulty | 6 | ~3 h |
+| **Rust** | 7 — 3 / 3 / 1 by difficulty | 7 | ~4 h |
 | **Computer Architecture** | 7 — 3 / 3 / 1 by difficulty | 2 | ~2 h |
 | **Operating Systems** | 7 — 2 / 4 / 1 by difficulty | 2 | ~2 h |
 | **Linux & Tooling** | 5 — 2 / 2 / 1 by difficulty | 0 | ~1 h |
 | **Compilers & Interpreters** | 5 — 2 / 2 / 1 by difficulty | 1 | ~1 h |
 | **HPC & Parallelism** | 5 — 2 / 2 / 1 by difficulty | 1 | ~1 h |
 | **Distributed Systems** | 5 — 2 / 2 / 1 by difficulty | 0 | ~1 h |
-| **FPGAs & Hardware** | 12 — 5 / 6 / 1 by difficulty | 3 | ~4 h |
-| **Algorithms** | 11 — 5 / 5 / 1 by difficulty | 8 | ~4 h |
+| **FPGAs & Hardware** | 13 — 5 / 7 / 1 by difficulty | 3 | ~4 h |
+| **Algorithms** | 12 — 5 / 6 / 1 by difficulty | 9 | ~4 h |
 | **System Design** | 5 — 2 / 2 / 1 by difficulty | 1 | ~1 h |
 | **Metric Spaces** | 12 — 5 / 5 / 2 by difficulty | 0 | ~2 h |
 | **Probability** | 12 — 4 / 8 / 0 by difficulty | 0 | ~2 h |

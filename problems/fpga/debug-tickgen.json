@@ -1,0 +1,46 @@
+{
+  "id": "debug-tickgen",
+  "title": "The tick that comes one cycle late, every time",
+  "topic": "fpga",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "hdl",
+  "debugging": true,
+  "tags": [
+    "counters",
+    "debugging",
+    "off-by-one",
+    "reset",
+    "timing"
+  ],
+  "estimate": 25,
+  "prereqs": [
+    {
+      "concept": "hdl-assignments",
+      "why": "The counter and the tick are both registered, and the one-cycle pulse depends on non-blocking assignment."
+    },
+    {
+      "concept": "state-machines",
+      "why": "A divider is a counter with a wrap rule, and the wrap rule is where the off-by-one is."
+    }
+  ],
+  "statement": "**This one is already written, and it is wrong.** Your job is to find out why and fix it.\n\nA *tick generator* divides a clock. It counts cycles and raises `tick` for one cycle out of every `N`.\n\n```\nmodule tickgen #(parameter int N = 4) (\n  input  logic clk,\n  input  logic rst,\n  output logic tick\n);\n```\n\n### Precisely\n\n- `rst` is **synchronous** and active high. On a rising edge with `rst` high, the count returns to zero and `tick` goes low. While `rst` is high, `tick` stays low.\n- `tick` is **registered**: it is driven from a flip-flop, so it changes only on a rising edge and is high for exactly one whole clock cycle.\n- Consecutive ticks are **exactly `N` cycles apart**. With `N = 4` that is one tick every four clocks — a quarter of the clock rate, which is the whole point of the module.\n- After a reset the sequence starts again, with the same period.\n- `N >= 2`.\n\n```\ncycle   1   2   3   4   5   6   7   8   9\ntick    0   0   0   0   1   0   0   0   1\n                        ^               ^\n                        four cycles apart, one cycle wide\n```\n\nNothing here pins *which* cycle the first tick lands on. A registered output can reasonably place it a cycle either way, and two correct designs may disagree about it; the period and the width are what the specification is about, and they are what is checked.\n\n### The failing sample\n\nPress **Run simulation**. The design compiles, it ticks, each tick is one cycle wide, and it stays quiet through reset — three of the five sample checks pass. The two that fail are both measurements of the **period**: the ticks come `N + 1` cycles apart, so the divider divides by five instead of by four.\n\nOpen the **Waveforms** tab after the run and click a failed check. The cursor lands on the instant the period was measured, and the internal count beneath it is the thing to look at.\n\n### What is being asked\n\nAny implementation meeting the specification passes — the counter may count up or down, from zero or from `N - 1`, and `tick` may be driven however you like as long as it is registered and one cycle wide. You are not reproducing a particular patch.\n\nThis is **simulation**. Passing says nothing about synthesis, timing closure or a real device.",
+  "hints": [
+    "Count the edges between two ticks on the waveform. There should be N of them and there are N + 1. A divider that is slow by exactly one cycle per period is almost always counting one value too many — so count the distinct values the counter takes before it wraps, and compare that with N.",
+    "A counter that starts at 0 and wraps when it reaches a limit visits the values 0, 1, … up to that limit. For the period to be N, the number of values visited must be N. Which limit gives you N values when you start from zero?",
+    "Look at the comparison that triggers the wrap: `cnt == N`. Starting at zero, reaching N takes N + 1 steps — the counter visits 0 through N inclusive, which is N + 1 distinct values. The tick is produced on the edge after the comparison succeeds, which is correct; it is the value being compared against that is one too large."
+  ],
+  "payload": {
+    "top": "tickgen",
+    "generation": "2012",
+    "template": "module tickgen #(parameter int N = 4) (\n  input  logic clk,\n  input  logic rst,\n  output logic tick\n);\n\n  // This implementation is BROKEN: the ticks come N + 1 cycles apart\n  // instead of N. The specification is in the problem statement, and\n  // any implementation that meets it is accepted.\n\n  logic [$clog2(N + 1):0] cnt;\n\n  always_ff @(posedge clk) begin\n    if (rst) begin\n      cnt  <= '0;\n      tick <= 1'b0;\n    end else if (cnt == N) begin\n      cnt  <= '0;\n      tick <= 1'b1;\n    end else begin\n      cnt  <= cnt + 1'b1;\n      tick <= 1'b0;\n    end\n  end\n\nendmodule\n",
+    "testbench": "`timescale 1ns/1ps\n\n// The sample testbench. Run uses this one; Submit uses another that\n// drives three values of N and resets in the middle of a period.\n//\n// Everything here is measured RELATIVELY: the gap between consecutive\n// ticks and how wide a tick is. Nothing checks which edge the first\n// tick lands on, because a registered output can legitimately place it\n// a cycle either way and that is not what the exercise is about.\nmodule tb;\n\n  localparam int N = 4;\n\n  logic clk = 1'b0;\n  logic rst = 1'b1;\n  logic tick;\n\n  tickgen #(.N(N)) dut (.clk(clk), .rst(rst), .tick(tick));\n\n  always #5 clk = ~clk;\n\n  int e      = 0;    // rising edges since reset was released\n  int t1     = -1;   // the edge each of the first three ticks was seen on\n  int t2     = -1;\n  int t3     = -1;\n  int run    = 0;    // how many cycles the current tick has been high\n  int widest = 0;\n  int quiet  = 1;    // tick stayed low for as long as reset was high\n\n  always @(posedge clk) begin\n    if (rst) begin\n      if (tick) quiet <= 0;\n    end else begin\n      e <= e + 1;\n      if (tick) begin\n        if      (t1 < 0) t1 <= e + 1;\n        else if (t2 < 0) t2 <= e + 1;\n        else if (t3 < 0) t3 <= e + 1;\n        run    <= run + 1;\n        widest <= (run + 1 > widest) ? run + 1 : widest;\n      end else begin\n        run <= 0;\n      end\n    end\n  end\n\n  initial begin\n    $dumpfile(\"dump.vcd\");\n    $dumpvars(0, tb);\n\n    @(negedge clk);\n    @(negedge clk);\n    rst = 1'b0;\n\n    repeat (24) @(posedge clk);\n    #1;\n\n    $display(\"CHECK quiet_in_reset 1 %0d AT %0d\", quiet, $time);\n    $display(\"CHECK ticks_seen 1 %0d AT %0d\", (t3 > 0), $time);\n    $display(\"CHECK period %0d %0d AT %0d\", N, t2 - t1, $time);\n    $display(\"CHECK period_again %0d %0d AT %0d\", N, t3 - t2, $time);\n    $display(\"CHECK one_cycle_wide 1 %0d AT %0d\", widest, $time);\n    $display(\"DONE 5\");\n    $finish;\n  end\n\nendmodule\n",
+    "checks": [
+      "quiet_in_reset",
+      "ticks_seen",
+      "period",
+      "period_again",
+      "one_cycle_wide"
+    ]
+  }
+}

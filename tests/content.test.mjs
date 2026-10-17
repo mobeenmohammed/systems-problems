@@ -619,9 +619,24 @@ section('every template says where your code goes, and what goes there');
   const silent = [];
   const leaks = [];
 
+  const debugStarters = [];
+
   for (const p of problems.filter(x => x.type === 'code')) {
     const pay = p.payload || {};
     const own = pay.templates || {};
+
+    /* A debugging challenge has no hole to mark. Its starter is a
+       complete program that is wrong, and "your code here" in the
+       middle of it would be pointing at nothing — the whole file is
+       the place to work. The rule for these is the opposite one, and
+       it is checked below: no marker, and a statement that says the
+       starter is broken so nobody meets it unwarned. */
+    if (p.debugging) {
+      for (const lang of pay.langs || []) {
+        debugStarters.push({ id: p.id, lang, src: own[lang] });
+      }
+      continue;
+    }
     const sol = solutions[p.id] || {};
     const refs = (sol.key && sol.key.reference) || {};
 
@@ -661,6 +676,15 @@ section('every template says where your code goes, and what goes there');
     pairs > 50);
   check(`every one of them marks where your code goes${unmarked.length ? `: ${unmarked[0]}` : ''}`,
     unmarked.length, 0);
+
+  /* And the opposite rule, for the ones that are already written. */
+  for (const d of debugStarters) {
+    ok(`${d.id} [${d.lang}]: has a starter of its own`, typeof d.src === 'string' && d.src.length > 40);
+    ok(`${d.id} [${d.lang}]: which is complete, with no hole to fill`,
+      typeof d.src === 'string' && !/your code here/i.test(d.src));
+    ok(`${d.id} [${d.lang}]: and says in the file that it is broken`,
+      typeof d.src === 'string' && /BROKEN/.test(d.src));
+  }
   check(`in that language's comment syntax${wrongComment.length ? `: ${wrongComment[0]}` : ''}`,
     wrongComment.length, 0);
   check(`and says what goes there${silent.length ? `: ${silent[0]}` : ''}`,

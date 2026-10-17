@@ -1,0 +1,58 @@
+{
+  "id": "debug-ring-overwrite",
+  "title": "The trace recorder that scrambles its history",
+  "topic": "algo",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "code",
+  "debugging": true,
+  "tags": [
+    "ring-buffer",
+    "debugging",
+    "off-by-one",
+    "indexing"
+  ],
+  "estimate": 20,
+  "prereqs": [
+    {
+      "concept": "ring-buffers",
+      "why": "The bug is in the wrap: knowing what start and count are each for is what makes it findable."
+    },
+    {
+      "concept": "array-bounds",
+      "why": "Every index here is taken modulo the capacity, and the broken write lands in a legal slot that is the wrong one."
+    }
+  ],
+  "statement": "**This one is already written, and it is wrong.** Your job is to find out why and fix it.\n\nA *trace recorder* keeps the last `cap` values it was given. Writing to a full recorder is not an error: the oldest value is dropped to make room, the way a flight recorder or a debug log keeps a window on the recent past.\n\n```\ncap  m            1 <= cap <= 1000, 0 <= m <= 2000\n```\n\nThen `m` commands, one per line:\n\n| command | what it does |\n| --- | --- |\n| `write v` | record `v`; if the recorder is full, drop the oldest |\n| `dump` | print everything held, **oldest first**, space separated, on one line — or `empty` |\n| `count` | print how many values are held |\n\n### The failing sample\n\nWith `cap` of 3, writing 1, 2, 3, 4 should leave `2 3 4`: the 1 was pushed out by the 4.\n\n```\ninput:   3 6          output:   2 3 4\n         write 1                3\n         write 2\n         write 3\n         write 4\n         dump\n         count\n```\n\nThe code in the editor prints `4 2 3` instead. It holds the right three values and the right count — it has them in the wrong order, and only after the recorder has filled up once. Everything before the first wrap is correct, which is what makes it worth looking at carefully rather than rewriting.\n\n### What is being asked\n\nAny implementation that meets the specification passes. You are not being asked to reproduce a particular patch — if you would rather rewrite the storage entirely, that is a fix. The exercise is to work out *what the program does* that the specification does not ask for.\n\nThe hidden tests use larger `cap`, several wraps, a recorder of capacity 1, and dumps interleaved with writes.",
+  "hints": [
+    "Run it. The sample is in the Test cases tab — press Run and compare the two lines. The values are all present and the count is right: it is the *order* that is wrong, and only after the fourth write. Which write is the first one that behaves differently from the ones before it?",
+    "A ring buffer is two numbers and an array: where the oldest value sits, and how many values are held. Writing to a buffer that is not yet full moves one of them. Writing to a buffer that **is** full has to move the other one too — because the oldest value is no longer the one it was.",
+    "Look at what happens on a write when `n == cap`. The slot it writes to is `(start + n) % cap`, which when `n == cap` is `start` itself — the oldest slot, which is the right slot to reuse. But after reusing it, the oldest value is now the *next* one along, and nothing says so."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n#include <string>\n#include <vector>\n\n// A trace recorder: the last `cap` values written, oldest first.\n//\n// This implementation is BROKEN. Find the bug and fix it; the\n// specification is in the problem statement, and any implementation\n// that meets it is accepted.\n\nint main()\n{\n    int cap{};\n    int m{};\n    std::cin >> cap >> m;\n\n    std::vector<int> buf(static_cast<std::size_t>(cap), 0);\n    int start{ 0 };   // index of the oldest value held\n    int n{ 0 };       // how many values are held\n\n    for (int i = 0; i < m; ++i)\n    {\n        std::string cmd;\n        std::cin >> cmd;\n\n        if (cmd == \"write\")\n        {\n            int v{};\n            std::cin >> v;\n            buf[static_cast<std::size_t>((start + n) % cap)] = v;\n            if (n < cap) { ++n; }\n        }\n        else if (cmd == \"count\")\n        {\n            std::cout << n << \"\\n\";\n        }\n        else if (cmd == \"dump\")\n        {\n            if (n == 0)\n            {\n                std::cout << \"empty\\n\";\n                continue;\n            }\n            for (int k = 0; k < n; ++k)\n            {\n                std::cout << buf[static_cast<std::size_t>((start + k) % cap)]\n                          << (k + 1 == n ? '\\n' : ' ');\n            }\n        }\n    }\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "3 6\nwrite 1\nwrite 2\nwrite 3\nwrite 4\ndump\ncount\n",
+        "expect": "2 3 4\n3\n"
+      },
+      {
+        "stdin": "3 4\nwrite 1\nwrite 2\ndump\ncount\n",
+        "expect": "1 2\n2\n"
+      },
+      {
+        "stdin": "2 3\ndump\ncount\nwrite 7\n",
+        "expect": "empty\n0\n"
+      }
+    ]
+  }
+}

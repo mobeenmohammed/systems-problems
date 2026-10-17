@@ -683,6 +683,30 @@
     ]
   },
   {
+    "id": "debug-ring-overwrite",
+    "title": "The trace recorder that scrambles its history",
+    "topic": "algo",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "ring-buffer",
+      "debugging",
+      "off-by-one",
+      "indexing"
+    ],
+    "estimate": 20,
+    "debugging": true,
+    "subject": "systems",
+    "prereqs": [
+      "ring-buffers",
+      "array-bounds"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
     "id": "algo-bitset-sieve-memory",
     "title": "How much memory for a sieve to a billion?",
     "topic": "algo",
@@ -1648,6 +1672,31 @@
     ]
   },
   {
+    "id": "debug-tickgen",
+    "title": "The tick that comes one cycle late, every time",
+    "topic": "fpga",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "hdl",
+    "tags": [
+      "counters",
+      "debugging",
+      "off-by-one",
+      "reset",
+      "timing"
+    ],
+    "estimate": 25,
+    "debugging": true,
+    "subject": "systems",
+    "prereqs": [
+      "hdl-assignments",
+      "state-machines"
+    ],
+    "langs": [
+      "sv"
+    ]
+  },
+  {
     "id": "fpga-max-clock-frequency",
     "title": "The fastest this design can be clocked",
     "topic": "fpga",
@@ -2229,6 +2278,31 @@
     "prereqs": [
       "rust-ownership",
       "cpp-functions"
+    ],
+    "langs": [
+      "rust"
+    ]
+  },
+  {
+    "id": "debug-lower-bound",
+    "title": "The search that skips past what it was looking for",
+    "topic": "rust",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "binary-search",
+      "debugging",
+      "boundaries",
+      "invariants"
+    ],
+    "estimate": 20,
+    "debugging": true,
+    "subject": "systems",
+    "prereqs": [
+      "binary-search",
+      "loop-invariants",
+      "rust-slices"
     ],
     "langs": [
       "rust"
