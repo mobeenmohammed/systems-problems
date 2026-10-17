@@ -27,7 +27,7 @@ import {
   defaultKeymap, history, historyKeymap, indentWithTab, undo, redo,
 } from '@codemirror/commands';
 import {
-  syntaxHighlighting, HighlightStyle, indentUnit, bracketMatching,
+  syntaxHighlighting, HighlightStyle, indentUnit, bracketMatching, StreamLanguage,
 } from '@codemirror/language';
 import {
   closeBrackets, closeBracketsKeymap,
@@ -40,6 +40,16 @@ import { cpp } from '@codemirror/lang-cpp';
 import { rust } from '@codemirror/lang-rust';
 import { python } from '@codemirror/lang-python';
 import { javascript } from '@codemirror/lang-javascript';
+/* SystemVerilog has no Lezer grammar. The CodeMirror 5 Verilog mode does
+   exist, knows the 2012 keyword set, and runs under StreamLanguage —
+   which tokenises by line rather than by parse tree, so there is no
+   syntax-aware indentation or folding from it. What there is, is
+   keywords, numbers, strings and comments told apart correctly, which
+   is the whole of what the designs here need and strictly better than
+   the plain text the hardware editor used to show. C-like highlighting
+   was the wrong answer: `logic` is not a C type and `always_ff` is not
+   a C keyword. */
+import { verilog } from '@codemirror/legacy-modes/mode/verilog';
 
 /* Every colour comes from the page's own tokens, so a purchased theme
    repaints the editor with it and tests/contrast.test.mjs still governs
@@ -58,7 +68,15 @@ const highlightStyle = HighlightStyle.define([
   { tag: tags.invalid, color: 'var(--danger)' },
 ]);
 
-const LANGUAGES = { cpp, rust, python, javascript, js: javascript };
+const systemverilog = () => StreamLanguage.define(verilog);
+
+const LANGUAGES = {
+  cpp, rust, python, javascript, js: javascript,
+  /* Three names for it: the problem data says `sv`, the HDL workspace
+     asks for `verilog`, and `systemverilog` is what somebody would
+     guess. All three land on the same mode. */
+  verilog: systemverilog, sv: systemverilog, systemverilog,
+};
 
 export default {
   EditorState, EditorView, Compartment,

@@ -298,14 +298,37 @@ section('a wrong answer, a compile error, and then a run that works');
   await paste(p, 'fn main() { let x: i32 = "no"; println!("{}", x); }');
   await p.locator('#runBtn').click();
   ok('it comes back', await settled(p));
+  /* rustc's own words are in Compiler output, which a failed build
+     opens; Results keeps one line about the build and the way there,
+     and no case list. */
   const broke = await p.evaluate(() => ({
-    text: (document.getElementById('runOut') || {}).textContent || '',
+    open: ([...document.querySelectorAll('.ws-tabs-work .tab')]
+      .find(t => t.getAttribute('aria-selected') === 'true' || t.dataset.active === 'true')
+      || {}).textContent || '',
+    pane: (document.getElementById('resultPane') || {}).innerText || '',
     cases: document.querySelectorAll('.case').length,
   }));
-  ok(`it says the build failed ("${broke.text.replace(/\s+/g, ' ').slice(0, 70)}")`,
-    /did not|error|compile/i.test(broke.text));
-  ok('with rustc\'s own message', /E0308|mismatched types/.test(broke.text));
+  ok(`a failed build opens Compiler output (${broke.open.trim()})`,
+    /Compiler output/.test(broke.open));
+  ok(`with rustc's own message (${broke.pane.replace(/\s+/g, ' ').slice(0, 60)})`,
+    /E0308|mismatched types/.test(broke.pane));
   check('and no cases are claimed to have run', broke.cases, 0);
+
+  const said = await p.evaluate(() => {
+    for (const t of document.querySelectorAll('.ws-tabs-work .tab')) {
+      if (t.textContent.trim().startsWith('Results')) { t.click(); break; }
+    }
+    return null;
+  });
+  void said;
+  await p.waitForTimeout(400);
+  const back = await p.evaluate(() => ({
+    text: (document.getElementById('resultPane') || {}).innerText || '',
+    diags: document.querySelectorAll('#resultPane .diag').length,
+  }));
+  ok(`Results says the build failed ("${back.text.replace(/\s+/g, ' ').slice(0, 60)}")`,
+    /did not build/i.test(back.text));
+  check('and does not repeat the compiler\u2019s list', back.diags, 0);
   if (process.env.SHOTS) await p.screenshot({ path: path.join(SHOTS, 'rust-compile-error.png') });
 
   /* A program that compiles and gets it wrong is a different verdict. */

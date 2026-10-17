@@ -301,8 +301,17 @@ section('data/rust-support.json agrees with the compiler');
   for (const [id, reason] of Object.entries(support.nativeOnly || {})) {
     const problem = readProblem(id);
     const pay = problem.payload || {};
-    if (pay.requireClean || (pay.profile && pay.profile !== 'standard')) {
-      ok(`${id}: excluded before a compiler was involved`, /sanitizer|profile|threads/.test(reason));
+    /* `sanitize` is no longer one of these. Rust has no sanitizer in
+       the native profile either — the judge builds such a problem with
+       debug assertions and overflow checks, and the safety the exercise
+       is about comes from the language: indexing past the end of a
+       slice is a bounds-checked panic, in wasm too. So a sanitize
+       problem is compiled like any other and excluded only if the
+       compiler says so. The C++ reason is not Rust's reason. */
+    const beforeCompiling = pay.profile
+      && pay.profile !== 'standard' && pay.profile !== 'sanitize';
+    if (beforeCompiling) {
+      ok(`${id}: excluded before a compiler was involved`, /profile|threads/.test(reason));
       continue;
     }
     const sol = readJson(`solutions/${id}.json`);

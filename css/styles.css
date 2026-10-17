@@ -1896,6 +1896,29 @@ html[data-focus] .rail { display: none; }
    A list of places with a severity and a message, each clickable, with the
    compiler's own words still available underneath — the caret diagrams are
    sometimes the whole point. */
+/* One line in Results about how the build went, with the way to the
+   pane that has the compiler's own words. Not a verdict: a build that
+   failed has no score, and this must not look like one. */
+.buildline {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  flex-wrap: wrap;
+  padding: var(--s3) var(--s4);
+  margin-bottom: var(--s4);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border);
+  border-radius: var(--radius-s);
+  background: var(--bg-elev);
+}
+.buildline[data-kind="error"] { border-left-color: var(--danger); }
+.buildline[data-kind="warn"]  { border-left-color: var(--warn); }
+.buildline[data-kind="ok"]    { border-left-color: var(--ok); }
+.buildline h4 { margin: 0; font-size: .95rem; flex-basis: 100%; }
+.buildline p  { margin: 0; flex-basis: 100%; }
+.buildline .lbl { font-weight: 600; }
+.buildline .btn { margin-left: auto; }
+
 .diags {
   border: 1px solid var(--border); border-left-width: 3px;
   border-radius: var(--radius-s); background: var(--bg-inset);

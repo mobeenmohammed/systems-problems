@@ -58,7 +58,9 @@
     "test:hdl": "node tests/browser/hdl.test.mjs",
     "test:journeys-hdl": "node tests/browser/journeys-hdl.test.mjs",
     "test:journeys-rust": "node tests/browser/journeys-rust.test.mjs",
-    "probe:rust-gap": "node scripts/probe-rust-gap.mjs"
+    "probe:rust-gap": "node scripts/probe-rust-gap.mjs",
+    "test:editor-sv": "node tests/browser/editor-sv.test.mjs",
+    "build:rustc": "bash scripts/build-rustc-wasm.sh"
   },
   "devDependencies": {
     "@bjorn3/browser_wasi_shim": "^0.4.2",
@@ -68,6 +70,7 @@
     "@codemirror/lang-python": "^6.2.1",
     "@codemirror/lang-rust": "^6.0.2",
     "@codemirror/language": "^6.12.4",
+    "@codemirror/legacy-modes": "^6.5.5",
     "@codemirror/lint": "^6.9.7",
     "@codemirror/search": "^6.7.2",
     "@codemirror/state": "^6.7.6",

@@ -137,6 +137,13 @@ const Editor = (() => {
     const OWN_SOURCE = {
       cpp: () => (typeof CppComplete !== 'undefined' ? CppComplete.source : null),
       rust: () => (typeof RustComplete !== 'undefined' ? RustComplete.source : null),
+      /* SystemVerilog, under every name the mode answers to. Syntactic
+         only: keywords, system tasks, a few whole constructs, and the
+         words already in the file. There is no elaborator here, so
+         nothing offers a port it has not read. */
+      verilog: () => (typeof SvComplete !== 'undefined' ? SvComplete.source : null),
+      sv: () => (typeof SvComplete !== 'undefined' ? SvComplete.source : null),
+      systemverilog: () => (typeof SvComplete !== 'undefined' ? SvComplete.source : null),
     };
 
     const completion = (id) => {

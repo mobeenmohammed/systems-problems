@@ -612,6 +612,7 @@ fn main() {
     if (liveBtn) { liveBtn.disabled = false; liveBtn.textContent = 'Run tests'; }
 
     const verdict = RunHarness.judgeRun(reply, cases.map(c => c.expect), { requireClean: !!pay.requireClean });
+
     /* The judge does not echo the input back, so a failing row showed
        "stdin (none)" on every Run - which is not "we did not keep it", it
        is a claim that the case had no input. Submit has always stashed it;
@@ -619,6 +620,23 @@ fn main() {
     verdict.cases.forEach((c, i) => { c.stdinShown = (cases[i] || {}).stdin || ''; });
     last = { verdict, reply, submission: false, at: Date.now() };
     paint(verdict, reply, false);
+
+    /* A build failure sends the reader where the reason is — after the
+       result is recorded, not before: the compiler pane renders from
+       `last`, and opening it first showed "nothing from the compiler
+       yet" about the build that had just failed. Only on a failure;
+       taking the pane away after a successful run would take them away
+       from the results they pressed Run for.
+
+       And only when the COMPILER is what failed. A cancelled run and a
+       toolchain that cannot build this exercise also leave built
+       false, and neither has anything in the compiler pane to show —
+       sending a reader there greeted them with "nothing from the
+       compiler yet" about the run they had just stopped. */
+    const compilerSpoke = !reply.judgeDown && !verdict.built;
+    if (compilerSpoke && typeof ProblemView !== 'undefined' && ProblemView.openPane) {
+      ProblemView.openPane('compiler');
+    }
 
     /* Say where it just ran, every time. A reader who cannot tell Hosted from
        Local cannot tell a service outage from a runner they forgot to start. */
@@ -828,11 +846,18 @@ fn main() {
       return;
     }
 
-    /* Compiler output is shown whenever there is any, including on a build
-       that succeeded. A warning you never read is a warning that taught you
-       nothing, and -Wall -Wextra is on every profile for that reason. */
+    /* What the compiler said lives in the Compiler output pane, and
+       only there. What goes here is one line about how the build went,
+       and a way to the pane — because a reader who has just been told
+       their program did not build has exactly one next question, and
+       scrolling past a second copy of the same list to find the run
+       that never happened is not an answer to it.
+
+       The warnings are not hidden: -Wall -Wextra is on in every profile
+       because the warnings are usually the lesson, and the count is
+       here, in front of them, with one click to the text. */
     const cstderr = (reply.compile && reply.compile.stderr || '').trim();
-    if (cstderr) host.append(diagnosticsNode(cstderr, verdict.built));
+    if (cstderr || !verdict.built) host.append(buildLine(cstderr, verdict.built));
 
     if (!verdict.built) return;
 
@@ -1025,6 +1050,48 @@ fn main() {
   }
 
   const SEVERITY_WORD = { error: 'error', warning: 'warning', note: 'note', help: 'help' };
+
+  /* One line about the build, and the way to the pane that has the
+     detail. Not a verdict box: a build failure has no score, and
+     dressing it as one is how "0 of 7 cases passed" came to be printed
+     about a program that never ran. */
+  function buildLine(text, built) {
+    const rows = parseDiagnostics(text);
+    const errors = rows.filter(r => r.severity === 'error').length;
+    const warnings = rows.filter(r => r.severity === 'warning').length;
+
+    const go = el('button', {
+      class: 'btn btn-sm', type: 'button', id: 'toCompilerOut',
+      onclick: () => {
+        if (typeof ProblemView !== 'undefined' && ProblemView.openPane) {
+          ProblemView.openPane('compiler');
+        }
+      },
+    }, ['Compiler output']);
+
+    if (!built) {
+      return el('div', { class: 'buildline', 'data-kind': 'error' }, [
+        el('h4', { text: errors
+          ? `It did not build — ${errors} ${errors === 1 ? 'error' : 'errors'}`
+          : 'It did not build' }),
+        el('p', { class: 'tiny faint', text: 'Nothing ran, so there is nothing here '
+          + 'to score. The compiler\u2019s own words, with the file and the line, are '
+          + 'in Compiler output.' }),
+        go,
+      ]);
+    }
+    if (!warnings) return el('div', { class: 'buildline', 'data-kind': 'ok' }, [
+      el('span', { class: 'tiny faint', text: 'It built cleanly.' }),
+      go,
+    ]);
+    return el('div', { class: 'buildline', 'data-kind': 'warn' }, [
+      el('span', { class: 'lbl', text: `It built, with ${warnings} `
+        + `${warnings === 1 ? 'warning' : 'warnings'}` }),
+      el('span', { class: 'tiny faint', text: 'warnings are on deliberately — '
+        + 'they are usually the lesson' }),
+      go,
+    ]);
+  }
 
   function diagnosticsNode(text, built) {
     const rows = parseDiagnostics(text);

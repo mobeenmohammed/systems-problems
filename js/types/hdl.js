@@ -113,11 +113,13 @@
 
     state.editor = Editor.create(editorHost, {
       value: sourceFor(problem),
-      /* CodeMirror has no SystemVerilog mode here, and C-like
-         highlighting on Verilog is wrong in a way that misleads —
-         `always_ff` is not a type and `logic` is not a keyword it
-         knows. Plain text, monospaced, with the editor's own bracket
-         matching and indentation, is honest. */
+      /* There is a Verilog mode in the bundle now: the CodeMirror 5
+         one, running under StreamLanguage. It tokenises by line rather
+         than by parse tree, so there is no syntax-aware indentation or
+         folding from it — what there is, is keywords, numbers, strings
+         and comments told apart correctly, in the page's own colour
+         tokens. C-like highlighting was the wrong answer and plain text
+         was the honest one; this is better than either. */
       lang: 'verilog',
       profile: 'standard',
       readOnly: ctx.locked,
@@ -252,7 +254,14 @@
               : `${graded.passed}/${graded.total} sample checks`,
     );
 
+    /* A compile that failed sends the reader where the reason is. Only
+       a failure: taking the pane away after a successful run would take
+       them away from the results they pressed Run for. */
     repaintResult();
+    const compilerSpoke = reply.built === false && !reply.cancelled && !reply.timedOut;
+    if (compilerSpoke && typeof ProblemView !== 'undefined' && ProblemView.openPane) {
+      ProblemView.openPane('compiler');
+    }
   }
 
   function stop() {
@@ -291,7 +300,10 @@
     { id: 'results', label: 'Results' },
     { id: 'waves', label: 'Waveforms' },
     { id: 'subs', label: 'Submissions' },
-    { id: 'compiler', label: 'Diagnostics' },
+    /* "Diagnostics" was this one tab's own word for what every other
+       language on the site calls Compiler output. Same thing, same
+       name. */
+    { id: 'compiler', label: 'Compiler output' },
   ];
 
   let viewer = null;
@@ -327,8 +339,19 @@
         '.',
       ]));
     }
-    pane.append(el('pre', { class: 'code-block', 'data-lang': 'verilog' },
-      [el('code', { text: src })]));
+    /* Coloured, like the code blocks in a problem statement and like
+       the two editors either side of it. The statement's blocks go
+       through Highlight on their way out of the markdown renderer;
+       this one is built by hand, so it has to ask. Escaped first:
+       run() takes already-escaped text and returns markup. */
+    const code = el('code');
+    if (typeof Highlight !== 'undefined' && Highlight.run) {
+      const esc = src.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      code.innerHTML = Highlight.run(esc, 'verilog');
+    } else {
+      code.textContent = src;
+    }
+    pane.append(el('pre', { class: 'code-block', 'data-lang': 'verilog' }, [code]));
   }
 
   /* The reader's testbench, editable, with its own Run.
@@ -520,12 +543,19 @@
     }
 
     if (reply.built === false) {
-      pane.append(el('div', { class: 'verdict', 'data-kind': 'wrong' }, [
-        el('h4', { text: 'It did not compile' }),
-        el('p', { class: 'tiny faint', text: 'The Diagnostics tab has every message, '
-          + 'with the file and the line.' }),
+      /* The messages are in Compiler output, and only there. This used
+         to print them here as well, which is two copies of one list
+         and a reader deciding which is authoritative. */
+      const errs = (reply.diagnostics || []).filter(d => d.level === 'error').length;
+      pane.append(el('div', { class: 'buildline', 'data-kind': 'error' }, [
+        el('h4', { text: errs
+          ? `It did not compile — ${errs} ${errs === 1 ? 'error' : 'errors'}`
+          : 'It did not compile' }),
+        el('p', { class: 'tiny faint', text: 'Nothing was simulated, so there is '
+          + 'nothing here to score. Icarus\u2019s own messages, with the file and the '
+          + 'line, are in Compiler output.' }),
+        compilerButton(),
       ]));
-      pane.append(diagnosticsNode(reply.diagnostics || []));
       return;
     }
 
@@ -623,6 +653,18 @@
         }
         return el('div', { class: 'hdl-check', 'data-state': state }, body);
       })));
+    }
+
+    /* Warnings are not errors and do not belong in a verdict, but a
+       design that compiles with four of them is worth knowing about.
+       The count, and one click to the text. */
+    const warns = (reply.diagnostics || []).filter(d => d.level === 'warning').length;
+    if (warns) {
+      pane.append(el('div', { class: 'buildline', 'data-kind': 'warn' }, [
+        el('span', { class: 'lbl', text: `It compiled, with ${warns} `
+          + `${warns === 1 ? 'warning' : 'warnings'}` }),
+        compilerButton(),
+      ]));
     }
 
     /* The console. Everything the design and the testbench printed. */
@@ -745,6 +787,15 @@
     }
     pane.append(diagnosticsNode(rows));
   }
+
+  const compilerButton = () => el('button', {
+    class: 'btn btn-sm', type: 'button', id: 'toCompilerOut',
+    onclick: () => {
+      if (typeof ProblemView !== 'undefined' && ProblemView.openPane) {
+        ProblemView.openPane('compiler');
+      }
+    },
+  }, ['Compiler output']);
 
   function diagnosticsNode(rows) {
     const wrap = el('div', { class: 'diags' });

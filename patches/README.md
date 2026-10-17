@@ -128,14 +128,54 @@ interesting one: with optimisation off the failure moves **into `main`**,
 because a debug build checks `n * 2` for overflow too. There is no flag
 behind which this hides.
 
-**What it does not do.** It is not built. Turning this into a browser
-artifact means building a patched rustc for wasm32 — `AngelOnFira/rust`
-at `riw-wasm20` through the `AngelOnFira/wasm-rustc` build repository,
-which produces `rustc-wasm.tar.zst` and the sysroots. That is a
-multi-hour bootstrap on Linux and it is not something this repository
-does or should do. The patch and its evidence are here so that it can be
-sent upstream; `data/rust-support.json` still says 2 of 7, because 2 of
-7 is what the shipped compiler does.
+**Building it.** `scripts/build-rustc-wasm.sh` does, following
+`AngelOnFira/wasm-rustc`'s own CI workflow: clone `AngelOnFira/rust` at
+`riw-wasm20`, apply this patch, fetch WASI SDK 32, `x.py install`. It is
+resumable — every phase writes a marker and is skipped on a re-run — and
+it needs no root. Four things had to be fixed before it would get
+anywhere, and each of them is the kind of thing only a real build finds:
+
+**The patch did not apply.** Its empty context lines were written as
+empty lines rather than as a single space, and two hunk headers counted
+the wrong number of lines, so `git apply` called it corrupt at line 137
+and refused the whole thing. Fixed; it now applies to the live branch
+with an offset of a few lines.
+
+**The patch did not compile.** It ended with `cx.define(result, v)`, and
+`FnCx` has no `define`. The method is `bind1`, which is what every other
+arm of that match uses. The arithmetic was verified to the digit and the
+one line of glue around it had never been through a compiler — which is
+exactly the hole a verification script cannot see, and the reason
+"verified" and "built" are different words.
+
+**The prebuilt LLVM is gone.** The branch's `bootstrap.toml` sets
+`download-ci-llvm = true`, and bootstrap resolves this branch to upstream
+commit `116458d0`, for which `ci-artifacts.rust-lang.org` now 404s — CI
+artifacts do not live forever and that commit is from July. This is not
+a local problem: the upstream workflow would fail at the same step today,
+on a GitHub runner, for anyone.
+
+**And LLVM cannot simply be dropped.** Tempting, on a tree whose host is
+wasm32 and whose backend is Cranelift: set `codegen-backends =
+["cranelift"]` and there is nothing to download. It gets as far as
+`compiler_builtins`, which has x86 inline assembly that Cranelift cannot
+assemble — `Failed to assemble ... fma_with_fma__inline_asm`. The
+x86_64 side needs a real LLVM. The script fetches the official LLVM
+21.1.0 Linux release (the tree panics below 21) and points
+`llvm-config` at it, which needs no root and nothing installed
+system-wide.
+
+One more, found on the way: the pinned stage0 beta (1.95.0-beta.1) ICEs
+compiling `rustc_codegen_ssa` — `slice index starts at 5 but ends at 4`
+in `check_mod_deathness` — with incremental compilation on. `incremental
+= false` gets past it.
+
+**Where it stands.** The build is configured and resumable; the clone,
+the patch, the WASI SDK and the configuration are done, and what remains
+is the LLVM download and the compile itself, which is hours. Until those
+artifacts exist and `scripts/vendor-rust.mjs` pins them,
+`data/rust-support.json` still says 2 of 7, because 2 of 7 is what the
+*shipped* compiler does. Nothing in the site claims otherwise.
 
 The other route is `rubrc`, and it is blocked for a different reason:
 it needs `SharedArrayBuffer`, which needs cross-origin isolation, which

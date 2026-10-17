@@ -33,10 +33,10 @@ of an i64 decimal parse in both signs, and 500,000 random pairs:
 diff --git a/compiler/rustc_codegen_cranelift/clif2wasm/src/i128_lower.rs b/compiler/rustc_codegen_cranelift/clif2wasm/src/i128_lower.rs
 --- a/compiler/rustc_codegen_cranelift/clif2wasm/src/i128_lower.rs
 +++ b/compiler/rustc_codegen_cranelift/clif2wasm/src/i128_lower.rs
-@@ -44,6 +44,54 @@ pub fn sub(body: &mut FunctionBody, wb: waffle::Block, a: Pair, b: Pair) -> Pair
+@@ -44,40 +44,70 @@ pub fn sub(body: &mut FunctionBody, wb: waffle::Block, a: Pair, b: Pair) -> Pair
      (lo, hi)
  }
-
+ 
 +/// High 64 bits of the UNSIGNED 64x64 product, from 32-bit partial
 +/// products with the carries propagated.
 +///
@@ -130,17 +130,17 @@ diff --git a/compiler/rustc_codegen_cranelift/clif2wasm/src/i128_lower.rs b/comp
 +    // The high word of the low product, which is the same unsigned
 +    // high-half multiply `umulhi.i64` needs.
 +    let hi_of_lo = umulhi64(body, wb, a.0, b.0);
-
+ 
      let lo = op1(body, wb, I64Mul, &[a.0, b.0], Type::I64);
      let cross1 = op1(body, wb, I64Mul, &[a.1, b.0], Type::I64);
 
 diff --git a/compiler/rustc_codegen_cranelift/clif2wasm/src/ops.rs b/compiler/rustc_codegen_cranelift/clif2wasm/src/ops.rs
 --- a/compiler/rustc_codegen_cranelift/clif2wasm/src/ops.rs
 +++ b/compiler/rustc_codegen_cranelift/clif2wasm/src/ops.rs
-@@ -196,6 +196,32 @@ pub fn lower_inst(
+@@ -196,6 +196,29 @@ pub fn lower_inst(
              let a = cx.one(args[0])?;
              let b = cx.one(args[1])?;
-
+ 
 +            // High-half multiplies have no single wasm operator, so they
 +            // cannot live in the table below: they are a sequence, and
 +            // they are handled here before it.
@@ -160,7 +160,7 @@ diff --git a/compiler/rustc_codegen_cranelift/clif2wasm/src/ops.rs b/compiler/ru
 +                } else {
 +                    crate::i128_lower::umulhi64(body, wb, a, b)
 +                };
-+                cx.define(result, v);
++                cx.bind1(result, v);
 +                return Ok(());
 +            }
 +

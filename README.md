@@ -912,6 +912,45 @@ value to show.
 When a check fails at a known instant, that instant is marked on the axis
 and the cursor starts there.
 
+### SystemVerilog in the editor
+
+The hardware workspace used to show plain monospaced text. The reason
+given was a good one — CodeMirror had no SystemVerilog grammar here, and
+C-like highlighting on Verilog is wrong in a way that misleads, because
+`logic` is not a C type and `always_ff` is not a C keyword — but the
+result was that the one language on this site whose exercises are
+hardest to read was the one shown without colour.
+
+There is a mode now: the CodeMirror 5 Verilog mode, running under
+`StreamLanguage`, in `scripts/editor-entry.js` under three names (`sv`,
+what the problem data says; `verilog`, what the workspace asks for; and
+`systemverilog`, what somebody would guess). It tokenises by line rather
+than by parse tree, so there is no syntax-aware indentation or folding
+from it. What there is, is keywords, numbers, strings and comments told
+apart correctly, in the page's own `--hl-*` tokens, so a bought theme
+repaints them like everything else.
+
+All three places that show SystemVerilog are coloured: **Design**, **My
+testbench** (both CodeMirror) and the read-only **Sample testbench**,
+which is built by hand rather than through the markdown renderer and so
+had to be handed to `Highlight.run` explicitly — it was the one pane
+still in grey.
+
+`js/complete-sv.js` is the completion source, beside the C++ and Rust
+ones: the IEEE 1800 keywords worth offering, the system tasks a
+testbench is made of with a note on each (`$dumpvars` — *record signals
+into it*), eight whole constructs where the thing somebody gets wrong is
+the shape rather than the spelling (`always_ff` arrives with its edge
+list, its reset branch and its `begin`/`end`), and every identifier
+already in the file. Ctrl+Space works whether or not completion-on-typing
+is switched on, as it does for every other language here.
+
+It is **syntactic, and says so**. There is no elaborator: nothing here
+knows what a name refers to, so it does not offer the ports of a module
+it has not read, does not complete after a dot, and does not guess a
+width. Offering those would mean being confidently wrong about the thing
+a reader is least able to check.
+
 ## Completion, without a language server
 
 C++ has autocomplete. It is not clangd: real C++ completion needs a real
@@ -1476,6 +1515,38 @@ not keep it" but a claim about the case.
 A submission is described as what it is: *7 cases: the samples and the
 hidden ones*. The old wording was "7 hidden cases passed", which was never
 true of a submission — it runs the visible ones as well.
+
+### The compiler has one pane
+
+Diagnostics were painted twice: once into **Results** and once into the
+**Compiler output** pane that exists for them. Two copies of a list is
+not twice the information — it is a reader deciding which of the two is
+authoritative — and on a failed build it pushed the thing Results is
+for, what the program did when it ran, below a wall of text about a run
+that never happened.
+
+Now: Results is execution, and the compiler keeps its own pane.
+
+| | Results | Compiler output |
+| --- | --- | --- |
+| build failed | one line, the error count, a button | every message, file and line |
+| built with warnings | the count, and the button | the warnings |
+| built cleanly | the cases | the output, if any |
+| ran and crashed | the case, its stderr | — |
+
+A failed build **opens Compiler output by itself**, because a reader who
+has just been told their program did not build has exactly one next
+question. Only a failed build: a cancelled run and a toolchain that
+cannot build the exercise also leave `built` false and have nothing in
+that pane to show — sending somebody there greeted them with "nothing
+from the compiler yet" about the run they had just stopped, which is how
+that distinction got written down.
+
+And nothing invents a score for a build that never ran. `0 of 7 cases
+passed` is a statement about output nobody obtained.
+
+The hardware workspace's **Diagnostics** tab was this one pane's private
+word for the same thing, and is called Compiler output too.
 
 ### Inputs of your own
 

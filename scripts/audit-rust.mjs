@@ -25,7 +25,7 @@
 
    Three classes are excluded before a compiler is involved:
 
-     · anything graded on a sanitizer. There is no sanitizer for wasm32,
+     · anything graded on a C++ sanitizer. There is none for wasm32,
        and the undefined behaviour those problems are *about* does not
        trap here either.
      · anything whose answer depends on 64-bit pointers. This target is
@@ -83,7 +83,7 @@ globalThis.fetch = async (u, o) => {
   return realFetch(u, o);
 };
 
-const { Toolchain, TOOLCHAIN } =
+const { Toolchain, TOOLCHAIN, flagsFor } =
   await import(new URL('../js/rust/toolchain.js', import.meta.url).href);
 const wasiMod = await import(new URL(`file://${VENDOR.replace(/\\/g, '/')}/../cxx/wasi/index.js`).href);
 const { runCase } = await import(new URL('../js/cxx/toolchain.js', import.meta.url).href);
@@ -107,17 +107,34 @@ const findSolution = id =>
 
 function disqualify(problem) {
   const pay = problem.payload || {};
-  if (pay.requireClean || pay.profile === 'sanitize') {
-    return 'This one is graded on what a sanitizer says, and there is no sanitizer '
-      + 'for WebAssembly. Worse, the mistake it is about does not even crash here — '
-      + 'wasm linear memory starts at address zero and reading past an array quietly '
-      + 'returns rubbish. Running it in the browser would hide the point of the '
-      + 'exercise.';
-  }
+  /* `sanitize` used to disqualify a problem here, with the reason that
+     there is no sanitizer for WebAssembly and that wasm linear memory
+     starts at address zero, so reading past an array quietly returns
+     rubbish and the exercise would be graded on nothing.
+
+     Every word of that is true of C++ and none of it is true of Rust.
+     Rust has no sanitizer in the native profile either — judge/
+     languages.mjs builds a `sanitize` Rust submission with
+     `-C debug-assertions=on -C overflow-checks=on`, and the safety the
+     exercise is about comes from the language: indexing past the end of
+     a slice is a bounds-checked panic. That check survives the trip to
+     wasm, which was measured rather than assumed — a program reading
+     one past the end of a Vec<u8>, built for wasm32-wasip1 by the
+     browser compiler, exits non-zero with
+
+       thread 'main' panicked at prog.rs:7:38:
+       index out of bounds: the len is 3 but the index is 3
+
+     which is stricter than the sanitizer: deterministic, every run,
+     with the line. js/runners/browserrust.js builds a sanitize-profile
+     problem with the same two flags the judge uses, so the two graders
+     grade the same program.
+
+     What is left here is the profiles that really have no equivalent. */
   if (pay.profile === 'parallel') {
     return 'This one is about threads, and this target has none.';
   }
-  if (pay.profile && pay.profile !== 'standard') {
+  if (pay.profile && pay.profile !== 'standard' && pay.profile !== 'sanitize') {
     return `This one is built with the "${pay.profile}" profile, which the browser `
       + 'toolchain cannot reproduce. Compiler flags are never quietly relaxed to '
       + 'make a problem fit.';
@@ -187,7 +204,11 @@ async function tryProblem(tc, meta) {
      what is actually true. */
   const checked = await tc.check(reference);
 
-  const built = await tc.compile(reference);
+  /* The flags the browser would use for THIS problem, so the audit
+     verifies what a reader will actually get: a sanitize-profile
+     problem is built with debug assertions and overflow checks on,
+     exactly as the native judge builds it. */
+  const built = await tc.compile(reference, flagsFor(pay.profile));
   if (!built.ok) {
     return {
       id: meta.id, verdict: 'native-only',

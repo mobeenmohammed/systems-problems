@@ -44,6 +44,21 @@ export const BROWSER_FLAGS = ['--edition', '2024', '-O', '-Cpanic=abort'];
    js/runners/browserrust.js, which runs exactly this on every keystroke
    in the editor — so the audit's "checks" column is a statement about
    what the reader actually gets rather than a separate experiment. */
+/* What the native judge's `sanitize` profile is for Rust —
+   judge/languages.mjs, and it is not a sanitizer, because Rust has
+   none and needs none here. Indexing past the end of a slice is a
+   bounds-checked panic, in wasm as everywhere else; what the profile
+   adds is debug assertions and arithmetic overflow checks. Built the
+   same way in the browser so that the two graders are grading the same
+   program. */
+export const CHECKED_FLAGS = [
+  '--edition', '2024', '-C', 'debug-assertions=on', '-C', 'overflow-checks=on',
+  '-Cpanic=abort',
+];
+
+export const flagsFor = profile =>
+  (profile === 'sanitize' ? CHECKED_FLAGS : BROWSER_FLAGS);
+
 export const CHECK_FLAGS = ['--edition', '2024', '--emit=metadata', '-Cpanic=abort'];
 
 export const TOOLCHAIN = {

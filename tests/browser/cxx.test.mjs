@@ -236,6 +236,54 @@ let firstRunMs = 0;
   check('presented as a build failure', diag.kind, 'error');
   ok('with a clickable place', diag.rows > 0);
   ok('and the code is untouched', diag.source.includes('nope'));
+
+  /* One place for the compiler's words. Results used to carry a second
+     copy of the same list, which is a reader deciding which is
+     authoritative, and it pushed what the program did below the fold. */
+  const split = await p.evaluate(() => {
+    const tab = [...document.querySelectorAll('.ws-tabs-work .tab')]
+      .find(t => t.getAttribute('aria-selected') === 'true' || t.dataset.active === 'true');
+    const open = (tab && tab.textContent.trim()) || '';
+    const pane = (document.getElementById('resultPane') || {}).innerText || '';
+    return { open, pane, diags: document.querySelectorAll('#resultPane .diag').length };
+  });
+  ok(`a failed build opens Compiler output (${split.open})`, /Compiler output/.test(split.open));
+  ok('and it is the list that is there', split.diags > 0);
+
+  for (const t of await p.$$('.ws-tabs-work .tab')) {
+    if ((await t.textContent()).trim().startsWith('Results')) { await t.click(); break; }
+  }
+  await p.waitForTimeout(400);
+  const res = await p.evaluate(() => ({
+    text: (document.getElementById('resultPane') || {}).innerText || '',
+    diags: document.querySelectorAll('#resultPane .diag').length,
+    toCompiler: !!document.querySelector('#toCompilerOut'),
+  }));
+  check('Results does not repeat the list', res.diags, 0);
+  ok('it says the build failed', /did not build/i.test(res.text));
+  ok('offers the way to the compiler', res.toCompiler);
+  ok('and invents no failed-case count',
+    !/\d+\s*\/\s*\d+/.test(res.text) && !/of \d+ cases/.test(res.text));
+
+  /* A build that succeeds WITH warnings: the count, and a way there —
+     not the warnings themselves, twice. */
+  await paste(p, ['#include <iostream>',
+    'int main(){ int unused = 5; std::cout << 4 << std::endl; }'].join('\n'));
+  await p.locator('#runBtn').click();
+  await settled(p);
+  const warned = await p.evaluate(() => ({
+    line: (document.querySelector('.buildline') || {}).textContent || '',
+    diags: document.querySelectorAll('#resultPane .diag').length,
+    cases: document.querySelectorAll('#resultPane .case').length,
+    raw: (window.SystemsLab.ProblemTypes.get('code').lastCompilerOutput() || ''),
+  }));
+  if (/warning/i.test(warned.raw)) {
+    ok(`Results carries the count (${warned.line.slice(0, 48)})`, /warning/i.test(warned.line));
+    check('and still not the list', warned.diags, 0);
+  } else {
+    ok('this compiler had no warning for it, so there is no count to check', true);
+  }
+  ok('the cases are what Results is for', warned.cases > 0);
   if (process.env.SHOTS) await p.screenshot({ path: path.join(SHOTS, 'cxx-compile-error.png') });
 
   /* ---- timeout, then recovery ---- */

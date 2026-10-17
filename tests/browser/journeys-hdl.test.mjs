@@ -341,11 +341,13 @@ section('a build error, a simulation that never ends, and one that is stopped');
   await settled(p);
   await p.waitForTimeout(600);
   const build = await p.evaluate(() => ({
-    verdict: (document.querySelector('.verdict h4') || {}).textContent || '',
+    tab: [...document.querySelectorAll('.ws-tabs-work .tab')]
+      .find(t => t.getAttribute('aria-selected') === 'true' || t.dataset.active === 'true')
+      ?.textContent.trim(),
     diags: [...document.querySelectorAll('.diag')].map(d => d.textContent.replace(/\s+/g, ' ').trim()),
     status: window.SystemsLab.Store.record('hdl-mux2').status,
   }));
-  check('a syntax error is reported as a build failure', build.verdict, 'It did not compile');
+  ok(`a syntax error opens Compiler output (${build.tab})`, /Compiler output/.test(build.tab || ''));
   ok(`with a line to look at (${(build.diags[0] || '').slice(0, 50)}…)`,
     build.diags.length >= 1 && /\d+/.test(build.diags[0] || ''));
   check('and nothing is graded from it', build.status, 'unsolved');

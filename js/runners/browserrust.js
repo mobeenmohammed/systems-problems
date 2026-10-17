@@ -252,6 +252,16 @@ const BrowserRust = (() => {
      generation. That matters more than it sounds: the Cranelift gap
      that stops five of the seven Rust problems from running is in code
      generation, so a type-check works on all of them. */
+  /* What the native judge's `sanitize` profile is for Rust: not a
+     sanitizer — Rust has none and needs none here, because indexing
+     past the end of a slice is a bounds-checked panic in wasm as
+     everywhere else — but debug assertions and overflow checks on, so
+     the browser grades the program the judge would grade. */
+  const CHECKED_FLAGS = ['--edition', '2024', '-C', 'debug-assertions=on',
+    '-C', 'overflow-checks=on', '-Cpanic=abort'];
+  const BUILD_FLAGS = ['--edition', '2024', '-O', '-Cpanic=abort'];
+  const flagsFor = profile => (profile === 'sanitize' ? CHECKED_FLAGS : BUILD_FLAGS);
+
   const CHECK_FLAGS = ['--edition', '2024', '--emit=metadata', '-Cpanic=abort'];
 
   async function check(source, { signal } = {}) {
@@ -328,7 +338,7 @@ const BrowserRust = (() => {
 
   /* ---------------- the runner interface ---------------- */
 
-  async function run(source, cases, { runMs = RUN_MS, signal, onStage } = {}) {
+  async function run(source, cases, { runMs = RUN_MS, signal, onStage, profile } = {}) {
     /* `running` carries which case, because "Running…" on a
        fourteen-case problem is indistinguishable from stuck. */
     const say = (s, detail) => { if (onStage) onStage(s, detail); };
@@ -349,7 +359,7 @@ const BrowserRust = (() => {
     say('compiling');
     let built;
     try {
-      built = await compileSource(source, { signal });
+      built = await compileSource(source, { signal, flags: flagsFor(profile) });
     } catch (err) {
       if (err && err.name === 'AbortError') return cancelled();
       return down(err.message);

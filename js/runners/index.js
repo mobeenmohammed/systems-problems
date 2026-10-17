@@ -627,6 +627,9 @@ const Runners = (() => {
         runMs: opts.runMs,
         signal: opts.signal,
         onStage: opts.onStage,
+        /* A `sanitize` problem is built with the checks on, the same as
+           the native judge builds it. */
+        profile: opts.profile,
       });
     }
     if (backend === 'local') {

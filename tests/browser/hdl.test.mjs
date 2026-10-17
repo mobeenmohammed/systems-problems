@@ -151,9 +151,9 @@ section('the hardware workspace');
     top: [...document.querySelectorAll('.editor-head span')].map(s => s.textContent.trim()),
   }));
   check('it owns the window like a coding exercise', shape.workspace, 'true');
-  check('the design, a read-only testbench, results, waveforms, submissions and diagnostics',
+  check('the design, two testbenches, results, waveforms, submissions and compiler output',
     shape.tabs,
-    ['Design', 'Sample testbench', 'My testbench', 'Results', 'Waveforms', 'Submissions', 'Diagnostics']);
+    ['Design', 'Sample testbench', 'My testbench', 'Results', 'Waveforms', 'Submissions', 'Compiler output']);
   check('Run says what it does', shape.run.trim(), 'Run simulation');
   ok('there is an editor', shape.editor);
   ok(`the top module is named (${shape.top.join(' ')})`,
@@ -376,17 +376,36 @@ endmodule
   await runSettled(p);
   await p.waitForTimeout(400);
 
-  const r = await readResults(p);
-  ok(`it says it did not compile (${r.verdict})`, /did not compile/i.test(r.verdict));
-  ok('with at least one error', r.diags.some(d => d.level === 'error'));
-  ok(`naming the file and line (${(r.diags[0] || {}).where})`,
-    r.diags.some(d => /design\.sv:\d+/.test(d.where || '')));
+  /* A failed compile opens the pane that explains it, rather than
+     printing the list into Results as well. Two copies of one list is
+     a reader deciding which is authoritative. */
+  await p.waitForTimeout(400);
+  const landed = await p.evaluate(() => ({
+    tab: [...document.querySelectorAll('.ws-tabs-work .tab')]
+      .find(t => t.getAttribute('aria-selected') === 'true' || t.dataset.active === 'true')
+      ?.textContent.trim(),
+    diags: [...document.querySelectorAll('#resultPane .diag')].map(d => ({
+      level: d.dataset.level,
+      where: (d.querySelector('.diag-where') || {}).textContent,
+    })),
+  }));
+  ok(`it lands on Compiler output (${landed.tab})`, /Compiler output/.test(landed.tab || ''));
+  ok('with at least one error', landed.diags.some(d => d.level === 'error'));
+  ok(`naming the file and line (${(landed.diags[0] || {}).where})`,
+    landed.diags.some(d => /design\.sv:\d+/.test(d.where || '')));
 
-  await openTab(p, 'Diagnostics');
+  await openTab(p, 'Results');
   await p.waitForTimeout(300);
-  const diags = await p.evaluate(() =>
-    [...document.querySelectorAll('#resultPane .diag')].length);
-  ok(`the Diagnostics tab has them too (${diags})`, diags > 0);
+  const res = await p.evaluate(() => ({
+    verdict: (document.querySelector('.buildline h4') || {}).textContent || '',
+    copies: document.querySelectorAll('#resultPane .diag').length,
+    toCompiler: !!document.querySelector('#toCompilerOut'),
+    score: /\d+ of \d+ checks/.test((document.querySelector('#resultPane') || {}).innerText || ''),
+  }));
+  ok(`Results says it did not compile (${res.verdict})`, /did not compile/i.test(res.verdict));
+  check('and does not repeat the compiler\u2019s list', res.copies, 0);
+  ok('it offers the way to it instead', res.toCompiler);
+  ok('and invents no failed-check count', !res.score);
   await ctx.close();
 }
 
