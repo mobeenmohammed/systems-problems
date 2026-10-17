@@ -157,7 +157,7 @@ section('a correct program has nothing to say about it');
 
 /* ---------------- the gap, named exactly ---------------- */
 
-section('the one thing this backend cannot do is the high half of a 64-bit multiply');
+section('the high half of a 64-bit multiply, which this backend could not do');
 {
   const parses = async ty => {
     const r = await build(
@@ -169,8 +169,14 @@ section('the one thing this backend cannot do is the high half of a 64-bit multi
   for (const ty of ['i32', 'u32', 'usize', 'f64']) {
     ok(`parse::<${ty}>() compiles`, await parses(ty));
   }
+  /* These two were the gap. `from_ascii_radix` accumulates digits with
+     a checked multiply, Cranelift asks for the overflow half with
+     `smulhi.i64`, and the CLIF-to-wasm translator had no lowering for
+     it — so every program that read a 64-bit integer out of a string
+     failed to build. patches/clif2wasm-smulhi.patch adds both halves
+     and this compiler was built with it. */
   for (const ty of ['i64', 'u64']) {
-    ok(`parse::<${ty}>() does not`, !(await parses(ty)));
+    ok(`parse::<${ty}>() compiles too, now`, await parses(ty));
   }
 
   /* The point of pinning it this precisely: "64-bit is broken" would be
@@ -216,24 +222,26 @@ fn main(){
     const r = await runtime(expr);
     ok(`${expr} builds on runtime values`, r.ok);
   }
+  /* The four that needed the high half. Runtime operands, so nothing
+     is const-folded — the earlier version of this block asserted that
+     `checked_mul` was fine while multiplying two literals, which rustc
+     folds before any lowering is reached: true of the program it ran,
+     false of the claim it made. */
   for (const expr of ['a.checked_mul(b)', 'a.overflowing_mul(b)', 'a.saturating_mul(b)',
     '(a as u64).checked_mul(b as u64)']) {
     const r = await runtime(expr);
-    ok(`${expr} does not \u2014 it needs the high half`, !r.ok && r.mulhi);
+    ok(`${expr} builds on runtime values`, r.ok);
   }
 
-  /* So the generated reason has to say that, rather than naming only
-     the parse. A reader who reads "64-bit arithmetic is fine" and then
-     writes checked_mul has been told something false. */
+  /* And with both opcodes lowered there is nothing left to explain
+     away: no Rust exercise needs the native toolchain to run. The day
+     one does again, this fails rather than the explanation quietly
+     coming back. */
   const support = readJson('data/rust-support.json');
-  const reason = Object.values(support.nativeOnly || {})
-    .find(t => /high half|smulhi/.test(t)) || '';
-  ok('the generated reason names the high half of a 64-bit multiply',
-    /high half of a 64-bit multiplication/.test(reason));
-  ok('and names checked_mul among what reaches it', /checked_mul/.test(reason));
-  ok('and both opcodes', /smulhi/.test(reason) && /umulhi/.test(reason));
-  ok('while still saying ordinary 64-bit arithmetic is fine',
-    /wrapping_mul/.test(reason) && /is fine/.test(reason));
+  check('no Rust exercise is native-only any more',
+    Object.keys(support.nativeOnly || {}), []);
+  check('and every one of them runs in the browser',
+    (support.browser || []).length, (support.checks || []).length);
 
   /* And the gap is in code generation, not in checking — which is what
      makes the editor's diagnostics work on every Rust problem. */

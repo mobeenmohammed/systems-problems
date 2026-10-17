@@ -108,7 +108,7 @@ const pickRust = async (p) => {
    the exercise from the screenshot
    ============================================================ */
 
-section('"Many readers, or one writer": what a reader is actually told');
+section('"Many readers, or one writer": the exercise from the report, running');
 {
   const { ctx, p } = await visitor();
   await p.goto(`${BASE}/#/p/rust-borrow-shared-exclusive`, { waitUntil: 'networkidle' });
@@ -141,30 +141,45 @@ section('"Many readers, or one writer": what a reader is actually told');
       say: (document.querySelector('.platform-say') || {}).textContent || '',
       detail: (document.querySelector('.platform-detail') || {}).textContent || '',
       pane: (document.querySelector('#resultPane') || {}).innerText || '',
-      verdict: !!document.querySelector('.verdict'),
+      cases: document.querySelectorAll('#resultPane .case').length,
+      passed: document.querySelectorAll('#resultPane .case[data-pass="true"]').length,
       status: window.SystemsLab.Store.record('rust-borrow-shared-exclusive').status,
       attempts: window.SystemsLab.Store.record('rust-borrow-shared-exclusive').attempts,
       code: window.SystemsLab.ProblemTypes.get('code').editor().value,
       runEnabled: !document.querySelector('#runBtn').disabled,
+      chip: (document.querySelector('#execState') || {}).textContent || '',
     };
   });
-  await shot(p, 'r1-platform');
+  await shot(p, 'r1-the-exercise-from-the-report');
 
-  /* This is the exact set of things the screenshot got wrong. */
-  check('it is reported as a toolchain gap', after.kind, 'toolchain');
-  ok(`and named as not the reader's doing (${after.head})`, /Not your code/.test(after.head));
-  ok('it says the gap is in the compiler', /gap in the compiler/.test(after.say));
-  ok('and that nothing was graded or recorded',
-    /nothing has been graded/i.test(after.say) && /nothing has been recorded/i.test(after.say));
-  ok('there is no verdict and no score', !after.verdict && !/of \d+ cases passed/i.test(after.pane));
+  /* This is the exact set of things the screenshot got wrong — and
+     the exercise it was taken on now compiles, runs and is graded,
+     because the lowering it tripped over is in the compiler. So the
+     assertions are the opposite of what they were, and the ones about
+     WSL and the local runner stay exactly as they were. */
+  ok('there is no platform message at all', !after.kind && !/Not your code/.test(after.pane));
+  ok('it ran', /Ran on/.test(after.chip || ''));
+  ok(`there is a result about the cases (${after.passed} of ${after.cases} passed)`,
+    after.cases > 0 && after.passed === after.cases);
   ok('nobody is told to install WSL', !/\bWSL\b/.test(after.pane));
   ok('nobody is told to run a local runner', !/npm run runner/.test(after.pane));
-  ok('the technical reason is there, behind a disclosure',
-    /smulhi|parse::<i64>|64-bit/.test(after.detail));
-  check('nothing was recorded', after.status, 'unsolved');
-  check('and no attempt counted', after.attempts, 0);
+  ok('nothing mentions smulhi at a reader', !/smulhi|umulhi/.test(after.pane));
   ok('the draft is untouched', after.code.includes(ref.split('\n')[0]));
   ok('and Run is usable again', after.runEnabled);
+
+  /* All the way through, on the exercise the report was about. */
+  await p.click('#submitBtn');
+  await p.waitForFunction(() => {
+    const btn = document.querySelector('#submitBtn');
+    return btn && !btn.disabled && /Submit/.test(btn.textContent);
+  }, { timeout: 300_000 });
+  await p.waitForTimeout(800);
+  const sub = await p.evaluate(() => ({
+    verdict: (document.querySelector('.verdict h4') || {}).textContent || '',
+    status: window.SystemsLab.Store.record('rust-borrow-shared-exclusive').status,
+  }));
+  ok(`submitting grades it (${sub.verdict})`, sub.status === 'solved');
+
   await ctx.close();
 }
 
@@ -198,7 +213,7 @@ section('a type-check is never presented as a run');
     diags: [...document.querySelectorAll('.cm-lintPoint, .cm-diagnostic, .diag')].length,
     lintText: document.body.innerText,
   }));
-  ok(`the chip says checked rather than run (${checked.chip})`,
+  ok(`a program that was never run does not claim to have run (${checked.chip})`,
     !/Ran on/.test(checked.chip));
   ok('a borrow error is reported somewhere',
     /borrow|E0499|cannot borrow/i.test(checked.lintText) || checked.diags > 0);

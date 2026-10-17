@@ -170,12 +170,32 @@ compiling `rustc_codegen_ssa` — `slice index starts at 5 but ends at 4`
 in `check_mod_deathness` — with incremental compilation on. `incremental
 = false` gets past it.
 
-**Where it stands.** The build is configured and resumable; the clone,
-the patch, the WASI SDK and the configuration are done, and what remains
-is the LLVM download and the compile itself, which is hours. Until those
-artifacts exist and `scripts/vendor-rust.mjs` pins them,
-`data/rust-support.json` still says 2 of 7, because 2 of 7 is what the
-*shipped* compiler does. Nothing in the site claims otherwise.
+**Two more, at the link.** With an external LLVM the C++ glue compiled
+and then would not link: `undefined symbol: std::__1::recursive_mutex`.
+`std::__1` is libc++'s namespace — the release is built against libc++
+and its archives want it, so filtering `-stdlib=libc++` out of
+`--cxxflags` had been arguing with the truth. There is no libstdc++
+build of LLVM 21 to download instead, and installing libc++ needs root.
+It does not need installing: the package ships its own clang, headers
+and libc++, in `lib/x86_64-unknown-linux-gnu` rather than `lib`. Build
+with the release's clang++ and point the linker at that directory.
+
+Then `ZSTD_createCCtx` and friends, because `llvm-config --system-libs`
+reports what LLVM was linked against *on the machine that built it*,
+one of them by absolute path: `/usr/lib/x86_64-linux-gnu/libzstd.a`,
+which comes with a `-dev` package and is not here. The wrapper rewrites
+absolute `.a` paths to plain `-l` flags, with a directory of the
+symlinks a `-dev` package would have installed.
+
+**It is built.** `scripts/build-rustc-wasm.sh` produced a 90.3 MB
+`rustc.wasm` and a 71.0 MB `sysroot-wasip1.bundle`; `vendor/rust` is
+pinned to them and `manifest.json` records that this is upstream plus
+this patch rather than the upstream artifact. `npm run audit:rust`
+reads **7 of 7 type-check, 7 of 7 run**, where it read 2 of 7 before,
+and `npm run probe:rust-gap` finds nothing left in the gap:
+`checked_mul`, `overflowing_mul`, `saturating_mul`, `product()` over
+i64, `parse::<i64>()` and `parse::<u64>()` all build and run. No
+exercise was changed to get there.
 
 The other route is `rubrc`, and it is blocked for a different reason:
 it needs `SharedArrayBuffer`, which needs cross-origin isolation, which

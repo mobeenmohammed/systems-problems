@@ -41,13 +41,24 @@ try {
 }
 
 const support = JSON.parse(fs.readFileSync('data/rust-support.json', 'utf8'));
-const RUNNABLE = support.browser[0];
+/* A Rust-ONLY exercise. Taking support.browser[0] was fine while the
+   list held two `rust-` problems; now that every Rust exercise runs,
+   the first entry is algo-running-max, which is offered in C++,
+   Python and Rust and opens in C++. Pressing Run on it ran C++ and
+   this suite measured the wrong compiler. */
+const RUST_ONLY = support.browser.filter(id => id.startsWith('rust-'));
+const RUNNABLE = RUST_ONLY[0] || support.browser[0];
 /* A second one that also runs here, for the test that leaves a run
    behind and opens something else. It has to be a different problem
    from RUNNABLE, which is not something to leave to list order. */
-const OTHER = support.browser.find(id => id !== RUNNABLE) || null;
+const OTHER = RUST_ONLY.find(id => id !== RUNNABLE)
+  || support.browser.find(id => id !== RUNNABLE) || null;
+/* There used to be one of these: an exercise the browser could
+   type-check but not run. There is not any more — the lowering it
+   tripped over is in the compiler now — so this is whatever is left,
+   and the section below adapts rather than inventing a subject. */
 const NATIVE_ONLY = Object.keys(support.nativeOnly)
-  .find(id => id.startsWith('rust-'));
+  .find(id => id.startsWith('rust-')) || null;
 
 const reference = id =>
   JSON.parse(fs.readFileSync(`solutions/${id}.json`, 'utf8')).key.reference.rust;
@@ -151,25 +162,53 @@ section('the support list was generated, not written');
 section('a device with nothing installed gets real borrow-checker diagnostics');
 {
   const { ctx, p } = await freshPage();
-  /* Deliberately the problem that CANNOT be run here: the check path
-     does not go through code generation, so it works anyway, and that
-     is the whole claim. */
-  await p.goto(`${BASE}/#/p/${NATIVE_ONLY}`, { waitUntil: 'networkidle' });
+  /* This used to open the one exercise that could be checked but not
+     run, because checking does not go through code generation. Every
+     Rust exercise runs now, so the claim is the other half of the same
+     thing: checking is its own capability, it answers while you type,
+     and it does not need a build to have happened. */
+  /* A Rust-ONLY exercise, deliberately. With every exercise runnable
+     this used to fall through to the first in the list, which is
+     algo-running-max — offered in C++, Python and Rust, and opening in
+     C++. Rust source went into a C++ editor and the C++ checker had
+     nothing to say about a moved String. */
+  const SUBJECT = NATIVE_ONLY || RUNNABLE;
+  await p.goto(`${BASE}/#/p/${SUBJECT}`, { waitUntil: 'networkidle' });
   await p.waitForTimeout(2000);
 
-  const blocked = await p.evaluate(async id => {
+  const state = await p.evaluate(async id => {
     const rows = await window.SystemsLab.Runners.available(['rust'], id);
     return {
       ready: rows[0].ready,
-      chip: (document.getElementById('execState') || {}).textContent.trim(),
-      judge: (document.getElementById('codeJudgeText') || {}).textContent,
+      chip: ((document.getElementById('execState') || {}).textContent || '').trim(),
+      judge: (document.getElementById('codeJudgeText') || {}).textContent || '',
     };
-  }, NATIVE_ONLY);
-  check(`${NATIVE_ONLY} cannot be run here`, blocked.ready, false);
-  ok(`and says so rather than failing on the click ("${blocked.judge}")`,
-    /native toolchain/.test(blocked.judge));
+  }, SUBJECT);
+  if (NATIVE_ONLY) {
+    check(`${SUBJECT} cannot be run here`, state.ready, false);
+    ok(`and says so rather than failing on the click ("${state.judge}")`,
+      /native toolchain/.test(state.judge));
+  } else {
+    ok(`${SUBJECT} can be run here, like every Rust exercise now`, state.ready);
+    /* The sentence covers every language the exercise offers, and on a
+       problem that also offers C++ the C++ half may well say it needs
+       the native toolchain — that is true and is C++'s business. What
+       must not appear is an instruction to install something for
+       RUST. */
+    const rustPart = (state.judge.split('·').find(t => /Rust/.test(t)) || '').trim();
+    ok(`Rust is offered in the browser ("${rustPart}")`, /Browser/.test(rustPart));
+    ok('and nothing tells anybody to install anything for it',
+      !/npm run runner|WSL|Docker/i.test(state.judge));
+  }
 
-  await paste(p, `fn main() {
+  /* Set through the editor rather than the clipboard: this section
+     is about the checker, and a clipboard paste that quietly does
+     nothing leaves the template in place — which type-checks, so the
+     test then waits four minutes for diagnostics that were never
+     going to come. Other sections exercise the paste path. */
+  await p.evaluate(src => {
+    window.SystemsLab.ProblemTypes.get('code').editor().value = src;
+  }, `fn main() {
     let a = String::from("hello");
     let b = a;
     println!("{} {}", a, b);
@@ -178,7 +217,9 @@ section('a device with nothing installed gets real borrow-checker diagnostics');
   /* The editor lints on a debounce, and the first one pays the
      download. */
   let diag = null;
-  for (let i = 0; i < 240; i += 1) {
+  /* Four minutes, not two: the first lint on a cold context pays for
+     161 MB of compiler and sysroot before it can say anything. */
+  for (let i = 0; i < 480; i += 1) {
     diag = await p.evaluate(() => ({
       rows: [...document.querySelectorAll('.ed-problem')].map(r => r.textContent),
       status: (document.querySelector('.ed-status') || {}).textContent || '',
@@ -491,40 +532,34 @@ section('Rust checking and Rust execution are reported separately');
     + `${(support.browser || []).length} run, of ${all.length})`,
     Array.isArray(support.checks) && Array.isArray(support.browser));
   check('every Rust problem type-checks', (support.checks || []).length, all.length);
-  ok('fewer of them run', (support.browser || []).length < (support.checks || []).length);
-  ok('and every runnable one also type-checks',
-    (support.browser || []).every(id => (support.checks || []).includes(id)));
+  /* Both columns are full now. They were not — four exercises could
+     be checked and not run, for one missing lowering — and the two
+     columns remain two columns, because checking and running are
+     different capabilities and the day a new exercise reaches past
+     what the backend can codegen, this file is where that shows up. */
+  check('every runnable one also type-checks',
+    (support.browser || []).filter(id => !(support.checks || []).includes(id)), []);
+  check('and nothing is checked-but-not-run any more',
+    (support.checks || []).filter(id => !(support.browser || []).includes(id)), []);
 
-  /* The one that is checked but not run says so, in those words. */
-  const checkedOnly = (support.checks || []).find(id => !(support.browser || []).includes(id)
-    && all.includes(id));
-  ok(`there is one to look at (${checkedOnly})`, !!checkedOnly);
-
+  /* So a reader opening any Rust exercise is told it runs here, and
+     is told by what. */
   const { ctx, p } = await freshPage();
-  await p.goto(`${BASE}/#/p/${checkedOnly}`, { waitUntil: 'networkidle' });
+  await p.goto(`${BASE}/#/p/${RUNNABLE}`, { waitUntil: 'networkidle' });
   await p.waitForTimeout(2500);
-  await p.evaluate(() => {
-    const pick = document.querySelector('.lang-pick');
-    if (pick && pick.dataset.lang !== 'rust') {
-      const opt = [...document.querySelectorAll('.lang-opt')].find(o => /rust/i.test(o.textContent));
-      if (opt) opt.click();
-    }
-  });
-  await p.waitForTimeout(2000);
 
   const said = await p.evaluate(() => ({
-    chip: (document.getElementById('execState') || {}).textContent || '',
     line: (document.getElementById('codeJudgeText') || {}).textContent || '',
     setup: (document.getElementById('setupLink') || {}).textContent || '',
     command: document.body.innerText.includes('npm run runner'),
+    wsl: /\bWSL\b/.test(document.body.innerText),
   }));
-  ok(`the chip says checked rather than no runner ("${said.chip}")`,
-    /Checked, not run/.test(said.chip) || /Browser/.test(said.chip));
-  ok(`and the line says the front end still runs ("${said.line.slice(0, 70)}…")`,
-    /type-checked here/.test(said.line));
+  ok(`the line names the browser toolchain ("${said.line.slice(0, 70)}…")`,
+    /Browser|in this tab|rustc/.test(said.line));
   ok('the way out is an explanation, not an instruction',
     !/Set up execution/.test(said.setup));
-  ok('and no shell command is printed under the editor', !said.command);
+  ok('no shell command is printed under the editor', !said.command);
+  ok('and nothing mentions WSL', !said.wsl);
   await ctx.close();
 }
 

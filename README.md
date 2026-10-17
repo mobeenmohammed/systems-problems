@@ -641,7 +641,7 @@ different jobs and were already separated here.
 A warm compile is about **0.1 s**, which is an order of magnitude faster
 than the C++ one.
 
-### The limit: the high half of a 64-bit multiply
+### The limit that was: the high half of a 64-bit multiply
 
 ```
 error: wasm emission failed: translating function `core::num::from_ascii_radix`:
@@ -691,11 +691,21 @@ arrive at runtime — which is what a reader's program does — it emits
 `smulhi.i64` and does not build. The test now pins both sides on runtime
 values, and the sentence the site shows a reader was rewritten to match.
 
-Four of the seven Rust exercises and `algo-running-max` need an `i64` out of
-input, so they cannot be *run* here. They were not rewritten to fit the
-compiler — the exercise is the exercise. They say why, in those words.
-**Checking still works on all of them**, because the gap is in code
-generation.
+**This is fixed, and the fix is the one above.**
+`patches/clif2wasm-smulhi.patch` lifts the unsigned high-half multiply
+that `i128_lower::mul` already computed inline into a named helper,
+uses it from both places, and adds the signed correction
+`smulhi(a,b) = umulhi(a,b) - ((a>>63)&b) - ((b>>63)&a)`. Both opcodes
+get a lowering; `scripts/build-rustc-wasm.sh` builds the compiler with
+it, and `vendor/rust` is that compiler. Every row in the table above
+moved to the left column, and no exercise was touched to make it
+happen — the references are the ones that were already there, passing
+the cases that were already there.
+
+Getting from the patch to a working `rustc.wasm` took four more fixes
+that only a real build finds; they are written up in
+`patches/README.md`, because each one will be in somebody else's way
+next.
 
 
 ### Which problems
@@ -711,13 +721,14 @@ whichever direction it rounded:
 | | what it means | how many |
 | --- | --- | --- |
 | `checks` | the front end: parser, types, traits, **borrow checker**. `--emit=metadata`, which stops before code generation, so no lowering gap can reach it. This is what the editor runs on every keystroke | **7 of 7** |
-| `browser` | and then code generation, linking, execution, and every case right | **2 of 7** |
+| `browser` | and then code generation, linking, execution, and every case right | **7 of 7** |
 
-So on five of the seven Rust exercises you get rustc's own E0382, E0502
-and E0621 as you type, with line numbers, and cannot press Run. The
-toolbar says `Checked, not run` rather than `No runner`, because those
-are not the same state and the difference is most of what the exercise
-is for.
+Both columns read 7 of 7 now. They did not: for four exercises the
+answer was `Checked, not run` — rustc's own E0382, E0502 and E0621 as
+you type, with line numbers, and no Run. The distinction is still in
+the code and still worth having, because `Checked, not run` and `No
+runner` are not the same state; it just has nothing to describe at the
+moment.
 
 The one that gets this wrong is easy to write: `compile(src, CHECK_FLAGS).ok`
 asks whether a wasm file appeared, and `--emit=metadata` never writes one,
