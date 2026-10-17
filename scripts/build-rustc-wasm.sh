@@ -142,9 +142,53 @@ export LD_LIBRARY_PATH="$LLVM_LIBS${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 # libstdc++, and every object here is libc++'s.
 export CXXSTDLIB=c++
 
+# `llvm-config --system-libs` reports the libraries LLVM was linked
+# against *on the machine that built it*, by absolute path:
+#
+#   -lrt -ldl -lm -lz /usr/lib/x86_64-linux-gnu/libzstd.a -lxml2
+#
+# That static archive is not on this machine — Ubuntu ships the shared
+# libzstd and the .a comes with a -dev package — so the path resolves
+# to nothing and every ZSTD_* symbol goes undefined at the link.
+#
+# The shared library IS here. So: a wrapper that rewrites the absolute
+# .a path to a plain -lzstd, and a directory of symlinks giving the
+# bare names the linker expects (libzstd.so -> libzstd.so.1, the
+# symlink a -dev package would have installed). Nothing else about
+# llvm-config's answers is touched — in particular -stdlib=libc++ is
+# left alone, because that one was true.
+LLVM_CFG="$WORK/llvm-config-sysfix"
+LINKLIBS="$WORK/linklibs"
+
+if ! done_marker syslibs; then
+  say "making the system libraries the linker names resolvable"
+  mkdir -p "$LINKLIBS"
+  for lib in zstd xml2 z; do
+    if [ ! -e "$LINKLIBS/lib$lib.so" ]; then
+      real="$(ls /usr/lib/x86_64-linux-gnu/lib$lib.so.[0-9]* 2>/dev/null | head -1)"
+      [ -n "$real" ] && ln -sf "$real" "$LINKLIBS/lib$lib.so"
+    fi
+  done
+  ls -l "$LINKLIBS" >>"$LOG" 2>&1
+
+  cat > "$LLVM_CFG" <<WRAP
+#!/usr/bin/env bash
+real="$LLVM_DIR/bin/llvm-config"
+out="\$("\$real" "\$@")" || exit \$?
+# The build machine's static archives, named by absolute path, become
+# ordinary -l flags that resolve against this machine's libraries.
+out="\$(printf '%s' "\$out" | sed -E 's#/usr/lib/x86_64-linux-gnu/lib([a-z0-9]+)\.a#-l\1#g')"
+printf '%s\\n' "\$out"
+WRAP
+  chmod +x "$LLVM_CFG"
+  "$LLVM_CFG" --system-libs >>"$LOG" 2>&1
+  mark syslibs
+fi
+export LIBRARY_PATH="$LINKLIBS${LIBRARY_PATH:+:$LIBRARY_PATH}"
+
 if ! done_marker config; then
   say "pointing bootstrap at it"
-  python3 - "$LLVM_DIR" <<'PY'
+  python3 - "$LLVM_CFG" <<'PY'
 import io, sys
 llvm = sys.argv[1]
 p = 'rust/bootstrap.toml'
