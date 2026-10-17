@@ -9,10 +9,19 @@
      npm run vendor:rust              re-download and verify
      npm run vendor:rust -- --check   verify what is already there
      npm run vendor:rust -- --accept  write new digests (re-pinning)
+     npm run vendor:rust -- --from <dir> --accept
+                                      pin a locally built compiler
 
    --accept is how the pin is deliberately moved to a newer build. It
    prints the old and new digests so the change is visible in the diff
-   rather than happening quietly. */
+   rather than happening quietly.
+
+   --from takes the artifacts out of a directory instead of off the
+   network, which is how a compiler built by
+   scripts/build-rustc-wasm.sh gets in. It records where it came from
+   in the manifest, because "a real rustc from upstream" and "upstream
+   plus a patch of ours" are different claims and the file that pins
+   the compiler is the place to tell them apart. */
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -25,6 +34,12 @@ const MANIFEST = path.join(DIR, 'manifest.json');
 
 const CHECK = process.argv.includes('--check');
 const ACCEPT = process.argv.includes('--accept');
+const fromIdx = process.argv.indexOf('--from');
+const FROM = fromIdx > -1 ? process.argv[fromIdx + 1] : null;
+if (fromIdx > -1 && !FROM) {
+  console.error('--from needs a directory');
+  process.exit(2);
+}
 
 const manifest = JSON.parse(fs.readFileSync(MANIFEST, 'utf8'));
 const digest = buf => crypto.createHash('sha256').update(buf).digest('hex');
@@ -42,6 +57,15 @@ for (const [name, want] of Object.entries(manifest.files)) {
       continue;
     }
     bytes = fs.readFileSync(dest);
+  } else if (FROM) {
+    const src = path.join(FROM, name);
+    if (!fs.existsSync(src)) {
+      console.error(`-- ${name}: not in ${FROM}`);
+      bad += 1;
+      continue;
+    }
+    bytes = fs.readFileSync(src);
+    console.log(`   ${name} … ${(bytes.length / 1e6).toFixed(1)} MB (local)`);
   } else {
     const url = `${manifest.source}/rustc/${name}`;
     process.stdout.write(`   ${name} … `);
@@ -77,6 +101,18 @@ if (bad) {
 }
 
 if (ACCEPT && !CHECK) {
+  if (FROM) {
+    /* Where this compiler came from, in the file that pins it. A
+       locally built one is not the upstream artifact and the manifest
+       should not go on implying that it is. */
+    manifest.builtHere = {
+      how: 'scripts/build-rustc-wasm.sh',
+      upstream: 'AngelOnFira/rust @ riw-wasm20',
+      patch: 'patches/clif2wasm-smulhi.patch — lowers smulhi.i64 and umulhi.i64',
+      llvm: 'LLVM 21.1.0 release (the branch\'s download-ci-llvm artifact has expired)',
+      at: new Date().toISOString().slice(0, 10),
+    };
+  }
   fs.writeFileSync(MANIFEST, `${JSON.stringify(manifest, null, 2)}\n`);
 }
 
