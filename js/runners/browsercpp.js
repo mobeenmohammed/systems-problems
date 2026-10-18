@@ -181,7 +181,10 @@ const BrowserCpp = (() => {
 
   let nextId = 1;
 
-  function compileSource(source, { signal } = {}) {
+  /* One compile request. `what` is either { source } for the ordinary
+     one-file case or { files, sources } for a workspace; the worker
+     takes both and the rest of this module does not care which. */
+  function compileWith(what, { signal } = {}) {
     return new Promise((resolve, reject) => {
       const id = nextId++;
       const w = spawnCompiler();
@@ -221,9 +224,12 @@ const BrowserCpp = (() => {
         if (signal.aborted) { onAbort(); return; }
         signal.addEventListener('abort', onAbort, { once: true });
       }
-      w.postMessage({ type: 'compile', id, source });
+      w.postMessage({ type: 'compile', id, ...what });
     });
   }
+
+  const compileSource = (source, opts) => compileWith({ source }, opts);
+  const compileFiles = (files, sources, opts) => compileWith({ files, sources }, opts);
 
   /* ---------------- one case, in its own worker ---------------- */
 
@@ -288,14 +294,38 @@ const BrowserCpp = (() => {
 
   /* One compile, then one fresh instance per case — the same contract the
      native runner has, so a problem means the same thing on both. */
-  async function run(source, cases, { runMs = RUN_MS, signal, onStage } = {}) {
+  async function run(source, cases, opts = {}) {
+    return execute({ source }, cases, opts);
+  }
+
+  /* The same, for a workspace. `files` is [{ path, content }] and
+     `sources` names the translation units; the headers among the files
+     are planted and not compiled.
+
+     The paths are validated here as well as wherever they came from.
+     By the time they arrive they have been through localStorage and a
+     submission vault, and a runner that trusts its input because
+     somebody upstream checked is a runner with no check at all. */
+  async function runFiles(files, cases, opts = {}) {
+    const list = Array.isArray(files) ? files : [];
+    if (typeof Workspace !== 'undefined') {
+      const bad = Workspace.faults(list, { entry: opts.entry || null, sources: opts.sources || null });
+      if (bad.length) return down(`the workspace is not usable: ${bad[0]}`, 'toolchain');
+    }
+    return execute({ files: list, sources: opts.sources || null }, cases, opts);
+  }
+
+  async function execute(what, cases, { runMs = RUN_MS, signal, onStage } = {}) {
     /* `running` carries which case, because "Running…" on a
        fourteen-case problem is indistinguishable from stuck. The
        engines all have the loop; the page decides what to say. */
     const say = (s, detail) => { if (onStage) onStage(s, detail); };
 
     if (!capable()) return down('this browser cannot run WebAssembly in a worker');
-    if (String(source).length > MAX_SOURCE) {
+    const bytes = what.files
+      ? what.files.reduce((n, f) => n + String(f.content || '').length, 0)
+      : String(what.source).length;
+    if (bytes > MAX_SOURCE) {
       return down(`the source is larger than ${Math.round(MAX_SOURCE / 1024)} KB`);
     }
 
@@ -310,7 +340,7 @@ const BrowserCpp = (() => {
     say('compiling');
     let built;
     try {
-      built = await compileSource(source, { signal });
+      built = await compileWith(what, { signal });
     } catch (err) {
       if (err && err.name === 'AbortError') return cancelled();
       return down(err.message);
@@ -371,10 +401,10 @@ const BrowserCpp = (() => {
 
   return {
     capable, supportsProblem, reasonFor, loadSupport, toolchain,
-    prepare, onProgress, progress, teardown, run,
+    prepare, onProgress, progress, teardown, run, runFiles,
     get ready() { return ready; },
     /* Exposed for the browser tests, which drive a compile without a page. */
-    compileSource, runOne,
+    compileSource, compileFiles, runOne,
     TOTAL_MB: 90,
   };
 })();

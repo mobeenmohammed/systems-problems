@@ -108,6 +108,8 @@ section('a failed run never leaves the button disabled');
     kind: (document.querySelector('.platform') || {}).dataset?.kind || null,
     blames: (document.querySelector('.platform') || {}).textContent || '',
     retry: !!document.querySelector('#retryRunBtn'),
+    acts: [...document.querySelectorAll('.platform-acts a, .platform-acts button')]
+      .map(n => n.textContent.trim()),
     status: window.SystemsLab.Store.record('algo-running-max').status,
     editorKept: (document.querySelector('.cm-content') || {}).textContent || '',
   }));
@@ -117,7 +119,16 @@ section('a failed run never leaves the button disabled');
   ok('and not as a verdict on the answer', after.verdict === null);
   ok(`which says whose doing it was ("${after.blames.slice(0, 28)}…")`,
     /not your code/i.test(after.blames));
-  ok('with a way to try again', after.retry);
+  /* A way forward, and the right one. A download that was cut off or a
+     runner that did not answer is transient, and Try again is the whole
+     answer. A toolchain that cannot build this exercise is not
+     transient, and Try again would reproduce the message instantly —
+     so that case offers the other exercises and the explanation
+     instead. Both are a way out; neither is a dead end. */
+  ok(`with a way forward (${after.kind}: ${after.acts.join(', ')})`,
+    after.kind === 'toolchain' ? after.acts.length > 0 : after.retry);
+  ok('and Try again only where trying again could work',
+    after.retry === (after.kind !== 'toolchain'));
   ok('and the draft is still in the editor', after.editorKept.includes('// mine'));
   check('and nothing was recorded against the problem', after.status, 'unsolved');
   await p.close();
@@ -246,12 +257,18 @@ section('the whole menu is on screen, not clipped by the strip it hangs from');
   await page.keyboard.press('Escape');
 }
 
-section('a language nothing can run is still offered, with the reason');
+section('every language the exercise accepts is offered, and says where it runs');
 {
-  /* Rust has no in-browser runner, so on a deployed page every Rust
-     exercise is in exactly this state. The option must not vanish and
-     must not be a dead button: it is how you read the template and see
-     what to do next. */
+  /* This used to be "a language nothing can run is still offered, with
+     the reason", and Rust was the example: there was no in-browser
+     rustc, so every Rust exercise was in that state. There is one now,
+     and it builds and runs all of them, so the example had become a
+     test of a limitation that no longer exists.
+
+     What is still worth holding is the rule the section was written
+     for: an option never vanishes and is never a dead button, it says
+     where it would run or why it would not, and choosing it switches
+     the editor cleanly. */
   await open('#/p/algo-running-max');
   await page.waitForTimeout(1500);
   await page.locator('.lang-pick-btn').click();
@@ -267,15 +284,18 @@ section('a language nothing can run is still offered, with the reason');
   }));
   const rust = m.opts.find(o => o.lang === 'rust');
   ok('Rust is listed', !!rust);
-  check('it is not pretending to be ready', rust.ready, 'false');
-  ok('it is not disabled either', !rust.disabled);
-  ok(`the note names the problem ("${rust.note}")`, /runner/.test(rust.note || ''));
-  ok('and the tooltip names the next action',
-    /Running code/.test(rust.title || ''));
+  ok('it is not disabled', !rust.disabled);
+  ok(`every option says something about where it would run `
+    + `(${m.opts.map(o => `${o.lang}: ${o.note}`).join(', ')})`,
+  m.opts.every(o => (o.note || '').trim().length > 2 && !/checking/i.test(o.note)));
+  ok(`a ready one names the backend ("${rust.note}")`,
+    rust.ready !== 'true' || /Browser|Local|Hosted/.test(rust.note || ''));
+  ok(`and its tooltip says the same ("${(rust.title || '').slice(0, 40)}")`,
+    /Runs here|Running code/.test(rust.title || ''));
   await page.keyboard.press('Escape');
 
-  /* And choosing it works: the template appears, the draft saves, and the
-     bar says it cannot run rather than failing on the click. */
+  /* And choosing it works: the template appears and the chip says what
+     would happen, rather than the click failing. */
   await page.locator('.lang-pick-btn').click();
   await page.waitForTimeout(200);
   await page.locator('.lang-opt[data-lang="rust"]').click();
@@ -291,15 +311,13 @@ section('a language nothing can run is still offered, with the reason');
   check('and the button renamed', picked.name, 'Rust');
   ok(`the Rust template is in the editor (${picked.doc.length} chars)`,
     /fn main/.test(picked.doc));
-  /* "No runner" was the whole truth when nothing could check Rust
-     either. It is not any more: the browser rustc type-checks every
-     Rust problem on every keystroke and only code generation is
-     missing, so the chip says which of the two states this is. Either
-     message is acceptable here — the assertion is that it does not
-     claim the problem can be run. */
-  ok(`the bar says it cannot be run ("${picked.chip}")`,
-    /No runner|Checked, not run/.test(picked.chip || ''));
-  ok('and offers the way out', picked.setup);
+  /* Three states are honest here and the chip has to be in one of
+     them: it runs, it is checked but cannot be run, or nothing can run
+     it. What it must never do is say nothing. */
+  ok(`the bar says which state this is ("${picked.chip}")`,
+    /Browser|Local|Hosted|No runner|Checked, not run/.test(picked.chip || ''));
+  ok('and "Why not here?" appears only when it cannot run',
+    picked.setup === !/Browser|Local|Hosted/.test(picked.chip || ''));
 }
 
 section('switching language mid-run does not mix the two up');

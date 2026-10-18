@@ -85,6 +85,8 @@
           lang: query.lang || '',
           /* #/problems?debugging=1 — the door the Content menu uses. */
           debugging: query.debugging || query.debug || '',
+          /* #/problems?project=1 — every milestone of every project. */
+          project: query.project || '',
           q: query.q || '',
         });
         break;
@@ -325,5 +327,8 @@
     Runners, Hosted, BrowserCpp, BrowserRust, RunHarness, Lint, Editor,
     MathsExpr, MathsRender,
     Vault, Sources, Attempts, Assessments, AssessmentView, LearnLayout,
+    /* What a multi-file exercise is, so a test can pack and unpack a
+       workspace the same way the page does. */
+    Workspace,
   };
 })();

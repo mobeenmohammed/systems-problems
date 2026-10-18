@@ -411,7 +411,16 @@ const Runners = (() => {
      `problemId` matters for exactly one case: C++ in the browser is only
      offered for problems certified for it. Without one, the answer is the
      same as it has always been. */
-  async function backendFor(lang, problemId = null) {
+  async function backendFor(lang, problemId = null, { multiFile = false } = {}) {
+    /* A workspace. One backend can do this — the in-browser toolchain,
+       which compiles each translation unit and links the objects. The
+       local judge and the hosted one take one file, and handing them
+       the entry point alone would report "undefined symbol" about a
+       definition the reader did write. So they are not offered. */
+    if (multiFile) {
+      return (lang === 'cpp' && await browserCppFor(lang, problemId)) ? 'browsercpp' : null;
+    }
+
     if (BROWSER.has(lang)) return 'browser';
 
     const judge = await checkJudge();
@@ -433,7 +442,23 @@ const Runners = (() => {
   /* Which languages a problem can actually offer, and where each would run.
      A language the editor lists but cannot run is worse than one it does not
      list, so `ready` is strict: it means a submission will execute. */
-  async function available(langs = [], problemId = null) {
+  async function available(langs = [], problemId = null, { multiFile = false } = {}) {
+    /* Same rule as backendFor, said once: on a workspace the only
+       honest answer is the browser toolchain or nothing, and the chip
+       over the editor must not promise Local. */
+    if (multiFile) {
+      const cppHere = await browserCppFor('cpp', problemId);
+      const engine = (browserCpp() && browserCpp().toolchain() || {}).compiler || 'clang, WebAssembly';
+      return langs.map(id => ({
+        id,
+        ready: id === 'cpp' && !!cppHere,
+        installed: id === 'cpp' && !!cppHere,
+        backend: id === 'cpp' && cppHere ? 'browsercpp' : null,
+        where: id === 'cpp' && cppHere ? BACKEND_LABEL.browsercpp : null,
+        version: id === 'cpp' && cppHere ? engine : null,
+      }));
+    }
+
     const judge = await checkJudge();
     const judgeIds = new Set(judge.languages.map(l => l.id));
 
@@ -485,8 +510,8 @@ const Runners = (() => {
 
   /* A single sentence about execution for the whole problem, which is what
      the toolbar shows. Honest about the case where nothing can run. */
-  async function describe(langs = [], problemId = null) {
-    const rows = await available(langs, problemId);
+  async function describe(langs = [], problemId = null, { multiFile = false } = {}) {
+    const rows = await available(langs, problemId, { multiFile });
     const ready = rows.filter(r => r.ready);
     const blocked = rows.filter(r => !r.ready);
     const judge = await checkJudge();
@@ -602,7 +627,36 @@ const Runners = (() => {
 
   /* Runs it, and says who did. */
   async function run(lang, source, cases, opts = {}) {
-    const backend = await backendFor(lang, opts.problemId || null);
+    /* A workspace arrives as opts.files; `source` is then the entry
+       point's text and is used for nothing but the size check inside
+       the backend. */
+    const multiFile = Array.isArray(opts.files) && opts.files.length > 0;
+    const backend = await backendFor(lang, opts.problemId || null, { multiFile });
+
+    if (multiFile) {
+      if (backend !== 'browsercpp') {
+        return {
+          lang,
+          backend: null,
+          compile: { ok: false, stdout: '', stderr: '', ms: 0, timedOut: false },
+          cases: [],
+          judgeDown: true,
+          kind: 'toolchain',
+          judgeError: 'This exercise is built from several files, and the '
+            + 'in-browser C++ toolchain is the only thing here that can do that.',
+          detail: 'Separate translation units are compiled and linked by the '
+            + 'clang in this tab. The optional local runner and the hosted one '
+            + 'both take a single file, so neither is offered for a workspace.',
+        };
+      }
+      return browserCpp().runFiles(opts.files, cases, {
+        runMs: opts.runMs,
+        signal: opts.signal,
+        onStage: opts.onStage,
+        sources: opts.sources || null,
+        entry: opts.entry || null,
+      });
+    }
 
     if (backend === 'browser') {
       const reply = await runLocalJs(source, cases, opts);

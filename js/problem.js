@@ -1051,11 +1051,63 @@ const ProblemView = (() => {
     return wrap;
   }
 
+  /* ---------------- a project, and where you are in it ----------------
+
+     A milestone on its own looks like an ordinary exercise with an odd
+     title. The strip says what it is part of, which step this is, and
+     what the others are — with the one you are on marked and the ones
+     you have finished ticked, so "showing milestone progress" is a
+     thing you can see rather than a claim.
+
+     The siblings come from the catalogue, which carries `project` in
+     the index, so this needs nothing loaded that is not already here. */
+  function projectStrip(p) {
+    const meta = p.project;
+    if (!meta || !meta.id) return null;
+
+    const steps = Catalog.all()
+      .filter(x => x.project && x.project.id === meta.id)
+      .sort((a, b) => (a.project.step || 0) - (b.project.step || 0));
+    if (steps.length < 2) return null;
+
+    const done = steps.filter(x => Store.record(x.id).status === 'solved').length;
+
+    return el('div', { class: 'proj', 'data-of': String(steps.length) }, [
+      el('div', { class: 'proj-head' }, [
+        el('span', { class: 'proj-kind tiny', text: 'Project' }),
+        el('span', { class: 'proj-title', text: meta.title || meta.id }),
+        el('span', { class: 'tiny faint', text: `${done} of ${steps.length} done` }),
+      ]),
+      el('ol', { class: 'proj-steps' }, steps.map((x) => {
+        const here = x.id === p.id;
+        const solved = Store.record(x.id).status === 'solved';
+        const label = (x.project && x.project.label) || x.title;
+        const inner = [
+          el('span', { class: 'proj-n', text: solved ? '✓' : String(x.project.step) }),
+          el('span', { class: 'proj-label', text: label }),
+        ];
+        return el('li', { class: 'proj-step', 'data-here': String(here),
+          'data-state': solved ? 'solved' : Store.record(x.id).status }, [
+          here
+            ? el('span', { class: 'proj-link', 'aria-current': 'step' }, inner)
+            : el('a', { class: 'proj-link', href: `#/p/${x.id}`, title: x.title }, inner),
+        ]);
+      })),
+      el('p', { class: 'tiny faint proj-note', text:
+        'Your files are carried forward from one milestone to the next, and each '
+        + 'one re-runs what the ones before it asked for.' }),
+    ]);
+  }
+
   function fillLeftPane(pane) {
     if (!pane) return;
     pane.replaceChildren();
     ({
-      problem:  panel => { panel.append(statementNode(current)); },
+      problem:  panel => {
+        const strip = projectStrip(current);
+        if (strip) panel.append(strip);
+        panel.append(statementNode(current));
+      },
       prereq:   drawPrereq,
       hints:    drawHints,
       notes:    drawNotes,
@@ -1097,7 +1149,7 @@ const ProblemView = (() => {
            It asks first, and the question says how much is at stake
            rather than asking in the abstract — and it does not ask at
            all when there is nothing to lose. */
-        el('button', {
+        impl.multiFile && impl.multiFile() ? resetMenu(impl) : el('button', {
           class: 'btn btn-sm btn-ghost', type: 'button', id: 'resetBtn',
           title: 'Put the starting template back',
           onclick: () => {
@@ -1170,6 +1222,70 @@ const ProblemView = (() => {
        not tell anybody which runner or what to do about it. */
 
     repaintMarks(widget);
+  }
+
+  /* Reset, on a workspace, is two different actions and they are not
+     close in size. One puts this file back; the other puts every file
+     back, which on a project is the afternoon. Offering them as one
+     button and a confirm dialog means the dangerous one is the default
+     and the question is the only thing standing in front of it.
+
+     So: a small menu, each entry saying what it would cost, and the
+     one that costs nothing right now disabled rather than hidden —
+     because a reader looking for Reset should find it where it was,
+     not discover that it has gone because there is nothing to reset. */
+  function resetMenu(impl) {
+    const body = el('div', { class: 'ws-menu-body' });
+
+    /* Filled when it is opened, never once at build time. The bar is
+       built when the problem is drawn and the files change under it
+       all afternoon; a menu saying "1 of 3 changed" about a workspace
+       where two have changed is a warning with the wrong number in
+       it, which is worse than no number. */
+    const fill = () => {
+      const cost = (impl.resetCost && impl.resetCost()) || { changed: [], total: 0 };
+      const n = cost.changed.length;
+
+      const entry = (label, note, scope, enabled) => el('button', {
+        class: 'btn btn-sm btn-ghost', type: 'button',
+        'data-scope': scope,
+        disabled: enabled ? undefined : true,
+        onclick: () => {
+          const ask = scope === 'file'
+            ? `Put ${cost.file} back as the exercise shipped it?\n\n`
+              + 'The other files are left alone, and this cannot be undone from here.'
+            : `Put all ${cost.total} files back as the exercise shipped them?\n\n`
+              + `${n} ${n === 1 ? 'file has' : 'files have'} been changed — `
+              + `${cost.changed.join(', ')} — and the changes are overwritten. `
+              + 'Your submissions are kept either way.';
+          if (!confirm(ask)) return;
+          impl.resetTemplate(scope);
+          const menu = host && host.querySelector('.ws-reset');
+          if (menu) menu.open = false;
+          draw();
+        },
+      }, [el('span', {}, [label]), el('span', { class: 'tiny faint', text: note })]);
+
+      body.replaceChildren(
+        entry('This file', cost.fileChanged
+          ? `${cost.file} — changed`
+          : `${cost.file} — unchanged`, 'file', cost.fileChanged),
+        entry('Every file', n
+          ? `${n} of ${cost.total} changed`
+          : `all ${cost.total} unchanged`, 'all', n > 0),
+        el('p', { class: 'tiny faint', style: 'margin:.3rem 0 0',
+          text: 'Submissions and progress are kept either way.' }),
+      );
+    };
+
+    const menu = el('details', { class: 'ws-menu ws-reset' }, [
+      el('summary', { class: 'btn btn-sm btn-ghost', id: 'resetBtn',
+        title: 'Put starter files back' }, ['Reset']),
+      body,
+    ]);
+    menu.addEventListener('toggle', () => { if (menu.open) fill(); });
+    fill();
+    return menu;
   }
 
   /* True once the reader has touched the answer since the last submission.
@@ -1452,6 +1568,13 @@ const ProblemView = (() => {
       const reply = await Runners.run(response.lang, response.source,
         list.map(stdin => ({ stdin })), {
           problemId: p.id,
+          /* The whole workspace, exactly as Run and Submit send it.
+             The entry point on its own would not link. */
+          files: response.files || null,
+          sources: response.files && typeof Workspace !== 'undefined'
+            ? Workspace.buildSources(p) : null,
+          entry: response.files && typeof Workspace !== 'undefined'
+            ? Workspace.entryOf(p) : null,
           profile: (p.payload || {}).profile || 'standard',
           onStage: (stage, detail) => {
             if (stage === 'running' && detail && detail.total > 1) {
@@ -1591,6 +1714,20 @@ const ProblemView = (() => {
   }
 
   function sourceNode(source, lang) {
+    /* A multi-file submission is one string holding every file. Shown
+       as the files it was, each named, rather than as the JSON it is
+       stored as. */
+    const doc = typeof Workspace !== 'undefined' ? Workspace.unpack(source) : null;
+    if (doc) {
+      return el('div', { class: 'sub-files' }, doc.files.map(f => el('div', { class: 'sub-file' }, [
+        el('h5', { class: 'sub-file-name mono' }, [
+          f.path,
+          f.path === doc.entry ? el('span', { class: 'mf-tag', text: 'entry' }) : null,
+        ]),
+        sourceNode(f.content, lang),
+      ])));
+    }
+
     const pre = el('pre', { class: 'sub-src' });
     const can = typeof Highlight !== 'undefined' && Highlight.supports(lang);
     pre.append(can
@@ -1604,8 +1741,15 @@ const ProblemView = (() => {
     const ed = codeEditor();
     if (!impl || !impl.loadSource || !ed || source == null) return;
     const now = ed.value;
+    const doc = typeof Workspace !== 'undefined' ? Workspace.unpack(source) : null;
     /* The editor holds the draft, and the draft is the only copy of it. */
-    if (now.trim() && now !== source && !confirm(
+    if (doc) {
+      if (!confirm(
+        `Put this submission back? It has ${doc.files.length} files.\n\n`
+        + 'Every file it names is replaced by the version that was submitted, '
+        + 'and what is in the editor now is the only copy of it.'
+      )) return;
+    } else if (now.trim() && now !== source && !confirm(
       'Put this submission back in the editor?\n\n'
       + 'What is in the editor now is replaced, and that is the only copy of it.'
     )) return;

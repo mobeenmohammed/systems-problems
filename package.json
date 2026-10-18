@@ -60,7 +60,8 @@
     "test:journeys-rust": "node tests/browser/journeys-rust.test.mjs",
     "probe:rust-gap": "node scripts/probe-rust-gap.mjs",
     "test:editor-sv": "node tests/browser/editor-sv.test.mjs",
-    "build:rustc": "bash scripts/build-rustc-wasm.sh"
+    "build:rustc": "bash scripts/build-rustc-wasm.sh",
+    "test:project": "node tests/browser/project.test.mjs"
   },
   "devDependencies": {
     "@bjorn3/browser_wasi_shim": "^0.4.2",

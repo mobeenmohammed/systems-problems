@@ -16,6 +16,7 @@
 
    Messages in:   { type: 'init' }
                   { type: 'compile', id, source, flags? }
+                  { type: 'compile', id, files, sources?, flags? }
    Messages out:  { type: 'progress', loaded, total, percent, fromCache?, stage? }
                   { type: 'ready', toolchain }
                   { type: 'compiled', id, ok, stderr, bytes }
@@ -50,7 +51,13 @@ self.onmessage = async (e) => {
 
     if (msg.type === 'compile') {
       const tc = await ensure();
-      const result = await tc.compile(msg.source, msg.flags || BROWSER_FLAGS);
+      /* One source or a whole workspace. The second is not the first
+         with the files glued together — each translation unit is
+         compiled on its own and the objects are linked — so the
+         toolchain is asked for it directly. */
+      const result = msg.files
+        ? await tc.compileFiles(msg.files, msg.flags || BROWSER_FLAGS, { sources: msg.sources || null })
+        : await tc.compile(msg.source, msg.flags || BROWSER_FLAGS);
       /* The linked program, as bytes. Each run worker compiles them itself —
          a few milliseconds for something this small — which keeps the run
          workers independent of whatever this one is holding. */

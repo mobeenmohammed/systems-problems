@@ -68,6 +68,14 @@ const findProblem = id => {
   const f = problemFiles.find(x => String(x).endsWith(`${id}.json`));
   return JSON.parse(fs.readFileSync(path.join(ROOT, 'problems', f), 'utf8'));
 };
+/* The page's own definition of a workspace, so "which files are
+   translation units" is answered once. */
+const WORKSPACE = (() => {
+  const src = fs.readFileSync(path.join(ROOT, 'js/workspace.js'), 'utf8');
+  // eslint-disable-next-line no-new-func -- our own file, read at audit time.
+  return new Function(`${src}; return Workspace;`)();
+})();
+
 const findSolution = id =>
   JSON.parse(fs.readFileSync(path.join(ROOT, 'solutions', `${id}.json`), 'utf8'));
 
@@ -104,7 +112,14 @@ async function tryProblem(tc, meta) {
   if (blocked) return { id: meta.id, verdict: 'native-only', reason: blocked };
 
   const solution = findSolution(meta.id);
-  const reference = (solution.key && solution.key.reference && solution.key.reference.cpp) || null;
+  const key = solution.key || {};
+  /* A workspace problem's reference is a set of files rather than one
+     string, and it is built the way the page builds it: each
+     translation unit on its own, then linked. */
+  const workspace = Array.isArray(pay.files) && pay.files.length > 0;
+  const reference = workspace
+    ? ((key.reference || {}).files || null)
+    : ((key.reference || {}).cpp || null);
   if (!reference) {
     return {
       id: meta.id, verdict: 'native-only',
@@ -113,10 +128,12 @@ async function tryProblem(tc, meta) {
     };
   }
 
-  const cases = [...(pay.cases || []), ...((solution.key && solution.key.cases) || [])];
+  const cases = [...(pay.cases || []), ...(key.cases || [])];
   if (!cases.length) return { id: meta.id, verdict: 'native-only', reason: 'No test cases.' };
 
-  const built = await tc.compile(reference, BROWSER_FLAGS);
+  const built = workspace
+    ? await tc.compileFiles(reference, BROWSER_FLAGS, { sources: WORKSPACE.buildSources(problem) })
+    : await tc.compile(reference, BROWSER_FLAGS);
   if (!built.ok) {
     const first = built.stderr.split('\n').find(l => /error:/.test(l)) || '';
     return {

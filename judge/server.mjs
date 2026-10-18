@@ -320,9 +320,50 @@ export async function lint({ lang, source, profile = 'standard' }) {
 
 /* ---------------- /run ---------------- */
 
-export async function run({ lang, source, profile = 'standard', cases = [], limits = {} }) {
+/* A path inside a workspace, checked here rather than trusted.
+
+   The rules are js/workspace.js's rules, and they are restated rather
+   than imported because this process is the other side of a network
+   boundary: the page validates what it sends, and a runner that skips
+   the check because the caller promised is a runner with no check. Any
+   drift makes the judge stricter than the page, which is the safe
+   direction. */
+const WORKSPACE_SEGMENT = /^[A-Za-z0-9_][A-Za-z0-9_.+-]*$/;
+const MAX_WORKSPACE_FILES = 12;
+
+function badPath(p) {
+  const s = String(p == null ? '' : p);
+  if (!s || s.length > 64) return true;
+  if (s.includes('\\') || s.startsWith('/') || /^[A-Za-z]:/.test(s)) return true;
+  const parts = s.split('/');
+  if (parts.length > 3) return true;
+  return parts.some(seg => !WORKSPACE_SEGMENT.test(seg));
+}
+
+export async function run({ lang, source, files = null, sources = null,
+                            profile = 'standard', cases = [], limits = {} }) {
   const spec = LANGS[lang];
   if (!spec) return { error: `unknown language "${lang}"` };
+
+  /* A workspace: several files, one of which is the entry point whose
+     text also arrives as `source`, so everything below this can carry
+     on treating `source` as the thing that was submitted. */
+  const workspace = Array.isArray(files) && files.length > 0;
+  if (workspace) {
+    if (lang !== 'cpp') return { error: 'only C++ is built from several files here' };
+    if (files.length > MAX_WORKSPACE_FILES) return { error: `more than ${MAX_WORKSPACE_FILES} files` };
+    for (const f of files) {
+      if (!f || badPath(f.path)) return { error: `unusable path ${JSON.stringify((f || {}).path)}` };
+      if (typeof f.content !== 'string') return { error: `${f.path} has no content` };
+    }
+    const total = files.reduce((n, f) => n + f.content.length, 0);
+    if (total > MAX_SOURCE) return { error: `the workspace exceeds ${MAX_SOURCE} bytes` };
+    for (const u of sources || []) {
+      if (!files.some(f => f.path === u)) return { error: `${u} is built but was not sent` };
+    }
+    if (sources && !sources.length) return { error: 'nothing to build' };
+  }
+
   if (typeof source !== 'string' || !source.trim()) return { error: 'no source' };
   if (source.length > MAX_SOURCE) return { error: `source exceeds ${MAX_SOURCE} bytes` };
   if (!Array.isArray(cases) || !cases.length) return { error: 'no cases' };
@@ -345,6 +386,25 @@ export async function run({ lang, source, profile = 'standard', cases = [], limi
     const bin = path.join(dir, `prog${EXE}`);
     await fs.writeFile(src, source, 'utf8');
 
+    /* The other files of a workspace, in a directory of their own that
+       is removed in the `finally` below — so nothing one run writes can
+       be read by the next, whichever problem it belongs to. The entry
+       point is written twice, once as spec.file and once under its own
+       name; `srcs` names the second, and the first is left unused. */
+    let srcs = null;
+    if (workspace) {
+      for (const f of files) {
+        const full = path.join(dir, f.path);
+        if (!full.startsWith(dir + path.sep)) return { error: `unusable path ${f.path}` };
+        await fs.mkdir(path.dirname(full), { recursive: true });
+        await fs.writeFile(full, f.content, 'utf8');
+      }
+      const units = (sources && sources.length)
+        ? sources
+        : files.filter(f => /[.](cpp|cc|cxx|c)$/i.test(f.path)).map(f => f.path);
+      srcs = units.map(u => path.join(dir, u));
+    }
+
     /* Some languages need a companion file next to the submission — the
        JavaScript shim providing the same stdin/stdout helpers the in-browser
        Worker does, so a submission means one thing in both places. */
@@ -358,7 +418,7 @@ export async function run({ lang, source, profile = 'standard', cases = [], limi
     const sanitized = profile === 'sanitize';
 
     /* --- compile --- */
-    const [ccmd, cargs] = spec.compile({ src, bin, dir, flags });
+    const [ccmd, cargs] = spec.compile({ src, srcs, bin, dir, flags });
     const [wc, wa] = wrap(ccmd, cargs, { stage: 'compile', sanitized });
     const compiled = await exec(wc, wa, { cwd: dir, timeoutMs: compileMs });
 

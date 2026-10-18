@@ -1,0 +1,91 @@
+{
+  "id": "proj-ring-logger-1",
+  "title": "A ring-buffer event logger: a bounded queue",
+  "topic": "algo",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "project": {
+    "id": "ring-logger",
+    "title": "Build a ring-buffer event logger",
+    "step": 1,
+    "of": 3,
+    "label": "Bounded FIFO"
+  },
+  "tags": [
+    "ring-buffer",
+    "project",
+    "multi-file",
+    "data-structures"
+  ],
+  "estimate": 30,
+  "prereqs": [
+    {
+      "concept": "ring-buffers",
+      "why": "This is the structure itself: an array, two indices, and a modulo that turns it into a circle."
+    },
+    {
+      "concept": "cpp-std-vector",
+      "why": "The slots are a vector sized once in the constructor and then only ever written through, never grown."
+    },
+    {
+      "concept": "compilation-pipeline",
+      "why": "Three files are compiled separately and linked, so a signature that does not match its declaration is a link error rather than a compile error."
+    },
+    {
+      "concept": "array-bounds",
+      "why": "Every index here is taken modulo the capacity, and the one that is not is the bug that reads past the end."
+    }
+  ],
+  "statement": "**Milestone 1 of 3.** A ring-buffer event logger, built one requirement at a time.\nThis milestone is the buffer itself: bounded, first in, first out.\n\n### The files\n\n```\nring_buffer.hpp   the interface. The public part is the contract; the\n                  private part is yours to change.\nring_buffer.cpp   where you work. Every function is stubbed.\nmain.cpp          given, and read-only here: the command loop that\n                  drives your buffer.\n```\n\nThey are compiled separately and linked, the way a real build does it —\nnot pasted together. A diagnostic names the file it is in, and clicking it\nopens that file at that line.\n\n### The commands\n\nThe first line is the capacity. Every line after it is one command.\n\n```\npush <at> <text>   add an event; <at> is a whole number, <text> is one word\npop                remove and print the oldest event, or print `empty`\nsize               print `<held>/<capacity>`\ndump               print every event held, oldest arrival first, or `(none)`\n```\n\n`push` prints nothing when it works. A command that is not one of these is\nignored, and so is a malformed one.\n\n### What the buffer has to do\n\n- It holds at most `capacity` events. `capacity` is at least 1.\n- `push` adds the newest. When the buffer is **full** it refuses: it changes\n  nothing and returns `false`, and the driver prints `full`.\n- `pop` removes the **oldest** and hands it back. When the buffer is empty it\n  returns `false` and the driver prints `empty`.\n- `at(i)` is the i-th oldest event still held, so `at(0)` is the one `pop`\n  would take next. It is only ever called with `i < size()`.\n- Pushing and popping repeatedly must keep working: the storage is reused in\n  a circle, which is the whole point of the structure.\n\n### The sample\n\n```\n3                      capacity three\npush 10 boot\npush 20 login\nsize            ->     2/3\ndump            ->     10 boot\n                       20 login\n```\n\n### How it is checked\n\nYour `ring_buffer.cpp` is compiled against the given `main.cpp` and run on\nthe cases. Any implementation that behaves as described passes — the slots\nmay be a `std::vector`, a `std::array`, a `std::deque` or anything else, and\nthe private members in the header are a suggestion you are free to replace.\n\nThis is one milestone of three. Your files are carried forward to the next\none, so what you write here is what you build on.",
+  "hints": [
+    "Four of the seven functions are one line each. `size()` is the count you are keeping, `empty()` and `full()` are that count against nothing and against the capacity, and `capacity()` is already written. Get those right and the `size` command starts passing on its own.",
+    "Two indices do it: where the oldest event is, and how many there are. The newest one goes at `(start + count) % capacity` — which is one past the last, wrapped — and a pop moves `start` on by one, also wrapped. Nothing is ever shifted along.",
+    "`at(i)` is the same arithmetic as the push: the i-th oldest is at `(start_ + i) % cap_`. If `dump` prints the right events in the wrong order, that is the line to look at. If a refused push still changes the buffer, check that `push` returns before it touches anything."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 5000
+    },
+    "files": [
+      {
+        "path": "ring_buffer.hpp",
+        "content": "#ifndef RING_BUFFER_HPP\n#define RING_BUFFER_HPP\n\n#include <cstddef>\n#include <string>\n#include <vector>\n\n/* One logged event: when it happened, and what happened. */\nstruct Event {\n    long long at = 0;      /* a timestamp; it is NOT always increasing */\n    std::string text;      /* one word, no spaces */\n};\n\n/* A bounded first-in, first-out buffer of events.\n *\n * The PUBLIC part is the contract. main.cpp is written against exactly\n * these names and signatures, so changing one stops it compiling.\n *\n * Everything under `private:` is yours. The three members below are\n * what a ring buffer usually needs — a block of slots, where the\n * oldest one is, and how many are in use — and you may replace them\n * with anything that behaves the same.\n */\nclass RingBuffer {\npublic:\n    explicit RingBuffer(std::size_t capacity);\n\n    std::size_t capacity() const;\n    std::size_t size() const;\n    bool empty() const;\n    bool full() const;\n\n    /* Adds `e` as the newest event. Returns false, and changes nothing\n     * at all, when there is no room. */\n    bool push(const Event& e);\n\n    /* Removes the OLDEST event into `out`. Returns false when there is\n     * nothing to remove, and leaves `out` alone. */\n    bool pop(Event& out);\n\n    /* The i-th oldest event still held. i < size(). */\n    Event at(std::size_t i) const;\n\nprivate:\n    std::size_t cap_;\n    std::size_t start_ = 0;\n    std::size_t count_ = 0;\n    std::vector<Event> slots_;\n};\n\n#endif\n"
+      },
+      {
+        "path": "ring_buffer.cpp",
+        "content": "#include \"ring_buffer.hpp\"\n\n/* Milestone 1: a bounded FIFO.\n *\n * Every one of these compiles as it stands and every one of them is\n * wrong — that is deliberate, so your first Run is a list of failing\n * cases rather than a wall of compiler errors.\n */\n\nRingBuffer::RingBuffer(std::size_t capacity)\n    : cap_(capacity), slots_(capacity) {}\n\nstd::size_t RingBuffer::capacity() const {\n    return cap_;\n}\n\nstd::size_t RingBuffer::size() const {\n    /* your code here */\n    return 0;\n}\n\nbool RingBuffer::empty() const {\n    /* your code here */\n    return true;\n}\n\nbool RingBuffer::full() const {\n    /* your code here */\n    return false;\n}\n\nbool RingBuffer::push(const Event& e) {\n    /* your code here — when there is no room, change nothing and\n       return false. */\n    (void) e;\n    return false;\n}\n\nbool RingBuffer::pop(Event& out) {\n    /* your code here — the OLDEST event comes out first. */\n    (void) out;\n    return false;\n}\n\nEvent RingBuffer::at(std::size_t i) const {\n    /* your code here — i == 0 is the oldest event still held. */\n    (void) i;\n    return Event{};\n}\n"
+      },
+      {
+        "path": "main.cpp",
+        "content": "/* GIVEN, and read-only for this milestone.\n *\n * The driver: it reads commands from stdin, calls the buffer, and\n * prints what came back. It is the thing your ring_buffer.cpp has to\n * satisfy, which is why you cannot edit it here — a test you can edit\n * is not a test.\n */\n#include <iostream>\n#include <sstream>\n#include <string>\n\n#include \"ring_buffer.hpp\"\n\nint main() {\n    std::ios::sync_with_stdio(false);\n    std::cin.tie(nullptr);\n\n    std::size_t cap = 0;\n    if (!(std::cin >> cap)) return 0;\n    RingBuffer buf(cap);\n\n    std::string line;\n    std::getline(std::cin, line);          /* the rest of the capacity line */\n\n    while (std::getline(std::cin, line)) {\n        std::istringstream in(line);\n        std::string cmd;\n        if (!(in >> cmd)) continue;\n\n        if (cmd == \"push\") {\n            Event e;\n            if (!(in >> e.at >> e.text)) continue;\n            if (!buf.push(e)) std::cout << \"full\\n\";\n        } else if (cmd == \"pop\") {\n            Event e;\n            if (buf.pop(e)) std::cout << e.at << ' ' << e.text << '\\n';\n            else std::cout << \"empty\\n\";\n        } else if (cmd == \"size\") {\n            std::cout << buf.size() << '/' << buf.capacity() << '\\n';\n        } else if (cmd == \"dump\") {\n            if (buf.empty()) {\n                std::cout << \"(none)\\n\";\n            } else {\n                for (std::size_t i = 0; i < buf.size(); ++i) {\n                    const Event e = buf.at(i);\n                    std::cout << e.at << ' ' << e.text << '\\n';\n                }\n            }\n        }\n    }\n    return 0;\n}\n",
+        "readOnly": true
+      }
+    ],
+    "entry": "main.cpp",
+    "build": {
+      "sources": [
+        "main.cpp",
+        "ring_buffer.cpp"
+      ]
+    },
+    "cases": [
+      {
+        "stdin": "3\npush 10 boot\npush 20 login\nsize\ndump\npop\npop\npop\nsize\n",
+        "expect": "2/3\n10 boot\n20 login\n10 boot\n20 login\nempty\n0/3\n"
+      },
+      {
+        "stdin": "2\npush 1 a\npush 2 b\npush 3 c\ndump\npop\npush 3 c\ndump\n",
+        "expect": "full\n1 a\n2 b\n1 a\n2 b\n3 c\n"
+      },
+      {
+        "stdin": "1\ndump\npop\nsize\n",
+        "expect": "(none)\nempty\n0/1\n"
+      }
+    ]
+  }
+}

@@ -121,7 +121,13 @@ export const LANGS = {
     install: 'sudo apt install g++        (Ubuntu/WSL)',
     file: 'main.cpp',
     version: ['g++', ['-dumpfullversion', '-dumpversion']],
-    compile: ({ src, bin, flags }) => ['g++', [...flags, src, '-o', bin]],
+    /* `srcs` is every translation unit, which is [src] for the ordinary
+       one-file submission and the whole list for a workspace. They are
+       compiled and linked in one g++ invocation; the alternative, one
+       -c per file and a separate link, buys nothing here and costs a
+       process each. Headers are NOT in the list — they are written into
+       the same directory and found by #include. */
+    compile: ({ src, srcs, bin, flags }) => ['g++', [...flags, ...(srcs || [src]), '-o', bin]],
     run:     ({ bin }) => [bin, []],
 
     /* -fsyntax-only parses and type-checks without generating code, which is

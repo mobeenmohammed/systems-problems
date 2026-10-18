@@ -1,0 +1,87 @@
+{
+  "id": "proj-ring-logger-3",
+  "title": "A ring-buffer event logger: report in time order",
+  "topic": "algo",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "code",
+  "project": {
+    "id": "ring-logger",
+    "title": "Build a ring-buffer event logger",
+    "step": 3,
+    "of": 3,
+    "label": "Chronological report",
+    "continues": "proj-ring-logger-2"
+  },
+  "tags": [
+    "ring-buffer",
+    "project",
+    "multi-file",
+    "data-structures"
+  ],
+  "estimate": 30,
+  "prereqs": [
+    {
+      "concept": "ring-buffers",
+      "why": "This is the structure itself: an array, two indices, and a modulo that turns it into a circle."
+    },
+    {
+      "concept": "cpp-std-vector",
+      "why": "The slots are a vector sized once in the constructor and then only ever written through, never grown."
+    },
+    {
+      "concept": "compilation-pipeline",
+      "why": "Three files are compiled separately and linked, so a signature that does not match its declaration is a link error rather than a compile error."
+    },
+    {
+      "concept": "array-bounds",
+      "why": "Every index here is taken modulo the capacity, and the one that is not is the bug that reads past the end."
+    }
+  ],
+  "statement": "**Milestone 3 of 3.** The events are stamped with when they *happened*, and\nthey do not arrive in that order. The logger has to report them in it.\n\n### What is carried forward\n\nYour `ring_buffer.hpp` and `ring_buffer.cpp` arrive as you left them in\nmilestone 2, and nothing more is asked of them. This milestone is in\n`main.cpp`, which is **yours to edit from here on** — the `report` branch is\nempty.\n\n### The commands\n\nThe first line is the capacity. Every line after it is one command.\n\n```\npush <at> <text>   add an event; <at> is a whole number, <text> is one word\npop                remove and print the oldest event, or print `empty`\nsize               print `<held>/<capacity>`\ndump               print every event held, oldest arrival first, or `(none)`\n```\n\n`push` prints nothing when it works. A command that is not one of these is\nignored, and so is a malformed one.\n\n```\noverwrite on|off   turn overwriting on or off\ndropped            print how many events have been dropped\nreport             print the events held, earliest timestamp first\n```\n\n### What `report` has to do\n\n- Print one line per event held, `<at> <text>`, in increasing order of `at`.\n- Two events with the same `at` keep the order they **arrived** in. `at(0)` is\n  the oldest arrival, so that order is the one the buffer is already in.\n- Print `(none)` when the buffer is empty.\n- It must not change the buffer: a `report` followed by a `dump` prints the\n  same events, in the buffer's own order.\n- Timestamps may be negative, and may be larger than fits in 32 bits.\n\n### The sample\n\n```\n4\npush 30 c\npush 10 a\npush 20 b\nreport          ->    10 a\n                      20 b\n                      30 c\ndump            ->    30 c\n                      10 a\n                      20 b\n```\n\n### How it is checked\n\nThe cases are this milestone's, milestone 2's and milestone 1's. The logger\nhas to do everything it ever did, plus this.",
+  "hints": [
+    "`report` needs the events in a place you can sort, and the buffer already offers one event at a time through `at(i)`. Copy them into a `std::vector<Event>` first; sorting the buffer itself would break the rule that `report` leaves it alone.",
+    "`std::sort` is not enough. Two events stamped the same have to come out in the order they arrived, and `std::sort` is free to swap equal elements. `std::stable_sort` is the one that promises not to.",
+    "The comparison is on the timestamp only: `a.at < b.at`. Comparing the text as well, or using `<=`, is how a tie stops being a tie. Remember `(none)` for the empty buffer — there is a case for it."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 5000
+    },
+    "files": [
+      {
+        "path": "ring_buffer.hpp",
+        "content": "#ifndef RING_BUFFER_HPP\n#define RING_BUFFER_HPP\n\n#include <cstddef>\n#include <string>\n#include <vector>\n\n/* One logged event: when it happened, and what happened. */\nstruct Event {\n    long long at = 0;      /* a timestamp; it is NOT always increasing */\n    std::string text;      /* one word, no spaces */\n};\n\n/* A bounded first-in, first-out buffer of events.\n *\n * The PUBLIC part is the contract. main.cpp is written against exactly\n * these names and signatures, so changing one stops it compiling.\n *\n * Everything under `private:` is yours. The three members below are\n * what a ring buffer usually needs — a block of slots, where the\n * oldest one is, how many are in use, and from this milestone on\n * whether it overwrites — and you may replace them with anything that\n * behaves the same.\n */\nclass RingBuffer {\npublic:\n    explicit RingBuffer(std::size_t capacity);\n\n    std::size_t capacity() const;\n    std::size_t size() const;\n    bool empty() const;\n    bool full() const;\n\n    /* Adds `e` as the newest event. Returns false, and changes nothing\n     * at all, when there is no room. */\n    bool push(const Event& e);\n\n    /* Removes the OLDEST event into `out`. Returns false when there is\n     * nothing to remove, and leaves `out` alone. */\n    bool pop(Event& out);\n\n    /* The i-th oldest event still held. i < size(). */\n    Event at(std::size_t i) const;\n\n    /* Milestone 2. With overwriting on, a push into a full buffer\n     * drops the oldest event to make room and succeeds. With it off —\n     * which is how a buffer starts — a push into a full buffer refuses,\n     * exactly as in milestone 1. */\n    void set_overwrite(bool on);\n    bool overwriting() const;\n\n    /* How many events have been dropped to make room, over the whole\n     * life of this buffer. A pop is not a drop. */\n    std::size_t dropped() const;\n\nprivate:\n    std::size_t cap_;\n    std::size_t start_ = 0;\n    std::size_t count_ = 0;\n    std::vector<Event> slots_;\n    bool overwrite_ = false;\n    std::size_t dropped_ = 0;\n};\n\n#endif\n"
+      },
+      {
+        "path": "ring_buffer.cpp",
+        "content": "#include \"ring_buffer.hpp\"\n\n/* Milestone 3 asks nothing of this file. It is milestone 2's answer,\n   and it arrives carried forward from your own work if you did that\n   one. Everything it already does is tested again here.\n*/\n\nRingBuffer::RingBuffer(std::size_t capacity)\n    : cap_(capacity), slots_(capacity) {}\n\nstd::size_t RingBuffer::capacity() const {\n    return cap_;\n}\n\nstd::size_t RingBuffer::size() const {\n    return count_;\n}\n\nbool RingBuffer::empty() const {\n    return count_ == 0;\n}\n\nbool RingBuffer::full() const {\n    return count_ == cap_;\n}\n\nbool RingBuffer::push(const Event& e) {\n    if (full()) {\n        if (!overwrite_) return false;\n        /* Make room by throwing away the oldest. The slot it was in is\n           where the new event goes, because start_ moves on by one and\n           (start_ + count_) % cap_ is then that same slot. */\n        start_ = (start_ + 1) % cap_;\n        --count_;\n        ++dropped_;\n    }\n    slots_[(start_ + count_) % cap_] = e;\n    ++count_;\n    return true;\n}\n\nbool RingBuffer::pop(Event& out) {\n    if (empty()) return false;\n    out = slots_[start_];\n    start_ = (start_ + 1) % cap_;\n    --count_;\n    return true;\n}\n\nEvent RingBuffer::at(std::size_t i) const {\n    return slots_[(start_ + i) % cap_];\n}\n\nvoid RingBuffer::set_overwrite(bool on) {\n    overwrite_ = on;\n}\n\nbool RingBuffer::overwriting() const {\n    return overwrite_;\n}\n\nstd::size_t RingBuffer::dropped() const {\n    return dropped_;\n}\n"
+      },
+      {
+        "path": "main.cpp",
+        "content": "/* Yours from this milestone on.\n *\n * Everything that was here in milestones 1 and 2 still has to work:\n * the hidden cases run those commands again. What is new is `report`,\n * and the branch for it is empty.\n */\n#include <algorithm>\n#include <iostream>\n#include <sstream>\n#include <string>\n\n#include \"ring_buffer.hpp\"\n\nint main() {\n    std::ios::sync_with_stdio(false);\n    std::cin.tie(nullptr);\n\n    std::size_t cap = 0;\n    if (!(std::cin >> cap)) return 0;\n    RingBuffer buf(cap);\n\n    std::string line;\n    std::getline(std::cin, line);          /* the rest of the capacity line */\n\n    while (std::getline(std::cin, line)) {\n        std::istringstream in(line);\n        std::string cmd;\n        if (!(in >> cmd)) continue;\n\n        if (cmd == \"push\") {\n            Event e;\n            if (!(in >> e.at >> e.text)) continue;\n            if (!buf.push(e)) std::cout << \"full\\n\";\n        } else if (cmd == \"pop\") {\n            Event e;\n            if (buf.pop(e)) std::cout << e.at << ' ' << e.text << '\\n';\n            else std::cout << \"empty\\n\";\n        } else if (cmd == \"size\") {\n            std::cout << buf.size() << '/' << buf.capacity() << '\\n';\n        } else if (cmd == \"overwrite\") {\n            std::string how;\n            if (!(in >> how)) continue;\n            buf.set_overwrite(how == \"on\");\n        } else if (cmd == \"dropped\") {\n            std::cout << buf.dropped() << '\\n';\n        } else if (cmd == \"report\") {\n            /* your code here — the same events `dump` would print, in\n             * order of when they HAPPENED rather than when they\n             * arrived, and `(none)` when there are none.\n             *\n             * Two events with the same timestamp keep the order they\n             * arrived in. buf.at(0) is the oldest arrival.\n             */\n        } else if (cmd == \"dump\") {\n            if (buf.empty()) {\n                std::cout << \"(none)\\n\";\n            } else {\n                for (std::size_t i = 0; i < buf.size(); ++i) {\n                    const Event e = buf.at(i);\n                    std::cout << e.at << ' ' << e.text << '\\n';\n                }\n            }\n        }\n    }\n    return 0;\n}\n"
+      }
+    ],
+    "entry": "main.cpp",
+    "build": {
+      "sources": [
+        "main.cpp",
+        "ring_buffer.cpp"
+      ]
+    },
+    "cases": [
+      {
+        "stdin": "4\npush 30 c\npush 10 a\npush 20 b\nreport\ndump\n",
+        "expect": "10 a\n20 b\n30 c\n30 c\n10 a\n20 b\n"
+      },
+      {
+        "stdin": "3\nreport\noverwrite on\npush 50 e\npush 10 a\npush 70 g\npush 20 b\nreport\n",
+        "expect": "(none)\n10 a\n20 b\n70 g\n"
+      }
+    ]
+  }
+}

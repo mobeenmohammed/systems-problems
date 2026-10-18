@@ -159,7 +159,10 @@ const SetupGuide = (() => {
             + 'diagnostics — but it can only build and run some of them, because its '
             + 'backend cannot compile parse::<i64>(). Each problem says which it is. '
             + 'A few exercises in every language need the native toolchain and say '
-            + 'why on the problem itself.'
+            + 'why on the problem itself. The exercises built from several files — '
+            + 'a header and two sources, compiled separately and linked — run here '
+            + 'and only here, and only in C++: the in-browser Clang is the one '
+            + 'thing on this page that compiles more than one translation unit.'
           : 'Unavailable, which should not happen; reload the page.',
         langs: browserLangs,
       }),

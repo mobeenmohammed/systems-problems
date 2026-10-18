@@ -90,7 +90,12 @@ const INDEX_FIELDS = ['id', 'title', 'topic', 'subject', 'difficulty', 'lane', '
      wrong, and the exercise is to find out why. Not a type — it is an
      ordinary code or hdl problem in every other respect — so it rides
      as a flag the catalogue can filter and badge. */
-  'debugging'];
+  'debugging',
+  /* A milestone of a project: which project, which step, and of how
+     many. The catalogue badges and orders by it, and the problem page
+     draws the strip from it, so it has to be in the index rather than
+     only in the problem file. */
+  'project'];
 
 /* The two characters a mis-escaped newline leaves behind. Built from a char
    code rather than written as an escape so that there is no backslash in this
@@ -103,6 +108,16 @@ const readJson = file => JSON.parse(fs.readFileSync(file, 'utf8'));
 /* The real expression engine, loaded the same way the browser loads it, so
    that an answer key is validated by the thing that will actually grade it
    rather than by a second implementation that can drift from it. */
+/* The page's own definition of a workspace, loaded the way the browser
+   loads it, so "what is a legal path" is answered by one file rather
+   than by this script's opinion of it. */
+const WORKSPACE = (() => {
+  const src = fs.readFileSync(path.join(ROOT, 'js/workspace.js'), 'utf8');
+  // eslint-disable-next-line no-new-func -- our own file, read from disk at
+  // build time; this is not user input and never reaches a browser.
+  return new Function(`${src}; return Workspace;`)();
+})();
+
 const MATHS = (() => {
   const src = fs.readFileSync(path.join(ROOT, 'js/maths/expr.js'), 'utf8');
   // eslint-disable-next-line no-new-func -- our own file, read from disk at
@@ -222,6 +237,21 @@ export function validate({ problems, concepts, solutions }) {
       err(where, 'a debugging problem must say in its statement that the starter is wrong');
     }
 
+    /* A milestone of a project. The strip on the page and the badge in
+       the catalogue are both drawn from this, so a step that lies about
+       which of how many is a wrong picture rather than a missing one. */
+    if (p.project !== undefined) {
+      const pr = p.project || {};
+      if (!pr.id) err(where, 'project needs an id');
+      if (!pr.title) err(where, 'project needs a title — it is what the strip says');
+      if (!Number.isInteger(pr.step) || pr.step < 1) err(where, 'project.step must be 1 or more');
+      if (!Number.isInteger(pr.of) || pr.of < 2) err(where, 'project.of must be 2 or more');
+      if (Number.isInteger(pr.step) && Number.isInteger(pr.of) && pr.step > pr.of) {
+        err(where, `project.step ${pr.step} is past project.of ${pr.of}`);
+      }
+      if (pr.continues && pr.continues === p.id) err(where, 'project.continues points at itself');
+    }
+
     /* The prerequisites tab is the reason this site exists, so a problem
        without any is a content bug rather than a style choice. */
     if (!Array.isArray(p.prereqs) || !p.prereqs.length) {
@@ -246,6 +276,40 @@ export function validate({ problems, concepts, solutions }) {
 
     for (const m of sol.readMore || []) {
       if (m.concept && !concepts[m.concept]) err(swhere, `readMore points at unknown concept "${m.concept}"`);
+    }
+  }
+
+  /* Every project is a complete run of steps. A project claiming three
+     milestones with only two in the tree draws a strip pointing at a
+     problem that does not exist. */
+  const projects = {};
+  for (const p of problems) {
+    if (!p.project || !p.project.id) continue;
+    (projects[p.project.id] = projects[p.project.id] || []).push(p);
+  }
+  for (const [id, steps] of Object.entries(projects)) {
+    const where = `project "${id}"`;
+    const of = steps[0].project.of;
+    if (steps.some(x => x.project.of !== of)) err(where, 'its milestones disagree about how many there are');
+    const seen = steps.map(x => x.project.step).sort((a, b) => a - b);
+    const want = Array.from({ length: of }, (_, i) => i + 1);
+    if (seen.join(',') !== want.join(',')) {
+      err(where, `has steps ${seen.join(', ')} but claims ${of}`);
+    }
+    for (const x of steps) {
+      const prev = x.project.continues;
+      if (!prev) continue;
+      if (!ids.has(prev)) err(`${x.__file}`, `project.continues points at "${prev}", which does not exist`);
+      else {
+        const before = steps.find(y => y.id === prev);
+        if (!before) err(`${x.__file}`, `project.continues points outside this project`);
+        else if (before.project.step !== x.project.step - 1) {
+          err(`${x.__file}`, 'project.continues is not the step before this one');
+        }
+      }
+    }
+    if (steps.some(x => x.project.step > 1 && !x.project.continues)) {
+      err(where, 'every milestone after the first must say which one it continues');
     }
   }
 
@@ -325,6 +389,32 @@ function validatePayload(p, err, where) {
       }
       if (pay.profile && !PROFILES.includes(pay.profile)) err(where, `unknown profile "${pay.profile}"`);
       if (!Array.isArray(pay.cases) || !pay.cases.length) err(where, 'code needs at least one visible case');
+
+      /* A workspace. Several files, compiled and linked; the schema is
+         in js/workspace.js and so are the rules, which are checked
+         here so an unusable path is an author's build failure rather
+         than a reader's run failure. */
+      if (pay.files !== undefined) {
+        if (!Array.isArray(pay.files) || !pay.files.length) {
+          err(where, 'payload.files must be a non-empty array of { path, content }');
+        } else {
+          for (const why of WORKSPACE.faults(pay.files, {
+            entry: WORKSPACE.entryOf(p), sources: WORKSPACE.buildSources(p),
+          })) err(where, why);
+
+          if ((pay.langs || []).join(',') !== 'cpp') {
+            err(where, 'a multi-file problem is C++ only for now: see docs/multi-file.md');
+          }
+          if (pay.templates) {
+            err(where, 'a multi-file problem starts from payload.files, not payload.templates');
+          }
+          if (!pay.entry) err(where, 'payload.entry must name the file with main()');
+          const entryFile = (pay.files || []).find(f => f.path === pay.entry);
+          if (entryFile && !/\bmain\s*\(/.test(String(entryFile.content || ''))) {
+            err(where, `the entry point "${pay.entry}" has no main()`);
+          }
+        }
+      }
       /* A problem whose answer depends on type widths, byte order or
          alignment has to say what it assumes, or the "right" answer is a guess
          about the reader's machine. The trigger is deliberately narrow — words
@@ -709,7 +799,41 @@ function validateKey(p, sol, err, where) {
         }
       }
       /* A reference solution per claimed language is what lets
-         content.test.mjs prove the problem is actually solvable. */
+         content.test.mjs prove the problem is actually solvable.
+
+         For a workspace that is a set of files rather than one string,
+         and it is held to the same rules as the starter: the same
+         paths, nothing extra, and every translation unit present. A
+         second copy of the entry point as `reference.cpp` is NOT
+         wanted — two copies of one file is one copy too many to keep
+         in step. */
+      if (Array.isArray((p.payload || {}).files) && p.payload.files.length) {
+        const ref = (k.reference || {}).files;
+        if (!Array.isArray(ref) || !ref.length) {
+          err(where, 'a multi-file problem needs key.reference.files: the worked workspace');
+        } else {
+          const want = new Set(p.payload.files.map(f => f.path));
+          const got = new Set(ref.map(f => f && f.path));
+          for (const f of ref) {
+            if (typeof f.content !== 'string') err(where, `reference file ${f && f.path} has no content`);
+            if (!want.has(f && f.path)) err(where, `reference names "${f && f.path}", which the problem does not have`);
+          }
+          for (const u of WORKSPACE.buildSources(p)) {
+            if (!got.has(u)) err(where, `the reference is missing "${u}", which is built`);
+          }
+          /* A read-only file the reference quietly rewrote would be a
+             reference solving a different exercise. */
+          for (const f of p.payload.files) {
+            if (!f.readOnly) continue;
+            const mine = ref.find(x => x && x.path === f.path);
+            if (mine && mine.content !== f.content) {
+              err(where, `the reference changed "${f.path}", which the problem gives as read-only`);
+            }
+          }
+        }
+        break;
+      }
+
       for (const lang of p.payload.langs || []) {
         if (!k.reference || !k.reference[lang]) {
           err(where, `no reference solution for "${lang}", which the problem claims to accept`);

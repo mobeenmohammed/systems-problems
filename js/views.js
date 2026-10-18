@@ -142,6 +142,12 @@ const UI = (() => {
              saying on the row: it changes what the exercise is before
              anybody opens it. */
           p.debugging ? el('span', { class: 'badge badge-debug', text: 'Debugging' }) : null,
+          /* Which milestone of which project. Said on the row because
+             opening step 3 of something first is a worse experience
+             than being told there are two before it. */
+          p.project ? el('span', { class: 'badge badge-project',
+            title: `${p.project.title} — milestone ${p.project.step} of ${p.project.of}`,
+            text: `Project ${p.project.step}/${p.project.of}` }) : null,
           optional ? el('span', { class: 'badge badge-optional', text: 'Optional' }) : null,
           due ? el('span', { class: 'badge badge-due', title: `Due for revisit on ${r.reviewOn}`, text: 'Revisit' }) : null,
         ]),
@@ -326,6 +332,9 @@ const UI = (() => {
        splitting a `d` across two strings once closed it early. */
     debug: '<path d="M6.2 4.2a1.8 1.8 0 0 1 3.6 0"/><path d="M4.6 6.2h6.8v3.2a3.4 3.4 0 0 1-6.8 0z"/>'
       + '<path d="M4.6 7.6H2.4M11.4 7.6h2.2M5 10.9l-1.8 1.6M11 10.9l1.8 1.6M5.2 5l-1.4-1.3M10.8 5l1.4-1.3"/>',
+    /* Three stacked sheets: a thing made of several files. */
+    project: '<path d="M2.4 5.6 8 3l5.6 2.6L8 8.2z"/>'
+      + '<path d="M2.4 8.6 8 11.2l5.6-2.6M2.4 11.4 8 14l5.6-2.6"/>',
     /* A package with legs: the one picture everybody reads as hardware. */
     chip: '<rect x="4.6" y="4.6" width="6.8" height="6.8" rx="1"/>'
       + '<path d="M6.4 1.9v2.7M9.6 1.9v2.7M6.4 11.4v2.7M9.6 11.4v2.7'
@@ -419,6 +428,11 @@ const UI = (() => {
       {
         title: 'Assess',
         items: [
+          {
+            icon: 'project', label: 'Projects', href: '#/problems?project=1',
+            blurb: 'Build one thing across several files and several '
+              + 'milestones, each adding a requirement to the last.',
+          },
           {
             icon: 'debug', label: 'Debugging', href: '#/problems?debugging=1',
             blurb: 'Exercises that start from a program that is already written '
@@ -1943,7 +1957,7 @@ const UI = (() => {
 
   let filter = {
     q: '', subject: '', kind: '', topic: '', difficulty: '', type: '',
-    status: '', lane: '', lang: '', debugging: '',
+    status: '', lane: '', lang: '', debugging: '', project: '',
   };
 
   /* ---------------- subject ----------------
@@ -2034,7 +2048,9 @@ const UI = (() => {
     $('#fType').value   = filter.type;
     $('#fStatus').value = filter.status;
     $('#fLane').value   = filter.lane;
-    if ($('#fDebug')) $('#fDebug').value = filter.debugging;
+    /* One control, two kinds of work. Its value is the state it would
+       set rather than a third field nobody reads. */
+    if ($('#fDebug')) $('#fDebug').value = filter.project ? 'project' : filter.debugging;
     if ($('#fLang')) $('#fLang').value = filter.lang;
     if (!silent) renderCatalog();
   }
@@ -2144,7 +2160,7 @@ const UI = (() => {
           class: 'btn btn-sm', type: 'button',
           onclick: () => setFilter({
             q: '', topic: '', difficulty: '', type: '', status: '', lane: '',
-            lang: '', debugging: '',
+            lang: '', debugging: '', project: '',
           }),
         }, ['Clear all filters']),
       ]));
@@ -2171,14 +2187,16 @@ const UI = (() => {
     $('#fStatus').addEventListener('change', e => setFilter({ status: e.target.value }));
     $('#fLane').addEventListener('change',   e => setFilter({ lane: e.target.value }));
     if ($('#fDebug')) {
-      $('#fDebug').addEventListener('change', e => setFilter({ debugging: e.target.value }));
+      $('#fDebug').addEventListener('change', e => setFilter(e.target.value === 'project'
+        ? { debugging: '', project: '1' }
+        : { debugging: e.target.value, project: '' }));
     }
     if ($('#fLang')) {
       $('#fLang').addEventListener('change', e => setFilter({ lang: e.target.value }));
     }
     $('#fClear').addEventListener('click', () => setFilter({
       q: '', subject: '', kind: '', topic: '', difficulty: '', type: '',
-      status: '', lane: '', lang: '', debugging: '',
+      status: '', lane: '', lang: '', debugging: '', project: '',
     }));
   }
 

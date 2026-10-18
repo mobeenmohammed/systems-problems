@@ -1,0 +1,60 @@
+{
+  "id": "proj-ring-logger-2",
+  "key": {
+    "reference": {
+      "files": [
+        {
+          "path": "ring_buffer.hpp",
+          "content": "#ifndef RING_BUFFER_HPP\n#define RING_BUFFER_HPP\n\n#include <cstddef>\n#include <string>\n#include <vector>\n\n/* One logged event: when it happened, and what happened. */\nstruct Event {\n    long long at = 0;      /* a timestamp; it is NOT always increasing */\n    std::string text;      /* one word, no spaces */\n};\n\n/* A bounded first-in, first-out buffer of events.\n *\n * The PUBLIC part is the contract. main.cpp is written against exactly\n * these names and signatures, so changing one stops it compiling.\n *\n * Everything under `private:` is yours. The three members below are\n * what a ring buffer usually needs — a block of slots, where the\n * oldest one is, how many are in use, and from this milestone on\n * whether it overwrites — and you may replace them with anything that\n * behaves the same.\n */\nclass RingBuffer {\npublic:\n    explicit RingBuffer(std::size_t capacity);\n\n    std::size_t capacity() const;\n    std::size_t size() const;\n    bool empty() const;\n    bool full() const;\n\n    /* Adds `e` as the newest event. Returns false, and changes nothing\n     * at all, when there is no room. */\n    bool push(const Event& e);\n\n    /* Removes the OLDEST event into `out`. Returns false when there is\n     * nothing to remove, and leaves `out` alone. */\n    bool pop(Event& out);\n\n    /* The i-th oldest event still held. i < size(). */\n    Event at(std::size_t i) const;\n\n    /* Milestone 2. With overwriting on, a push into a full buffer\n     * drops the oldest event to make room and succeeds. With it off —\n     * which is how a buffer starts — a push into a full buffer refuses,\n     * exactly as in milestone 1. */\n    void set_overwrite(bool on);\n    bool overwriting() const;\n\n    /* How many events have been dropped to make room, over the whole\n     * life of this buffer. A pop is not a drop. */\n    std::size_t dropped() const;\n\nprivate:\n    std::size_t cap_;\n    std::size_t start_ = 0;\n    std::size_t count_ = 0;\n    std::vector<Event> slots_;\n    bool overwrite_ = false;\n    std::size_t dropped_ = 0;\n};\n\n#endif\n"
+        },
+        {
+          "path": "ring_buffer.cpp",
+          "content": "#include \"ring_buffer.hpp\"\n\nRingBuffer::RingBuffer(std::size_t capacity)\n    : cap_(capacity), slots_(capacity) {}\n\nstd::size_t RingBuffer::capacity() const {\n    return cap_;\n}\n\nstd::size_t RingBuffer::size() const {\n    return count_;\n}\n\nbool RingBuffer::empty() const {\n    return count_ == 0;\n}\n\nbool RingBuffer::full() const {\n    return count_ == cap_;\n}\n\nbool RingBuffer::push(const Event& e) {\n    if (full()) {\n        if (!overwrite_) return false;\n        /* Make room by throwing away the oldest. The slot it was in is\n           where the new event goes, because start_ moves on by one and\n           (start_ + count_) % cap_ is then that same slot. */\n        start_ = (start_ + 1) % cap_;\n        --count_;\n        ++dropped_;\n    }\n    slots_[(start_ + count_) % cap_] = e;\n    ++count_;\n    return true;\n}\n\nbool RingBuffer::pop(Event& out) {\n    if (empty()) return false;\n    out = slots_[start_];\n    start_ = (start_ + 1) % cap_;\n    --count_;\n    return true;\n}\n\nEvent RingBuffer::at(std::size_t i) const {\n    return slots_[(start_ + i) % cap_];\n}\n\nvoid RingBuffer::set_overwrite(bool on) {\n    overwrite_ = on;\n}\n\nbool RingBuffer::overwriting() const {\n    return overwrite_;\n}\n\nstd::size_t RingBuffer::dropped() const {\n    return dropped_;\n}\n"
+        },
+        {
+          "path": "main.cpp",
+          "content": "/* GIVEN, and read-only for this milestone.\n *\n * The driver: it reads commands from stdin, calls the buffer, and\n * prints what came back. It is the thing your ring_buffer.cpp has to\n * satisfy, which is why you cannot edit it here — a test you can edit\n * is not a test.\n */\n#include <iostream>\n#include <sstream>\n#include <string>\n\n#include \"ring_buffer.hpp\"\n\nint main() {\n    std::ios::sync_with_stdio(false);\n    std::cin.tie(nullptr);\n\n    std::size_t cap = 0;\n    if (!(std::cin >> cap)) return 0;\n    RingBuffer buf(cap);\n\n    std::string line;\n    std::getline(std::cin, line);          /* the rest of the capacity line */\n\n    while (std::getline(std::cin, line)) {\n        std::istringstream in(line);\n        std::string cmd;\n        if (!(in >> cmd)) continue;\n\n        if (cmd == \"push\") {\n            Event e;\n            if (!(in >> e.at >> e.text)) continue;\n            if (!buf.push(e)) std::cout << \"full\\n\";\n        } else if (cmd == \"pop\") {\n            Event e;\n            if (buf.pop(e)) std::cout << e.at << ' ' << e.text << '\\n';\n            else std::cout << \"empty\\n\";\n        } else if (cmd == \"size\") {\n            std::cout << buf.size() << '/' << buf.capacity() << '\\n';\n        } else if (cmd == \"overwrite\") {\n            std::string how;\n            if (!(in >> how)) continue;\n            buf.set_overwrite(how == \"on\");\n        } else if (cmd == \"dropped\") {\n            std::cout << buf.dropped() << '\\n';\n        } else if (cmd == \"dump\") {\n            if (buf.empty()) {\n                std::cout << \"(none)\\n\";\n            } else {\n                for (std::size_t i = 0; i < buf.size(); ++i) {\n                    const Event e = buf.at(i);\n                    std::cout << e.at << ' ' << e.text << '\\n';\n                }\n            }\n        }\n    }\n    return 0;\n}\n"
+        }
+      ]
+    },
+    "cases": [
+      {
+        "stdin": "2\noverwrite on\npush 1 a\npush 2 b\npush 3 c\noverwrite off\npush 4 d\ndump\ndropped\n",
+        "expect": "full\n2 b\n3 c\n1\n"
+      },
+      {
+        "stdin": "2\noverwrite on\npush 1 a\npush 2 b\npop\npop\ndropped\npush 3 c\ndropped\n",
+        "expect": "1 a\n2 b\n0\n0\n"
+      },
+      {
+        "stdin": "1\noverwrite on\npush 1 a\npush 2 b\npush 3 c\ndump\ndropped\nsize\n",
+        "expect": "3 c\n2\n1/1\n"
+      },
+      {
+        "stdin": "4\noverwrite on\npush 1 a\npush 2 b\ndump\ndropped\n",
+        "expect": "1 a\n2 b\n0\n"
+      },
+      {
+        "stdin": "1\npush 5 a\nsize\npush 6 b\npop\npush 6 b\npop\npop\n",
+        "expect": "1/1\nfull\n5 a\n6 b\nempty\n"
+      },
+      {
+        "stdin": "3\npush 1 a\npush 2 b\npush 3 c\npop\npush 4 d\ndump\npop\npop\npop\n",
+        "expect": "1 a\n2 b\n3 c\n4 d\n2 b\n3 c\n4 d\n"
+      },
+      {
+        "stdin": "2\npush 1 a\npush 2 b\npush 3 c\npush 4 d\nsize\ndump\n",
+        "expect": "full\nfull\n2/2\n1 a\n2 b\n"
+      },
+      {
+        "stdin": "4\npush 1 a\npush 2 b\npush 3 c\npush 4 d\npop\npop\npush 5 e\npush 6 f\ndump\nsize\n",
+        "expect": "1 a\n2 b\n3 c\n4 d\n5 e\n6 f\n4/4\n"
+      },
+      {
+        "stdin": "2\npush -9 early\npush 4000000000 late\ndump\n",
+        "expect": "-9 early\n4000000000 late\n"
+      }
+    ]
+  },
+  "explanation": "### Overwriting\n\nOne extra branch at the top of `push`:\n\n```cpp\nbool RingBuffer::push(const Event& e) {\n    if (full()) {\n        if (!overwrite_) return false;\n        start_ = (start_ + 1) % cap_;   // drop the oldest\n        --count_;\n        ++dropped_;\n    }\n    slots_[(start_ + count_) % cap_] = e;\n    ++count_;\n    return true;\n}\n```\n\nAfter the drop, `(start_ + count_) % cap_` is the slot the dropped event was\nin — the arithmetic lands there by itself, so there is nothing to special-case.\n\n### Why this is the interesting mode\n\nA log that refuses new entries when it is full loses the *newest* events,\nwhich are the ones you are usually reading it for: when something goes wrong\nat 03:00 you want the last thousand lines, not the first thousand. A ring\nbuffer with overwriting gives you a window that always ends at now, for a\nfixed amount of memory and no allocation.\n\nThat is why `dropped()` matters. A window that silently discards is a window\nyou cannot trust; one that tells you it dropped 4,812 events tells you your\nbuffer is too small, and that is the number you act on.\n\n### Where the mistakes are\n\n**Counting a pop as a drop.** A pop is a reader taking an event; a drop is an\nevent nobody ever saw. One hidden case pops a buffer empty and then asks for\n`dropped`, which has to be zero.\n\n**Resetting the count when overwriting is turned off.** It is a life-of-the-\nbuffer total.\n\n**The link error first.** Declaring three functions and defining none is not\na compile error: each file compiles perfectly well. It is the linker that\nnotices, at the end, and it says `undefined symbol` with the mangled name.\nThat is worth meeting on purpose once, because it is the error that makes no\nsense until you have seen how separate compilation works."
+}

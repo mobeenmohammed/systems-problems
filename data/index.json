@@ -560,6 +560,38 @@
     ]
   },
   {
+    "id": "proj-ring-logger-1",
+    "title": "A ring-buffer event logger: a bounded queue",
+    "topic": "algo",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "ring-buffer",
+      "project",
+      "multi-file",
+      "data-structures"
+    ],
+    "estimate": 30,
+    "project": {
+      "id": "ring-logger",
+      "title": "Build a ring-buffer event logger",
+      "step": 1,
+      "of": 3,
+      "label": "Bounded FIFO"
+    },
+    "subject": "systems",
+    "prereqs": [
+      "ring-buffers",
+      "cpp-std-vector",
+      "compilation-pipeline",
+      "array-bounds"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
     "id": "algo-binary-search-overflow",
     "title": "The binary search that breaks on big arrays",
     "topic": "algo",
@@ -700,6 +732,72 @@
     "subject": "systems",
     "prereqs": [
       "ring-buffers",
+      "array-bounds"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
+    "id": "proj-ring-logger-2",
+    "title": "A ring-buffer event logger: overwrite the oldest",
+    "topic": "algo",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "ring-buffer",
+      "project",
+      "multi-file",
+      "data-structures"
+    ],
+    "estimate": 35,
+    "project": {
+      "id": "ring-logger",
+      "title": "Build a ring-buffer event logger",
+      "step": 2,
+      "of": 3,
+      "label": "Overwrite oldest",
+      "continues": "proj-ring-logger-1"
+    },
+    "subject": "systems",
+    "prereqs": [
+      "ring-buffers",
+      "cpp-std-vector",
+      "compilation-pipeline",
+      "array-bounds"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
+    "id": "proj-ring-logger-3",
+    "title": "A ring-buffer event logger: report in time order",
+    "topic": "algo",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "ring-buffer",
+      "project",
+      "multi-file",
+      "data-structures"
+    ],
+    "estimate": 30,
+    "project": {
+      "id": "ring-logger",
+      "title": "Build a ring-buffer event logger",
+      "step": 3,
+      "of": 3,
+      "label": "Chronological report",
+      "continues": "proj-ring-logger-2"
+    },
+    "subject": "systems",
+    "prereqs": [
+      "ring-buffers",
+      "cpp-std-vector",
+      "compilation-pipeline",
       "array-bounds"
     ],
     "langs": [

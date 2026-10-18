@@ -276,38 +276,105 @@ export class Toolchain {
     return found;
   }
 
+  /* The reader's own files, planted beside the sysroot. Relative paths,
+     so `#include "ring_buffer.hpp"` finds the one next to the source
+     that included it — which is the whole reason this works without an
+     -I flag. */
+  _plantFiles(m, files) {
+    for (const f of files) {
+      const dir = String(f.path).split('/').slice(0, -1).join('/');
+      if (dir && !m.FS.analyzePath(dir).exists) m.FS.mkdirTree(dir);
+      m.FS.writeFile(String(f.path), String(f.content == null ? '' : f.content));
+    }
+  }
+
   /* One compile. Returns the linked WebAssembly.Module, or null and the
      compiler's own words — which are ordinary Clang diagnostics, carets and
      all, so the existing diagnostic parser reads them unchanged. */
   async compile(source, flags = BROWSER_FLAGS) {
+    return this.compileFiles([{ path: 'main.cpp', content: source }], flags);
+  }
+
+  /* Several translation units, compiled separately and linked.
+
+     NOT concatenated. Concatenation is the tempting shortcut and it is
+     wrong in every way that matters: one object file means one set of
+     line numbers, so every diagnostic points at the wrong place; a
+     static at file scope stops being private to its file; an include
+     guard that was doing its job starts hiding a second definition; and
+     "it links" stops being a thing the exercise can teach. So each
+     source is driven through cc1 on its own and wasm-ld is handed the
+     objects, which is what a real build does.
+
+     Every call gets fresh Clang and LLD instances, and therefore a
+     fresh filesystem. Nothing a previous compile wrote — for this
+     problem or any other — can be read by this one.
+
+     The driver line is asked for once, for `main.cpp`, and the input
+     and output names are substituted per unit. The alternative is one
+     `-###` run per file, which costs most of a second each and tells us
+     the same thing: the flags do not depend on the name. */
+  async compileFiles(files, flags = BROWSER_FLAGS, { sources = null } = {}) {
     if (!this.ready) throw new Error('the toolchain has not been initialised');
+
+    const SOURCE = /\.(cpp|cc|cxx|c)$/i;
+    const units = (sources && sources.length ? sources : files.filter(f => SOURCE.test(f.path)).map(f => f.path))
+      .map(String);
+    if (!units.length) return { ok: false, stderr: 'nothing to compile\n', module: null };
 
     let stderr = '';
     const onErr = d => { stderr += `${d}\n`; };
     const inv = await this._invocation('main.cpp', flags);
 
-    const clang = await this.Clang({
-      thisProgram: 'clang++', printErr: onErr,
-      instantiateWasm: this._instantiate(this.clangModule),
-    });
-    clang.FS.writeFile('main.cpp', source);
-    this._plant(clang);
+    /* The first unit keeps the driver's own object name, so a one-file
+       compile is argument-for-argument what it has always been. */
+    const objectFor = i => (i === 0 ? inv.compilerArtifact
+      : inv.compilerArtifact.replace(/\.o$/, '') + `-${i}.o`);
 
-    /* A copy of the argv every time: Emscripten's callMain unshifts argv[0]
-       into the array it is given, so passing the cached one twice turns
-       `-cc1` into argv[2] and the driver stops recognising it. */
-    if (clang.callMain([...inv.compilerArgs]) !== 0) {
-      return { ok: false, stderr, module: null };
+    const objects = [];
+    for (const [i, unit] of units.entries()) {
+      const out = objectFor(i);
+      /* eslint-disable-next-line no-await-in-loop -- one compiler instance
+         at a time on purpose: two of these is 126 MB of wasm resident. */
+      const clang = await this.Clang({
+        thisProgram: 'clang++', printErr: onErr,
+        instantiateWasm: this._instantiate(this.clangModule),
+      });
+      /* Every file, not only this unit: the headers have to be there for
+         the include to find them. */
+      this._plantFiles(clang, files);
+      this._plant(clang);
+
+      /* A copy of the argv every time: Emscripten's callMain unshifts argv[0]
+         into the array it is given, so passing the cached one twice turns
+         `-cc1` into argv[2] and the driver stops recognising it.
+
+         `main.cpp` appears twice in a cc1 line — as the input and as
+         `-main-file-name` — and both should become this unit's name, so
+         the substitution is by exact value rather than by position. */
+      const args = inv.compilerArgs.map(a => (
+        a === 'main.cpp' ? unit : (a === inv.compilerArtifact ? out : a)));
+      if (clang.callMain(args) !== 0) {
+        return { ok: false, stderr, module: null };
+      }
+      objects.push({ path: out, bytes: clang.FS.readFile(out, { encoding: 'binary' }) });
     }
-    const obj = clang.FS.readFile(inv.compilerArtifact, { encoding: 'binary' });
 
     const lld = await this.LLD({
       thisProgram: 'wasm-ld', printErr: onErr,
       instantiateWasm: this._instantiate(this.lldModule),
     });
-    lld.FS.writeFile(inv.compilerArtifact, obj);
+    for (const o of objects) lld.FS.writeFile(o.path, o.bytes);
     this._plant(lld);
-    if (lld.callMain([...inv.linkerArgs]) !== 0) {
+
+    /* The driver named one object; the link takes all of them, in the
+       order they were built, where that one stood. */
+    const linkArgs = [];
+    for (const a of inv.linkerArgs) {
+      if (a === inv.compilerArtifact) linkArgs.push(...objects.map(o => o.path));
+      else linkArgs.push(a);
+    }
+    if (lld.callMain(linkArgs) !== 0) {
       return { ok: false, stderr, module: null };
     }
 

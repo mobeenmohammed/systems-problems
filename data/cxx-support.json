@@ -6,7 +6,7 @@
     "standard": "C++20",
     "flags": "-O2 -std=c++20 -fno-exceptions -Wall -Wextra"
   },
-  "generated": 34,
+  "generated": 37,
   "browser": [
     "algo-impl-circular-queue",
     "algo-impl-count",
@@ -40,6 +40,9 @@
     "oa-run-length",
     "os-sim-page-replacement",
     "os-sim-scheduling",
+    "proj-ring-logger-1",
+    "proj-ring-logger-2",
+    "proj-ring-logger-3",
     "sysdesign-token-bucket"
   ],
   "nativeOnly": {

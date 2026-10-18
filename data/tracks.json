@@ -198,5 +198,16 @@
       "hdl-sequence-fsm",
       "fpga-max-clock-frequency"
     ]
+  },
+  {
+    "id": "project-ring-logger",
+    "title": "Project: a ring-buffer event logger",
+    "blurb": "One program over three files and three milestones: a bounded queue, a policy for what to do when it is full, and a view over what it holds. Your files are carried forward from each milestone to the next, and each one re-runs everything the ones before it asked for.",
+    "goal": "Finish this and you have written a ring buffer you would actually use, across separately compiled translation units, with every earlier requirement still passing.",
+    "problems": [
+      "proj-ring-logger-1",
+      "proj-ring-logger-2",
+      "proj-ring-logger-3"
+    ]
   }
 ]

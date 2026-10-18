@@ -3617,3 +3617,141 @@ button.hdl-check:hover .hdl-check-go { text-decoration: underline; }
 /* The legend. Set a size here rather than inheriting, so it stays legible
    when the figure is scaled down on a phone. */
 .mfig-key .mfig-label { font-size: 12px; }
+
+/* ---- a workspace of several files ----
+
+   Left: the explorer, which collapses to nothing and leaves the tabs.
+   Right: one row of tabs and a stack of editors, exactly one of which
+   is visible. The hidden ones are `hidden`, not removed: each is a live
+   CodeMirror holding a cursor and an undo history. */
+.mf {
+  min-height: 0; display: grid; gap: var(--s2);
+  grid-template-columns: minmax(0, 13rem) minmax(0, 1fr);
+}
+.mf[data-files="false"] { grid-template-columns: 0 minmax(0, 1fr); gap: 0; }
+.mf[data-files="false"] .mf-side { display: none; }
+
+.mf-side {
+  min-width: 0; min-height: 0; display: flex; flex-direction: column;
+  border: 1px solid var(--border); border-radius: var(--radius-s);
+  background: var(--bg-elev); overflow: auto;
+}
+.mf-side-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: .35rem .5rem; border-bottom: 1px solid var(--border);
+  text-transform: uppercase; letter-spacing: .06em;
+}
+.mf-tree { list-style: none; margin: 0; padding: .25rem; display: grid; gap: .1rem; }
+.mf-file {
+  width: 100%; display: flex; align-items: center; gap: .35rem;
+  appearance: none; border: 0; background: none; cursor: pointer;
+  padding: .3rem .4rem; border-radius: var(--radius-s);
+  font-family: var(--mono); font-size: .78rem; color: var(--text-dim);
+  text-align: left;
+}
+.mf-file:hover { background: var(--bg-elev-2); color: var(--text); }
+.mf-file[aria-current="true"] { background: var(--accent-soft); color: var(--text); }
+.mf-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mf-dot {
+  width: .4rem; height: .4rem; border-radius: 50%; flex: 0 0 auto;
+  background: transparent;
+}
+/* A file you have changed. The only way to see at a glance which of
+   three you have actually touched. */
+.mf-file[data-edited="true"] .mf-dot,
+.mf-tab[data-edited="true"]::before { background: var(--accent); }
+.mf-tag {
+  font-size: .6rem; text-transform: uppercase; letter-spacing: .05em;
+  padding: 0 .25rem; border-radius: var(--radius-s);
+  border: 1px solid var(--border-strong); color: var(--text-faint);
+  font-family: var(--font);
+}
+.mf-tag-ro { color: var(--text-faint); }
+.mf-side-note { padding: .4rem .5rem; margin: auto 0 0; }
+
+.mf-main { min-width: 0; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); }
+.mf-tabs {
+  display: flex; gap: .15rem; align-items: center;
+  border-bottom: 1px solid var(--border); overflow-x: auto;
+}
+.mf-toggle {
+  appearance: none; border: 0; background: none; cursor: pointer;
+  color: var(--text-faint); padding: .25rem .4rem; font-size: .9rem;
+  border-radius: var(--radius-s); flex: 0 0 auto;
+}
+.mf-toggle:hover { color: var(--text); background: var(--bg-elev-2); }
+.mf-tab {
+  appearance: none; border: 0; background: none; cursor: pointer;
+  padding: .3rem .55rem; font-family: var(--mono); font-size: .76rem;
+  color: var(--text-faint); border-bottom: 2px solid transparent;
+  white-space: nowrap; display: flex; align-items: center; gap: .3rem;
+}
+.mf-tab::before {
+  content: ''; width: .35rem; height: .35rem; border-radius: 50%;
+  background: transparent;
+}
+.mf-tab:hover { color: var(--text-dim); }
+.mf-tab[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
+
+.mf-stack { min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr); }
+.mf-slot { min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr); }
+.mf-slot[hidden] { display: none; }
+.mf-slot .ed { min-height: 0; height: auto; }
+
+/* The workspace takes the whole editor row; the host grid above it is
+   written for one editor and its status line. */
+.ws-editor .ed-host-multi { grid-template-rows: minmax(0, 1fr); }
+
+@media (max-width: 860px) {
+  .mf { grid-template-columns: minmax(0, 1fr); }
+  .mf[data-files="true"] .mf-side { max-height: 8rem; }
+}
+
+/* The file a diagnostic is in, in front of its line and column. */
+.diag-file { color: var(--text-faint); margin-right: .25rem; }
+
+/* A submitted workspace, in the Submissions tab: one block per file. */
+.sub-files { display: grid; gap: .5rem; }
+.sub-file-name {
+  display: flex; align-items: center; gap: .4rem;
+  margin: 0 0 .2rem; font-size: .76rem; color: var(--text-dim);
+}
+
+/* ---- a project, and where you are in it ---- */
+.proj {
+  border: 1px solid var(--border); border-radius: var(--radius-s);
+  background: var(--bg-elev); padding: .5rem .6rem; margin: 0 0 var(--s3);
+}
+.proj-head { display: flex; align-items: baseline; gap: .45rem; flex-wrap: wrap; }
+.proj-kind {
+  text-transform: uppercase; letter-spacing: .06em; color: var(--accent);
+}
+.proj-title { font-weight: 600; }
+.proj-steps {
+  list-style: none; margin: .45rem 0 0; padding: 0;
+  display: flex; gap: .3rem; flex-wrap: wrap;
+}
+.proj-step { min-width: 0; }
+.proj-link {
+  display: flex; align-items: center; gap: .35rem;
+  padding: .25rem .5rem; border-radius: var(--radius-s);
+  border: 1px solid var(--border); color: var(--text-dim);
+  font-size: .78rem; text-decoration: none;
+}
+a.proj-link:hover { border-color: var(--border-strong); color: var(--text); }
+.proj-step[data-here="true"] .proj-link {
+  border-color: var(--accent); background: var(--accent-soft); color: var(--text);
+}
+.proj-step[data-state="solved"] .proj-n { color: var(--ok); }
+.proj-n { font-family: var(--mono); font-size: .72rem; color: var(--text-faint); }
+.proj-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.proj-note { margin: .45rem 0 0; }
+
+/* Reset is a menu on a workspace: one file, or all of them. It is the
+   ⋯ menu's body with the summary styled as the button it replaces. */
+.ws-reset > summary { list-style: none; }
+.ws-reset .ws-menu-body { min-width: 15rem; }
+.ws-reset .ws-menu-body > button { justify-content: space-between; width: 100%; }
+
+/* The row badge in the catalogue. */
+.badge-project { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }

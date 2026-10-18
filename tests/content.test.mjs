@@ -620,10 +620,20 @@ section('every template says where your code goes, and what goes there');
   const leaks = [];
 
   const debugStarters = [];
+  const workspaces = [];
 
   for (const p of problems.filter(x => x.type === 'code')) {
     const pay = p.payload || {};
     const own = pay.templates || {};
+
+    /* A workspace has no `templates`: it starts from several files, and
+       the rule applies to the ones the reader may edit. The given
+       files are the exercise's own code and are exempt — a driver with
+       "your code here" in it would be inviting an edit it forbids. */
+    if (Array.isArray(pay.files) && pay.files.length) {
+      workspaces.push(p);
+      continue;
+    }
 
     /* A debugging challenge has no hole to mark. Its starter is a
        complete program that is wrong, and "your code here" in the
@@ -677,6 +687,30 @@ section('every template says where your code goes, and what goes there');
   check(`every one of them marks where your code goes${unmarked.length ? `: ${unmarked[0]}` : ''}`,
     unmarked.length, 0);
 
+  /* The same rule, over the files of a workspace. At least one editable
+     file has to say where the work goes; a milestone that carries an
+     earlier one's finished file forward does not have to mark that
+     one again. */
+  for (const p of workspaces) {
+    const pay = p.payload;
+    const mine = pay.files.filter(f => !f.readOnly);
+    ok(`${p.id}: has files the reader may edit`, mine.length > 0);
+    ok(`${p.id}: and one of them says where the work goes`,
+      mine.some(f => MARK.test(String(f.content || ''))));
+    for (const f of mine.filter(x => MARK.test(String(x.content || '')))) {
+      for (const line of String(f.content).split('\n').filter(l => MARK.test(l))) {
+        const at = line.search(MARK);
+        ok(`${p.id} [${f.path}]: the marker is a comment`,
+          /(\/\/|\/\*|\*)\s*$/.test(line.slice(0, at)));
+      }
+    }
+    /* And the given files are given: the reference must not have
+       rewritten one, which build-index also checks. */
+    const ref = ((solutions[p.id] || {}).key || {}).reference || {};
+    const files = ref.files || [];
+    ok(`${p.id}: the reference is a workspace of its own`, files.length === pay.files.length);
+  }
+
   /* And the opposite rule, for the ones that are already written. */
   for (const d of debugStarters) {
     ok(`${d.id} [${d.lang}]: has a starter of its own`, typeof d.src === 'string' && d.src.length > 40);
@@ -722,6 +756,16 @@ section('the build and the catalogue agree on what a language is');
     const pay = p.payload || {};
     const sol = solutions[p.id] || {};
     const ref = (sol.key && sol.key.reference) || {};
+    /* A workspace is backed by a worked set of files. There is
+       deliberately no second copy of the entry point under
+       `reference.cpp` — two copies of one file is one too many to keep
+       in step. */
+    if (Array.isArray(pay.files) && pay.files.length) {
+      if (!Array.isArray(ref.files) || !ref.files.length) {
+        unbacked.push(`${p.id} is a workspace with no reference files`);
+      }
+      continue;
+    }
     for (const lang of pay.langs || []) {
       if (!ref[lang]) unbacked.push(`${p.id} offers ${lang} with no reference solution`);
     }
@@ -753,9 +797,20 @@ if (codeProblems.length) {
         continue;
       }
 
-      const source = sol.key.reference[lang];
+      /* A workspace goes to the runner as every file plus the list of
+         translation units; g++ compiles and links them in one go. The
+         entry point's text is `source` as well, because that is what
+         the size and emptiness checks are written against. */
+      const workspace = Array.isArray(pay.files) && pay.files.length;
+      const files = workspace
+        ? sol.key.reference.files.map(f => ({ path: f.path, content: f.content }))
+        : null;
+      const source = workspace
+        ? (files.find(f => f.path === pay.entry) || files[0]).content
+        : sol.key.reference[lang];
       const reply = await run({
-        lang, source,
+        lang, source, files,
+        sources: workspace ? (pay.build || {}).sources || null : null,
         profile: pay.profile || 'standard',
         cases: cases.map(c => ({ stdin: c.stdin })),
         limits: pay.limits,

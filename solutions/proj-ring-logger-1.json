@@ -1,0 +1,44 @@
+{
+  "id": "proj-ring-logger-1",
+  "key": {
+    "reference": {
+      "files": [
+        {
+          "path": "ring_buffer.hpp",
+          "content": "#ifndef RING_BUFFER_HPP\n#define RING_BUFFER_HPP\n\n#include <cstddef>\n#include <string>\n#include <vector>\n\n/* One logged event: when it happened, and what happened. */\nstruct Event {\n    long long at = 0;      /* a timestamp; it is NOT always increasing */\n    std::string text;      /* one word, no spaces */\n};\n\n/* A bounded first-in, first-out buffer of events.\n *\n * The PUBLIC part is the contract. main.cpp is written against exactly\n * these names and signatures, so changing one stops it compiling.\n *\n * Everything under `private:` is yours. The three members below are\n * what a ring buffer usually needs — a block of slots, where the\n * oldest one is, and how many are in use — and you may replace them\n * with anything that behaves the same.\n */\nclass RingBuffer {\npublic:\n    explicit RingBuffer(std::size_t capacity);\n\n    std::size_t capacity() const;\n    std::size_t size() const;\n    bool empty() const;\n    bool full() const;\n\n    /* Adds `e` as the newest event. Returns false, and changes nothing\n     * at all, when there is no room. */\n    bool push(const Event& e);\n\n    /* Removes the OLDEST event into `out`. Returns false when there is\n     * nothing to remove, and leaves `out` alone. */\n    bool pop(Event& out);\n\n    /* The i-th oldest event still held. i < size(). */\n    Event at(std::size_t i) const;\n\nprivate:\n    std::size_t cap_;\n    std::size_t start_ = 0;\n    std::size_t count_ = 0;\n    std::vector<Event> slots_;\n};\n\n#endif\n"
+        },
+        {
+          "path": "ring_buffer.cpp",
+          "content": "#include \"ring_buffer.hpp\"\n\nRingBuffer::RingBuffer(std::size_t capacity)\n    : cap_(capacity), slots_(capacity) {}\n\nstd::size_t RingBuffer::capacity() const {\n    return cap_;\n}\n\nstd::size_t RingBuffer::size() const {\n    return count_;\n}\n\nbool RingBuffer::empty() const {\n    return count_ == 0;\n}\n\nbool RingBuffer::full() const {\n    return count_ == cap_;\n}\n\nbool RingBuffer::push(const Event& e) {\n    if (full()) return false;\n    slots_[(start_ + count_) % cap_] = e;\n    ++count_;\n    return true;\n}\n\nbool RingBuffer::pop(Event& out) {\n    if (empty()) return false;\n    out = slots_[start_];\n    start_ = (start_ + 1) % cap_;\n    --count_;\n    return true;\n}\n\nEvent RingBuffer::at(std::size_t i) const {\n    return slots_[(start_ + i) % cap_];\n}\n"
+        },
+        {
+          "path": "main.cpp",
+          "content": "/* GIVEN, and read-only for this milestone.\n *\n * The driver: it reads commands from stdin, calls the buffer, and\n * prints what came back. It is the thing your ring_buffer.cpp has to\n * satisfy, which is why you cannot edit it here — a test you can edit\n * is not a test.\n */\n#include <iostream>\n#include <sstream>\n#include <string>\n\n#include \"ring_buffer.hpp\"\n\nint main() {\n    std::ios::sync_with_stdio(false);\n    std::cin.tie(nullptr);\n\n    std::size_t cap = 0;\n    if (!(std::cin >> cap)) return 0;\n    RingBuffer buf(cap);\n\n    std::string line;\n    std::getline(std::cin, line);          /* the rest of the capacity line */\n\n    while (std::getline(std::cin, line)) {\n        std::istringstream in(line);\n        std::string cmd;\n        if (!(in >> cmd)) continue;\n\n        if (cmd == \"push\") {\n            Event e;\n            if (!(in >> e.at >> e.text)) continue;\n            if (!buf.push(e)) std::cout << \"full\\n\";\n        } else if (cmd == \"pop\") {\n            Event e;\n            if (buf.pop(e)) std::cout << e.at << ' ' << e.text << '\\n';\n            else std::cout << \"empty\\n\";\n        } else if (cmd == \"size\") {\n            std::cout << buf.size() << '/' << buf.capacity() << '\\n';\n        } else if (cmd == \"dump\") {\n            if (buf.empty()) {\n                std::cout << \"(none)\\n\";\n            } else {\n                for (std::size_t i = 0; i < buf.size(); ++i) {\n                    const Event e = buf.at(i);\n                    std::cout << e.at << ' ' << e.text << '\\n';\n                }\n            }\n        }\n    }\n    return 0;\n}\n"
+        }
+      ]
+    },
+    "cases": [
+      {
+        "stdin": "1\npush 5 a\nsize\npush 6 b\npop\npush 6 b\npop\npop\n",
+        "expect": "1/1\nfull\n5 a\n6 b\nempty\n"
+      },
+      {
+        "stdin": "3\npush 1 a\npush 2 b\npush 3 c\npop\npush 4 d\ndump\npop\npop\npop\n",
+        "expect": "1 a\n2 b\n3 c\n4 d\n2 b\n3 c\n4 d\n"
+      },
+      {
+        "stdin": "2\npush 1 a\npush 2 b\npush 3 c\npush 4 d\nsize\ndump\n",
+        "expect": "full\nfull\n2/2\n1 a\n2 b\n"
+      },
+      {
+        "stdin": "4\npush 1 a\npush 2 b\npush 3 c\npush 4 d\npop\npop\npush 5 e\npush 6 f\ndump\nsize\n",
+        "expect": "1 a\n2 b\n3 c\n4 d\n5 e\n6 f\n4/4\n"
+      },
+      {
+        "stdin": "2\npush -9 early\npush 4000000000 late\ndump\n",
+        "expect": "-9 early\n4000000000 late\n"
+      }
+    ]
+  },
+  "explanation": "### What a ring buffer is\n\nAn array, and two numbers: where the oldest item is, and how many there are.\nNothing is ever moved. The circle is made by the modulo.\n\n```cpp\nbool RingBuffer::push(const Event& e) {\n    if (full()) return false;\n    slots_[(start_ + count_) % cap_] = e;   // one past the last, wrapped\n    ++count_;\n    return true;\n}\n\nbool RingBuffer::pop(Event& out) {\n    if (empty()) return false;\n    out = slots_[start_];\n    start_ = (start_ + 1) % cap_;           // the next one along, wrapped\n    --count_;\n    return true;\n}\n```\n\n`(start_ + count_) % cap_` is the slot just past the newest, which is exactly\nwhere the next one goes; after `cap_` pushes it has come all the way round.\n\n### Why the count, rather than a second index\n\nThe obvious alternative is `start_` and `end_`, and it has a famous problem:\nwhen `start_ == end_` the buffer is either completely empty or completely\nfull, and the two are indistinguishable. The usual fixes are to keep a slot\npermanently empty — paying one slot of capacity for a bit of information — or\nto keep a flag. A count has neither problem and answers `size()` for free.\n\n### Where the mistakes are\n\n**A refused push that still changes something.** `push` has to return before\nit touches anything. One of the hidden cases pushes into a full buffer twice\nand then dumps, and a `start_` that moved on the way out shows up there.\n\n**`at(i)` forgetting the start.** `slots_[i]` is right exactly until the first\nwrap, which is why the sample passes and the hidden cases do not.\n\n**`% cap_` with `cap_` of zero.** The capacity is at least 1, so this cannot\nhappen here; in code that takes a capacity from elsewhere it is the first\nthing to check, because the modulo is undefined behaviour rather than a\ncrash you can rely on.\n\n### Separate compilation\n\n`ring_buffer.cpp` and `main.cpp` are compiled on their own and then linked.\nThe header is what they agree about: it is *included* into both, so both end\nup with the same declarations, and each definition exists once. Get a\nsignature wrong in the `.cpp` and you do not get a compile error at all — you\nget a link error, because what you defined is a different function from the\none that was declared."
+}

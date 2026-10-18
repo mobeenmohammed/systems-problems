@@ -184,6 +184,7 @@ const Catalog = (() => {
          tracks — this is a way to ask for them, not a place to put
          them. */
       if (filter.debugging  && !p.debugging)                        return false;
+      if (filter.project    && !p.project)                          return false;
 
       /* "Can be solved in this language" — a property of the exercise, not
          of what is installed. A problem declaring C++ only stays C++ only
@@ -213,7 +214,8 @@ const Catalog = (() => {
           + `${(p.langs || []).map(l => LANG_LABEL[l] || l).join(' ')} `
           + `${(TYPE_WORDS[p.type] || []).join(' ')} `
           + `${(p.tags || []).join(' ')} `
-          + `${p.debugging ? 'debugging debug bug fix broken faulty' : ''}`).toLowerCase();
+          + `${p.debugging ? 'debugging debug bug fix broken faulty' : ''} `
+          + `${p.project ? `project milestone ${p.project.id} ${p.project.title}` : ''}`).toLowerCase();
         if (!terms.every(t => hay.includes(t))) return false;
       }
       return true;
