@@ -84,13 +84,46 @@
     return draft || designOf(problem);
   }
 
+  /* ---------------- a design made of several files ----------------
+
+     Exactly the workspace the C++ projects use — js/filepane.js — with
+     'sv' as the draft namespace. A module in one file instantiating a
+     module in another is not a special case for the simulator: ivlpp
+     is handed every source at once, which is what it does for the
+     design and the testbench already.
+
+     The testbench is NOT one of these files. It arrives beside them
+     under the name testbench.sv, and the build refuses a problem whose
+     own files claim that name. */
+
+  const multi = () => !!(state && state.pane);
+  const paneFiles = () => (multi() ? state.pane.files() : null);
+  const activeEditor = () => (multi()
+    ? state.pane.editor()
+    : (state ? state.editor : null));
+
+  const TB_NAME = 'testbench.sv';
+
+  /* What goes to the simulator: every design file, then the testbench
+     under the name the diagnostics will use for it. */
+  function sourcesFor(tbSource) {
+    const out = {};
+    if (multi()) {
+      for (const f of state.pane.files()) out[f.path] = f.content;
+    } else {
+      out['design.sv'] = state.editor.value;
+    }
+    out[TB_NAME] = tbSource;
+    return out;
+  }
+
   /* ---------------- rendering ---------------- */
 
   function render(problem, mount, ctx) {
     const pay = problem.payload || {};
 
     if (!state || state.problem.id !== problem.id) last = null;
-    state = { problem, mount, editor: null, running: false, abort: null };
+    state = { problem, mount, editor: null, running: false, abort: null, pane: null };
 
     const head = el('div', { class: 'editor-head' }, [
       el('span', { class: 'pill pill-plain', title: 'The language generation the simulator is given' },
@@ -110,6 +143,30 @@
       el('span', { id: 'codeJudgeText', text: 'Icarus Verilog, in this tab' }),
     ]);
     mount.append(box);
+
+    if (Workspace.isMulti(problem)) {
+      editorHost.classList.add('ed-host-multi');
+      state.pane = FilePane.create(editorHost, {
+        problem,
+        lang: 'sv',
+        ctx,
+        langOf: () => 'verilog',
+        lint: false,
+        onSaved: () => noteSaved(),
+        onRun: () => doRun(),
+        onSubmit: () => {
+          const btn = document.getElementById('submitBtn');
+          if (btn) btn.click();
+        },
+      });
+      state.editor = state.pane.editor();
+      const carried = state.pane.carryForward();
+      if (carried.length) {
+        UI.toast(`Carried ${carried.length} file${carried.length === 1 ? '' : 's'} `
+          + 'forward from the previous milestone.', 'info', 7000);
+      }
+      return;
+    }
 
     state.editor = Editor.create(editorHost, {
       value: sourceFor(problem),
@@ -149,8 +206,16 @@
     }, 400);
   }
 
-  function resetTemplate() {
-    if (!state || !state.editor) return;
+  function resetTemplate(scope) {
+    if (!state) return;
+    /* On a workspace the page has already asked which, and what it
+       would cost; the scope it decided on is the argument. */
+    if (multi()) {
+      state.pane.reset(scope === 'file' ? 'file' : 'all');
+      noteSaved();
+      return;
+    }
+    if (!state.editor) return;
     state.editor.value = designOf(state.problem);
     Store.saveDraft(state.problem, 'sv', state.editor.value);
     noteSaved();
@@ -180,7 +245,7 @@
      simulator, the same cancellation, the same waveform. What differs
      is that a run of the reader's testbench is not graded. */
   async function doRun({ own = false } = {}) {
-    if (!state || !state.editor) return;
+    if (!state || !activeEditor()) return;
     const engine = ENGINE();
     if (!engine) {
       setExec('blocked', 'No simulator');
@@ -213,10 +278,7 @@
 
     let reply;
     try {
-      reply = await engine.run({
-        'design.sv': state.editor.value,
-        'testbench.sv': tbSource,
-      }, {
+      reply = await engine.run(sourcesFor(tbSource), {
         generation: (problem.payload || {}).generation || '2012',
         wantWaveform: true,
         signal: state.abort.signal,
@@ -800,9 +862,28 @@
   function diagnosticsNode(rows) {
     const wrap = el('div', { class: 'diags' });
     for (const d of rows) {
+      /* Clickable when it is a file the reader can open. The testbench
+         is read-only and the grading one is not shown at all, so a
+         diagnostic in either stays a label rather than becoming a
+         button that goes nowhere. */
+      const canOpen = !!(d.file && d.line && multi() && state.pane.has(d.file));
+      const where = canOpen
+        ? el('button', {
+          class: 'diag-where mono tiny', type: 'button',
+          title: `Open ${d.file} at line ${d.line}`,
+          onclick: () => {
+            state.pane.goTo(d.file, d.line, d.column || 1);
+            state.editor = state.pane.editor();
+            if (typeof ProblemView !== 'undefined' && ProblemView.openPane) {
+              ProblemView.openPane('editor');
+            }
+          },
+        }, [`${d.file}:${d.line}`])
+        : el('span', { class: 'diag-where mono tiny' },
+          [d.file ? `${d.file}:${d.line}` : '—']);
+
       wrap.append(el('div', { class: 'diag', 'data-level': d.level }, [
-        el('span', { class: 'diag-where mono tiny' },
-          [d.file ? `${d.file}:${d.line}` : '—']),
+        where,
         el('span', { class: 'diag-level tiny', text: d.level }),
         el('span', { class: 'diag-msg', text: d.message }),
       ]));
@@ -825,9 +906,44 @@
     resetTemplate,
     /* What Reset would put back, so the page can tell "nothing to lose"
        from "an afternoon to lose" before asking. */
-    startingSource: problem => templateFor(problem,
-      'sv'),
-    editor: () => (state ? state.editor : null),
+    startingSource: (problem) => {
+      if (multi()) return state.pane.starterOf(state.pane.active);
+      return designOf(problem);
+    },
+
+    /* The same four questions the code type answers, so the page's
+       Reset menu, its submission list and its tests do not have to
+       know which type they are looking at. */
+    multiFile: () => multi(),
+    files: () => paneFiles(),
+    activeFile: () => (multi() ? state.pane.active : null),
+    openFile: path => (multi() ? state.pane.open(path, { focus: true }) : false),
+    resetCost: () => (multi() ? state.pane.cost() : null),
+
+    /* Putting a submitted design back. One file or a whole workspace;
+       the second is one string holding every file, and all of them go
+       back rather than the top one alone. */
+    loadSource(lang, source) {
+      if (!state) return false;
+      const doc = Workspace.unpack(String(source));
+      if (doc && multi()) {
+        const n = state.pane.load(doc);
+        noteSaved();
+        const ed = activeEditor();
+        if (ed) ed.focus();
+        void n;
+        return true;
+      }
+      const ed = activeEditor();
+      if (!ed) return false;
+      ed.value = String(source);
+      Store.saveDraft(state.problem, 'sv', ed.value);
+      noteSaved();
+      ed.focus();
+      return true;
+    },
+
+    editor: () => activeEditor(),
     /* The reader's own testbench, as the pane's editor if that tab is
        open and as the stored text either way. The tests drive it
        through here for the same reason they drive the design editor
@@ -845,7 +961,8 @@
       myTbNote = '';
       const engine = ENGINE();
       if (engine) engine.stop();
-      if (state && state.editor && state.editor.destroy) {
+      if (state && state.pane) state.pane.destroy();
+      else if (state && state.editor && state.editor.destroy) {
         try { state.editor.destroy(); } catch { /* already gone */ }
       }
       state = null;
@@ -854,12 +971,27 @@
     },
 
     emptyMessage(mount, problem) {
+      if (multi()) {
+        return 'Nothing has been changed yet. The files are as the exercise '
+          + 'shipped them, and submitting that would count as an attempt for '
+          + 'nothing.';
+      }
       if (!state || !state.editor) return 'The editor is not ready yet.';
       if (!state.editor.value.trim()) return 'The editor is empty — write a module before submitting.';
       return 'That is still the starting template, unchanged.';
     },
 
     collect(mount, problem) {
+      if (multi()) {
+        const files = state.pane.files();
+        if (state.pane.untouched()) return null;
+        if (!files.some(f => f.content.trim())) return null;
+        return {
+          lang: 'sv',
+          source: Workspace.pack({ entry: Workspace.entryOf(problem), files }),
+          files,
+        };
+      }
       if (!state || !state.editor) return null;
       const src = state.editor.value.trim();
       if (!src) return null;
@@ -905,10 +1037,14 @@
 
       let reply;
       try {
-        reply = await engine.run({
-          'design.sv': response.source,
-          'testbench.sv': harness,
-        }, {
+        /* What was submitted, not what the editor holds by the time
+           the simulator answers. */
+        const sources = {};
+        if (response.files) for (const f of response.files) sources[f.path] = f.content;
+        else sources['design.sv'] = response.source;
+        sources[TB_NAME] = harness;
+
+        reply = await engine.run(sources, {
           generation: (problem.payload || {}).generation || '2012',
           /* Never. The grading testbench drives cases the sample one does
              not, and a waveform of it is a picture of them. */

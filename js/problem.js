@@ -1737,7 +1737,12 @@ const ProblemView = (() => {
   }
 
   function loadSubmission(sub, source) {
-    const impl = ProblemTypes.get('code');
+    /* The type that is on screen, not the code type. A hardware
+       submission used to be handed to the code type, which has no
+       editor on an hdl problem — so "Load into the editor" did
+       nothing at all, silently, which is the worst way for a button
+       to fail. */
+    const impl = ProblemTypes.get(current.type);
     const ed = codeEditor();
     if (!impl || !impl.loadSource || !ed || source == null) return;
     const now = ed.value;

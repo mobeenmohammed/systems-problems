@@ -357,6 +357,18 @@ const printsCheck = (source, name) => {
   return false;
 };
 
+/* The rules every workspace obeys, whatever type it belongs to. */
+function workspaceFaults(p, err, where) {
+  const pay = p.payload || {};
+  if (!Array.isArray(pay.files) || !pay.files.length) {
+    err(where, 'payload.files must be a non-empty array of { path, content }');
+    return;
+  }
+  for (const why of WORKSPACE.faults(pay.files, {
+    entry: WORKSPACE.entryOf(p), sources: WORKSPACE.buildSources(p),
+  })) err(where, why);
+}
+
 function validatePayload(p, err, where) {
   const pay = p.payload || {};
 
@@ -395,21 +407,16 @@ function validatePayload(p, err, where) {
          here so an unusable path is an author's build failure rather
          than a reader's run failure. */
       if (pay.files !== undefined) {
-        if (!Array.isArray(pay.files) || !pay.files.length) {
-          err(where, 'payload.files must be a non-empty array of { path, content }');
-        } else {
-          for (const why of WORKSPACE.faults(pay.files, {
-            entry: WORKSPACE.entryOf(p), sources: WORKSPACE.buildSources(p),
-          })) err(where, why);
-
-          if ((pay.langs || []).join(',') !== 'cpp') {
-            err(where, 'a multi-file problem is C++ only for now: see docs/multi-file.md');
-          }
-          if (pay.templates) {
-            err(where, 'a multi-file problem starts from payload.files, not payload.templates');
-          }
+        workspaceFaults(p, err, where);
+        if ((pay.langs || []).join(',') !== 'cpp') {
+          err(where, 'a multi-file code problem is C++ only for now: see docs/multi-file.md');
+        }
+        if (pay.templates) {
+          err(where, 'a multi-file problem starts from payload.files, not payload.templates');
+        }
+        if (Array.isArray(pay.files) && pay.files.length) {
           if (!pay.entry) err(where, 'payload.entry must name the file with main()');
-          const entryFile = (pay.files || []).find(f => f.path === pay.entry);
+          const entryFile = pay.files.find(f => f.path === pay.entry);
           if (entryFile && !/\bmain\s*\(/.test(String(entryFile.content || ''))) {
             err(where, `the entry point "${pay.entry}" has no main()`);
           }
@@ -437,9 +444,11 @@ function validatePayload(p, err, where) {
       }
       break;
 
-    case 'hdl':
+    case 'hdl': {
+      const hdlFiles = Array.isArray(pay.files) && pay.files.length ? pay.files : null;
+
       if (!pay.top) err(where, 'hdl needs payload.top — the module the testbench instantiates');
-      if (!pay.template) err(where, 'hdl needs payload.template: the design starter');
+      if (!hdlFiles && !pay.template) err(where, 'hdl needs payload.template: the design starter');
       if (!pay.testbench) err(where, 'hdl needs payload.testbench: the sample testbench Run uses');
       if (!Array.isArray(pay.checks) || !pay.checks.length) {
         err(where, 'hdl needs payload.checks: the names the SAMPLE testbench prints');
@@ -454,8 +463,47 @@ function validatePayload(p, err, where) {
       if (pay.top && pay.testbench && !new RegExp(`\\b${pay.top}\\b`).test(pay.testbench)) {
         err(where, `payload.testbench never mentions "${pay.top}"`);
       }
-      if (pay.top && pay.template && !new RegExp(`module\\s+${pay.top}\\b`).test(pay.template)) {
+      if (pay.top && !hdlFiles && pay.template
+        && !new RegExp(`module\\s+${pay.top}\\b`).test(pay.template)) {
         err(where, `payload.template does not declare "module ${pay.top}"`);
+      }
+
+      /* Several files. The same workspace rules as a C++ project, plus
+         the two this type adds. */
+      if (pay.files !== undefined) {
+        workspaceFaults(p, err, where);
+        if (pay.template) {
+          err(where, 'a multi-file design starts from payload.files, not payload.template');
+        }
+        if (hdlFiles) {
+          /* The testbench is not one of the design files and arrives
+             beside them under this name. A design file claiming it
+             would be overwritten by the testbench, silently. */
+          for (const f of hdlFiles) {
+            if (f.path === 'testbench.sv') {
+              err(where, 'a design file may not be called testbench.sv — that is the '
+                + 'name the sample and grading testbenches arrive under');
+            }
+            if (!WORKSPACE.ext(f.path).match(/^\.(sv|svh|v)$/)) {
+              err(where, `"${f.path}" is not a SystemVerilog file`);
+            }
+          }
+          /* The simulation top has to exist somewhere in them, or the
+             testbench instantiates nothing. */
+          const all = hdlFiles.map(f => String(f.content || '')).join('\n');
+          if (pay.top && !new RegExp(`module\\s+${pay.top}\\b`).test(all)) {
+            err(where, `no file declares "module ${pay.top}", which the testbench instantiates`);
+          }
+          /* Every module the files instantiate from one another has to
+             be in the set: a cross-file instantiation of something
+             nobody wrote is an elaboration error the reader cannot
+             act on. */
+          const declared = new Set([...all.matchAll(/\bmodule\s+(\w+)/g)].map(m => m[1]));
+          if (pay.entry && !declared.has(String(pay.entry).replace(/\.sv$/, ''))
+            && !hdlFiles.some(f => f.path === pay.entry)) {
+            err(where, `payload.entry "${pay.entry}" is not one of the files`);
+          }
+        }
       }
       /* Every check the sample testbench is said to print must actually
          be printed by it, or Run reports a check that never runs and
@@ -476,6 +524,7 @@ function validatePayload(p, err, where) {
         err(where, 'the sample testbench has no $dumpvars, so there would be no waveform');
       }
       break;
+    }
 
     /* ---- mathematics ---- */
 
@@ -735,7 +784,30 @@ function validateKey(p, sol, err, where) {
       if (!Array.isArray(k.checks) || !k.checks.length) {
         err(where, 'hdl key needs key.checks: the names the GRADING testbench prints');
       }
-      if (!k.reference || !k.reference.sv) {
+      /* A workspace is backed by a worked set of files rather than one
+         string, exactly as a C++ project is. */
+      if (Array.isArray((p.payload || {}).files) && p.payload.files.length) {
+        const ref = (k.reference || {}).files;
+        if (!Array.isArray(ref) || !ref.length) {
+          err(where, 'a multi-file design needs key.reference.files: the worked workspace');
+        } else {
+          const want = new Set(p.payload.files.map(f => f.path));
+          for (const f of ref) {
+            if (typeof f.content !== 'string') err(where, `reference file ${f && f.path} has no content`);
+            if (!want.has(f && f.path)) err(where, `reference names "${f && f.path}", which the problem does not have`);
+          }
+          for (const f of p.payload.files) {
+            if (!ref.some(x => x && x.path === f.path)) {
+              err(where, `the reference is missing "${f.path}"`);
+            }
+            if (!f.readOnly) continue;
+            const mine = ref.find(x => x && x.path === f.path);
+            if (mine && mine.content !== f.content) {
+              err(where, `the reference changed "${f.path}", which the problem gives as read-only`);
+            }
+          }
+        }
+      } else if (!k.reference || !k.reference.sv) {
         err(where, 'hdl key needs a reference design in key.reference.sv, so the '
           + 'exercise can be proved solvable');
       }

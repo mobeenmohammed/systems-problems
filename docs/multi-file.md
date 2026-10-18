@@ -4,13 +4,16 @@ An exercise is multi-file when its `payload.files` is a non-empty list.
 Everything without that field is a single-file exercise and none of this
 applies to it.
 
-**Today this works for C++ and only for C++**, in the in-browser toolchain and
-on the optional native runner. The rest of this file is what each of the other
-runners would need, written down so that the next person does not have to
-re-derive it — and so that nothing here is advertised before it has been
-tested.
+**Today this works for C++ and for SystemVerilog.** C++ compiles in the
+in-browser toolchain and on the optional native runner; SystemVerilog
+elaborates in the in-browser Icarus. Rust and Python do not, and the rest of
+this file is what each of them would need — written down so that the next
+person does not have to re-derive it, and so that nothing here is advertised
+before it has been tested.
 
 ## The schema
+
+A `code` problem:
 
 ```jsonc
 "payload": {
@@ -26,7 +29,27 @@ tested.
 }
 ```
 
-- `entry` is the file with `main()`. The build checks that it has one.
+An `hdl` problem, with the same three fields meaning the same three things:
+
+```jsonc
+"payload": {
+  "top": "fifo",
+  "generation": "2012",
+  "files": [
+    { "path": "fifo_mem.sv", "content": "…" },
+    { "path": "fifo.sv",     "content": "…" }
+  ],
+  "entry": "fifo.sv",
+  "build": { "sources": ["fifo_mem.sv", "fifo.sv"] },
+  "testbench": "…",
+  "checks": ["…"]
+}
+```
+
+- `entry` is the file with `main()`. The build checks that it has one. A
+  hardware exercise has no `main`, so there it is simply the file the reader
+  works in last, and `payload.top` names the module the testbench
+  instantiates — the build checks that one of the files declares it.
 - `build.sources` are the translation units. A header must not be in the list:
   it is planted beside the sources and found by `#include`. Left out, every
   source file is a unit.
@@ -116,23 +139,32 @@ on the path.
 There is no compile step, so there is no link error to teach and no
 diagnostics plumbing to do: a bad import is a traceback at run time.
 
-### SystemVerilog
+## How SystemVerilog is actually built
 
-`js/hdl/toolchain.js` already passes Icarus **two** files — the design and the
-testbench — so the simulator end of this is done. What is missing is only the
-authoring side:
+`js/hdl/toolchain.js` hands **every** source to `ivlpp` in one invocation, so
+a macro defined in one file is visible in the next and `ivl` elaborates them
+as one design. That was already true of the design and the testbench; a
+workspace simply sends more files the same way.
 
-1. `payload.files` is not read by the `hdl` type at all; it has its own
-   `template` and `testbench` fields.
-2. `include` paths and a file list would need deciding: Icarus takes several
-   source files on the command line, and `` `include `` resolves against the
-   working directory.
-3. A design split across files changes what the Compiler output pane is
-   reporting on, and the file-linked diagnostics would need the same treatment
-   the C++ side got.
+What the type adds:
 
-Of the three this is the smallest piece of work, because the runner can
-already do it.
+- `payload.files` are the design sources. The sample testbench
+  (`payload.testbench`) and the grading one (`key.harness`) arrive beside them
+  under the name `testbench.sv`, which is why the build refuses a design file
+  claiming that name.
+- `payload.top` is the simulation top — the module the testbench instantiates
+  — and the build checks that one of the files declares it.
+- Cross-file instantiation needs nothing at all: `fifo` in one file
+  instantiating `fifo_mem` in another is one elaboration over the whole set.
+  Leave the instantiated file empty and Icarus says `Unknown module type`,
+  which is the hardware equivalent of a link error.
+- Diagnostics already carried a file name. On a workspace the ones naming a
+  file the reader has are buttons that open it at the line; the ones in the
+  read-only testbench are not, because there is nowhere to open them.
+
+The sample testbench tab, the reader's own testbench tab and the waveform
+viewer are unchanged, and a testbench of your own is compiled against the
+whole workspace rather than against one file of it.
 
 ## What is deliberately not here
 
@@ -142,3 +174,6 @@ already do it.
 - Installing packages, and editing the build. The flags are the exercise's,
   not the reader's.
 - More than one language in one workspace.
+- `` `include `` between workspace files. It would probably work — ivlpp
+  resolves includes against the working directory and every file is written
+  there — but nothing has tested it, so nothing claims it.

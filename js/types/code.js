@@ -136,48 +136,26 @@ fn main() {
 
   /* ---------------- a workspace of several files ----------------
 
-     A problem with `payload.files` opens as a small file tree and a row
-     of tabs rather than one editor. Everything else about it is the
-     same exercise: stdin to stdout, the same Run, the same Submit, the
-     same Results.
+     A problem with `payload.files` opens as a file tree and a row of
+     tabs rather than one editor. The tree, the tabs, the per-file
+     editors and the per-file drafts are js/filepane.js, which the
+     hardware type uses too; what is here is the part that is about
+     C++ — which files are translation units, and what Run sends.
 
-     One CodeMirror per file, created the first time that file is
-     opened and then kept. That is what makes switching tabs free of
-     consequence — the document, the cursor, the selection, the scroll
-     position and the whole undo history live in the view, so coming
-     back to a file finds it exactly as it was left, and an undo does
-     not reach across into another file's edits.
+     `state.pane` is the handle. `state.editor` follows whichever file
+     is on top, so everything written against one editor — the font
+     control, the report, loading a submission back — keeps working
+     unchanged. */
 
-     Each file is its own draft, under the same problem id, keyed by
-     language and path. A reload rebuilds the whole workspace from
-     those drafts; nothing is held only in memory.
+  const multi = () => !!(state && state.pane);
+  const pane = () => (state && state.pane) || null;
+  const fileList = () => (multi() ? state.pane.files() : null);
+  const activeEditor = () => (multi()
+    ? state.pane.editor()
+    : (state ? state.editor : null));
 
-     `readOnly` is honoured by the editor and said on the row. It is an
-     editing aid: it keeps somebody from changing the interface by
-     accident while they are chasing a bug in their own file. It is not
-     a security boundary, nothing is graded on it, and the compiler is
-     handed whatever the files say. */
-
-  const multi = () => !!(state && state.files);
-
-  const keyFor = (lang, path) => Workspace.draftKey(lang, path);
-
-  /* What a file holds right now: the live editor if there is one, the
-     saved draft if the file has not been opened yet, and the starter if
-     it has never been touched. */
-  function textOf(f) {
-    if (f.view) return f.view.value;
-    const saved = Store.draft(state.problem.id, keyFor(state.lang, f.path));
-    return saved || f.starter;
-  }
-
-  const fileList = () => state.files.map(f => ({ path: f.path, content: textOf(f) }));
-
-  const fileAt = path => state.files.find(f => f.path === path) || null;
-
-  /* Which highlighting a file gets. Multi-file is C++ only for now, and
-     a header is C++ too — the alternative is a .hpp with no colour in
-     the middle of a C++ exercise. */
+  /* Headers are C++ too — a .hpp with no colour in the middle of a C++
+     exercise is worse than none. */
   function langOfFile(path) {
     const e = Workspace.ext(path);
     if (e === '.rs') return 'rust';
@@ -186,246 +164,40 @@ fn main() {
     return 'cpp';
   }
 
-  /* Has this file been changed from what the problem shipped? Shown as a
-     dot on the row, which is the only cheap way to see at a glance which
-     of five files you have actually touched. */
-  const edited = f => textOf(f) !== f.starter;
-
-  function markEdited(f) {
-    const on = edited(f);
-    if (f.btn) f.btn.dataset.edited = String(on);
-    if (f.tab) f.tab.dataset.edited = String(on);
-  }
-
   function buildWorkspace(host, problem, ctx) {
-    const pay = problem.payload || {};
-    state.files = Workspace.starters(problem).map(s => ({
-      path: s.path,
-      starter: s.content,
-      readOnly: !!s.readOnly,
-      entry: !!s.entry,
-      note: s.note,
-      built: Workspace.buildSources(problem).includes(s.path),
-      view: null, host: null, btn: null, tab: null,
-    }));
-
-    const open = !!Store.pref('filesPane', true);
-    const wrap = el('div', { class: 'mf', 'data-files': String(open) });
-
-    /* The explorer. A list of what the exercise is made of, with the
-       entry point and the read-only files said rather than implied. */
-    const tree = el('ul', { class: 'mf-tree' });
-    const side = el('div', { class: 'mf-side' }, [
-      el('div', { class: 'mf-side-head' }, [
-        el('span', { class: 'tiny faint', text: 'Files' }),
-        el('span', { class: 'tiny faint', text: `${state.files.length}` }),
-      ]),
-      tree,
-      el('p', { class: 'mf-side-note tiny faint', text:
-        'Every file is saved as you type. Run and Submit compile all of them '
-        + 'together.' }),
-    ]);
-
-    const tabs = el('div', { class: 'mf-tabs', role: 'tablist', 'aria-label': 'Open files' });
-    const toggle = el('button', {
-      class: 'mf-toggle', type: 'button',
-      'aria-expanded': String(open),
-      title: open ? 'Hide the file list' : 'Show the file list',
-      onclick: () => {
-        const now = wrap.dataset.files !== 'true';
-        wrap.dataset.files = String(now);
-        Store.setPref('filesPane', now);
-        toggle.setAttribute('aria-expanded', String(now));
-        toggle.title = now ? 'Hide the file list' : 'Show the file list';
-        const ed = activeEditor();
-        if (ed) ed.refresh();
-      },
-    }, ['☰']);
-    tabs.append(toggle);
-
-    const stack = el('div', { class: 'mf-stack' });
-
-    for (const f of state.files) {
-      f.host = el('div', { class: 'mf-slot', hidden: true, 'data-path': f.path });
-      stack.append(f.host);
-
-      f.btn = el('button', {
-        class: 'mf-file', type: 'button', 'data-path': f.path,
-        'aria-current': 'false',
-        title: f.readOnly
-          ? `${f.path} — given, and not editable here`
-          : (f.entry ? `${f.path} — the entry point: it has main()` : f.path),
-        onclick: () => showFile(f.path, { focus: true }),
-      }, [
-        el('span', { class: 'mf-dot', 'aria-hidden': 'true' }),
-        el('span', { class: 'mf-name', text: f.path }),
-        f.entry ? el('span', { class: 'mf-tag', text: 'entry' }) : null,
-        f.readOnly ? el('span', { class: 'mf-tag mf-tag-ro', text: 'given' }) : null,
-      ]);
-      tree.append(el('li', {}, [f.btn]));
-
-      f.tab = el('button', {
-        class: 'mf-tab', type: 'button', role: 'tab', 'data-path': f.path,
-        'aria-selected': 'false',
-        onclick: () => showFile(f.path, { focus: true }),
-      }, [f.path]);
-      tabs.append(f.tab);
-    }
-
-    wrap.append(side, el('div', { class: 'mf-main' }, [tabs, stack]));
-    host.append(wrap);
-
-    /* Where to land. Whatever was last open; otherwise the file that
-       says where the work goes, because that is the one the exercise
-       is about; otherwise the first editable one. Opening a workspace
-       on a read-only driver invites three seconds of typing that does
-       nothing. */
-    const want = Store.draft(problem.id, Workspace.ACTIVE_SLOT);
-    const marked = state.files.find(f => !f.readOnly && /your code here/i.test(f.starter));
-    const mine = marked || state.files.find(f => !f.readOnly);
-    const start = fileAt(want) ? want
-      : (mine ? mine.path : Workspace.entryOf(problem));
-    showFile(start, { focus: false, ctx });
-
-    /* The read-only ones are honoured by the editor; say so once, here,
-       rather than leaving a reader to discover it by typing. */
-    void pay;
-  }
-
-  /* Make the editor for a file, the first time it is looked at. */
-  function makeView(f, ctx) {
-    const problem = state.problem;
-    const key = keyFor(state.lang, f.path);
-    const saved = Store.draft(problem.id, key);
-    f.view = Editor.create(f.host, {
-      value: saved || f.starter,
-      lang: langOfFile(f.path),
-      profile: (problem.payload || {}).profile || 'standard',
-      readOnly: !!(ctx && ctx.locked) || f.readOnly,
-      /* No as-you-type compiler check on a workspace. The judge's
-         /lint builds one file on its own, and one file of three does
-         not build on its own — the errors would all be about missing
-         definitions the reader has already written. The real compiler
-         still speaks on every Run, with the file and the line. */
+    state.pane = FilePane.create(host, {
+      problem,
+      lang: state.lang,
+      ctx,
+      langOf: langOfFile,
       lint: false,
-      onChange: src => {
-        Store.saveDraft(problem, key, src);
-        markEdited(f);
-        noteSaved();
-      },
+      onSaved: () => noteSaved(),
       onRun: () => doRun(false),
       onSubmit: () => {
         const btn = document.getElementById('submitBtn');
         if (btn) btn.click();
       },
     });
-    markEdited(f);
+    state.editor = state.pane.editor();
   }
 
-  function showFile(path, { focus = false, ctx = null, line = 0, column = 1 } = {}) {
+  /* Opening a file makes it the one everything else means by "the
+     editor". */
+  function showFile(path, opts) {
     if (!multi()) return false;
-    const f = fileAt(path);
-    if (!f) return false;
-
-    if (!f.view) makeView(f, ctx || { locked: false });
-
-    state.active = f.path;
-    state.editor = f.view;
-    Store.saveDraft(state.problem, Workspace.ACTIVE_SLOT, f.path);
-
-    for (const other of state.files) {
-      const on = other === f;
-      if (other.host) other.host.hidden = !on;
-      if (other.btn) other.btn.setAttribute('aria-current', String(on));
-      if (other.tab) other.tab.setAttribute('aria-selected', String(on));
-    }
-
-    /* CodeMirror measured itself in a hidden box and has to look again. */
-    f.view.refresh();
-    if (line) f.view.goToLine(line, column);
-    if (focus || line) f.view.focus();
-    return true;
+    const ok = state.pane.open(path, opts);
+    state.editor = state.pane.editor();
+    return ok;
   }
 
-  const activeEditor = () => (multi()
-    ? ((fileAt(state.active) || {}).view || null)
-    : (state ? state.editor : null));
-
-  /* Where a diagnostic points. The compiler names the file, and on a
-     workspace that is half the information — "line 34" is useless when
-     there are three files. */
   function goToDiagnostic(file, line, column) {
-    if (multi() && file) {
-      const name = String(file).replace(/^\.\//, '');
-      const f = state.files.find(x => x.path === name)
-        || state.files.find(x => x.path.endsWith(`/${name}`));
-      if (f) { showFile(f.path, { line, column }); return; }
+    if (!multi()) {
+      const ed = activeEditor();
+      if (ed && ed.goToLine) { ed.goToLine(line, column); ed.focus(); }
+      return;
     }
-    const ed = activeEditor();
-    if (ed && ed.goToLine) { ed.goToLine(line, column); ed.focus(); }
-  }
-
-  /* Put the starters back, for one file or for all of them. */
-  function resetFiles(scope) {
-    if (!multi()) return;
-    const targets = scope === 'file'
-      ? [fileAt(state.active)].filter(Boolean)
-      : state.files;
-    for (const f of targets) {
-      if (f.view) f.view.value = f.starter;
-      Store.saveDraft(state.problem, keyFor(state.lang, f.path), f.starter);
-      markEdited(f);
-    }
-    noteSaved(scope === 'file' ? `${state.active} reset` : 'the whole workspace reset');
-    const ed = activeEditor();
-    if (ed) ed.focus();
-  }
-
-  /* Put a submitted workspace back. Only the files this problem has:
-     one submitted under an earlier version of the exercise may name a
-     file that no longer exists, and silently creating it would be
-     inventing a file the build does not know about. */
-  function loadWorkspace(doc) {
-    if (!multi() || !doc) return 0;
-    let n = 0;
-    for (const got of doc.files) {
-      const f = fileAt(got.path);
-      if (!f) continue;
-      if (f.view) f.view.value = got.content;
-      Store.saveDraft(state.problem, keyFor(state.lang, f.path), got.content);
-      markEdited(f);
-      n += 1;
-    }
-    return n;
-  }
-
-  /* ---------------- carrying work forward ----------------
-
-     A project is several exercises over one codebase, and the second
-     milestone starts from what the reader built in the first. So when a
-     milestone opens with no draft of its own, the file is seeded from
-     the previous milestone's draft of the same name.
-
-     Only when there is nothing there. A file the reader has already
-     written in THIS milestone is never replaced, which is the whole
-     rule: nothing is overwritten silently, and the earlier milestone
-     keeps its own drafts and its own submissions untouched. */
-  function carryForward(problem) {
-    const from = ((problem.project || {}).continues) || '';
-    if (!from) return [];
-    const taken = [];
-    for (const f of state.files) {
-      if (f.readOnly) continue;
-      const key = keyFor(state.lang, f.path);
-      if (Store.draft(problem.id, key)) continue;      /* already working on it */
-      const earlier = Store.draft(from, key);
-      if (!earlier || earlier === f.starter) continue;
-      Store.saveDraft(problem, key, earlier);
-      if (f.view) f.view.value = earlier;
-      markEdited(f);
-      taken.push(f.path);
-    }
-    return taken;
+    state.pane.goTo(file, line, column);
+    state.editor = state.pane.editor();
   }
 
   /* ---------------- rendering ---------------- */
@@ -444,8 +216,7 @@ fn main() {
       last = { verdict: null, reply: null, submission: false, at: 0 };
     }
     assessMode = !!ctx.assess;
-    state = { problem, mount, lang, editor: null, langs, running: false,
-      files: null, active: '' };
+    state = { problem, mount, lang, editor: null, langs, running: false, pane: null };
 
     const head = el('div', { class: 'editor-head' });
     /* One control rather than a row of them. Four languages across the top
@@ -489,7 +260,7 @@ fn main() {
          report, loading a submission back — keeps working unchanged. */
       editorHost.classList.add('ed-host-multi');
       buildWorkspace(editorHost, problem, ctx);
-      const carried = carryForward(problem);
+      const carried = state.pane.carryForward();
       if (carried.length) {
         /* Said, not silent. The reader is looking at their own code in
            an exercise they have just opened for the first time, and
@@ -632,7 +403,11 @@ fn main() {
     if (!state) return;
     /* On a workspace the page has already asked which, and what it
        would cost; the scope it decided on is the argument. */
-    if (multi()) { resetFiles(scope === 'file' ? 'file' : 'all'); return; }
+    if (multi()) {
+      const put = state.pane.reset(scope === 'file' ? 'file' : 'all');
+      noteSaved(put.length === 1 ? `${put[0]} reset` : 'the whole workspace reset');
+      return;
+    }
     if (!confirm('Replace what you have written with the starting template?')) return;
     state.editor.value = templateFor(state.problem, state.lang);
     Store.saveDraft(state.problem, state.lang, state.editor.value);
@@ -1529,7 +1304,7 @@ fn main() {
        it can offer the right Reset and show the right submission. */
     multiFile: () => multi(),
     files: () => (multi() ? fileList() : null),
-    activeFile: () => (multi() ? state.active : null),
+    activeFile: () => (multi() ? state.pane.active : null),
     openFile: path => showFile(path, { focus: true }),
 
     /* Reset is a button in the bar at the foot of the column, which the
@@ -1538,26 +1313,13 @@ fn main() {
     /* What Reset would put back, so the page can tell "nothing to lose"
        from "an afternoon to lose" before asking. */
     startingSource: (problem) => {
-      if (multi()) {
-        const f = fileAt(state.active);
-        return f ? f.starter : '';
-      }
+      if (multi()) return state.pane.starterOf(state.pane.active);
       return templateFor(problem, state ? state.lang : (problem.payload.langs || [])[0]);
     },
 
     /* How much a Reset would cost, so the page can ask a question with
        a number in it rather than in the abstract. */
-    resetCost: () => {
-      if (!multi()) return null;
-      const changed = state.files.filter(f => textOf(f) !== f.starter);
-      const here = fileAt(state.active);
-      return {
-        file: state.active,
-        fileChanged: !!here && textOf(here) !== here.starter,
-        changed: changed.map(f => f.path),
-        total: state.files.length,
-      };
-    },
+    resetCost: () => (multi() ? state.pane.cost() : null),
 
     /* The language names, so the Submissions tab can say "C++" without a
        fourth copy of the same four words. */
@@ -1578,7 +1340,7 @@ fn main() {
          restored is worse than none, because it looks complete. */
       const doc = Workspace.unpack(String(source));
       if (doc && multi()) {
-        const n = loadWorkspace(doc);
+        const n = state.pane.load(doc);
         noteSaved(`loaded a submission (${n} ${n === 1 ? 'file' : 'files'})`);
         const ed = activeEditor();
         if (ed) ed.focus();
@@ -1609,10 +1371,10 @@ fn main() {
          with listeners on the document. Thirty navigations used to
          leave thirty editors behind, and a workspace leaves three at a
          time. */
-      for (const f of (state.files || [])) {
-        try { if (f.view && f.view.destroy) f.view.destroy(); } catch { /* already gone */ }
+      if (state.pane) state.pane.destroy();
+      else {
+        try { if (state.editor && state.editor.destroy) state.editor.destroy(); } catch { /* already gone */ }
       }
-      try { if (!state.files && state.editor && state.editor.destroy) state.editor.destroy(); } catch { /* already gone */ }
       state = null;
       last = { verdict: null, reply: null, submission: false, at: 0 };
       clearTimeout(savedTimer);
@@ -1656,7 +1418,7 @@ fn main() {
            puts one thing back. `files` rides alongside it so the
            grader does not have to unpack what it just packed. */
         const files = fileList();
-        if (state.files.every(f => textOf(f).trim() === f.starter.trim())) return null;
+        if (state.pane.untouched()) return null;
         if (!files.some(f => f.content.trim())) return null;
         return {
           lang: state.lang,
@@ -1780,9 +1542,7 @@ fn main() {
          A file the problem gave as read-only stays read-only, though:
          that is a property of the exercise, not of the attempt. */
       if (multi()) {
-        for (const f of state.files) {
-          if (f.view && !f.readOnly) f.view.setReadOnly(false);
-        }
+        state.pane.unlock();
       } else if (state.editor) {
         state.editor.setReadOnly(false);
       }

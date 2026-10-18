@@ -56,10 +56,21 @@ for (const p of problems) {
   const refs = (sol.key && sol.key.reference) || {};
   const templates = (p.payload && p.payload.templates) || {};
 
-  for (const [lang, ref] of Object.entries(refs)) {
+  /* A workspace's reference is a set of files rather than one string
+     per language, and the thing that is "given" for each is the
+     problem's own starter for that path. Without this branch the array
+     is stringified and compared against the statement as
+     "[object Object]" — a check that passes and means nothing. */
+  const starters = Object.fromEntries(
+    ((p.payload && p.payload.files) || []).map(f => [f.path, f.content]));
+  const pairs = Array.isArray(refs.files)
+    ? refs.files.map(f => [f.path, f.content, starters[f.path] || ''])
+    : Object.entries(refs).map(([lang, ref]) => [lang, ref, templates[lang] || '']);
+
+  for (const [lang, ref, givenSource] of pairs) {
     checked += 1;
-    /* A line already in the template is given, not leaked. */
-    const given = new Set(String(templates[lang] || '').split('\n').map(norm));
+    /* A line already in the starter is given, not leaked. */
+    const given = new Set(String(givenSource).split('\n').map(norm));
     const statement = norm(p.statement);
 
     const ok = declared(p.id, lang);

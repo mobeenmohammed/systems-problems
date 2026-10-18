@@ -1945,6 +1945,69 @@
     ]
   },
   {
+    "id": "proj-sync-fifo-1",
+    "title": "A synchronous FIFO: the storage",
+    "topic": "fpga",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "hdl",
+    "tags": [
+      "fifo",
+      "project",
+      "multi-file",
+      "sequential-logic"
+    ],
+    "estimate": 30,
+    "project": {
+      "id": "sync-fifo",
+      "title": "Build a synchronous FIFO",
+      "step": 1,
+      "of": 2,
+      "label": "Storage"
+    },
+    "subject": "systems",
+    "prereqs": [
+      "hdl-assignments",
+      "ring-buffers",
+      "shift-registers"
+    ],
+    "langs": [
+      "sv"
+    ]
+  },
+  {
+    "id": "proj-sync-fifo-2",
+    "title": "A synchronous FIFO: pointers, flags and the whole thing",
+    "topic": "fpga",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "hdl",
+    "tags": [
+      "fifo",
+      "project",
+      "multi-file",
+      "sequential-logic"
+    ],
+    "estimate": 35,
+    "project": {
+      "id": "sync-fifo",
+      "title": "Build a synchronous FIFO",
+      "step": 2,
+      "of": 2,
+      "label": "FIFO control",
+      "continues": "proj-sync-fifo-1"
+    },
+    "subject": "systems",
+    "prereqs": [
+      "hdl-assignments",
+      "ring-buffers",
+      "shift-registers"
+    ],
+    "langs": [
+      "sv"
+    ]
+  },
+  {
     "id": "fpga-initiation-interval",
     "title": "Throughput of a pipelined block",
     "topic": "fpga",

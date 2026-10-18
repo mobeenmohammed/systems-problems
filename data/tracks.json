@@ -209,5 +209,15 @@
       "proj-ring-logger-2",
       "proj-ring-logger-3"
     ]
+  },
+  {
+    "id": "project-sync-fifo",
+    "title": "Project: a synchronous FIFO",
+    "blurb": "Two modules in two files: a parameterised block of storage with a registered read, and the pointers and flags that turn it into a queue. The second milestone instantiates the first, so the two really do have to work together.",
+    "goal": "Finish this and you have written the structure every hardware design eventually needs, with the full/empty boundary and the one-cycle read latency pinned down rather than hoped for.",
+    "problems": [
+      "proj-sync-fifo-1",
+      "proj-sync-fifo-2"
+    ]
   }
 ]

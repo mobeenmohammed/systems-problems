@@ -622,6 +622,14 @@ section('every template says where your code goes, and what goes there');
   const debugStarters = [];
   const workspaces = [];
 
+  /* A hardware exercise can be a workspace too, and the rule about
+     saying where the work goes is the same one. Its single-file
+     starters are `payload.template` rather than `payload.templates`
+     and are checked elsewhere. */
+  for (const p of problems.filter(x => x.type === 'hdl')) {
+    if (Array.isArray((p.payload || {}).files) && p.payload.files.length) workspaces.push(p);
+  }
+
   for (const p of problems.filter(x => x.type === 'code')) {
     const pay = p.payload || {};
     const own = pay.templates || {};

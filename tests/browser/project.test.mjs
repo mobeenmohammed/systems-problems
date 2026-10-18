@@ -1,4 +1,4 @@
-/* The multi-file workspace, and the project built on it.
+/* The multi-file workspace, and the two projects built on it.
 
    What is actually being claimed here, and therefore what is checked:
 
@@ -62,6 +62,11 @@ const fresh = async (hash, wait = 2600) => {
      change inside the same document, not a load — so the clear has to
      be followed by a real reload rather than by another goto. */
   await page.goto(`${BASE}/${hash}`, { waitUntil: 'networkidle' });
+  /* And a moment to settle before clearing. Opening a problem touches
+     its record, which writes the store back — after the clear if the
+     navigation was only a hash change, which is a route inside the
+     same document and returns immediately. */
+  await page.waitForTimeout(500);
   await page.evaluate(() => localStorage.clear());
   await page.reload({ waitUntil: 'networkidle' });
   await page.waitForTimeout(wait);
@@ -448,10 +453,15 @@ section('a project is findable and says where you are in it');
     rows: [...document.querySelectorAll('.prow')].map(r => r.textContent.replace(/\s+/g, ' ')),
     control: (document.querySelector('#fDebug') || {}).value,
   }));
-  check('the filter shows exactly the three milestones', listed.rows.length, 3);
+  const milestones = JSON.parse(fs.readFileSync('data/index.json', 'utf8'))
+    .filter(x => x.project);
+  check(`the filter shows every milestone of every project (${milestones.length})`,
+    listed.rows.length, milestones.length);
   check('and the control agrees with the URL', listed.control, 'project');
-  ok('every row says which milestone it is',
-    listed.rows.every((t, i) => t.includes(`Project ${i + 1}/3`)));
+  ok('every row says which milestone of how many it is',
+    listed.rows.every(t => /Project \d+\/\d+/.test(t)));
+  ok('both projects are in it',
+    listed.rows.some(t => /ring-buffer/i.test(t)) && listed.rows.some(t => /FIFO/i.test(t)));
 
   await go(`#/p/${IDS[1]}`);
   const strip = await page.evaluate(() => ({
@@ -564,6 +574,271 @@ section('a single-file exercise is exactly as it was');
   const stale = await runTests();
   ok('a file from another exercise is not lying around to be included',
     stale.built === false && /ring_buffer\.hpp.*not found|file not found/i.test(stale.compiler));
+}
+
+/* ---------------- the same workspace, in hardware ----------------
+
+   Not a second implementation: js/filepane.js is the same module, so
+   what is checked here is that the hardware type is wired to it —
+   the tree, the per-file drafts, the reset scopes, the submission
+   snapshot — and the two things that are its own: a module in one
+   file instantiating a module in another, and diagnostics that open
+   the right file while the testbench panes and the waveform keep
+   working. */
+
+const SV = ['proj-sync-fifo-1', 'proj-sync-fifo-2'];
+const svProblem = id => JSON.parse(fs.readFileSync(`problems/fpga/${id}.json`, 'utf8'));
+const svRef = id => JSON.parse(fs.readFileSync(`solutions/${id}.json`, 'utf8')).key.reference.files;
+
+const hdl = () => page.evaluate(() => window.SystemsLab.ProblemTypes.get('hdl'));
+const svFiles = () => page.evaluate(() => window.SystemsLab.ProblemTypes.get('hdl').files());
+const svActive = () => page.evaluate(() => window.SystemsLab.ProblemTypes.get('hdl').activeFile());
+const svWrite = (path, text) => page.evaluate(({ p, t }) => {
+  const impl = window.SystemsLab.ProblemTypes.get('hdl');
+  impl.openFile(p);
+  impl.editor().value = t;
+}, { p: path, t: text });
+const svPut = (list, skip = []) => page.evaluate(({ fs: f, skip: s }) => {
+  const impl = window.SystemsLab.ProblemTypes.get('hdl');
+  for (const x of f) {
+    if (s.includes(x.path)) continue;
+    impl.openFile(x.path);
+    impl.editor().value = x.content;
+  }
+}, { fs: list, skip });
+
+const simulate = async () => {
+  await page.locator('#runBtn').click();
+  await page.waitForFunction(() => !document.getElementById('runBtn').disabled, { timeout: 300000 });
+  await page.waitForTimeout(800);
+  return page.evaluate(() => ({
+    chip: (document.getElementById('execState') || {}).textContent || '',
+    tab: [...document.querySelectorAll('.ws-tabs-work .tab')]
+      .find(b => b.getAttribute('aria-selected') === 'true')?.dataset.tab,
+    diags: [...document.querySelectorAll('.diag-where')].map(n => n.textContent),
+    openable: [...document.querySelectorAll('button.diag-where')].map(n => n.textContent),
+  }));
+};
+
+section('a hardware exercise can be several files too');
+{
+  await fresh(`#/p/${SV[1]}`, 2800);
+  const p = svProblem(SV[1]);
+
+  check('the hardware type says it is multi-file',
+    await page.evaluate(() => window.SystemsLab.ProblemTypes.get('hdl').multiFile()), true);
+  check('the explorer lists the design files',
+    await page.evaluate(() => [...document.querySelectorAll('.mf-file')].map(b => b.dataset.path)),
+    p.payload.files.map(f => f.path));
+  check('and nothing else — the testbench is not one of them',
+    await page.evaluate(() => [...document.querySelectorAll('.mf-file')]
+      .some(b => b.dataset.path === 'testbench.sv')), false);
+  check('it opens on the file this milestone is about', await svActive(), 'fifo.sv');
+
+  /* The tabs a hardware exercise has are still all there. */
+  const tabs = await page.evaluate(() => [...document.querySelectorAll('.ws-tabs-work .tab')]
+    .map(b => b.dataset.tab));
+  ok(`the sample and custom testbench tabs survive (${tabs.join(', ')})`,
+    tabs.includes('tb') && tabs.includes('mytb') && tabs.includes('waves'));
+
+  check('and Reset became the two-scope menu',
+    await page.evaluate(() => document.querySelector('#resetBtn')?.tagName), 'SUMMARY');
+}
+
+section('a module in one file instantiates a module in another');
+{
+  await fresh(`#/p/${SV[1]}`, 2800);
+  await svPut(svRef(SV[1]));
+  await page.waitForTimeout(500);
+
+  const r = await simulate();
+  ok(`the two files elaborate together (${r.chip})`, /5\/5 sample checks/.test(r.chip));
+
+  /* Take the instantiated module away and the elaboration fails — which
+     is only possible because they really are separate files. */
+  await svWrite('fifo_mem.sv', '// nothing here\n');
+  await page.waitForTimeout(400);
+  const gone = await simulate();
+  ok(`without it the design does not elaborate (${gone.chip})`,
+    /Did not compile/.test(gone.chip));
+  ok('and the compiler says what is missing',
+    await page.evaluate(() => /Unknown module type|fifo_mem/.test(
+      [...document.querySelectorAll('.diag-msg')].map(n => n.textContent).join(' '))));
+}
+
+section('a diagnostic opens the file it is in');
+{
+  await fresh(`#/p/${SV[1]}`, 2800);
+  await svWrite('fifo_mem.sv', 'module fifo_mem; this is not verilog endmodule\n');
+  await page.waitForTimeout(400);
+
+  const r = await simulate();
+  check('a failed compile puts the reader in the compiler pane', r.tab, 'compiler');
+  ok(`the diagnostics name their files (${r.diags.slice(0, 2).join(', ')})`,
+    r.diags.some(t => /^fifo_mem\.sv:\d+/.test(t)));
+  ok('the one in a file the reader has is a button',
+    r.openable.some(t => /^fifo_mem\.sv:/.test(t)));
+  ok('and the one in the read-only testbench is not',
+    !r.openable.some(t => /^testbench\.sv:/.test(t)));
+
+  await page.locator('button.diag-where').first().click();
+  await page.waitForTimeout(700);
+  check('clicking it opens that file', await svActive(), 'fifo_mem.sv');
+  check('and the editor is what is on screen',
+    await page.evaluate(() => (document.querySelector('.ws-right') || {}).dataset.pane), 'editor');
+}
+
+section('the testbenches and the waveform are untouched by any of this');
+{
+  await fresh(`#/p/${SV[1]}`, 2800);
+  await svPut(svRef(SV[1]));
+  await page.waitForTimeout(500);
+  await simulate();
+
+  await page.evaluate(() => window.SystemsLab.ProblemView.openPane('waves'));
+  await page.waitForTimeout(1400);
+  const waves = await page.evaluate(() => ({
+    canvas: !!document.querySelector('#resultPane canvas'),
+    signals: (document.querySelector('#resultPane') || {}).textContent || '',
+  }));
+  ok('the waveform draws', waves.canvas);
+  ok(`and it found the design's signals (${(waves.signals.match(/Signals \([^)]*\)/) || [])[0] || '?'})`,
+    /Signals \(/.test(waves.signals));
+
+  await page.evaluate(() => window.SystemsLab.ProblemView.openPane('tb'));
+  await page.waitForTimeout(500);
+  ok('the sample testbench is still shown, read-only',
+    await page.evaluate(() => /module tb/.test(
+      (document.querySelector('#resultPane .code-block') || {}).textContent || '')));
+
+  /* A testbench of your own, over a workspace: it has to be compiled
+     with every design file, not with one of them. */
+  await page.evaluate(() => window.SystemsLab.ProblemView.openPane('mytb'));
+  await page.waitForTimeout(700);
+  await page.locator('#seedMyTb').click();
+  await page.waitForTimeout(600);
+  await page.locator('#runMyTb').click();
+  await page.waitForFunction(() => !document.getElementById('runMyTb')?.disabled, { timeout: 300000 });
+  await page.waitForTimeout(800);
+  ok(`your own testbench runs against the whole workspace `
+    + `(${await page.evaluate(() => (document.getElementById('execState') || {}).textContent)})`,
+  await page.evaluate(() => /Ran your testbench/.test(
+    (document.getElementById('execState') || {}).textContent || '')));
+}
+
+section('drafts, reset and submissions behave as they do in C++');
+{
+  await fresh(`#/p/${SV[1]}`, 2800);
+  await svWrite('fifo_mem.sv', '// mine, in the memory\n');
+  await svWrite('fifo.sv', '// mine, in the control\n');
+  await page.waitForTimeout(500);
+
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForTimeout(2800);
+  let now = await svFiles();
+  ok('both files come back after a reload',
+    now.every(f => f.content.includes('mine,')));
+  check('on the file that was open', await svActive(), 'fifo.sv');
+
+  await page.locator('#resetBtn').click();
+  await page.waitForTimeout(350);
+  const menu = await page.evaluate(() => [...document.querySelectorAll('.ws-reset .ws-menu-body button')]
+    .map(b => b.textContent.replace(/\s+/g, ' ').trim()));
+  ok(`Reset offers the two scopes (${menu.join(' / ')})`,
+    /fifo\.sv/.test(menu[0]) && /2 of 2 changed/.test(menu[1]));
+  await page.locator('.ws-reset button[data-scope="file"]').click();
+  await page.waitForTimeout(900);
+  now = await svFiles();
+  ok('resetting one puts that one back',
+    !now.find(f => f.path === 'fifo.sv').content.includes('mine,'));
+  ok('and leaves the other',
+    now.find(f => f.path === 'fifo_mem.sv').content.includes('mine,'));
+
+  /* Submit, wreck, restore. */
+  await svPut(svRef(SV[1]));
+  await page.waitForTimeout(500);
+  await page.locator('#submitBtn').click();
+  await page.waitForFunction(() => document.getElementById('submitBtn').textContent === 'Submit',
+    { timeout: 300000 });
+  await page.waitForTimeout(900);
+  ok(`the submission passes every graded check `
+    + `(${await page.evaluate(() => (document.querySelector('.verdict') || {}).textContent?.slice(0, 24))})`,
+  await page.evaluate(() => /All 9 checks passed/.test(
+    (document.querySelector('.verdict') || {}).textContent || '')));
+  check('and it was recorded',
+    await page.evaluate(id => window.SystemsLab.Store.submissions(id).length, SV[1]), 1);
+
+  await svWrite('fifo_mem.sv', '// gone\n');
+  await svWrite('fifo.sv', '// gone too\n');
+  await page.waitForTimeout(400);
+  await page.evaluate(() => window.SystemsLab.ProblemView.openPane('subs'));
+  await page.waitForTimeout(800);
+  await page.locator('.subs details summary').first().click();
+  await page.waitForTimeout(900);
+  check('the submission is shown as the files it was',
+    await page.evaluate(() => document.querySelectorAll('.sub-file').length), 2);
+
+  await page.locator('.sub-body button', { hasText: 'Load into the editor' }).first().click();
+  await page.waitForTimeout(1000);
+  now = await svFiles();
+  ok('loading it back restores every file',
+    now.every(f => !f.content.includes('gone')));
+  ok('and it is the design that passed',
+    now.find(f => f.path === 'fifo.sv').content.includes('fifo_mem #('));
+}
+
+section('the hardware project carries work forward and re-runs the earlier checks');
+{
+  await fresh(`#/p/${SV[0]}`, 2800);
+  check('milestone 1 is one file', (await svFiles()).length, 1);
+
+  await svPut(svRef(SV[0]));
+  await page.waitForTimeout(500);
+  await page.locator('#submitBtn').click();
+  await page.waitForFunction(() => document.getElementById('submitBtn').textContent === 'Submit',
+    { timeout: 300000 });
+  await page.waitForTimeout(900);
+  ok('milestone 1 passes', await page.evaluate(() => /All 6 checks passed/.test(
+    (document.querySelector('.verdict') || {}).textContent || '')));
+
+  await go(`#/p/${SV[1]}`, 2800);
+  const carried = await svFiles();
+  ok('the storage written in milestone 1 is here',
+    carried.find(f => f.path === 'fifo_mem.sv').content.includes('rdata <= store[raddr]'));
+  ok('and the second file is this milestone\'s starter',
+    /your code here/.test(carried.find(f => f.path === 'fifo.sv').content));
+
+  /* Work in progress is never carried over. */
+  await svWrite('fifo_mem.sv', '// half an afternoon of my own\n');
+  await page.waitForTimeout(400);
+  await go(`#/p/${SV[1]}`, 2800);
+  ok('reopening does not overwrite work in progress',
+    (await svFiles()).find(f => f.path === 'fifo_mem.sv').content.includes('half an afternoon'));
+
+  const strip = await page.evaluate(() => [...document.querySelectorAll('.proj-step')]
+    .map(s => `${s.dataset.state}${s.dataset.here === 'true' ? '*' : ''}`));
+  check('and the strip shows where you are', strip, ['solved', 'unsolved*']);
+}
+
+section('a single-file hardware exercise is exactly as it was');
+{
+  await go('#/p/hdl-mux', 2800);
+  const one = await page.evaluate(() => {
+    const impl = window.SystemsLab.ProblemTypes.get('hdl');
+    return {
+      multi: impl.multiFile(),
+      tree: document.querySelectorAll('.mf-file').length,
+      reset: document.querySelector('#resetBtn')?.tagName,
+      value: (impl.editor() || {}).value?.slice(0, 30) || '',
+    };
+  });
+  check('it is not multi-file', one.multi, false);
+  check('there is no file list', one.tree, 0);
+  check('Reset is the button it always was', one.reset, 'BUTTON');
+  ok('and the starter is in the editor', one.value.length > 5);
+
+  const r = await simulate();
+  ok(`it still simulates (${r.chip})`, /sample checks/.test(r.chip));
 }
 
 ok(`no uncaught errors on the page${errors.length ? `: ${errors[0]}` : ''}`, errors.length === 0);

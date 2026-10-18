@@ -59,9 +59,17 @@ async function tryProblem(meta) {
   const problem = findProblem(meta.id);
   const sol = findSolution(meta.id);
   const pay = problem.payload || {};
+  /* One file or several. A multi-file design's reference is a set of
+     files with their own names, and the simulator takes them the same
+     way it takes a design and a testbench — ivlpp is handed all of
+     them at once. */
+  const refFiles = ((sol.key || {}).reference || {}).files;
   const ref = ((sol.key || {}).reference || {}).sv;
+  const design = Array.isArray(refFiles) && refFiles.length
+    ? Object.fromEntries(refFiles.map(f => [f.path, f.content]))
+    : (ref ? { 'design.sv': ref } : null);
 
-  if (!ref) {
+  if (!design) {
     return { id: meta.id, verdict: 'native-only',
       reason: 'There is no reference design to certify this against.' };
   }
@@ -74,7 +82,7 @@ async function tryProblem(meta) {
     if (!tb) {
       return { id: meta.id, verdict: 'native-only', reason: `no ${what} testbench` };
     }
-    const built = await sim.build({ 'design.sv': ref, 'testbench.sv': tb },
+    const built = await sim.build({ ...design, 'testbench.sv': tb },
       { generation: String(pay.generation || GENERATION) });
     if (!built.ok) {
       return {

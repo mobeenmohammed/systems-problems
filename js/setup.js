@@ -160,9 +160,10 @@ const SetupGuide = (() => {
             + 'backend cannot compile parse::<i64>(). Each problem says which it is. '
             + 'A few exercises in every language need the native toolchain and say '
             + 'why on the problem itself. The exercises built from several files — '
-            + 'a header and two sources, compiled separately and linked — run here '
-            + 'and only here, and only in C++: the in-browser Clang is the one '
-            + 'thing on this page that compiles more than one translation unit.'
+            + 'a C++ header and two sources compiled separately and linked, or two '
+            + 'SystemVerilog modules elaborated together — run here and only here: '
+            + 'the Clang and the Icarus in this tab are the only things on this page '
+            + 'that take more than one file.'
           : 'Unavailable, which should not happen; reload the page.',
         langs: browserLangs,
       }),

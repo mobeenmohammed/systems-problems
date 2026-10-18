@@ -79,6 +79,16 @@ const setSource = (p, src) => p.evaluate(s => {
   window.SystemsLab.ProblemTypes.get('hdl').editor().value = s;
 }, src);
 
+/* The reference, whichever shape this exercise's is: one design, or a
+   workspace of several files written one at a time through the same
+   pane the reader types into. */
+const setReference = (p, key) => (Array.isArray((key.reference || {}).files)
+  ? p.evaluate((files) => {
+    const impl = window.SystemsLab.ProblemTypes.get('hdl');
+    for (const f of files) { impl.openFile(f.path); impl.editor().value = f.content; }
+  }, key.reference.files)
+  : setSource(p, key.reference.sv));
+
 const runSettled = p => p.waitForFunction(() => {
   const e = document.querySelector('#execState');
   return e && e.textContent && !/Compil|Simulat|Fetch|Simulator|Grading/.test(e.textContent);
@@ -715,7 +725,7 @@ for (const meta of problems) {
   }
   const { ctx, p } = await freshPage();
   await go(p, `#/p/${meta.id}`);
-  await setSource(p, solutionOf(meta.id).key.reference.sv);
+  await setReference(p, solutionOf(meta.id).key);
   await p.waitForTimeout(300);
   await p.click('#submitBtn');
   await submitSettled(p);

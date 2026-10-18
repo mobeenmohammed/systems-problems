@@ -1,0 +1,72 @@
+{
+  "id": "proj-sync-fifo-2",
+  "title": "A synchronous FIFO: pointers, flags and the whole thing",
+  "topic": "fpga",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "hdl",
+  "project": {
+    "id": "sync-fifo",
+    "title": "Build a synchronous FIFO",
+    "step": 2,
+    "of": 2,
+    "label": "FIFO control",
+    "continues": "proj-sync-fifo-1"
+  },
+  "tags": [
+    "fifo",
+    "project",
+    "multi-file",
+    "sequential-logic"
+  ],
+  "estimate": 35,
+  "prereqs": [
+    {
+      "concept": "hdl-assignments",
+      "why": "The read is registered and the flags are not; which of = and <= goes where is the difference between a FIFO and a race."
+    },
+    {
+      "concept": "ring-buffers",
+      "why": "A FIFO is a ring buffer in hardware: two pointers into a fixed block, wrapping, with a count to tell full from empty."
+    },
+    {
+      "concept": "shift-registers",
+      "why": "The alternative structure, and knowing why a FIFO is not one — nothing moves here, only the pointers do."
+    }
+  ],
+  "statement": "**Milestone 2 of 2.** Wrap the storage in pointers and flags and it is a FIFO.\n\n### What is carried forward\n\nYour `fifo_mem.sv` arrives here exactly as you left it in milestone 1 — a file\nyou never changed has nothing of yours to carry, so you would get this\nmilestone's copy of it instead. Nothing you wrote is overwritten.\n\n```\nfifo_mem.sv   yours, from milestone 1\nfifo.sv       where you work now\n```\n\nBoth are compiled together, so `fifo` can instantiate `fifo_mem` directly.\nWrite another array instead and the exercise has not been done — and the\ngrading testbench drives a depth your milestone-1 module was never tested at,\nso the two really do have to work together.\n\n### The interface\n\n```systemverilog\nmodule fifo #(parameter int WIDTH = 8, parameter int DEPTH = 4) (\n    input  logic             clk,\n    input  logic             rst,\n    input  logic             wr_en,\n    input  logic [WIDTH-1:0] wdata,\n    input  logic             rd_en,\n    output logic [WIDTH-1:0] rdata,\n    output logic             full,\n    output logic             empty\n);\n```\n\n### Precisely\n\n- **Reset** is synchronous and active high. On a rising edge with `rst` high\n  the FIFO becomes empty: `empty` is 1, `full` is 0, and the next item read\n  will be the next item written. The stored words themselves need not be\n  cleared.\n- **A write is taken** on a rising edge when `wr_en` is high and `full` is 0.\n  A write while `full` is **ignored** — the data is dropped, and nothing about\n  the FIFO changes. That is true even if a read happens on the same edge.\n- **A read is taken** on a rising edge when `rd_en` is high and `empty` is 0.\n  A read while `empty` is **ignored**. That is true even if a write happens on\n  the same edge.\n- **Read latency is one cycle.** `rdata` is valid in the cycle *following* the\n  edge that took the read, and holds the oldest item. At any other time it may\n  hold anything, and nothing checks it then.\n- **Simultaneous read and write**, when the FIFO is neither full nor empty,\n  both happen and the number of items stored does not change.\n- `empty` is 1 exactly when the FIFO holds no items; `full` is 1 exactly when\n  it holds `DEPTH`. Both are correct in the cycle after the edge that changed\n  the count, which is what you get by driving them from registered state.\n- Items come out in the order they went in.\n\n```\nedge       1    2    3    4    5    6\nwr_en      1    1    0    0    0    0\nwdata     11   22    -    -    -    -\nrd_en      0    0    0    1    1    0\nrdata      ?    ?    ?    ?   11   22\nempty      1    0    0    0    0    1\n                                    ^ both out, in order\n```\n\n### The supported range\n\n`DEPTH` is a power of two, from 2 to 256. `WIDTH` is from 1 to 32 bits.\nNothing outside that is tested, and nothing in the exercise has to work\noutside it — a depth that is not a power of two makes the pointer\narithmetic a different exercise, and that one is not this one.\n\n### How it is checked\n\nRun drives it at `WIDTH = 8`, `DEPTH = 4`. Submit drives it at `DEPTH = 8`,\nfills it, refuses a write while full, refuses a read while empty, reads and\nwrites on one edge, and resets in the middle. Milestone 1's storage is part of\nevery one of those, so a change that breaks it fails here.\n\nThis is **simulation**. Passing says nothing about synthesis, timing closure\nor clock-domain crossing — a FIFO between two clocks is a different and much\nharder problem, and this is not it.",
+  "hints": [
+    "Three registers and an instance. A write pointer, a read pointer, and something that tells full from empty — because with two pointers alone, `wptr == rptr` means both, and no amount of staring at them will say which.",
+    "A count is the simplest answer and it needs one more bit than the pointers do: a depth-8 FIFO counts 0 to 8, which is nine values. `logic [$clog2(DEPTH):0] count;` — note the missing `-1`. Then `empty` is `count == 0` and `full` is `count == DEPTH`, both as continuous assignments so they are right in the same cycle the count is.",
+    "Work out whether to take each operation BEFORE you change anything: `wire take_w = wr_en && !full;` and `wire take_r = rd_en && !empty;`. Then the count moves up only when you wrote and did not read, down only when you read and did not write, and stays put when both happened — which is the simultaneous case. Drive the memory's `we` from `take_w` and its `raddr` from the read pointer as it is now, not as it will be."
+  ],
+  "payload": {
+    "top": "fifo",
+    "generation": "2012",
+    "files": [
+      {
+        "path": "fifo_mem.sv",
+        "content": "module fifo_mem #(\n    parameter int WIDTH = 8,\n    parameter int DEPTH = 4\n) (\n    input  logic                    clk,\n\n    input  logic                    we,       // write enable\n    input  logic [$clog2(DEPTH)-1:0] waddr,\n    input  logic [WIDTH-1:0]        wdata,\n\n    input  logic [$clog2(DEPTH)-1:0] raddr,\n    output logic [WIDTH-1:0]        rdata     // one cycle after raddr\n);\n\n    logic [WIDTH-1:0] store [0:DEPTH-1];\n\n    // The read is written FIRST and with a non-blocking assignment, so\n    // it samples what was in the array before this edge. That is what\n    // makes a read of the address being written return the old word:\n    // every non-blocking right-hand side in the step is evaluated\n    // before any of them is applied, so the order of the two\n    // statements does not matter — but reading first says the intent.\n    always_ff @(posedge clk) begin\n        rdata <= store[raddr];\n        if (we) store[waddr] <= wdata;\n    end\n\nendmodule\n"
+      },
+      {
+        "path": "fifo.sv",
+        "content": "// A synchronous FIFO, built on the storage you wrote in milestone 1.\n//\n// fifo_mem.sv is beside this file and is compiled with it. Instantiate\n// it rather than writing another array: the whole point of the\n// exercise is the two modules together.\n\nmodule fifo #(\n    parameter int WIDTH = 8,\n    parameter int DEPTH = 4\n) (\n    input  logic             clk,\n    input  logic             rst,       // synchronous, active high\n\n    input  logic             wr_en,\n    input  logic [WIDTH-1:0] wdata,\n\n    input  logic             rd_en,\n    output logic [WIDTH-1:0] rdata,     // valid the cycle after a read\n\n    output logic             full,\n    output logic             empty\n);\n\n    // your code here — a read pointer, a write pointer, a count, and\n    // an instance of fifo_mem. The specification is in the statement:\n    // a write is taken when wr_en and not full, a read when rd_en and\n    // not empty, and the two may happen on the same edge.\n\nendmodule\n"
+      }
+    ],
+    "entry": "fifo.sv",
+    "build": {
+      "sources": [
+        "fifo_mem.sv",
+        "fifo.sv"
+      ]
+    },
+    "testbench": "`timescale 1ns/1ps\n\n// The sample testbench. Submit uses another one that drives a\n// different depth, resets in the middle, and tries the boundaries\n// again.\nmodule tb;\n\n  localparam int W = 8;\n  localparam int D = 4;\n\n  logic clk = 1'b0;\n  always #5 clk = ~clk;\n\n  logic         rst   = 1'b1;\n  logic         wr_en = 1'b0;\n  logic         rd_en = 1'b0;\n  logic [W-1:0] wdata = '0;\n  logic [W-1:0] rdata;\n  logic         full;\n  logic         empty;\n\n  fifo #(.WIDTH(W), .DEPTH(D)) dut (\n    .clk(clk), .rst(rst), .wr_en(wr_en), .wdata(wdata),\n    .rd_en(rd_en), .rdata(rdata), .full(full), .empty(empty)\n  );\n\n  logic empty_at_reset, not_full_at_reset;\n  logic full_after_four, empty_after_all;\n  logic [W-1:0] first, second;\n  int wrong_order;\n\n  initial begin\n    $dumpfile(\"dump.vcd\");\n    $dumpvars(0, tb);\n\n    wrong_order = 0;\n\n    @(negedge clk);\n    empty_at_reset    = empty;\n    not_full_at_reset = !full;\n    rst = 1'b0;\n\n    // Four writes fill it.\n    @(negedge clk); wr_en = 1'b1; wdata = 8'h11;\n    @(negedge clk);               wdata = 8'h22;\n    @(negedge clk);               wdata = 8'h33;\n    @(negedge clk);               wdata = 8'h44;\n    @(negedge clk); wr_en = 1'b0;\n    full_after_four = full;\n\n    // A write while full is ignored: the value never appears.\n    @(negedge clk); wr_en = 1'b1; wdata = 8'hFF;\n    @(negedge clk); wr_en = 1'b0;\n\n    // Read them out, oldest first. rdata is valid the cycle after the\n    // edge that took the read.\n    @(negedge clk); rd_en = 1'b1;\n    @(posedge clk); #1; first = rdata;\n    @(posedge clk); #1; second = rdata;\n    if (first  !== 8'h11) wrong_order = wrong_order + 1;\n    if (second !== 8'h22) wrong_order = wrong_order + 1;\n    @(posedge clk);\n    @(posedge clk);\n    @(negedge clk); rd_en = 1'b0;\n\n    empty_after_all = empty;\n\n    $display(\"CHECK empty_after_reset 1 %0d AT %0d\", empty_at_reset, $time);\n    $display(\"CHECK not_full_after_reset 1 %0d AT %0d\", not_full_at_reset, $time);\n    $display(\"CHECK full_after_depth_writes 1 %0d AT %0d\", full_after_four, $time);\n    $display(\"CHECK first_in_first_out 0 %0d AT %0d\", wrong_order, $time);\n    $display(\"CHECK empty_again_after_reads 1 %0d AT %0d\", empty_after_all, $time);\n    $display(\"DONE 5\");\n    $finish;\n  end\n\nendmodule\n",
+    "checks": [
+      "empty_after_reset",
+      "not_full_after_reset",
+      "full_after_depth_writes",
+      "first_in_first_out",
+      "empty_again_after_reads"
+    ]
+  }
+}

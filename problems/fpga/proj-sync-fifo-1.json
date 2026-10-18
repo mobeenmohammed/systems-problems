@@ -1,0 +1,66 @@
+{
+  "id": "proj-sync-fifo-1",
+  "title": "A synchronous FIFO: the storage",
+  "topic": "fpga",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "hdl",
+  "project": {
+    "id": "sync-fifo",
+    "title": "Build a synchronous FIFO",
+    "step": 1,
+    "of": 2,
+    "label": "Storage"
+  },
+  "tags": [
+    "fifo",
+    "project",
+    "multi-file",
+    "sequential-logic"
+  ],
+  "estimate": 30,
+  "prereqs": [
+    {
+      "concept": "hdl-assignments",
+      "why": "The read is registered and the flags are not; which of = and <= goes where is the difference between a FIFO and a race."
+    },
+    {
+      "concept": "ring-buffers",
+      "why": "A FIFO is a ring buffer in hardware: two pointers into a fixed block, wrapping, with a count to tell full from empty."
+    },
+    {
+      "concept": "shift-registers",
+      "why": "The alternative structure, and knowing why a FIFO is not one — nothing moves here, only the pointers do."
+    }
+  ],
+  "statement": "**Milestone 1 of 2.** A synchronous FIFO, built in two pieces. This one is the\nstorage: a block of memory with one write port and one read port, both clocked.\n\n### The files\n\n```\nfifo_mem.sv   where you work\n```\n\nThis milestone has one file; milestone 2 adds a second beside it and\ninstantiates this one from it. They are compiled together, and a diagnostic\nnames the file it is in.\n\n### The interface\n\n```systemverilog\nmodule fifo_mem #(parameter int WIDTH = 8, parameter int DEPTH = 4) (\n    input  logic                     clk,\n    input  logic                     we,\n    input  logic [$clog2(DEPTH)-1:0] waddr,\n    input  logic [WIDTH-1:0]         wdata,\n    input  logic [$clog2(DEPTH)-1:0] raddr,\n    output logic [WIDTH-1:0]         rdata\n);\n```\n\nThe port names are the contract: milestone 2 instantiates this module by\nexactly these names.\n\n### Precisely\n\n- **Write.** On a rising edge of `clk` with `we` high, `wdata` is stored at\n  `waddr`. With `we` low nothing is written.\n- **Read.** On **every** rising edge, the word at `raddr` is captured into\n  `rdata`. There is no read enable.\n- **Read latency is one cycle.** `rdata` holds what `raddr` selected *before*\n  the edge. Changing `raddr` does not change `rdata` until the next edge.\n- **A read of the address being written, on the same edge, returns the OLD\n  word.** The new one is readable on the edge after that. This is\n  read-before-write, and it is the behaviour the FIFO in milestone 2 relies\n  on.\n- There is no reset. A location that has never been written holds nothing in\n  particular, and nothing reads one.\n\n```\nedge      1      2      3      4\nwe        1      0      0      0\nwaddr     0      -      -      -\nwdata    A1      -      -      -\nraddr     -      0      0      0\nrdata     ?      ?     A1     A1\n                        ^ one edge after raddr selected it\n```\n\n### The supported range\n\n`DEPTH` is a power of two, from 2 to 256. `WIDTH` is from 1 to 32 bits.\nNothing outside that is tested, and nothing in the exercise has to work\noutside it — a depth that is not a power of two makes the pointer\narithmetic a different exercise, and that one is not this one.\n\n### How it is checked\n\nRun drives this module directly, with `WIDTH = 8` and `DEPTH = 4`. Submit\ndrives it at another width and depth and fills every address.\n\nThis is **simulation**. Passing says nothing about synthesis, timing closure\nor whether a device has a block RAM of this shape.",
+  "hints": [
+    "Two lines in one clocked block do all of it. The array is `logic [WIDTH-1:0] store [0:DEPTH-1];` — a plain unpacked array, not a packed one, because you want DEPTH separate words rather than one very wide number.",
+    "`rdata` is an output and it is registered, so it is assigned inside the `always_ff`, not with an `assign`. A continuous assignment would make the read combinational and the latency zero, which fails the check that looks at `rdata` before the edge.",
+    "The collision rule comes free if both statements use `<=`. Every non-blocking right-hand side in a time step is evaluated before any left-hand side is updated, so `rdata <= store[raddr]` sees the array as it was, even when `store[waddr] <= wdata` writes the same address on that edge. Use `=` for either one and the order of the two lines starts to matter, which is the bug this rule exists to avoid."
+  ],
+  "payload": {
+    "top": "fifo_mem",
+    "generation": "2012",
+    "files": [
+      {
+        "path": "fifo_mem.sv",
+        "content": "// The storage behind a FIFO: a block of DEPTH words, one write port\n// and one read port, both synchronous to clk.\n//\n// The ports are the contract. Milestone 2 instantiates this module by\n// exactly these names, so changing one breaks the next milestone.\n\nmodule fifo_mem #(\n    parameter int WIDTH = 8,\n    parameter int DEPTH = 4\n) (\n    input  logic                    clk,\n\n    input  logic                    we,       // write enable\n    input  logic [$clog2(DEPTH)-1:0] waddr,\n    input  logic [WIDTH-1:0]        wdata,\n\n    input  logic [$clog2(DEPTH)-1:0] raddr,\n    output logic [WIDTH-1:0]        rdata     // one cycle after raddr\n);\n\n    // your code here — a block of DEPTH words of WIDTH bits, written\n    // on a rising edge when we is high, and read on EVERY rising edge\n    // into rdata. A read of the address being written in the same\n    // cycle sees the OLD contents.\n\nendmodule\n"
+      }
+    ],
+    "entry": "fifo_mem.sv",
+    "build": {
+      "sources": [
+        "fifo_mem.sv"
+      ]
+    },
+    "testbench": "`timescale 1ns/1ps\n\n// The sample testbench for the storage. Submit uses another one that\n// drives a different width and depth and fills every address.\nmodule tb;\n\n  localparam int W = 8;\n  localparam int D = 4;\n\n  logic clk = 1'b0;\n  always #5 clk = ~clk;\n\n  logic           we    = 1'b0;\n  logic [1:0]     waddr = 2'd0;\n  logic [1:0]     raddr = 2'd0;\n  logic [W-1:0]   wdata = '0;\n  logic [W-1:0]   rdata;\n\n  fifo_mem #(.WIDTH(W), .DEPTH(D)) dut (\n    .clk(clk), .we(we), .waddr(waddr), .wdata(wdata),\n    .raddr(raddr), .rdata(rdata)\n  );\n\n  logic [W-1:0] got0, got1, before1, collide, after;\n\n  initial begin\n    $dumpfile(\"dump.vcd\");\n    $dumpvars(0, tb);\n\n    // Two writes, on consecutive edges.\n    @(negedge clk); we = 1'b1; waddr = 2'd0; wdata = 8'hA1;\n    @(negedge clk);            waddr = 2'd1; wdata = 8'hB2;\n    @(negedge clk); we = 1'b0;\n\n    // Present address 0. One rising edge later it is on rdata.\n    raddr = 2'd0;\n    @(posedge clk); #1; got0 = rdata;\n\n    // Latency: change the address and look BEFORE the next edge. The\n    // old word is still there, because the read is registered.\n    @(negedge clk); raddr = 2'd1;\n    #1; before1 = rdata;\n    @(posedge clk); #1; got1 = rdata;\n\n    // Read and write the same address on one edge: the old word comes\n    // out, and the new one is in the array afterwards.\n    @(negedge clk); raddr = 2'd0; we = 1'b1; waddr = 2'd0; wdata = 8'hC3;\n    @(posedge clk); #1; collide = rdata;\n    @(negedge clk); we = 1'b0;\n    @(posedge clk); #1; after = rdata;\n\n    $display(\"CHECK read_back_0 161 %0d AT %0d\", got0, $time);\n    $display(\"CHECK read_latency_one 161 %0d AT %0d\", before1, $time);\n    $display(\"CHECK read_back_1 178 %0d AT %0d\", got1, $time);\n    $display(\"CHECK old_word_on_collision 161 %0d AT %0d\", collide, $time);\n    $display(\"CHECK new_word_is_stored 195 %0d AT %0d\", after, $time);\n    $display(\"DONE 5\");\n    $finish;\n  end\n\nendmodule\n",
+    "checks": [
+      "read_back_0",
+      "read_latency_one",
+      "read_back_1",
+      "old_word_on_collision",
+      "new_word_is_stored"
+    ]
+  }
+}
