@@ -1,0 +1,75 @@
+{
+  "id": "ms-closed-subset-complete",
+  "title": "A closed piece of a complete space",
+  "topic": "metric",
+  "difficulty": "advanced",
+  "lane": "core",
+  "type": "proofsteps",
+  "tags": [
+    "completeness",
+    "closed-sets",
+    "course-metric-spaces"
+  ],
+  "estimate": 14,
+  "prereqs": [
+    {
+      "concept": "ms-complete-iff-closed",
+      "why": "This is one of the two directions of the corollary, and the one that does the work."
+    },
+    {
+      "concept": "ms-closed-sets",
+      "why": "The definition of closed - containing every adherent point - is used exactly once, and it is the step that finishes the proof."
+    },
+    {
+      "concept": "ms-cauchy-sequences",
+      "why": "The argument starts from an arbitrary Cauchy sequence and has to produce a limit for it."
+    }
+  ],
+  "statement": "**Proposition.** Let $(X,d)$ be a complete metric space and let $E \\subseteq X$\nbe closed. Then $E$, with the metric inherited from $X$, is complete.\n\nThe proof below is complete except for the reasons. Choose the\njustification for each marked step.\n\nNote what has to be produced: not merely a limit, but a limit **that is a\npoint of $E$**. That is the only difference between this and \"$X$ is\ncomplete\", and it is where the closedness is spent.",
+  "hints": [
+    "Write down what has to be shown before reading the steps: given a Cauchy sequence in $E$, produce a point of $E$ it converges to.",
+    "The first move is to stop thinking of the sequence as living in $E$ and think of it as living in $X$, where you know something.",
+    "Once $X$ has produced a limit $x$, there are two things left: get $x$ into $E$, and check that convergence in $X$ is convergence in $E$."
+  ],
+  "payload": {
+    "claim": "**Proposition.** A closed subset of a complete metric space is complete in the inherited metric.",
+    "steps": [
+      {
+        "text": "Let $(x_n)$ be a Cauchy sequence in $E$. We must find $x \\in E$ with $x_n \\to x$ in $E$."
+      },
+      {
+        "text": "$(x_n)$ is also a Cauchy sequence when regarded as a sequence in $X$.",
+        "blank": true
+      },
+      {
+        "text": "So there is $x \\in X$ with $x_n \\to x$ in $X$.",
+        "blank": true
+      },
+      {
+        "text": "Every $x_n$ lies in $E$, and every ball about $x$ contains $x_n$ for all large $n$, so every ball about $x$ meets $E$; that is, $x$ is adherent to $E$.",
+        "blank": true
+      },
+      {
+        "text": "Therefore $x \\in E$.",
+        "blank": true
+      },
+      {
+        "text": "And $d(x_n, x) \\to 0$ is the same statement whether the distances are read in $X$ or in $E$, so $x_n \\to x$ in $E$.",
+        "blank": true
+      },
+      {
+        "text": "Every Cauchy sequence in $E$ therefore converges in $E$, which is to say $E$ is complete. $\\blacksquare$"
+      }
+    ],
+    "choices": [
+      "the metric on $E$ is the restriction of the metric on $X$, so the same $\\eps$ and $N$ witness the Cauchy condition in both",
+      "completeness of $X$",
+      "the definition of an adherent point of $E$",
+      "$E$ is closed, and a closed set contains all of its adherent points",
+      "the metric on $E$ is the restriction of the one on $X$, so the same $\\eps$ and $N$ witness convergence in both",
+      "every Cauchy sequence is bounded",
+      "a totally bounded set has a Cauchy subsequence",
+      "the limit of a convergent sequence is unique"
+    ]
+  }
+}

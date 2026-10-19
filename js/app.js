@@ -184,6 +184,17 @@
   /* ---------------- shortcuts ---------------- */
 
   function shortcuts(e) {
+    /* Alt is the modifier for the two panels the workspace can fold
+       away, and it is checked before the typing guard below: the
+       reader folding the statement away is almost always inside the
+       editor at the time, and CodeMirror's surface is contentEditable.
+       Nothing else here takes a modifier at all. */
+    if (e.altKey && !e.ctrlKey && !e.metaKey) {
+      const k = String(e.key).toLowerCase();
+      if (k === 'd') { e.preventDefault(); ProblemView.toggleDesc(); return; }
+      if (k === 'b') { e.preventDefault(); ProblemView.toggleFiles(); return; }
+    }
+
     /* Never steal a key from a field someone is typing in. */
     const t = e.target;
     if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) {

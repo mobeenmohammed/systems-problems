@@ -1,0 +1,50 @@
+{
+  "key": {
+    "answers": [
+      1,
+      3
+    ]
+  },
+  "feedback": {
+    "misconceptions": [
+      {
+        "picked": [
+          0
+        ],
+        "say": "On $\\Q$: it is the standard incomplete space. Take the decimal truncations of $\\sqrt2$ — every term is rational, the sequence is Cauchy, and the only number it could converge to is not in $\\Q$."
+      },
+      {
+        "picked": [
+          2
+        ],
+        "say": "On $(0,1]$: the half-open end is the trouble. $x_n = 1/n$ is a sequence of points of the space, it is Cauchy, and the only candidate limit is $0$."
+      },
+      {
+        "picked": [
+          4
+        ],
+        "say": "On the integral metric: continuous functions can approximate a step function as closely as you like in area while never getting close to it uniformly. Try $f_n$ that climbs from $0$ to $1$ over the interval $[\\tfrac12, \\tfrac12 + \\tfrac1n]$ and is flat on either side."
+      }
+    ],
+    "nudge": "Two of the five are complete. For the three subspaces of $\\R$, completeness is the same question as being closed in $\\R$; for the other two, go looking for a Cauchy sequence whose limit is missing."
+  },
+  "distractors": {
+    "0": "No. $\\Q$ is the standard incomplete space: the truncations $1, 1.4, 1.41, 1.414, \\dots$ are rational and Cauchy, and the only real number they can converge to is $\\sqrt 2 \\notin \\Q$. $\\Q$ is not closed in $\\R$.",
+    "1": "Yes. A Cauchy sequence of integers is eventually within $\\tfrac12$ of itself, so it is eventually constant, so it converges — to an integer. Equivalently, $\\Z$ is closed in the complete space $\\R$.",
+    "2": "No. $x_n = 1/n$ lies in $(0,1]$, is Cauchy, and its only candidate limit is $0$, which is not in the space. $(0,1]$ is not closed in $\\R$.",
+    "3": "Yes, and for the same reason as $\\Z$: under $d_d$ a Cauchy sequence must be eventually constant, because $d(x_n,x_m) < \\tfrac12$ forces $x_n = x_m$. Every eventually constant sequence converges, so **every** discrete space is complete — including a bounded one, which is the point of Remark 6.1.12 in the notes.",
+    "4": "No. The functions $f_n$ that are $0$ on $[0,\\tfrac12]$, rise linearly to $1$ on $[\\tfrac12, \\tfrac12+\\tfrac1n]$ and are $1$ after that are continuous and Cauchy in this metric — the area between $f_n$ and $f_m$ is at most $\\tfrac12|\\tfrac1n - \\tfrac1m|$ — but the only candidate limit is the step function, which is not continuous. The same set of functions under $\\|\\cdot\\|_\\infty$ **is** complete."
+  },
+  "explanation": "## Subspaces of $\\R$: one criterion, three answers\n\n$\\R$ is complete, so for a subspace $E \\subseteq \\R$ with the inherited metric,\n\n$$E \\text{ is complete} \\iff E \\text{ is closed in } \\R .$$\n\nBoth directions are short. If $E$ is closed, a Cauchy sequence in $E$ is Cauchy in $\\R$, converges there, and the limit is adherent to $E$ and therefore in $E$. If $E$ is complete, any point adherent to $E$ is the limit of a sequence in $E$, which is Cauchy, which therefore converges **in $E$** — and limits are unique, so the point is in $E$.\n\nSo: $\\Z$ is closed (yes), $\\Q$ is not (no), $(0,1]$ is not (no). No sequences needed beyond checking closedness, although the sequences are what make it obvious.\n\n## Discrete spaces are always complete\n\nUnder $d_d$, taking $\\eps = \\tfrac12$ in the Cauchy condition gives $d(x_n, x_m) = 0$, that is $x_n = x_m$, for all $n,m \\ge N$. The sequence is eventually constant and converges to that constant.\n\nThis is worth separating from boundedness. $(\\R, d_d)$ is complete **and** bounded — every point is within distance 2 of $0$ — and it is not compact, not totally bounded, and nothing like $[0,1]$. \"Complete and bounded\" is a much weaker condition than \"complete and totally bounded\", and that gap is the subject of chapter 6.\n\n## The same functions, two metrics, two answers\n\n$C[0,1]$ under the supremum metric is complete: that is Theorem 3.4.2 in the notes, and it is the uniform limit theorem said as a property of a space.\n\n$C[0,1]$ under $\\int_0^1|f-g|$ is **not**. The witness is a sequence of continuous ramps approximating a step:\n\n$$f_n(t) = \\begin{cases} 0 & t \\le \\tfrac12\\\\ n\\bigl(t - \\tfrac12\\bigr) & \\tfrac12 < t < \\tfrac12 + \\tfrac1n\\\\ 1 & t \\ge \\tfrac12 + \\tfrac1n.\\end{cases}$$\n\nThe area between $f_n$ and $f_m$ is at most $\\tfrac12\\bigl|\\tfrac1n - \\tfrac1m\\bigr|$, so the sequence is Cauchy. Any limit would have to agree almost everywhere with the step function, and no continuous function does.\n\nThe moral is the one the whole chapter rests on: completeness is a property of the **pair** $(X,d)$. Changing the metric on the same set can create it or destroy it, and the integral metric is the standard example. Completing $C[0,1]$ under this metric is one of the ways the space $L^1[0,1]$ is built.",
+  "readMore": [
+    {
+      "concept": "ms-complete-iff-closed",
+      "where": "the two propositions and the corollary"
+    },
+    {
+      "concept": "ms-completion",
+      "where": "what to do with an incomplete space"
+    }
+  ],
+  "id": "ms-which-are-complete"
+}

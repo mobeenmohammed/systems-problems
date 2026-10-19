@@ -1,0 +1,64 @@
+{
+  "key": {
+    "checks": [
+      {
+        "validator": "valuesMatch",
+        "values": [
+          {
+            "field": "f1",
+            "is": "2",
+            "label": "$f(1) = 1 + 1$"
+          },
+          {
+            "field": "f2",
+            "is": "5/2",
+            "label": "$f(2) = 2 + \\tfrac12$"
+          },
+          {
+            "field": "f4",
+            "is": "17/4",
+            "label": "$f(4) = 4 + \\tfrac14$"
+          },
+          {
+            "field": "ratio",
+            "is": "7/8",
+            "label": "the shrink factor for the pair 2, 4"
+          }
+        ]
+      },
+      {
+        "validator": "allDifferent",
+        "fields": [
+          "f1",
+          "f2",
+          "f4"
+        ]
+      },
+      {
+        "validator": "inRange",
+        "ranges": [
+          {
+            "field": "ratio",
+            "min": "0",
+            "max": "1",
+            "label": "the shrink factor, which must be strictly between 0 and 1"
+          }
+        ]
+      }
+    ],
+    "example": {
+      "f1": "2",
+      "f2": "5/2",
+      "f4": "17/4",
+      "ratio": "7/8"
+    }
+  },
+  "explanation": "## Checking the counterexample\n\n**The space.** $[1,\\infty)$ is closed in $\\R$ and $\\R$ is complete, so $[1,\\infty)$ is complete. It is non-empty. Both hypotheses about the space hold.\n\n**$f$ maps $X$ into $X$.** For $x \\ge 1$, $f(x) = x + 1/x \\ge 1 + 0 > 1$.\n\n**$f$ shrinks every distance.** For $x \\ne y$ in $[1,\\infty)$,\n\n$$f(x) - f(y) = (x - y) + \\Bigl(\\frac1x - \\frac1y\\Bigr) = (x-y) - \\frac{x-y}{xy} = (x-y)\\Bigl(1 - \\frac{1}{xy}\\Bigr).$$\n\nSince $x, y \\ge 1$ we have $xy \\ge 1$, so $0 \\le 1 - \\tfrac1{xy} < 1$, and therefore\n\n$$|f(x) - f(y)| = |x-y| \\cdot \\Bigl(1 - \\frac{1}{xy}\\Bigr) < |x - y| .$$\n\nFor the pair $2, 4$ the factor is $1 - \\tfrac18 = \\tfrac78$, which matches $\\bigl(\\tfrac{17}{4} - \\tfrac52\\bigr)/2 = \\tfrac{7/4}{2} = \\tfrac78$.\n\n**No fixed point.** $f(x) = x$ would need $1/x = 0$, and no real $x$ does that. Indeed $f(x) > x$ for every $x$, so iterating from any starting point runs off to infinity.\n\n## Why Banach's theorem does not apply\n\nA contraction needs **one** constant $k < 1$ that works for all pairs:\n\n$$d(f(x),f(y)) \\le k\\, d(x,y) \\quad\\text{for all } x, y .$$\n\nHere the best possible constant for the pair $x, y$ is exactly $1 - \\tfrac1{xy}$, and\n\n$$\\sup_{x \\ne y \\ge 1} \\Bigl(1 - \\frac{1}{xy}\\Bigr) = 1 .$$\n\nSo no $k < 1$ works for every pair. The shrinking is real but it weakens without limit as you move out along the half-line, and the iterates escape to infinity faster than the shrinking can catch them.\n\n## The hypothesis that cannot be dropped either\n\nThe complementary example is in the notes at Example 3.5.2: drop **completeness** and the theorem also fails, with a genuine contraction. On $X = (0,1]$, the map $f(x) = x/2$ is a contraction with $k = \\tfrac12$, and its fixed point $0$ is missing from the space.\n\nSo the theorem's two hypotheses fail independently, and each has its own standard witness:\n\n| what is dropped | witness | what goes wrong |\n| --- | --- | --- |\n| uniform constant $k < 1$ | $x + 1/x$ on $[1,\\infty)$ | iterates escape to infinity |\n| completeness | $x/2$ on $(0,1]$ | iterates converge, to a point that is not there |\n\n## When strict shrinking *is* enough\n\nIf $X$ is **compact** and $d(f(x),f(y)) < d(x,y)$ for all $x \\ne y$, then $f$ does have a unique fixed point. The proof: $x \\mapsto d(x, f(x))$ is continuous on a compact space, so it attains its minimum at some $x_0$; if $f(x_0) \\ne x_0$ then $d(f(x_0), f(f(x_0))) < d(x_0, f(x_0))$ contradicts minimality.\n\n$[1,\\infty)$ is closed and unbounded, so it is complete and not compact — and that gap is exactly the room the counterexample lives in.",
+  "readMore": [
+    {
+      "concept": "ms-banach-fixed-point",
+      "where": "the theorem and the two examples that show the hypotheses are needed"
+    }
+  ],
+  "id": "ms-contraction-without-fixed-point"
+}

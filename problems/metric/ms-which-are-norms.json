@@ -1,0 +1,40 @@
+{
+  "id": "ms-which-are-norms",
+  "title": "Which of these are norms?",
+  "topic": "metric",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "multi",
+  "tags": [
+    "normed-spaces",
+    "metric-examples",
+    "course-metric-spaces"
+  ],
+  "estimate": 12,
+  "prereqs": [
+    {
+      "concept": "ms-normed-spaces",
+      "why": "The three norm axioms are the whole question, and homogeneity is the one that has no analogue for a metric."
+    },
+    {
+      "concept": "ms-euclidean-metrics",
+      "why": "Two of the candidates are the standard norms on the plane and one is a near miss at a third."
+    }
+  ],
+  "statement": "A **norm** on a real vector space $V$ is a function $\\|\\cdot\\| : V \\to \\R$ such\nthat for all $x, y \\in V$ and all scalars $k$:\n\n1. $\\|x\\| \\ge 0$, and $\\|x\\| = 0$ only when $x = 0$;\n2. $\\|kx\\| = |k|\\,\\|x\\|$;\n3. $\\|x + y\\| \\le \\|x\\| + \\|y\\|$.\n\nEach line below proposes a function on $\\R^2$, writing $x = (x_1, x_2)$.\nSelect every one that **is** a norm.\n\nRefuting one needs a single pair of vectors, or a single scalar.",
+  "hints": [
+    "Axiom 2 is the new one — a metric has no such condition. Test each candidate with $k = 2$ and see whether the value doubles.",
+    "For the third axiom, the cheapest pair to try is $x = (1,0)$ and $y = (0,1)$, because then $x + y = (1,1)$ and every expression is small.",
+    "One of the candidates is zero at a vector that is not the zero vector. That breaks the first axiom, and it is the same failure that stops $|x_1 - y_1|$ from being a metric on the plane."
+  ],
+  "payload": {
+    "options": [
+      "$\\|x\\| = |x_1| + |x_2|$",
+      "$\\|x\\| = \\max\\bigl(|x_1|,\\, |x_2|\\bigr)$",
+      "$\\|x\\| = |x_1|$",
+      "$\\bigl(\\sqrt{|x_1|} + \\sqrt{|x_2|}\\bigr)^2$",
+      "$\\|x\\| = \\sqrt{x_1^2 + 2x_2^2}$",
+      "$\\|x\\| = 0$ if $x = 0$, and $1$ otherwise"
+    ]
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "id": "ms-connected-which",
+  "title": "Which of these are connected?",
+  "topic": "metric",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "multi",
+  "tags": [
+    "connectedness",
+    "path-connectedness",
+    "course-metric-spaces"
+  ],
+  "estimate": 15,
+  "prereqs": [
+    {
+      "concept": "ms-connectedness",
+      "why": "The definition, and the disconnecting pair of open sets, is what decides four of the five."
+    },
+    {
+      "concept": "ms-intervals-connected",
+      "why": "The classification of connected subsets of the line is what makes two of them immediate."
+    },
+    {
+      "concept": "ms-connectedness-continuity",
+      "why": "A continuous image of a connected space is connected, which is the cheapest argument for the circle."
+    }
+  ],
+  "statement": "A metric space is **disconnected** if it is the union of two disjoint\nnon-empty sets, both open in it. **Connected** means not disconnected.\n\nEach subset below carries the metric inherited from the Euclidean space it\nsits in, except where another metric is named. Select every one that is\n**connected**.",
+  "hints": [
+    "For a subset of $\\R$ there is a complete answer: it is connected exactly when it is an interval. Two of these are subsets of $\\R$.",
+    "To show a set is disconnected, exhibit the two open sets. For $[0,1] \\cup (2,3]$, the obvious choice works.",
+    "The circle is the image of $[0, 2\\pi]$ under the continuous map $t \\mapsto (\\cos t, \\sin t)$, and a continuous image of a connected space is connected.",
+    "The topologist's sine curve is the graph of $\\sin(1/x)$ for $x > 0$ together with the segment $\\{0\\} \\times [-1,1]$. It is the standard example of a space that is connected and not path connected."
+  ],
+  "payload": {
+    "options": [
+      "$[0,1] \\cup (2,3]$ in $\\R$.",
+      "$\\Q$ in $\\R$.",
+      "The unit circle $\\{(x,y) \\in \\R^2 : x^2 + y^2 = 1\\}$.",
+      "$\\R$ with the discrete metric.",
+      "The topologist's sine curve: $\\bigl\\{(x, \\sin(1/x)) : 0 < x \\le 1\\bigr\\} \\cup \\bigl(\\{0\\} \\times [-1,1]\\bigr)$ in $\\R^2$."
+    ]
+  }
+}

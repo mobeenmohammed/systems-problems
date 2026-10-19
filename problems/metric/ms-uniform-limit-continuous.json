@@ -1,0 +1,49 @@
+{
+  "id": "ms-uniform-limit-continuous",
+  "title": "Prove the uniform limit is continuous",
+  "topic": "metric",
+  "difficulty": "advanced",
+  "lane": "core",
+  "type": "proof",
+  "tags": [
+    "uniform-convergence",
+    "continuity",
+    "proof-writing",
+    "course-metric-spaces"
+  ],
+  "estimate": 25,
+  "prereqs": [
+    {
+      "concept": "ms-uniform-convergence",
+      "why": "The hypothesis is uniform convergence, and the proof has to use the uniformity rather than only the convergence."
+    },
+    {
+      "concept": "ms-continuity",
+      "why": "The conclusion is continuity at an arbitrary point, which fixes the shape of what has to be written."
+    },
+    {
+      "concept": "ms-metric-axioms",
+      "why": "The one inequality that does the work is the triangle inequality, used once on three terms."
+    }
+  ],
+  "statement": "**Theorem.** Let $(X,d)$ be a metric space and let $f_n : X \\to \\R$ be\ncontinuous for every $n$. Suppose $f_n \\to f$ **uniformly** on $X$, that is\n\n$$\\sup_{x \\in X} \\bigl|f_n(x) - f(x)\\bigr| \\longrightarrow 0 \\quad\\text{as } n \\to \\infty.$$\n\nThen $f$ is continuous on $X$.\n\nWrite the proof.\n\nThis one is **self-assessed**. There is no automatic grading of free-form\nproofs here: nothing can tell a correct argument from a plausible-looking\none by looking at the words. Write your proof first, then reveal the model\nproof and the checklist and mark yourself honestly against it.\n\nA proof that uses only pointwise convergence cannot be correct, because the\nstatement is false without the word \"uniformly\" — so if your argument never\nuses it, something is wrong.",
+  "hints": [
+    "Fix a point $a$ and an $\\eps > 0$. What exactly do you have to produce?",
+    "The quantity to bound is $|f(x) - f(a)|$, and you have no direct information about $f$ at all — only about the $f_n$. Insert one of them.",
+    "Add and subtract $f_n(x)$ and $f_n(a)$ to split $|f(x)-f(a)|$ into three pieces. Two of them are controlled by uniform convergence and one by the continuity of a single $f_n$.",
+    "Choose $n$ **before** you choose $\\delta$. The $n$ is chosen once, using uniformity, for the whole space; the $\\delta$ then comes from the continuity of that one fixed $f_n$ at $a$. Choosing them the other way round is the standard mistake."
+  ],
+  "payload": {
+    "starter": "Let a be a point of X and let eps > 0.\n\nChoose N such that ...\n\nFix n = N. Since f_n is continuous at a, choose delta > 0 such that ...\n\nThen for every x with d(x,a) < delta,\n\n  |f(x) - f(a)| <= ...\n",
+    "rubric": [
+      "It begins by fixing an arbitrary point $a \\in X$ and an arbitrary $\\eps > 0$, and says that the goal is to produce a $\\delta > 0$.",
+      "It splits $|f(x) - f(a)|$ into three terms by adding and subtracting $f_n(x)$ and $f_n(a)$, and says so explicitly rather than producing the three terms from nowhere.",
+      "The triangle inequality is named where the three terms are combined.",
+      "The index $n$ is fixed **before** $\\delta$ is chosen, and the proof says which one it is fixing and why ($\\sup_x|f_n - f| < \\eps/3$).",
+      "The choice of $n$ uses **uniform** convergence: the same $n$ works at $x$ and at $a$, and the proof points out that this is where uniformity is needed.",
+      "The $\\delta$ comes from the continuity of that one fixed $f_n$ at $a$, with $\\eps/3$ as its tolerance.",
+      "The three bounds are added to reach $\\eps$, with no step left as \"clearly\".",
+      "It ends by saying what has been shown: continuity at $a$, for an arbitrary $a$, hence continuity on $X$."
+    ]
+  }
+}

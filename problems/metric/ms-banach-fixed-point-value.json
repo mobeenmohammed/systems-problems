@@ -1,0 +1,40 @@
+{
+  "id": "ms-banach-fixed-point-value",
+  "title": "Where does the iteration land?",
+  "topic": "metric",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "exact",
+  "tags": [
+    "banach-fixed-point",
+    "contractions",
+    "course-metric-spaces"
+  ],
+  "estimate": 12,
+  "prereqs": [
+    {
+      "concept": "ms-banach-fixed-point",
+      "why": "The theorem is what guarantees there is exactly one answer, and the answer is the fixed point."
+    },
+    {
+      "concept": "ms-isometries-lipschitz",
+      "why": "Checking the contraction constant is checking a Lipschitz bound."
+    },
+    {
+      "concept": "ms-complete-iff-closed",
+      "why": "The space is a closed bounded interval, which is why it is complete."
+    }
+  ],
+  "statement": "Let $X = [1,2]$ with the Euclidean metric, and define $T : X \\to X$ by\n\n$$T(x) = \\frac{x}{2} + \\frac{1}{x}.$$\n\nYou may take the following as given:\n\n- $T$ maps $X$ into $X$;\n- $|T'(x)| = \\bigl|\\tfrac12 - \\tfrac1{x^2}\\bigr| \\le \\tfrac12$ on $[1,2]$, so $T$\n  is a contraction with constant $k = \\tfrac12$;\n- $[1,2]$ is closed in $\\R$, hence complete.\n\nBy Banach's fixed-point theorem $T$ has exactly one fixed point in $[1,2]$.\n\nGive it **exactly**.",
+  "hints": [
+    "A fixed point satisfies $T(x) = x$. Write that equation out and clear the fraction.",
+    "$x/2 + 1/x = x$ rearranges to $1/x = x/2$, so $x^2 = 2$.",
+    "Two real numbers square to 2. Only one of them is in $[1,2]$, and the answer should be written exactly rather than as a decimal."
+  ],
+  "payload": {
+    "prompt": "The unique fixed point of $T$ in $[1,2]$.",
+    "label": "$x^\\ast =$",
+    "placeholder": "an exact value",
+    "syntax": "An exact value. sqrt(2) is understood; a decimal is not accepted here."
+  }
+}

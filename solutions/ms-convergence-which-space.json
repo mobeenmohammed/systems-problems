@@ -1,0 +1,45 @@
+{
+  "key": {
+    "answers": [
+      0,
+      3,
+      4
+    ]
+  },
+  "feedback": {
+    "misconceptions": [
+      {
+        "picked": [
+          1
+        ],
+        "say": "On $(0,2)$: the terms all lie in the space and they get arbitrarily close together, so the sequence is Cauchy there. But converging needs a limit **inside the space**, and the only candidate is $0$, which is not in $(0,2)$."
+      },
+      {
+        "picked": [
+          2
+        ],
+        "say": "On the discrete metric: take $\\eps = 1/2$. The condition $d(x_n, x) < 1/2$ can only hold when $x_n = x$ exactly, because the only values the metric takes are $0$ and $1$. So which sequences converge in a discrete space?"
+      }
+    ],
+    "nudge": "Go line by line and ask two questions: what is the candidate limit under this metric, and is that candidate a point of this space? One of the five fails the first question and one fails the second."
+  },
+  "distractors": {
+    "0": "Yes. $|1/n - 0| = 1/n \\to 0$, and $0 \\in \\R$.",
+    "1": "No. The sequence is Cauchy in $(0,2)$ — the terms crowd together — but its only possible limit is $0$, which is not a point of $(0,2)$. This is the standard example of a Cauchy sequence that does not converge, and it is why $(0,2)$ is not complete.",
+    "2": "No. Under $d_d$ the only sequences that converge are those that are **eventually constant**: taking $\\eps = \\tfrac12$ forces $d(x_n, x) = 0$, i.e. $x_n = x$, for all large $n$. The terms $1/n$ are all different, so nothing works.",
+    "3": "Yes. Every term $1/n$ lies in $[0,1]$, the limit $0$ lies in $[0,1]$, and the metric is the usual one. $[0,1]$ is closed in $\\R$, which is exactly the condition that makes limits of its sequences stay inside it.",
+    "4": "Yes. Each $1/n$ is rational, the limit $0$ is rational, and the metric is the usual one. $\\Q$ is **not** complete, but this particular sequence happens to have its limit inside — incompleteness is about *some* Cauchy sequence failing, not all of them."
+  },
+  "explanation": "## One sequence, five answers\n\nNothing about the terms changes from line to line. What changes is the metric and the set, and those are the other two thirds of the definition.\n\n| space | candidate limit | in the space? | converges? |\n| --- | --- | --- | --- |\n| Euclidean $\\R$ | $0$ | yes | yes |\n| $(0,2)$ | $0$ | **no** | no |\n| $(\\R, d_d)$ | — | — | no |\n| $[0,1]$ | $0$ | yes | yes |\n| $\\Q$ | $0$ | yes | yes |\n\n## The two failures are different failures\n\n**$(0,2)$** fails for a reason about the *set*. The sequence is Cauchy there: $d(x_n, x_m) = |1/n - 1/m|$ is small for large $n, m$, and that statement never mentions a limit. There is simply no point of $(0,2)$ for it to converge to. This is what an incomplete space is, and it is why completeness is a property of the space and not of the sequence.\n\n**$(\\R, d_d)$** fails for a reason about the *metric*. The discrete metric takes only the values $0$ and $1$, so the condition $d(x_n, x) < \\eps$ with $\\eps = \\tfrac12$ is not an approximation at all — it says $x_n = x$. A sequence converges in a discrete space exactly when it is eventually constant, and $(1/n)$ never repeats. The sequence is not even Cauchy there.\n\n## Why $\\Q$ still says yes\n\nIt is tempting to answer \"no\" for $\\Q$ because $\\Q$ is the standard incomplete space. But incompleteness says that **some** Cauchy sequence fails to converge — the usual witness is a rational sequence tending to $\\sqrt2$ — not that every one does. This sequence has a rational limit and converges perfectly well in $\\Q$.\n\nThe habit this is worth building: before answering \"does it converge\", say what the limit would be and check it is in the space. Both failures above are caught by that one question, asked honestly.",
+  "readMore": [
+    {
+      "concept": "ms-convergence",
+      "where": "the definition, and the examples that follow it"
+    },
+    {
+      "concept": "ms-cauchy-sequences",
+      "where": "Cauchy without a limit"
+    }
+  ],
+  "id": "ms-convergence-which-space"
+}

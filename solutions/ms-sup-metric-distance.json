@@ -1,0 +1,37 @@
+{
+  "key": {
+    "value": "1/4",
+    "alsoAccept": [
+      "0.25"
+    ]
+  },
+  "feedback": {
+    "whenValue": [
+      {
+        "is": "1/2",
+        "say": "That is $t$ at the maximising point, not the value of the function there. You want $h(t^\\ast)$, not $t^\\ast$."
+      },
+      {
+        "is": "1/sqrt(2)",
+        "say": "That is the point where the maximum occurs, $t = 1/\\sqrt2$. Put it back into $t^2 - t^4$ to get the height."
+      },
+      {
+        "is": "0",
+        "say": "Zero would mean the two functions are identical. They agree at $t = 0$ and at $t = 1$ and nowhere else in between, so the supremum is taken somewhere strictly inside."
+      },
+      {
+        "is": "3/16",
+        "say": "That is the value at $t = 1/2$ — $1/4 - 1/16$. A sensible guess, but $1/2$ is not where the difference is largest. Differentiate and solve."
+      }
+    ],
+    "nudge": "Maximise $h(t) = t^2 - t^4$ over $[0,1]$. Check the two endpoints and the interior critical points, and report the largest value of $h$, not the $t$ that produces it."
+  },
+  "explanation": "## Doing it\n\n$$\\|f - g\\|_\\infty = \\sup_{t\\in[0,1]} \\bigl|t^2 - t^4\\bigr| = \\max_{t\\in[0,1]} \\bigl(t^2 - t^4\\bigr),$$\n\nthe absolute value coming off because $t^2 \\ge t^4$ on $[0,1]$. Write $h(t) = t^2 - t^4$. Then\n\n$$h'(t) = 2t - 4t^3 = 2t\\bigl(1 - 2t^2\\bigr),$$\n\nwhich vanishes at $t = 0$ and at $t = 1/\\sqrt2$. Evaluating at the critical points and the endpoints:\n\n$$h(0) = 0, \\qquad h(1) = 0, \\qquad h\\bigl(1/\\sqrt2\\bigr) = \\tfrac12 - \\tfrac14 = \\tfrac14.$$\n\nSo $\\|f - g\\|_\\infty = \\tfrac14$.\n\n## Supremum or maximum?\n\nThe definition says supremum, and the working says maximum. The step between them is that $[0,1]$ is **compact** and $|f-g|$ is **continuous**, so the supremum is attained — which is a theorem, not a convention, and it is the reason the calculus works here at all.\n\nChange the domain to $(0,1)$ and the two functions $f(t) = t$ and $g(t) = 0$ have $\\|f-g\\|_\\infty = 1$ with no $t$ achieving it. The number is still the right one; it just is not a maximum any more, and differentiating would not have found it.\n\n## What the number is for\n\n$\\|f-g\\|_\\infty$ is the width of the narrowest horizontal band around one graph that contains the other. Here, the graph of $t^4$ lies inside a band of half-width $1/4$ about the graph of $t^2$ and inside no narrower one.\n\nThat picture is the whole of uniform convergence: $f_n \\to f$ uniformly means $\\|f_n - f\\|_\\infty \\to 0$, which means the bands shrink to nothing. It is also why this metric is the natural one on $C[0,1]$ — convergence in it is exactly the convergence that preserves continuity.",
+  "readMore": [
+    {
+      "concept": "ms-function-spaces",
+      "where": "the supremum norm and the worked example it comes from"
+    }
+  ],
+  "id": "ms-sup-metric-distance"
+}

@@ -1,0 +1,98 @@
+{
+  "id": "proj-cache-sim-3",
+  "title": "A cache simulator: writes, and when memory finds out",
+  "topic": "arch",
+  "difficulty": "advanced",
+  "lane": "core",
+  "type": "code",
+  "project": {
+    "id": "cache-sim",
+    "title": "Build a cache simulator",
+    "of": 3,
+    "step": 3,
+    "label": "Write-back and dirty lines",
+    "continues": "proj-cache-sim-2"
+  },
+  "tags": [
+    "cache",
+    "project",
+    "multi-file",
+    "write-back",
+    "memory-traffic"
+  ],
+  "estimate": 35,
+  "prereqs": [
+    {
+      "concept": "cache-indexing",
+      "why": "The whole of `decode` is this: which bits are the offset, which are the index, and what is left."
+    },
+    {
+      "concept": "shifts-and-masks",
+      "why": "Each field is one shift and one mask, and the mask for a zero-width field is the case that catches people."
+    },
+    {
+      "concept": "compilation-pipeline",
+      "why": "Three files are compiled separately and linked, so a signature that does not match its declaration is a link error rather than a compile error."
+    },
+    {
+      "concept": "cache-associativity",
+      "why": "The victim is still chosen by least-recently-used; what changes is what throwing it out costs."
+    },
+    {
+      "concept": "cache-write-policy",
+      "why": "Write-allocate and write-back are the two policies being implemented, and the counting rule follows from them."
+    }
+  ],
+  "statement": "**Milestone 3 of 3.** Writes, and the only question a cache really has\nto answer about them: when does the data go back to memory?\n\n### What is new\n\nOne more command and one more counter.\n\n```\ndecode <addr>   print  tag=<t> index=<i> offset=<o>\nread <addr>     print  hit  or  miss\nwrite <addr>    print  hit  or  miss\nstats           print  <hits> hits, <misses> misses, <evictions> evictions, <writebacks> writebacks\n```\n\nThe header gains two methods:\n\n```cpp\nbool write(std::uint64_t addr);\nstd::size_t writebacks() const;\n```\n\n### The policy, exactly\n\nThis cache is **write-allocate** and **write-back**.\n\n- **Write-allocate.** A write that misses brings the block in first,\n  exactly as a read would — same eviction, same LRU bookkeeping — and\n  then writes it. So it counts as a miss, and `write` returns `false`.\n- **Write-back.** A written line is *dirty*: memory no longer agrees\n  with it. Nothing goes to memory at the time of the write.\n- A dirty line being **evicted** is one writeback. A clean line being\n  evicted is not. Filling a way that was never used is neither an\n  eviction nor a writeback.\n- A line that arrives by a **read** is clean. A line that is replaced\n  starts again from clean, whatever was in it before.\n- `write` returns `true` when the block was already present. That is a\n  hit, it counts as a hit, and the line becomes dirty if it was not\n  already.\n\n### The sample\n\n```\n1 1 16\nwrite 0     ->  miss     allocate, then write: the line is dirty\nwrite 0     ->  hit      still dirty\nread 100    ->  miss     evicts a dirty line: one writeback\nread 0      ->  miss     evicts a CLEAN line: no writeback\nstats       ->  1 hits, 3 misses, 2 evictions, 1 writebacks\n```\n\n### Carrying your work forward\n\nYour `include/cache.hpp` and `src/cache.cpp` come with you from\nmilestone 2, with the same rule as before: a file you edited stays\nyours, a file you never touched is replaced by this milestone's version.\n\nIf you kept your own header, it does not declare `write` or\n`writebacks`, and `main.cpp` will not link until it does — the linker\nwill name the missing symbol. If you kept your own `src/cache.cpp`, it\nhas no `Cache::write` in it, and that is a **link** error rather than a\ncompile error, because the two files are compiled separately and neither\nof them is wrong on its own.\n",
+  "hints": [
+    "A write is a read that leaves the line dirty. Do not write the lookup twice: call the read path, then find the line it left behind and set its flag.",
+    "The dirty bit is per line, not per set and not per cache. It is set by a write and cleared when the line is replaced — a block arriving from memory is identical to memory until somebody writes it.",
+    "Count the writeback at the same moment you count the eviction, and only there: look at the victim's dirty flag before you overwrite it. Afterwards is too late, and it is the most common way to get this wrong.",
+    "`read 0 / read 100 / read 0` on a one-way cache evicts twice and writes back nothing. If your writebacks are not zero there, you are counting evictions rather than dirty evictions."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 5000
+    },
+    "files": [
+      {
+        "path": "include/cache.hpp",
+        "content": "#ifndef CACHE_HPP\n#define CACHE_HPP\n\n#include <cstddef>\n#include <cstdint>\n#include <vector>\n\n/* An address, taken apart the way a cache takes it apart. */\nstruct Decoded {\n    std::uint64_t tag = 0;\n    std::uint64_t index = 0;\n    std::uint64_t offset = 0;\n};\n\n/* A cache of `sets` sets, `ways` lines per set and `blockBytes` bytes\n * per line. `sets` and `blockBytes` are powers of two; `ways` is at\n * least 1.\n *\n * The PUBLIC part is the contract. main.cpp is written against exactly\n * these names and these signatures, so changing one stops it linking.\n * Everything under `private:` is yours.\n */\nclass Cache {\npublic:\n    Cache(std::size_t sets, std::size_t ways, std::size_t blockBytes);\n\n    std::size_t sets() const;\n    std::size_t ways() const;\n    std::size_t blockBytes() const;\n\n    /* The three fields of `addr`, for this geometry. */\n    Decoded decode(std::uint64_t addr) const;\n\n    /* A read. True on a hit. A miss brings the block in, so the same\n     * address read twice in a row hits the second time. */\n    bool access(std::uint64_t addr);\n\n    std::size_t hits() const;\n    std::size_t misses() const;\n\n    /* How many times a VALID line was thrown out to make room. Filling\n     * a way that was never used is not an eviction. */\n    std::size_t evictions() const;\n\n    /* A write, write-allocate: a miss brings the block in first. True\n     * on a hit, like access(). Either way the line is left dirty. */\n    bool write(std::uint64_t addr);\n\n    /* How many dirty lines were written back to memory on eviction. */\n    std::size_t writebacks() const;\n\nprivate:\n    std::size_t sets_;\n    std::size_t ways_;\n    std::size_t block_;\n    std::size_t offsetBits_ = 0;\n    std::size_t indexBits_ = 0;\n    std::size_t hits_ = 0;\n    std::size_t misses_ = 0;\n    std::size_t evictions_ = 0;\n    std::size_t writebacks_ = 0;\n\n    /* One line. `stamp` is whatever you need it to be to answer \"which\n     * of these was used longest ago\". */\n    struct Line {\n        bool valid = false;\n        bool dirty = false;\n        std::uint64_t tag = 0;\n        std::uint64_t stamp = 0;\n    };\n\n    std::vector<Line> lines_;\n    std::uint64_t clock_ = 0;\n};\n\n#endif\n"
+      },
+      {
+        "path": "src/cache.cpp",
+        "content": "#include \"../include/cache.hpp\"\n\n/* The geometry, which is already done for you: how many low bits pick a\n * byte inside a block, and how many above those pick a set. `n` is a\n * power of two, so this is the position of its only 1 bit.\n */\nstatic std::size_t log2of(std::size_t n) {\n    std::size_t k = 0;\n    while ((std::size_t{1} << k) < n) ++k;\n    return k;\n}\n\nCache::Cache(std::size_t sets, std::size_t ways, std::size_t blockBytes)\n    : sets_(sets), ways_(ways), block_(blockBytes),\n      offsetBits_(log2of(blockBytes)), indexBits_(log2of(sets)),\n      lines_(sets * ways) {}\n\nstd::size_t Cache::sets() const { return sets_; }\nstd::size_t Cache::ways() const { return ways_; }\nstd::size_t Cache::blockBytes() const { return block_; }\n\nstd::size_t Cache::hits() const { return hits_; }\nstd::size_t Cache::misses() const { return misses_; }\nstd::size_t Cache::evictions() const { return evictions_; }\nstd::size_t Cache::writebacks() const { return writebacks_; }\n\n/* Milestone 3: writes.\n *\n * `decode` and `access` are carried forward from milestone 2 if you\n * wrote them. What is new is `write`, and the fact that evicting a line\n * somebody wrote to now costs a trip to memory.\n */\n\nDecoded Cache::decode(std::uint64_t addr) const {\n    /* your code here — the lowest offsetBits_ bits are the offset, the\n       next indexBits_ bits above those are the index, and everything\n       left over is the tag. Mind the geometry where one of the two bit\n       counts is zero: shifting a 64-bit value by 64 is not \"shift it\n       all away\", it is undefined behaviour. */\n    (void) addr;\n    return Decoded{};\n}\n\nbool Cache::access(std::uint64_t addr) {\n    /* your code here — the read path, as in milestone 2, plus one\n       thing: a line being thrown out that somebody wrote to is a\n       writeback. */\n    (void) addr;\n    return false;\n}\n\nbool Cache::write(std::uint64_t addr) {\n    /* your code here — the same lookup a read does, except that the\n       line ends up dirty whether it was a hit or a miss. */\n    (void) addr;\n    return false;\n}\n"
+      },
+      {
+        "path": "main.cpp",
+        "content": "/* GIVEN, and read-only: the driver.\n *\n * It reads a geometry, then one command per line, and prints what your\n * cache said. It is the thing src/cache.cpp has to satisfy, which is\n * why you cannot edit it here — a test you can edit is not a test.\n *\n * Every address is hexadecimal, with or without an 0x in front.\n */\n#include <iostream>\n#include <sstream>\n#include <string>\n\n#include \"include/cache.hpp\"\n\nstatic void printDecoded(const Decoded& d) {\n    std::cout << std::hex\n              << \"tag=\" << d.tag\n              << \" index=\" << d.index\n              << \" offset=\" << d.offset\n              << std::dec << '\\n';\n}\n\nint main() {\n    std::ios::sync_with_stdio(false);\n    std::cin.tie(nullptr);\n\n    std::size_t sets = 0, ways = 0, block = 0;\n    if (!(std::cin >> sets >> ways >> block)) return 0;\n    Cache cache(sets, ways, block);\n\n    std::string line;\n    std::getline(std::cin, line);\n\n    while (std::getline(std::cin, line)) {\n        std::istringstream in(line);\n        std::string cmd;\n        if (!(in >> cmd)) continue;\n        std::uint64_t addr = 0;\n\n        if (cmd == \"decode\") {\n            if (!(in >> std::hex >> addr)) continue;\n            printDecoded(cache.decode(addr));\n        } else if (cmd == \"read\") {\n            if (!(in >> std::hex >> addr)) continue;\n            std::cout << (cache.access(addr) ? \"hit\" : \"miss\") << '\\n';\n        } else if (cmd == \"write\") {\n            if (!(in >> std::hex >> addr)) continue;\n            std::cout << (cache.write(addr) ? \"hit\" : \"miss\") << '\\n';\n        } else if (cmd == \"stats\") {\n            std::cout << cache.hits() << \" hits, \"\n                      << cache.misses() << \" misses, \"\n                      << cache.evictions() << \" evictions, \"\n                      << cache.writebacks() << \" writebacks\" << '\\n';\n        }\n    }\n    return 0;\n}\n",
+        "readOnly": true
+      }
+    ],
+    "entry": "main.cpp",
+    "build": {
+      "sources": [
+        "main.cpp",
+        "src/cache.cpp"
+      ]
+    },
+    "cases": [
+      {
+        "stdin": "1 1 16\nwrite 0\nwrite 0\nread 100\nread 0\nstats\n",
+        "expect": "miss\nhit\nmiss\nmiss\n1 hits, 3 misses, 2 evictions, 1 writebacks\n"
+      },
+      {
+        "stdin": "1 1 16\nread 0\nread 100\nread 0\nstats\n",
+        "expect": "miss\nmiss\nmiss\n0 hits, 3 misses, 2 evictions, 0 writebacks\n"
+      },
+      {
+        "stdin": "1 2 16\nread 0\nread 100\nread 0\nread 200\nread 0\nstats\n",
+        "expect": "miss\nmiss\nhit\nmiss\nhit\n2 hits, 3 misses, 1 evictions, 0 writebacks\n"
+      }
+    ]
+  }
+}

@@ -1304,6 +1304,10 @@ fn main() {
        it can offer the right Reset and show the right submission. */
     multiFile: () => multi(),
     files: () => (multi() ? fileList() : null),
+    /* The workspace widget itself, for the controls that belong to the
+       page rather than to the type: the explorer toggle and Reset
+       layout. Null on a single-file problem, which has no explorer. */
+    pane: () => (multi() ? state.pane : null),
     activeFile: () => (multi() ? state.pane.active : null),
     openFile: path => showFile(path, { focus: true }),
 

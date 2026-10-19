@@ -1,0 +1,88 @@
+{
+  "id": "proj-cache-sim-1",
+  "title": "A cache simulator: splitting the address",
+  "topic": "arch",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "code",
+  "project": {
+    "id": "cache-sim",
+    "title": "Build a cache simulator",
+    "of": 3,
+    "step": 1,
+    "label": "Address decoding"
+  },
+  "tags": [
+    "cache",
+    "project",
+    "multi-file",
+    "bit-manipulation"
+  ],
+  "estimate": 30,
+  "prereqs": [
+    {
+      "concept": "cache-indexing",
+      "why": "The whole of `decode` is this: which bits are the offset, which are the index, and what is left."
+    },
+    {
+      "concept": "shifts-and-masks",
+      "why": "Each field is one shift and one mask, and the mask for a zero-width field is the case that catches people."
+    },
+    {
+      "concept": "compilation-pipeline",
+      "why": "Three files are compiled separately and linked, so a signature that does not match its declaration is a link error rather than a compile error."
+    }
+  ],
+  "statement": "**Milestone 1 of 3.** A cache simulator, built one policy at a time.\nThis milestone is the address: how a cache takes one apart, and what a\ndirect-mapped cache does with the pieces.\n\n### The files\n\n```\ninclude/cache.hpp   the interface. The public part is the contract;\n                    the private part is yours to replace.\nsrc/cache.cpp       where you work.\nmain.cpp            given, and read-only here: the driver.\n```\n\nThe three are compiled separately and linked, the way a real build does\nit — not pasted together. A diagnostic names the file it is in, and\nclicking it opens that file at that line. Note the directories: the\ndriver includes `\"include/cache.hpp\"` and your source includes\n`\"../include/cache.hpp\"`, because a quoted include is resolved against\nthe file doing the including.\n\n### The geometry\n\nA cache is a rectangle of lines: `sets` rows, `ways` lines per row,\n`blockBytes` bytes in each line. `sets` and `blockBytes` are powers of\ntwo, which is what makes the address split into three fields with\nshifts and masks rather than with division:\n\n```\n 63                                  0\n+---------------------+-------+------+\n|         tag         | index |offset|\n+---------------------+-------+------+\n                       log2(sets)  log2(blockBytes)\n```\n\n`offset` picks the byte inside the line, `index` picks the set, and the\ntag is everything above them — it is what has to be stored beside the\ndata so that two blocks landing in the same set can be told apart.\n\nIn this milestone there is exactly **one** way, so a set holds one line\nand the index names it outright. There is nothing to choose between and\nnothing to evict deliberately: a block arriving in an occupied set\nsimply replaces what was there.\n\n### The commands\n\nThe first line is `<sets> <blockBytes>`. Every line after it is one\ncommand. **Addresses are hexadecimal**, with or without an `0x` in\nfront, and the three fields are printed in hexadecimal too.\n\n```\ndecode <addr>   print  tag=<t> index=<i> offset=<o>\nread <addr>     print  hit  or  miss\nstats           print  <hits> hits, <misses> misses\n```\n\nA line that is not one of these is ignored, and so is a malformed one.\n\n### What the cache has to do\n\n- `decode` splits the address for **this** geometry. With one set there\n  are no index bits; with one byte per block there are no offset bits.\n  Both happen in the tests.\n- `access` reports whether the block was already present, and counts it.\n  A miss brings the block in, so reading the same address twice gives\n  `miss` then `hit`.\n- Two addresses in the same block — same tag, same index, different\n  offset — are the same block. The second one hits.\n- Nothing is ever flushed, and there are no writes yet.\n\n### The sample\n\n```\n4 16                     four sets of sixteen bytes\ndecode 0          ->     tag=0 index=0 offset=0\ndecode 1f         ->     tag=0 index=1 offset=f\ndecode 4c         ->     tag=1 index=0 offset=c\ndecode 1234       ->     tag=48 index=3 offset=4\nread 0            ->     miss\nread 4            ->     hit        same block as 0\nread 40           ->     miss       set 0 again, but tag 1\nread 0            ->     miss       tag 1 is sitting in it\nstats             ->     1 hits, 3 misses\n```\n\n### How it is checked\n\nYour `src/cache.cpp` is compiled against the given `main.cpp` and run on\nthe cases. Any implementation that behaves as described passes; the\nprivate members in the header are a suggestion you are free to replace.\n\nThis is one milestone of three. Your files are carried forward to the\nnext one, so what you write here is what you build on.\n",
+  "hints": [
+    "Start with `decode` and the `decode` lines of the sample. Until those four are right, nothing else can be: `access` is built on top of it.",
+    "`offsetBits_` and `indexBits_` are already worked out for you in the constructor. The offset is the low `offsetBits_` bits, the index is the next `indexBits_`, and the tag is `addr >> (offsetBits_ + indexBits_)`.",
+    "A mask of `n` low bits is `(1 << n) - 1` — but when `n` is 0 that is `1 - 1 = 0`, which is right, and when `n` is 64 the shift itself is undefined. Geometry `1 1` has both counts at zero, and it is in the tests.",
+    "`access` with one way is four lines: decode, look at `lines_[index]`, compare `valid` and `tag`, and on a miss overwrite both and count the miss."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 5000
+    },
+    "files": [
+      {
+        "path": "include/cache.hpp",
+        "content": "#ifndef CACHE_HPP\n#define CACHE_HPP\n\n#include <cstddef>\n#include <cstdint>\n#include <vector>\n\n/* An address, taken apart the way a cache takes it apart. */\nstruct Decoded {\n    std::uint64_t tag = 0;\n    std::uint64_t index = 0;\n    std::uint64_t offset = 0;\n};\n\n/* A cache of `sets` sets, `ways` lines per set and `blockBytes` bytes\n * per line. `sets` and `blockBytes` are powers of two; `ways` is at\n * least 1.\n *\n * The PUBLIC part is the contract. main.cpp is written against exactly\n * these names and these signatures, so changing one stops it linking.\n * Everything under `private:` is yours.\n */\nclass Cache {\npublic:\n    Cache(std::size_t sets, std::size_t ways, std::size_t blockBytes);\n\n    std::size_t sets() const;\n    std::size_t ways() const;\n    std::size_t blockBytes() const;\n\n    /* The three fields of `addr`, for this geometry. */\n    Decoded decode(std::uint64_t addr) const;\n\n    /* A read. True on a hit. A miss brings the block in, so the same\n     * address read twice in a row hits the second time. */\n    bool access(std::uint64_t addr);\n\n    std::size_t hits() const;\n    std::size_t misses() const;\n\nprivate:\n    std::size_t sets_;\n    std::size_t ways_;\n    std::size_t block_;\n    std::size_t offsetBits_ = 0;\n    std::size_t indexBits_ = 0;\n    std::size_t hits_ = 0;\n    std::size_t misses_ = 0;\n\n    /* One line. `stamp` is whatever you need it to be to answer \"which\n     * of these was used longest ago\". */\n    struct Line {\n        bool valid = false;\n        bool dirty = false;\n        std::uint64_t tag = 0;\n        std::uint64_t stamp = 0;\n    };\n\n    std::vector<Line> lines_;\n    std::uint64_t clock_ = 0;\n};\n\n#endif\n"
+      },
+      {
+        "path": "src/cache.cpp",
+        "content": "#include \"../include/cache.hpp\"\n\n/* The geometry, which is already done for you: how many low bits pick a\n * byte inside a block, and how many above those pick a set. `n` is a\n * power of two, so this is the position of its only 1 bit.\n */\nstatic std::size_t log2of(std::size_t n) {\n    std::size_t k = 0;\n    while ((std::size_t{1} << k) < n) ++k;\n    return k;\n}\n\nCache::Cache(std::size_t sets, std::size_t ways, std::size_t blockBytes)\n    : sets_(sets), ways_(ways), block_(blockBytes),\n      offsetBits_(log2of(blockBytes)), indexBits_(log2of(sets)),\n      lines_(sets * ways) {}\n\nstd::size_t Cache::sets() const { return sets_; }\nstd::size_t Cache::ways() const { return ways_; }\nstd::size_t Cache::blockBytes() const { return block_; }\n\nstd::size_t Cache::hits() const { return hits_; }\nstd::size_t Cache::misses() const { return misses_; }\n\n/* Milestone 1: a direct-mapped cache.\n *\n * Both of these compile as they stand and both are wrong, so your first\n * Run is a list of failing cases rather than a wall of compiler errors.\n */\n\nDecoded Cache::decode(std::uint64_t addr) const {\n    /* your code here — the lowest offsetBits_ bits are the offset, the\n       next indexBits_ bits above those are the index, and everything\n       left over is the tag. Mind the geometry where one of the two bit\n       counts is zero: shifting a 64-bit value by 64 is not \"shift it\n       all away\", it is undefined behaviour. */\n    (void) addr;\n    return Decoded{};\n}\n\nbool Cache::access(std::uint64_t addr) {\n    /* your code here — there is one line per set in this milestone, so\n       the index picks it outright. Count the hit or the miss, and on a\n       miss bring the block in. */\n    (void) addr;\n    return false;\n}\n"
+      },
+      {
+        "path": "main.cpp",
+        "content": "/* GIVEN, and read-only: the driver.\n *\n * It reads a geometry, then one command per line, and prints what your\n * cache said. It is the thing src/cache.cpp has to satisfy, which is\n * why you cannot edit it here — a test you can edit is not a test.\n *\n * Every address is hexadecimal, with or without an 0x in front.\n */\n#include <iostream>\n#include <sstream>\n#include <string>\n\n#include \"include/cache.hpp\"\n\nstatic void printDecoded(const Decoded& d) {\n    std::cout << std::hex\n              << \"tag=\" << d.tag\n              << \" index=\" << d.index\n              << \" offset=\" << d.offset\n              << std::dec << '\\n';\n}\n\nint main() {\n    std::ios::sync_with_stdio(false);\n    std::cin.tie(nullptr);\n\n    std::size_t sets = 0, block = 0;\n    if (!(std::cin >> sets >> block)) return 0;\n    Cache cache(sets, 1, block);\n\n    std::string line;\n    std::getline(std::cin, line);\n\n    while (std::getline(std::cin, line)) {\n        std::istringstream in(line);\n        std::string cmd;\n        if (!(in >> cmd)) continue;\n        std::uint64_t addr = 0;\n\n        if (cmd == \"decode\") {\n            if (!(in >> std::hex >> addr)) continue;\n            printDecoded(cache.decode(addr));\n        } else if (cmd == \"read\") {\n            if (!(in >> std::hex >> addr)) continue;\n            std::cout << (cache.access(addr) ? \"hit\" : \"miss\") << '\\n';\n        } else if (cmd == \"stats\") {\n            std::cout << cache.hits() << \" hits, \"\n                      << cache.misses() << \" misses\" << '\\n';\n        }\n    }\n    return 0;\n}\n",
+        "readOnly": true
+      }
+    ],
+    "entry": "main.cpp",
+    "build": {
+      "sources": [
+        "main.cpp",
+        "src/cache.cpp"
+      ]
+    },
+    "cases": [
+      {
+        "stdin": "4 16\ndecode 0\ndecode 1f\ndecode 4c\ndecode 1234\nread 0\nread 4\nread 40\nread 0\nstats\n",
+        "expect": "tag=0 index=0 offset=0\ntag=0 index=1 offset=f\ntag=1 index=0 offset=c\ntag=48 index=3 offset=4\nmiss\nhit\nmiss\nmiss\n1 hits, 3 misses\n"
+      },
+      {
+        "stdin": "8 1\ndecode 5\ndecode 15\nread 5\nread 5\nread d\nread 5\nstats\n",
+        "expect": "tag=0 index=5 offset=0\ntag=2 index=5 offset=0\nmiss\nhit\nmiss\nmiss\n1 hits, 3 misses\n"
+      },
+      {
+        "stdin": "1 8\ndecode 0\ndecode 8\ndecode 11\nread 0\nread 8\nread 0\nread 3\nstats\n",
+        "expect": "tag=0 index=0 offset=0\ntag=1 index=0 offset=0\ntag=2 index=0 offset=1\nmiss\nmiss\nmiss\nhit\n1 hits, 3 misses\n"
+      }
+    ]
+  }
+}

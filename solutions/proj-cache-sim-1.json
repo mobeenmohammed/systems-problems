@@ -1,0 +1,58 @@
+{
+  "id": "proj-cache-sim-1",
+  "key": {
+    "cases": [
+      {
+        "stdin": "4 16\nstats\n",
+        "expect": "0 hits, 0 misses\n"
+      },
+      {
+        "stdin": "1 1\ndecode 0\ndecode 1\ndecode ff\nread 7\nread 7\nstats\n",
+        "expect": "tag=0 index=0 offset=0\ntag=1 index=0 offset=0\ntag=ff index=0 offset=0\nmiss\nhit\n1 hits, 1 misses\n"
+      },
+      {
+        "stdin": "4 16\nread 0\nread 1\nread 2\nread 3\nread 4\nread 5\nread 6\nread 7\nread 8\nread 9\nread a\nread b\nread c\nread d\nread e\nread f\nstats\n",
+        "expect": "miss\nhit\nhit\nhit\nhit\nhit\nhit\nhit\nhit\nhit\nhit\nhit\nhit\nhit\nhit\nhit\n15 hits, 1 misses\n"
+      },
+      {
+        "stdin": "16 64\ndecode deadbeef\ndecode 0xdeadbef0\nread deadbeef\nread deadbeff\nstats\n",
+        "expect": "tag=37ab6f index=b offset=2f\ntag=37ab6f index=b offset=30\nmiss\nhit\n1 hits, 1 misses\n"
+      },
+      {
+        "stdin": "8 32\nread 0\nread 100\nread 0\nread 100\nread 0\nstats\n",
+        "expect": "miss\nmiss\nmiss\nmiss\nmiss\n0 hits, 5 misses\n"
+      },
+      {
+        "stdin": "4 16\nread 0\nread 10\nread 20\nread 30\nread 0\nread 10\nread 20\nread 30\nstats\n",
+        "expect": "miss\nmiss\nmiss\nmiss\nhit\nhit\nhit\nhit\n4 hits, 4 misses\n"
+      },
+      {
+        "stdin": "2 128\ndecode 7f\ndecode 80\ndecode 100\nread 7f\nread 80\nread 100\nread 0\nstats\n",
+        "expect": "tag=0 index=0 offset=7f\ntag=0 index=1 offset=0\ntag=1 index=0 offset=0\nmiss\nmiss\nmiss\nmiss\n0 hits, 4 misses\n"
+      }
+    ],
+    "reference": {
+      "files": [
+        {
+          "path": "include/cache.hpp",
+          "content": "#ifndef CACHE_HPP\n#define CACHE_HPP\n\n#include <cstddef>\n#include <cstdint>\n#include <vector>\n\n/* An address, taken apart the way a cache takes it apart. */\nstruct Decoded {\n    std::uint64_t tag = 0;\n    std::uint64_t index = 0;\n    std::uint64_t offset = 0;\n};\n\n/* A cache of `sets` sets, `ways` lines per set and `blockBytes` bytes\n * per line. `sets` and `blockBytes` are powers of two; `ways` is at\n * least 1.\n *\n * The PUBLIC part is the contract. main.cpp is written against exactly\n * these names and these signatures, so changing one stops it linking.\n * Everything under `private:` is yours.\n */\nclass Cache {\npublic:\n    Cache(std::size_t sets, std::size_t ways, std::size_t blockBytes);\n\n    std::size_t sets() const;\n    std::size_t ways() const;\n    std::size_t blockBytes() const;\n\n    /* The three fields of `addr`, for this geometry. */\n    Decoded decode(std::uint64_t addr) const;\n\n    /* A read. True on a hit. A miss brings the block in, so the same\n     * address read twice in a row hits the second time. */\n    bool access(std::uint64_t addr);\n\n    std::size_t hits() const;\n    std::size_t misses() const;\n\nprivate:\n    std::size_t sets_;\n    std::size_t ways_;\n    std::size_t block_;\n    std::size_t offsetBits_ = 0;\n    std::size_t indexBits_ = 0;\n    std::size_t hits_ = 0;\n    std::size_t misses_ = 0;\n\n    /* One line. `stamp` is whatever you need it to be to answer \"which\n     * of these was used longest ago\". */\n    struct Line {\n        bool valid = false;\n        bool dirty = false;\n        std::uint64_t tag = 0;\n        std::uint64_t stamp = 0;\n    };\n\n    std::vector<Line> lines_;\n    std::uint64_t clock_ = 0;\n};\n\n#endif\n"
+        },
+        {
+          "path": "src/cache.cpp",
+          "content": "#include \"../include/cache.hpp\"\n\n/* The geometry, which is already done for you: how many low bits pick a\n * byte inside a block, and how many above those pick a set. `n` is a\n * power of two, so this is the position of its only 1 bit.\n */\nstatic std::size_t log2of(std::size_t n) {\n    std::size_t k = 0;\n    while ((std::size_t{1} << k) < n) ++k;\n    return k;\n}\n\nCache::Cache(std::size_t sets, std::size_t ways, std::size_t blockBytes)\n    : sets_(sets), ways_(ways), block_(blockBytes),\n      offsetBits_(log2of(blockBytes)), indexBits_(log2of(sets)),\n      lines_(sets * ways) {}\n\nstd::size_t Cache::sets() const { return sets_; }\nstd::size_t Cache::ways() const { return ways_; }\nstd::size_t Cache::blockBytes() const { return block_; }\n\nstd::size_t Cache::hits() const { return hits_; }\nstd::size_t Cache::misses() const { return misses_; }\n\nDecoded Cache::decode(std::uint64_t addr) const {\n    Decoded d;\n    const std::uint64_t offMask =\n        offsetBits_ == 0 ? 0 : ((std::uint64_t{1} << offsetBits_) - 1);\n    const std::uint64_t idxMask =\n        indexBits_ == 0 ? 0 : ((std::uint64_t{1} << indexBits_) - 1);\n    d.offset = addr & offMask;\n    d.index = (addr >> offsetBits_) & idxMask;\n    d.tag = addr >> (offsetBits_ + indexBits_);\n    return d;\n}\n\n/* One line per set, so there is nothing to search and nothing to\n * choose between: the index names the line, and the only question is\n * whether the tag in it is the one being asked for. */\nbool Cache::access(std::uint64_t addr) {\n    const Decoded d = decode(addr);\n    Line& line = lines_[static_cast<std::size_t>(d.index)];\n    if (line.valid && line.tag == d.tag) {\n        ++hits_;\n        return true;\n    }\n    ++misses_;\n    line.valid = true;\n    line.tag = d.tag;\n    return false;\n}\n"
+        },
+        {
+          "path": "main.cpp",
+          "content": "/* GIVEN, and read-only: the driver.\n *\n * It reads a geometry, then one command per line, and prints what your\n * cache said. It is the thing src/cache.cpp has to satisfy, which is\n * why you cannot edit it here — a test you can edit is not a test.\n *\n * Every address is hexadecimal, with or without an 0x in front.\n */\n#include <iostream>\n#include <sstream>\n#include <string>\n\n#include \"include/cache.hpp\"\n\nstatic void printDecoded(const Decoded& d) {\n    std::cout << std::hex\n              << \"tag=\" << d.tag\n              << \" index=\" << d.index\n              << \" offset=\" << d.offset\n              << std::dec << '\\n';\n}\n\nint main() {\n    std::ios::sync_with_stdio(false);\n    std::cin.tie(nullptr);\n\n    std::size_t sets = 0, block = 0;\n    if (!(std::cin >> sets >> block)) return 0;\n    Cache cache(sets, 1, block);\n\n    std::string line;\n    std::getline(std::cin, line);\n\n    while (std::getline(std::cin, line)) {\n        std::istringstream in(line);\n        std::string cmd;\n        if (!(in >> cmd)) continue;\n        std::uint64_t addr = 0;\n\n        if (cmd == \"decode\") {\n            if (!(in >> std::hex >> addr)) continue;\n            printDecoded(cache.decode(addr));\n        } else if (cmd == \"read\") {\n            if (!(in >> std::hex >> addr)) continue;\n            std::cout << (cache.access(addr) ? \"hit\" : \"miss\") << '\\n';\n        } else if (cmd == \"stats\") {\n            std::cout << cache.hits() << \" hits, \"\n                      << cache.misses() << \" misses\" << '\\n';\n        }\n    }\n    return 0;\n}\n"
+        }
+      ]
+    }
+  },
+  "explanation": "## What `decode` is doing\n\nThe three fields are contiguous bit ranges, counted from the bottom:\n\n| field | width | how to get it |\n| --- | --- | --- |\n| offset | `log2(blockBytes)` | `addr & ((1 << offsetBits) - 1)` |\n| index | `log2(sets)` | `(addr >> offsetBits) & ((1 << indexBits) - 1)` |\n| tag | everything above | `addr >> (offsetBits + indexBits)` |\n\nCheck it on `0x1234` with four sets of sixteen bytes: `offsetBits = 4`,\n`indexBits = 2`. The offset is `0x1234 & 0xf = 4`. The index is\n`(0x1234 >> 4) & 3 = 0x123 & 3 = 3`. The tag is `0x1234 >> 6 = 0x48`.\n\n## The two degenerate geometries\n\nBoth are in the tests on purpose, because both are easy to get wrong.\n\n**One set.** `indexBits` is 0, the index is always 0, and the mask\n`(1 << 0) - 1` is `0` — which is exactly right, and only by accident if\nyou wrote the mask as a special case.\n\n**One byte per block.** `offsetBits` is 0, so the offset is always 0 and\nthe index starts at bit 0. A cache like this has no spatial locality at\nall: reading byte 5 does nothing for byte 6.\n\nThe trap underneath both is the shift. `1 << 64` on a 64-bit type is\n**undefined behaviour**, not zero, so a mask written as\n`(1ULL << bits) - 1` breaks for a 64-bit field. Here the fields are\nsmall, but the habit of guarding the zero and full-width cases is the\none worth forming.\n\n## Why a direct-mapped cache misses so much\n\nThe last three lines of the sample are the whole story. Addresses `0`\nand `0x40` are 64 bytes apart, and the cache is 64 bytes, so they land\nin the same set — and with one way, a set is one line. Alternating\nbetween them misses every single time, however small the working set\nis. That is a **conflict miss**, and it is the thing the next milestone\nis about.\n",
+  "readMore": [
+    {
+      "concept": "cache-indexing",
+      "where": "CS:APP Ch. 6.4, the S/E/B notation"
+    }
+  ]
+}

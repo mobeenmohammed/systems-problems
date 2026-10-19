@@ -1,0 +1,52 @@
+{
+  "key": {
+    "answers": [
+      0,
+      2,
+      4
+    ]
+  },
+  "feedback": {
+    "misconceptions": [
+      {
+        "picked": [
+          1
+        ],
+        "say": "On $x^n$ over the whole of $[0,1]$: the pointwise limit is $0$ on $[0,1)$ and $1$ at $x=1$. Work out $\\sup_{x\\in[0,1]}|x^n - f(x)|$ and you will find it does not depend on $n$ at all. (There is also a theorem that settles it in one line: what must a uniform limit of continuous functions be?)"
+      },
+      {
+        "picked": [
+          3
+        ],
+        "say": "On $x/n$ over the whole of $\\R$: the pointwise limit is $0$, but $\\sup_{x \\in \\R}|x/n|$ is not a number that gets small — it is not a number at all. Compare with the same functions on $[0,1]$."
+      },
+      {
+        "picked": [
+          5
+        ],
+        "say": "On the moving bump: it is true that for each fixed $x$ the sequence is eventually $0$, so the pointwise limit is $0$. But the bump never gets shorter, only further away, and the supremum does not care where it is."
+      }
+    ],
+    "nudge": "For each line, name the pointwise limit, then write down $\\sup|f_n - f|$ as an expression in $n$ alone. Uniform convergence is exactly that expression tending to zero, and on three of these lines it does not even tend to zero — it is constant."
+  },
+  "distractors": {
+    "0": "Yes. The limit is $0$, and $\\sup_{[0,1/2]} x^n = (1/2)^n \\to 0$. Restricting the domain away from the trouble at $x=1$ is what rescues it.",
+    "1": "No. The pointwise limit is $f(x) = 0$ on $[0,1)$ and $f(1) = 1$, so $\\sup_{[0,1]}|x^n - f(x)| = \\sup_{x<1} x^n = 1$ for every $n$. The limit is discontinuous, and a uniform limit of continuous functions is continuous, so the convergence could not have been uniform.",
+    "2": "Yes. $|\\sin(nx)/n| \\le 1/n$ for every $x$, so the supremum is at most $1/n \\to 0$. The bound does not depend on $x$, which is exactly what uniform means.",
+    "3": "No. For each fixed $x$, $x/n \\to 0$; but $\\sup_{x \\in \\R} |x/n| = \\infty$ for every $n$. Pointwise convergence to $0$ with an unbounded difference is the standard picture of non-uniform convergence.",
+    "4": "Yes. Restricted to $[0,1]$ the same functions have $\\sup_{[0,1]}|x/n| = 1/n \\to 0$. The domain, not the formula, is what changed.",
+    "5": "No. For each fixed $x$ the sequence is eventually $0$, so the pointwise limit is $0$; but $\\sup_{\\R}|f_n| = 1$ for every $n$. The mass escapes to infinity without shrinking."
+  },
+  "explanation": "## The test, once\n\nUniform convergence of $f_n$ to $f$ on a set $S$ is a single statement:\n\n$$M_n := \\sup_{x \\in S}\\bigl|f_n(x) - f(x)\\bigr| \\longrightarrow 0 .$$\n\nIt is convergence in the supremum metric. So every line is settled by computing one sequence of numbers.\n\n| line | $f$ | $M_n$ | uniform? |\n| --- | --- | --- | --- |\n| $x^n$ on $[0,\\tfrac12]$ | $0$ | $2^{-n}$ | yes |\n| $x^n$ on $[0,1]$ | $0$ on $[0,1)$, $1$ at $1$ | $1$ | no |\n| $\\sin(nx)/n$ on $\\R$ | $0$ | $1/n$ | yes |\n| $x/n$ on $\\R$ | $0$ | $\\infty$ | no |\n| $x/n$ on $[0,1]$ | $0$ | $1/n$ | yes |\n| moving bump on $\\R$ | $0$ | $1$ | no |\n\n## Three different ways to fail\n\nThe three failures are not the same failure, and recognising which is which is most of the skill.\n\n**The limit is discontinuous** ($x^n$ on $[0,1]$). Here no computation is needed: each $f_n$ is continuous, a uniform limit of continuous functions is continuous, and the pointwise limit is not. The convergence cannot be uniform. This is the cheapest argument available and it is worth looking for first.\n\n**The difference is unbounded** ($x/n$ on $\\R$). The supremum is not merely failing to tend to zero, it is infinite for every $n$. Note that the same formulas converge uniformly on $[0,1]$: the functions did not change, the domain did.\n\n**The mass escapes** (the moving bump). The limit is continuous, each difference is bounded, and the convergence is still not uniform. For each $x$ the sequence settles down, but the $N$ you need grows with $x$ without bound — which is precisely the quantifier that uniform convergence moves to the front.\n\n## The quantifier, written out\n\nPointwise: $\\;\\forall x\\;\\forall \\eps > 0\\;\\exists N\\;\\forall n \\ge N:\\ |f_n(x) - f(x)| < \\eps$.\n\nUniform: $\\;\\forall \\eps > 0\\;\\exists N\\;\\forall x\\;\\forall n \\ge N:\\ |f_n(x) - f(x)| < \\eps$.\n\nThe only difference is where $\\forall x$ sits. In the first, $N$ may depend on $x$; in the second it may not. Every example above is an example of that one distinction.",
+  "readMore": [
+    {
+      "concept": "ms-uniform-convergence",
+      "where": "the worked examples in the notes, including the moving bump"
+    },
+    {
+      "concept": "ms-uniform-limit-theorems",
+      "where": "what a uniform limit preserves"
+    }
+  ],
+  "id": "ms-uniform-or-pointwise"
+}

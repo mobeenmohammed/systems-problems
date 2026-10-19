@@ -1,0 +1,33 @@
+{
+  "key": {
+    "value": "1/2",
+    "alsoAccept": [
+      "0.5"
+    ]
+  },
+  "feedback": {
+    "whenValue": [
+      {
+        "is": "0",
+        "say": "Zero is the pointwise limit at each fixed $x$, which is given. The supremum is a different quantity: it is taken over $x$ for a fixed $n$, not over $n$ for a fixed $x$."
+      },
+      {
+        "is": "1",
+        "say": "Check the maximising point. At $x = 1/n$ the numerator is $1$ and the denominator is $1 + 1 = 2$, not $1$."
+      },
+      {
+        "is": "1/4",
+        "say": "That is what you get from $u/(1+u^2)$ at $u = 1$ if the denominator is squared or the numerator halved. Write the substitution out once more and evaluate carefully at $u = 1$."
+      }
+    ],
+    "nudge": "Let $u = nx$. Then $f_n(x) = u/(1+u^2)$, which does not mention $n$ at all, and you are maximising it over $u \\in [0,n]$. The maximum of that is a single number — and it is the height of the hump, not the point $x = 1/n$ where the hump sits."
+  },
+  "explanation": "## The substitution\n\nPut $u = nx$. Then\n\n$$f_n(x) = \\frac{nx}{1 + n^2x^2} = \\frac{u}{1 + u^2},$$\n\nand as $x$ runs over $[0,1]$, $u$ runs over $[0,n]$.\n\nSo every $f_n$ is the **same** function of $u$, looked at over a longer and longer range. Write $\\varphi(u) = u/(1+u^2)$. Then\n\n$$\\varphi'(u) = \\frac{(1+u^2) - u\\cdot 2u}{(1+u^2)^2} = \\frac{1 - u^2}{(1+u^2)^2},$$\n\nwhich is zero at $u = 1$, positive before it and negative after. So $\\varphi$ has its maximum over $u \\ge 0$ at $u = 1$, where $\\varphi(1) = \\tfrac12$.\n\nSince $n \\ge 1$, the point $u = 1$ — that is, $x = 1/n$ — lies inside $[0,1]$. So\n\n$$\\sup_{x\\in[0,1]} |f_n(x)| = \\tfrac12 \\quad\\text{for every } n \\ge 1 .$$\n\n(Without calculus: $1 + u^2 \\ge 2u$ by AM-GM, with equality at $u = 1$, so $\\varphi(u) \\le \\tfrac12$ with equality there.)\n\n## Why this is the example to remember\n\nThe sequence converges pointwise to $0$ and the suprema are **constant at $\\tfrac12$**. So the convergence is as far from uniform as a convergent-pointwise sequence can be, and no amount of taking $n$ larger helps.\n\nWhat is happening is the same thing as the moving bump, but squeezed instead of translated. The graph of $f_n$ is a single hump of height $\\tfrac12$ sitting at $x = 1/n$ and getting narrower as $n$ grows. For a fixed $x > 0$ the hump eventually passes to the left of it and the values there do go to zero. The hump itself never shrinks; it only becomes thinner and moves towards the origin.\n\n## What it costs\n\nTwo theorems about uniform limits fail here, which is the price of losing uniformity:\n\n- the convergence is not uniform on $[0,1]$, so you cannot conclude $\\int_0^1 f_n \\to 0$ from it directly. (In fact $\\int_0^1 f_n = \\tfrac{1}{2n}\\ln(1+n^2) \\to 0$ anyway — the theorem is sufficient, not necessary.)\n- on $[a,1]$ with $a>0$ the convergence **is** uniform, because the hump leaves that interval once $1/n < a$ and thereafter $\\sup_{[a,1]}|f_n| = f_n(a) \\to 0$. Uniform convergence on every interval bounded away from the trouble, and none on an interval containing it, is the usual shape of this failure.",
+  "readMore": [
+    {
+      "concept": "ms-uniform-convergence",
+      "where": "the examples that separate pointwise from uniform"
+    }
+  ],
+  "id": "ms-sup-distance-of-fn"
+}

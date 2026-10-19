@@ -1598,6 +1598,45 @@ body[data-workspace="true"] #problemHost { height: 100%; min-height: 0; }
 }
 .ws-left, .ws-right { display: grid; min-width: 0; min-height: 0; }
 .ws-left { grid-template-rows: auto minmax(0, 1fr); }
+
+/* ---- the statement, folded away ----
+
+   The freed space goes to the editor and nowhere else: the right
+   column is already the `1fr`, so taking the other two tracks to zero
+   is the whole of it. Both the panel and the divider go — a divider
+   with one panel either side of it is a handle for resizing nothing.
+
+   The way back is a button that lives in the work strip permanently
+   and is shown only here, so there is always something on screen
+   saying where the statement went. */
+.ws-body[data-desc="false"] { grid-template-columns: 0 0 minmax(0, 1fr); }
+.ws-body[data-desc="false"] > .ws-left,
+.ws-body[data-desc="false"] > .ws-gutter { display: none; }
+/* Placed explicitly, because `display: none` takes an item OUT of the
+   grid rather than leaving an empty track behind it. Auto-placement
+   then moved the editor into column 1 — which is the zero-width one —
+   and the panel folded away into a sliver instead of into nothing. */
+.ws-body > .ws-left   { grid-column: 1; }
+.ws-body > .ws-gutter { grid-column: 2; }
+.ws-body > .ws-right  { grid-column: 3; }
+.ws-show-desc { display: none; }
+.ws-body[data-desc="false"] .ws-show-desc {
+  display: inline-flex; align-items: center;
+  appearance: none; border: 0; cursor: pointer;
+  background: var(--accent-soft); color: var(--text);
+  font: inherit; font-size: .78rem; font-weight: 600;
+  padding: .45rem .7rem; white-space: nowrap;
+}
+.ws-show-desc:hover { background: var(--accent); color: var(--accent-text); }
+
+/* The fold control, at the end of the statement's own tab strip. */
+.ws-collapse {
+  appearance: none; border: 0; background: none; cursor: pointer;
+  color: var(--text-faint); font-size: .85rem; padding: .45rem .6rem;
+  margin-left: auto; flex: 0 0 auto;
+}
+.ws-collapse:hover { color: var(--text); background: var(--bg-elev-2); }
+.ws-collapse:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 /* The strip, whichever of the two panes is showing, and the bar. The
    editor and the result pane are both always in the DOM — CodeMirror
    keeps the undo history, the cursor and the scroll position, and
@@ -3625,11 +3664,36 @@ button.hdl-check:hover .hdl-check-go { text-decoration: underline; }
    is visible. The hidden ones are `hidden`, not removed: each is a live
    CodeMirror holding a cursor and an undo history. */
 .mf {
-  min-height: 0; display: grid; gap: var(--s2);
-  grid-template-columns: minmax(0, 13rem) minmax(0, 1fr);
+  --files-w: 190px;
+  min-height: 0; display: grid;
+  grid-template-columns: var(--files-w) auto minmax(0, 1fr);
 }
-.mf[data-files="false"] { grid-template-columns: 0 minmax(0, 1fr); gap: 0; }
-.mf[data-files="false"] .mf-side { display: none; }
+.mf[data-files="false"] { grid-template-columns: 0 0 minmax(0, 1fr); }
+.mf[data-files="false"] .mf-side,
+.mf[data-files="false"] .mf-gutter { display: none; }
+/* Same reason as .ws-body: a hidden item leaves no track behind it, so
+   the column each child sits in is stated rather than inferred. */
+.mf > .mf-side   { grid-column: 1; }
+.mf > .mf-gutter { grid-column: 2; }
+.mf > .mf-main   { grid-column: 3; }
+
+/* The bar between the explorer and the editor. Narrower than the one
+   between the statement and the workspace, because this one lives
+   inside a panel rather than between two of them, but the same idea:
+   the element is the hit area and the line you can see is drawn inside
+   it. */
+.mf-gutter {
+  position: relative; width: 10px; cursor: col-resize;
+  border: 0; padding: 0; background: none; touch-action: none;
+}
+.mf-gutter::before {
+  content: ""; position: absolute; top: 0; bottom: 0; left: 4px;
+  width: 2px; border-radius: 1px; background: var(--border);
+  transition: background .14s;
+}
+.mf-gutter:hover::before,
+[data-dragging] > .mf-gutter::before { background: var(--accent); }
+.mf-gutter:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 
 .mf-side {
   min-width: 0; min-height: 0; display: flex; flex-direction: column;
@@ -3641,16 +3705,35 @@ button.hdl-check:hover .hdl-check-go { text-decoration: underline; }
   padding: .35rem .5rem; border-bottom: 1px solid var(--border);
   text-transform: uppercase; letter-spacing: .06em;
 }
-.mf-tree { list-style: none; margin: 0; padding: .25rem; display: grid; gap: .1rem; }
-.mf-file {
+.mf-tree, .mf-group { list-style: none; margin: 0; padding: 0; display: grid; gap: .05rem; }
+.mf-tree { padding: .25rem; }
+.mf-group[hidden] { display: none; }
+
+/* One row shape for a directory and for a file, indented by how deep
+   it is. The depth is a custom property rather than a class per level
+   so three levels — which is all a workspace path may have — need no
+   three rules. */
+.mf-file, .mf-dir {
+  --mf-depth: 0;
   width: 100%; display: flex; align-items: center; gap: .35rem;
   appearance: none; border: 0; background: none; cursor: pointer;
-  padding: .3rem .4rem; border-radius: var(--radius-s);
+  padding: .3rem .4rem;
+  padding-left: calc(.4rem + var(--mf-depth) * .8rem);
+  border-radius: var(--radius-s);
   font-family: var(--mono); font-size: .78rem; color: var(--text-dim);
   text-align: left;
 }
-.mf-file:hover { background: var(--bg-elev-2); color: var(--text); }
+.mf-file:hover, .mf-dir:hover { background: var(--bg-elev-2); color: var(--text); }
 .mf-file[aria-current="true"] { background: var(--accent-soft); color: var(--text); }
+.mf-file:focus-visible, .mf-dir:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: -2px;
+}
+.mf-dir { color: var(--text-faint); }
+.mf-caret {
+  flex: 0 0 auto; width: .7rem; font-size: .6rem;
+  transition: transform .12s;
+}
+.mf-dir[aria-expanded="true"] .mf-caret { transform: rotate(90deg); }
 .mf-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mf-dot {
   width: .4rem; height: .4rem; border-radius: 50%; flex: 0 0 auto;
@@ -3702,9 +3785,16 @@ button.hdl-check:hover .hdl-check-go { text-decoration: underline; }
    written for one editor and its status line. */
 .ws-editor .ed-host-multi { grid-template-rows: minmax(0, 1fr); }
 
+/* Narrow: the explorer stops being a column and becomes a short band
+   above the tabs, because 190px of file names beside a 320px editor is
+   not a trade anybody wants. The gutter has nothing to resize then, so
+   it goes. */
 @media (max-width: 860px) {
-  .mf { grid-template-columns: minmax(0, 1fr); }
-  .mf[data-files="true"] .mf-side { max-height: 8rem; }
+  .mf { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .mf[data-files="false"] { grid-template-columns: minmax(0, 1fr); }
+  .mf > .mf-side, .mf > .mf-main { grid-column: auto; }
+  .mf-gutter { display: none; }
+  .mf[data-files="true"] .mf-side { max-height: 8rem; margin-bottom: var(--s2); }
 }
 
 /* The file a diagnostic is in, in front of its line and column. */

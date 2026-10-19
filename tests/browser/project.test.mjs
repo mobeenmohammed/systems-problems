@@ -131,7 +131,12 @@ section('a problem made of several files opens as several files');
     slots: [...document.querySelectorAll('.mf-slot')].map(s => s.dataset.path),
     visible: [...document.querySelectorAll('.mf-slot')].filter(s => !s.hidden).map(s => s.dataset.path),
   }));
-  check('every file is in the explorer', shown.tree, p.payload.files.map(f => f.path));
+  /* The explorer is a tree and sorts like one — directories first, then
+     by name — so it is the same set as the problem's files rather than
+     the same list. The tabs keep the problem's own order, because that
+     is the order the exercise introduces them in. */
+  check('every file is in the explorer',
+    shown.tree, p.payload.files.map(f => f.path).slice().sort());
   check('and has a tab', shown.tabs, p.payload.files.map(f => f.path));
   check('and an editor of its own', shown.slots.length, p.payload.files.length);
   check('exactly one of which is on screen', shown.visible.length, 1);

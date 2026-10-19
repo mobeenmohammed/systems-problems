@@ -1,0 +1,48 @@
+{
+  "key": {
+    "answers": [
+      0,
+      1,
+      4
+    ]
+  },
+  "feedback": {
+    "misconceptions": [
+      {
+        "picked": [
+          3
+        ],
+        "say": "On the one with the square roots: it is homogeneous and it is zero only at the origin, so the first two axioms are fine. Put $x = (1,0)$ and $y = (0,1)$ into the third one and compare the two sides."
+      },
+      {
+        "picked": [
+          5
+        ],
+        "say": "On the last one: it is a perfectly good *metric* when you set $d(x,y) = \\|x-y\\|$, and that is what makes it tempting. Try scaling a non-zero vector by $3$ and see whether the value scales with it."
+      },
+      {
+        "picked": [
+          2
+        ],
+        "say": "On the one that uses only the first coordinate: look for a vector that is not zero but whose value is. There is one, and it shows which axiom fails."
+      }
+    ],
+    "nudge": "Three axioms, six candidates, and every failure here is visible from one or two very small vectors. Check homogeneity first: it is the fastest of the three to test and it rules one of them out immediately."
+  },
+  "distractors": {
+    "0": "Yes — the $\\ell^1$ norm. Homogeneity is clear, and the triangle inequality is the one for $|\\cdot|$ on $\\R$ applied in each coordinate and then added.",
+    "1": "Yes — the $\\ell^\\infty$ norm. $\\max(|kx_1|,|kx_2|) = |k|\\max(|x_1|,|x_2|)$, and the triangle inequality follows because the maximum of a sum is at most the sum of the maxima.",
+    "2": "No. $\\|(0,1)\\| = 0$ although $(0,1) \\ne 0$, so the first axiom fails. The induced \"distance\" $|x_1 - y_1|$ is a **seminorm**, and the metric it gives cannot tell apart two points on the same vertical line.",
+    "3": "No. With $x = (1,0)$ and $y = (0,1)$: $\\|x\\| = \\|y\\| = 1$ but $\\|x+y\\| = (1 + 1)^2 = 4 > 2$. This is the $p = \\tfrac12$ expression, and the triangle inequality for $\\ell^p$ needs $p \\ge 1$.",
+    "4": "Yes. It is $\\sqrt{\\langle x, x\\rangle}$ for the inner product $\\langle x,y\\rangle = x_1y_1 + 2x_2y_2$, which is positive definite, so Cauchy–Schwarz gives the triangle inequality exactly as it does for the Euclidean norm. Its unit ball is an ellipse.",
+    "5": "No. It is the discrete metric written as a norm, and it fails homogeneity: $\\|2x\\| = 1 = \\|x\\|$ for any $x \\ne 0$, where the axiom demands $2\\|x\\|$. Every norm gives a metric; this is the standard example of a metric that comes from no norm."
+  },
+  "explanation": "## What the second axiom buys\n\nA metric has three axioms and a norm has three, but they are not the same three. The one with no counterpart on the metric side is **homogeneity**, $\\|kx\\| = |k|\\|x\\|$, and it is what ties the norm to the vector space structure rather than merely to the set of points.\n\nEvery norm gives a metric by $d(x,y) = \\|x - y\\|$. The converse fails, and homogeneity is exactly where it fails. The discrete metric is the standard witness: scaling a point does not scale its distance from the origin, so no norm can produce it. A metric that does come from a norm is **translation invariant** — $d(x + a, y + a) = d(x,y)$ — and **homogeneous** — $d(kx, ky) = |k| d(x,y)$ — and those two conditions together are precisely the ones a general metric need not have.\n\n## The near miss\n\n$\\bigl(\\sqrt{|x_1|} + \\sqrt{|x_2|}\\bigr)^2$ passes the first two axioms and fails the third, and it fails it badly: with the two standard basis vectors the left side is twice the right.\n\nThis is not an accident of the plane. For $\\|x\\|_p = \\bigl(\\sum |x_i|^p\\bigr)^{1/p}$ the triangle inequality is **Minkowski's inequality**, and it holds exactly for $p \\ge 1$. At $p < 1$ the unit ball stops being convex — it develops the four spikes you can see by plotting $\\sqrt{|x_1|} + \\sqrt{|x_2|} = 1$ — and a non-convex unit ball and the triangle inequality cannot both hold, because the inequality is what makes the ball convex.\n\n## The one you may not have seen\n\n$\\sqrt{x_1^2 + 2x_2^2}$ is a norm for the same reason the Euclidean norm is: it is $\\sqrt{\\langle x,x\\rangle}$ for a positive definite inner product, and Cauchy–Schwarz turns any such thing into a norm. Its unit ball is an ellipse rather than a circle, which is a reminder that the shape of the unit ball is not part of the definition. Any symmetric convex body with the origin in its interior is the unit ball of exactly one norm.",
+  "readMore": [
+    {
+      "concept": "ms-normed-spaces",
+      "where": "the axioms, and the standard examples"
+    }
+  ],
+  "id": "ms-which-are-norms"
+}

@@ -22,6 +22,20 @@
    draft store, so a file nobody has opened still goes to the
    compiler with whatever was last written in it.
 
+   ---------------- the explorer ----------------
+
+   A real tree, because a path may have directories in it and a
+   flat list of `include/cache.hpp` beside `src/cache.cpp` hides
+   the one thing the paths are telling you. A workspace with no
+   directories renders as exactly the flat list it was before.
+
+   It is collapsible (the pref outlives the problem, because
+   "I do not want the sidebar" is about the reader rather than
+   about the exercise) and resizable by the bar on its right,
+   in pixels rather than as a fraction: this column holds file
+   names, and a name is a fixed number of characters wide
+   whatever the window is doing.
+
    ---------------- what is NOT here ----------------
 
    Creating, renaming and deleting files. A workspace is the set
@@ -32,6 +46,64 @@
 
 const FilePane = (() => {
   const el = (tag, attrs, kids) => ProblemTypes.el(tag, attrs, kids);
+
+  /* The explorer's width, in pixels. Narrow enough that it is worth
+     having on a 1280px laptop beside a statement and an editor; wide
+     enough for `ring_buffer.hpp` without an ellipsis. */
+  const SIDE_MIN = 120;
+  const SIDE_MAX = 420;
+  const SIDE_DEFAULT = 190;
+  const WIDTH_PREF = 'filesPaneW';
+  const OPEN_PREF = 'filesPane';
+  const FOLD_PREF = 'filesFolded';
+
+  const sideWidth = () => {
+    const v = Number(Store.pref(WIDTH_PREF, SIDE_DEFAULT));
+    return Number.isFinite(v) ? Math.min(SIDE_MAX, Math.max(SIDE_MIN, v)) : SIDE_DEFAULT;
+  };
+
+  /* Which directories the reader has folded shut, per problem. Folding
+     is about this exercise's shape rather than about the reader, so
+     unlike the width it is keyed by problem id. */
+  const foldedFor = (id) => {
+    const all = Store.pref(FOLD_PREF, null);
+    const mine = all && all[id];
+    return new Set(Array.isArray(mine) ? mine : []);
+  };
+  const saveFolded = (id, set) => {
+    const all = { ...(Store.pref(FOLD_PREF, null) || {}) };
+    if (set.size) all[id] = [...set];
+    else delete all[id];
+    Store.setPref(FOLD_PREF, all);
+  };
+
+  /* paths -> a tree of { dir, name, path, kids } / { file }. Sorted
+     directories first and then by name, which is what every file
+     explorer does and what makes two workspaces comparable at a
+     glance. */
+  function treeOf(files) {
+    const root = { dir: true, path: '', name: '', kids: [] };
+    const at = { '': root };
+    for (const f of files) {
+      const parts = f.path.split('/');
+      let here = root;
+      for (let i = 0; i < parts.length - 1; i += 1) {
+        const path = parts.slice(0, i + 1).join('/');
+        if (!at[path]) {
+          at[path] = { dir: true, path, name: parts[i], kids: [] };
+          here.kids.push(at[path]);
+        }
+        here = at[path];
+      }
+      here.kids.push({ dir: false, path: f.path, name: parts[parts.length - 1], file: f });
+    }
+    const sort = (node) => {
+      node.kids.sort((a, b) => (b.dir - a.dir) || a.name.localeCompare(b.name));
+      for (const k of node.kids) if (k.dir) sort(k);
+    };
+    sort(root);
+    return root;
+  }
 
   /* `readOnly` is honoured by the editor and said on the row. It is an
      editing aid: it keeps somebody from changing the interface by
@@ -77,17 +149,23 @@ const FilePane = (() => {
     };
 
     let active = '';
+    const folded = foldedFor(problem.id);
 
     /* ---------------- the frame ---------------- */
 
-    const open = !!Store.pref('filesPane', true);
-    const wrap = el('div', { class: 'mf', 'data-files': String(open) });
+    const open = !!Store.pref(OPEN_PREF, true);
+    const wrap = el('div', {
+      class: 'mf', 'data-files': String(open),
+      style: `--files-w:${sideWidth()}px`,
+    });
 
-    const tree = el('ul', { class: 'mf-tree' });
+    const tree = el('ul', {
+      class: 'mf-tree', role: 'tree', 'aria-label': 'Files in this exercise',
+    });
     const side = el('div', { class: 'mf-side' }, [
       el('div', { class: 'mf-side-head' }, [
-        el('span', { class: 'tiny faint', text: 'Files' }),
-        el('span', { class: 'tiny faint', text: `${files.length}` }),
+        el('span', { class: 'tiny faint', text: 'Explorer' }),
+        el('span', { class: 'tiny faint', text: `${files.length} files` }),
       ]),
       tree,
       el('p', { class: 'mf-side-note tiny faint', text:
@@ -99,18 +177,19 @@ const FilePane = (() => {
     const toggle = el('button', {
       class: 'mf-toggle', type: 'button',
       'aria-expanded': String(open),
-      title: open ? 'Hide the file list' : 'Show the file list',
-      onclick: () => {
-        const now = wrap.dataset.files !== 'true';
-        wrap.dataset.files = String(now);
-        Store.setPref('filesPane', now);
-        toggle.setAttribute('aria-expanded', String(now));
-        toggle.title = now ? 'Hide the file list' : 'Show the file list';
-        const ed = editor();
-        if (ed) ed.refresh();
-      },
+      title: open ? 'Hide the file list (Alt+B)' : 'Show the file list (Alt+B)',
+      onclick: () => setOpen(wrap.dataset.files !== 'true'),
     }, ['☰']);
     tabs.append(toggle);
+
+    function setOpen(now) {
+      wrap.dataset.files = String(now);
+      Store.setPref(OPEN_PREF, now);
+      toggle.setAttribute('aria-expanded', String(now));
+      toggle.title = now ? 'Hide the file list (Alt+B)' : 'Show the file list (Alt+B)';
+      const ed = editor();
+      if (ed) ed.refresh();
+    }
 
     const stack = el('div', { class: 'mf-stack' });
 
@@ -119,29 +198,189 @@ const FilePane = (() => {
       stack.append(f.host);
 
       f.btn = el('button', {
-        class: 'mf-file', type: 'button', 'data-path': f.path,
-        'aria-current': 'false',
+        class: 'mf-file', type: 'button', role: 'treeitem',
+        'data-path': f.path,
+        'aria-current': 'false', tabindex: '-1',
         title: f.readOnly
           ? `${f.path} — given, and not editable here`
           : (f.entry ? `${f.path} — the entry point` : f.path),
         onclick: () => show(f.path, { focus: true }),
       }, [
         el('span', { class: 'mf-dot', 'aria-hidden': 'true' }),
-        el('span', { class: 'mf-name', text: f.path }),
+        el('span', { class: 'mf-name', text: f.path.split('/').pop() }),
         f.entry ? el('span', { class: 'mf-tag', text: 'entry' }) : null,
         f.readOnly ? el('span', { class: 'mf-tag mf-tag-ro', text: 'given' }) : null,
       ]);
-      tree.append(el('li', {}, [f.btn]));
 
       f.tab = el('button', {
         class: 'mf-tab', type: 'button', role: 'tab', 'data-path': f.path,
         'aria-selected': 'false',
+        title: f.path,
         onclick: () => show(f.path, { focus: true }),
-      }, [f.path]);
+      }, [f.path.split('/').pop()]);
       tabs.append(f.tab);
     }
 
-    wrap.append(side, el('div', { class: 'mf-main' }, [tabs, stack]));
+    /* ---- the tree, built once and folded in place ---- */
+
+    const dirRows = [];        /* { path, row, group } */
+
+    function paintTree() {
+      const fill = (node, into, depth) => {
+        for (const kid of node.kids) {
+          if (kid.dir) {
+            const shut = folded.has(kid.path);
+            const group = el('ul', { class: 'mf-group', role: 'group' });
+            const row = el('button', {
+              class: 'mf-dir', type: 'button', role: 'treeitem',
+              'data-path': kid.path,
+              'aria-expanded': String(!shut), tabindex: '-1',
+              style: `--mf-depth:${depth}`,
+              onclick: () => foldDir(kid.path, folded.has(kid.path)),
+            }, [
+              el('span', { class: 'mf-caret', 'aria-hidden': 'true', text: '▸' }),
+              el('span', { class: 'mf-name', text: kid.name }),
+            ]);
+            const li = el('li', {}, [row, group]);
+            li.hidden = false;
+            group.hidden = shut;
+            into.append(li);
+            dirRows.push({ path: kid.path, row, group });
+            fill(kid, group, depth + 1);
+          } else {
+            kid.file.btn.style.setProperty('--mf-depth', String(depth));
+            into.append(el('li', {}, [kid.file.btn]));
+          }
+        }
+      };
+      fill(treeOf(files), tree, 0);
+    }
+
+    function foldDir(path, openIt) {
+      if (openIt) folded.delete(path); else folded.add(path);
+      saveFolded(problem.id, folded);
+      for (const d of dirRows) {
+        if (d.path !== path) continue;
+        d.row.setAttribute('aria-expanded', String(openIt));
+        d.group.hidden = !openIt;
+      }
+    }
+
+    /* Open every directory on the way to a file, so selecting one from a
+       tab or from a diagnostic never leaves it invisible in the tree. */
+    function revealIn(path) {
+      const parts = path.split('/');
+      for (let i = 0; i < parts.length - 1; i += 1) {
+        const dir = parts.slice(0, i + 1).join('/');
+        if (folded.has(dir)) foldDir(dir, true);
+      }
+    }
+
+    paintTree();
+
+    /* ---- keyboard: the usual tree keys ----
+
+       One tab stop for the whole explorer (roving tabindex), then the
+       arrows walk it. Left on an open directory shuts it and on
+       anything else goes to the parent, which is what every file tree
+       in every editor does. */
+
+    const visibleRows = () =>
+      [...tree.querySelectorAll('.mf-dir, .mf-file')].filter(b => b.offsetParent !== null);
+
+    const focusRow = (row) => {
+      if (!row) return;
+      for (const b of tree.querySelectorAll('.mf-dir, .mf-file')) b.tabIndex = -1;
+      row.tabIndex = 0;
+      row.focus();
+    };
+
+    tree.addEventListener('keydown', (e) => {
+      const row = e.target.closest('.mf-dir, .mf-file');
+      if (!row) return;
+      const rows = visibleRows();
+      const at = rows.indexOf(row);
+      const isDir = row.classList.contains('mf-dir');
+      let handled = true;
+
+      if (e.key === 'ArrowDown') focusRow(rows[at + 1]);
+      else if (e.key === 'ArrowUp') focusRow(rows[at - 1]);
+      else if (e.key === 'Home') focusRow(rows[0]);
+      else if (e.key === 'End') focusRow(rows[rows.length - 1]);
+      else if (e.key === 'ArrowRight') {
+        if (isDir && row.getAttribute('aria-expanded') === 'false') foldDir(row.dataset.path, true);
+        else if (isDir) focusRow(rows[at + 1]);
+        else handled = false;
+      } else if (e.key === 'ArrowLeft') {
+        if (isDir && row.getAttribute('aria-expanded') === 'true') foldDir(row.dataset.path, false);
+        else {
+          const parent = row.dataset.path.split('/').slice(0, -1).join('/');
+          const up = parent && dirRows.find(d => d.path === parent);
+          if (up) focusRow(up.row); else handled = false;
+        }
+      } else if ((e.key === 'Enter' || e.key === ' ') && !isDir) {
+        show(row.dataset.path, { focus: true });
+      } else {
+        handled = false;
+      }
+      if (handled) e.preventDefault();
+    });
+
+    /* ---- the divider between the explorer and the editor ---- */
+
+    const grip = el('div', {
+      class: 'mf-gutter', role: 'separator', 'aria-orientation': 'vertical',
+      'aria-label': 'Resize the file explorer',
+      tabindex: '0',
+      'aria-valuemin': String(SIDE_MIN), 'aria-valuemax': String(SIDE_MAX),
+      'aria-valuenow': String(sideWidth()),
+      onkeydown: (e) => {
+        const step = e.shiftKey ? 48 : 12;
+        if (e.key === 'ArrowLeft') setWidth(sideWidth() - step);
+        else if (e.key === 'ArrowRight') setWidth(sideWidth() + step);
+        else if (e.key === 'Home') setWidth(SIDE_MIN);
+        else if (e.key === 'End') setWidth(SIDE_MAX);
+        else if (e.key === 'Enter' || e.key === ' ') setWidth(SIDE_DEFAULT);
+        else return;
+        e.preventDefault();
+      },
+    });
+
+    function setWidth(px) {
+      const w = Math.round(Math.min(SIDE_MAX, Math.max(SIDE_MIN, px)));
+      Store.setPref(WIDTH_PREF, w);
+      wrap.style.setProperty('--files-w', `${w}px`);
+      grip.setAttribute('aria-valuenow', String(w));
+      const ed = editor();
+      if (ed) ed.refresh();
+    }
+
+    grip.addEventListener('pointerdown', (e) => {
+      try { grip.setPointerCapture(e.pointerId); } catch { /* synthetic events */ }
+      wrap.dataset.dragging = 'true';
+      document.body.dataset.resizing = 'true';
+      const move = (ev) => setWidth(ev.clientX - wrap.getBoundingClientRect().left);
+      const done = () => {
+        try { grip.releasePointerCapture(e.pointerId); } catch { /* already released */ }
+        delete wrap.dataset.dragging;
+        delete document.body.dataset.resizing;
+        grip.removeEventListener('pointermove', move);
+        grip.removeEventListener('pointerup', done);
+        grip.removeEventListener('pointercancel', done);
+        grip.removeEventListener('lostpointercapture', done);
+        window.removeEventListener('pointerup', done);
+        window.removeEventListener('blur', done);
+      };
+      grip.addEventListener('pointermove', move);
+      grip.addEventListener('pointerup', done);
+      grip.addEventListener('pointercancel', done);
+      grip.addEventListener('lostpointercapture', done);
+      window.addEventListener('pointerup', done);
+      window.addEventListener('blur', done);
+      e.preventDefault();
+    });
+
+    wrap.append(side, grip, el('div', { class: 'mf-main' }, [tabs, stack]));
     host.append(wrap);
 
     /* ---------------- the editors ---------------- */
@@ -178,11 +417,15 @@ const FilePane = (() => {
 
       active = f.path;
       Store.saveDraft(problem, Workspace.ACTIVE_SLOT, f.path);
+      revealIn(f.path);
 
       for (const other of files) {
         const on = other === f;
         if (other.host) other.host.hidden = !on;
-        if (other.btn) other.btn.setAttribute('aria-current', String(on));
+        if (other.btn) {
+          other.btn.setAttribute('aria-current', String(on));
+          other.btn.tabIndex = on ? 0 : -1;
+        }
         if (other.tab) other.tab.setAttribute('aria-selected', String(on));
       }
 
@@ -215,6 +458,22 @@ const FilePane = (() => {
       open: (path, opts) => show(path, opts || { focus: true }),
       editor,
       element: wrap,
+
+      /* The explorer, for the page's own controls and its shortcut. */
+      sidebarOpen: () => wrap.dataset.files === 'true',
+      toggleSidebar: () => setOpen(wrap.dataset.files !== 'true'),
+
+      /* Back to the shipped layout. The folds are the reader's view of
+         this exercise and are part of the layout, so they go too; the
+         drafts are not and do not. */
+      resetLayout() {
+        Store.setPref(WIDTH_PREF, SIDE_DEFAULT);
+        Store.setPref(OPEN_PREF, true);
+        for (const path of [...folded]) foldDir(path, true);
+        saveFolded(problem.id, folded);
+        setWidth(SIDE_DEFAULT);
+        setOpen(true);
+      },
 
       /* Where a diagnostic points. The compiler names the file, and in
          a workspace that is half the information — "line 34" is
@@ -323,5 +582,5 @@ const FilePane = (() => {
     };
   }
 
-  return { create };
+  return { create, SIDE_DEFAULT, SIDE_MIN, SIDE_MAX, WIDTH_PREF, OPEN_PREF, FOLD_PREF };
 })();

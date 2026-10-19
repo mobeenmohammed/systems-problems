@@ -1,0 +1,22 @@
+{
+  "key": {
+    "pairs": [
+      1,
+      3,
+      4,
+      2,
+      0
+    ]
+  },
+  "feedback": {
+    "nudge": "Three tests per sequence: is $\\sum|x_n|$ finite, is $\\sum x_n^2$ finite, is $\\sup|x_n|$ finite. Do all three for each sequence before matching anything, and the descriptions will have only one home each."
+  },
+  "explanation": "## The three conditions, in order\n\nFor sequences, $\\ell^1 \\subset \\ell^2 \\subset \\ell^\\infty$, and both inclusions are strict.\n\n- $\\ell^1 \\subset \\ell^2$: if $\\sum|x_n|$ converges then $|x_n| \\le 1$ eventually, so $|x_n|^2 \\le |x_n|$ from that point on and the second series is dominated by the first.\n- $\\ell^2 \\subset \\ell^\\infty$: if $\\sum x_n^2$ converges then $x_n^2 \\to 0$, so the terms are bounded.\n\nThis is the opposite of the inclusion for function spaces on a finite measure space, where $L^\\infty \\subset L^2 \\subset L^1$, and the reason is worth holding on to: a sequence has infinitely many terms of \"size 1\" each, so the danger is at infinity; a function on $[0,1]$ has total measure 1, so the danger is a spike.\n\n## Sequence by sequence\n\n| sequence | $\\sum |x_n|$ | $\\sum x_n^2$ | $\\sup |x_n|$ | |\n| --- | --- | --- | --- | --- |\n| $2^{-n}$ | $1$ | $1/3$ | $1/2$ | all three |\n| $1/n$ | diverges | $\\pi^2/6$ | $1$ | $\\ell^2, \\ell^\\infty$ |\n| $1/\\sqrt n$ | diverges | diverges | $1$ | $\\ell^\\infty$ only |\n| $1$ | diverges | diverges | $1$ | $\\ell^\\infty$ only |\n| $n$ | diverges | diverges | $\\infty$ | none |\n\nThe two that are in $\\ell^\\infty$ only get there for different reasons, which is why they have separate descriptions. For $1/\\sqrt n$ the terms do tend to zero — it is the **rate** that is too slow, and $\\sum 1/n$ diverging is exactly the statement that $x_n^2 = 1/n$ is not summable. For the constant sequence the terms do not tend to zero at all, so neither series had a chance.\n\n## The impossible one\n\n\"In $\\ell^1$ and $\\ell^2$ but not $\\ell^\\infty$\" describes nothing, because $\\ell^1 \\subset \\ell^\\infty$. If $\\sum |x_n|$ converges then the terms tend to zero, and a sequence tending to zero is bounded. A description that sounds like the others and cannot be satisfied is worth having in front of you: the inclusions between these spaces are a fact to be used, not a list to be memorised, and this is the cheapest way to check you have them the right way round.",
+  "readMore": [
+    {
+      "concept": "ms-sequence-spaces",
+      "where": "why each space has to be cut down before the formula is a metric"
+    }
+  ],
+  "id": "ms-which-sequence-space"
+}

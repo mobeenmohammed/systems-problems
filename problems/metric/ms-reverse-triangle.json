@@ -1,0 +1,67 @@
+{
+  "id": "ms-reverse-triangle",
+  "title": "Two distances cannot differ by more than one",
+  "topic": "metric",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "proofsteps",
+  "tags": [
+    "metric-axioms",
+    "triangle-inequality",
+    "course-metric-spaces"
+  ],
+  "estimate": 10,
+  "prereqs": [
+    {
+      "concept": "ms-metric-axioms",
+      "why": "Only the three axioms are available here; the argument uses two of them and nothing else."
+    },
+    {
+      "concept": "ms-reverse-triangle",
+      "why": "This is the statement being proved, and the proof is the content of it."
+    }
+  ],
+  "statement": "**Claim (reverse triangle inequality).** Let $(X,d)$ be a metric space.\nFor all $x, y, z \\in X$,\n\n$$\\bigl|\\,d(x,y) - d(y,z)\\,\\bigr| \\le d(x,z).$$\n\nThe proof below is complete except for the reasons. Choose the justification\nfor each marked step.\n\nOnly the metric axioms are available: positivity, symmetry and the triangle\ninequality. Nothing else about $X$ is known.",
+  "hints": [
+    "An inequality of the form $|a| \\le b$ is two inequalities in disguise. Write down which two before looking at the metric at all.",
+    "To get $d(x,y) - d(y,z) \\le d(x,z)$, start from the triangle inequality for $d(x,y)$ and pick the intermediate point that puts $z$ in the middle.",
+    "The second half is the first half with $x$ and $z$ interchanged. The only extra step is that $d(z,y)$ and $d(y,z)$ are the same number."
+  ],
+  "payload": {
+    "claim": "**Claim.** In any metric space $(X,d)$, $\\bigl|d(x,y) - d(y,z)\\bigr| \\le d(x,z)$ for all $x,y,z \\in X$.",
+    "steps": [
+      {
+        "text": "Fix $x, y, z \\in X$. It is enough to prove the two inequalities $d(x,y) - d(y,z) \\le d(x,z)$ and $d(y,z) - d(x,y) \\le d(x,z)$.",
+        "blank": true
+      },
+      {
+        "text": "$d(x,y) \\le d(x,z) + d(z,y)$.",
+        "blank": true
+      },
+      {
+        "text": "$d(z,y) = d(y,z)$, so rearranging gives $d(x,y) - d(y,z) \\le d(x,z)$.",
+        "blank": true
+      },
+      {
+        "text": "$d(y,z) \\le d(y,x) + d(x,z)$.",
+        "blank": true
+      },
+      {
+        "text": "$d(y,x) = d(x,y)$, so rearranging gives $d(y,z) - d(x,y) \\le d(x,z)$.",
+        "blank": true
+      },
+      {
+        "text": "Both inequalities hold, so $\\bigl|d(x,y) - d(y,z)\\bigr| \\le d(x,z)$. Since $x,y,z$ were arbitrary, the claim is proved."
+      }
+    ],
+    "choices": [
+      "$|a| \\le b$ holds exactly when $-b \\le a \\le b$",
+      "the triangle inequality, with $z$ as the intermediate point",
+      "symmetry of $d$, applied to the pair $z, y$",
+      "the triangle inequality, with $x$ as the intermediate point",
+      "symmetry of $d$, applied to the pair $y, x$",
+      "positivity: $d \\ge 0$, and $d(a,b) = 0$ only when $a = b$",
+      "the limit of a convergent sequence in a metric space is unique"
+    ]
+  }
+}

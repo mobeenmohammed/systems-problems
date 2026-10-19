@@ -1,0 +1,38 @@
+{
+  "id": "ms-infinite-intersection",
+  "title": "Which word is doing the work?",
+  "topic": "metric",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "mcq",
+  "tags": [
+    "open-sets",
+    "closed-sets",
+    "course-metric-spaces"
+  ],
+  "estimate": 8,
+  "prereqs": [
+    {
+      "concept": "ms-open-set-algebra",
+      "why": "The four rules about unions and intersections are exactly what is being distinguished here."
+    },
+    {
+      "concept": "ms-interior-open-sets",
+      "why": "Deciding whether the intersection in the counterexample is open means testing one point for an interior ball."
+    }
+  ],
+  "statement": "The rules for combining open and closed sets in a metric space are not\nsymmetric: one of the four statements below is the one that fails, and the\nword **finite** appears in exactly the right places to stop the other three\nfrom failing too.\n\nExactly one of these is **true**. Which?",
+  "hints": [
+    "Two of the four are rules you can prove in one line from the definition of an open set. Find those first and rule them out.",
+    "Try $U_n = \\bigl(-\\tfrac1n, \\tfrac1n\\bigr)$ for $n = 1, 2, 3, \\dots$. Each one is open. What is their intersection?",
+    "Complements turn unions into intersections. If an arbitrary intersection of open sets could fail to be open, what does that say about arbitrary unions of closed sets?"
+  ],
+  "payload": {
+    "options": [
+      "An arbitrary intersection of open sets need not be open: $\\bigcap_{n\\ge1}\\bigl(-\\tfrac1n,\\tfrac1n\\bigr) = \\{0\\}$.",
+      "An arbitrary union of open sets need not be open.",
+      "An intersection of two open sets need not be open.",
+      "An arbitrary intersection of closed sets need not be closed."
+    ]
+  }
+}

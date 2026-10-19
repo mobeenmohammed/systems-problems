@@ -1,0 +1,50 @@
+{
+  "key": {
+    "answers": [
+      0,
+      4
+    ]
+  },
+  "feedback": {
+    "misconceptions": [
+      {
+        "picked": [
+          1
+        ],
+        "say": "On the discrete line: it is bounded — the ball $B(0,2)$ is the whole space — and that is exactly the trap. Take $\\eps = \\tfrac12$: each ball of that radius is a single point, and $\\R$ is not a finite set."
+      },
+      {
+        "picked": [
+          2
+        ],
+        "say": "On $\\Z$: it is not even bounded, so it cannot be totally bounded. No single ball of any finite radius contains every integer."
+      },
+      {
+        "picked": [
+          3
+        ],
+        "say": "On the unit ball of $\\ell^2$: it is bounded by definition. Now look at the standard basis vectors $e_1, e_2, \\dots$, all of which are in it. Any two of them are $\\sqrt2$ apart, so a ball of radius $\\tfrac12$ contains at most one, and there are infinitely many to cover."
+      }
+    ],
+    "nudge": "Two of these are totally bounded and both live in a finite-dimensional Euclidean space, where bounded and totally bounded are the same thing. For the other three, either the set is unbounded, or there are infinitely many points pairwise far apart."
+  },
+  "distractors": {
+    "0": "Yes. For any $\\eps>0$, the balls centred at $\\eps/2, \\eps, 3\\eps/2, \\dots$ cover $(0,1)$ and finitely many suffice. Being totally bounded says nothing about being closed or complete: $(0,1)$ is neither, and it is still totally bounded.",
+    "1": "No. Bounded but not totally bounded, which is the whole point of the example (Remark 6.1.12 in the notes). $B(0,2) = \\R$, so it is bounded; but a ball of radius $\\tfrac12$ is a single point, and covering $\\R$ needs uncountably many. $(\\R, d_d)$ is also complete, so \"complete and bounded\" is strictly weaker than \"complete and totally bounded\".",
+    "2": "No, and not even bounded: $\\Z$ is not contained in any ball of $\\R$. (Note that $\\Z$ *is* complete and closed, which is a reminder that these conditions are independent of one another.)",
+    "3": "No. The standard basis vectors $e_n$ satisfy $\\|e_i - e_j\\|_2 = \\sqrt2$ for $i \\ne j$ and all lie in the ball, so no ball of radius $\\tfrac12$ holds two of them and no finite family of such balls covers the set. This is the standard proof that the closed unit ball of an infinite-dimensional normed space is never compact.",
+    "4": "Yes. In $\\R^n$, totally bounded and bounded coincide (Proposition 6.1.14 in the notes): a bounded set sits in a large cube, and a cube is covered by finitely many small cubes, each of which sits in a small ball."
+  },
+  "explanation": "## The two conditions, and where they part\n\nBounded: **one** ball of **some** radius contains $E$.\nTotally bounded: **finitely many** balls of **every** radius cover $E$.\n\nTotal boundedness implies boundedness — take $\\eps = 1$, get finitely many unit balls, and a finite union of balls sits inside one big ball. The converse holds in $\\R^n$ and nowhere else in general, and the two counterexamples here are the two standard ways it fails.\n\n## Failure one: the metric is wrong\n\n$(\\R, d_d)$ is bounded, because the metric itself is bounded by 1. At $\\eps = \\tfrac12$ every ball is a single point, so a finite cover would make $\\R$ finite.\n\nThis is why \"complete and bounded\" is not a useful hypothesis. $(\\R, d_d)$ is complete and bounded, and it is as far from compact as a space gets — the cover by singletons has no finite subcover, and the sequence $1, 2, 3, \\dots$ has no convergent subsequence. The correct hypothesis is Theorem 6.1.17: sequentially compact $\\iff$ complete **and totally bounded**.\n\n## Failure two: the dimension is infinite\n\nThe closed unit ball of $\\ell^2$ is bounded and closed, and the space is complete. It is not totally bounded, because it contains the infinite set $\\{e_1, e_2, \\dots\\}$ whose points are pairwise $\\sqrt2$ apart.\n\nThat generalises: **the closed unit ball of a normed space is compact if and only if the space is finite dimensional** (Riesz's lemma). It is the single sharpest statement of how infinite dimensions differ, and the sequence $(e_n)$ is the reason — a bounded sequence with no convergent subsequence, which cannot happen in $\\R^n$.\n\n## The useful reformulation\n\n$E$ is totally bounded $\\iff$ every sequence in $E$ has a **Cauchy** subsequence (Proposition 6.1.16).\n\nRead that against sequential compactness, which asks for a **convergent** subsequence. The difference between the two is exactly whether the Cauchy subsequence has somewhere to converge to — which is completeness. That is Theorem 6.1.17 in one sentence, and it is why the three conditions are worth keeping apart.\n\nChecked against the list: $(0,1)$ is totally bounded and not complete, so not sequentially compact. $\\{x \\in \\R^2 : \\|x\\| \\le 5\\}$ is both, so it is sequentially compact — and by Heine–Borel, compact.",
+  "readMore": [
+    {
+      "concept": "ms-total-boundedness",
+      "where": "the definition, the remarks and the sequence characterisation"
+    },
+    {
+      "concept": "ms-seqcompact-characterisation",
+      "where": "where the condition is actually used"
+    }
+  ],
+  "id": "ms-totally-bounded-which"
+}

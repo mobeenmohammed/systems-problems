@@ -1,0 +1,70 @@
+{
+  "id": "ms-preimage-of-open",
+  "title": "Continuity with the epsilons hidden",
+  "topic": "metric",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "proofsteps",
+  "tags": [
+    "continuity",
+    "open-sets",
+    "course-metric-spaces"
+  ],
+  "estimate": 14,
+  "prereqs": [
+    {
+      "concept": "ms-continuity-preimages",
+      "why": "This is one direction of the theorem that replaces epsilons and deltas by open sets."
+    },
+    {
+      "concept": "ms-continuity",
+      "why": "The epsilon-delta definition is the hypothesis, and it is used once."
+    },
+    {
+      "concept": "ms-interior-open-sets",
+      "why": "That a point of an open set has a ball about it inside the set is used twice, once at each end."
+    }
+  ],
+  "statement": "**Theorem.** Let $f : X \\to Y$ be a map between metric spaces. If $f$ is\ncontinuous at every point of $X$, then $f^{-1}(V)$ is open in $X$ for every\nopen $V \\subseteq Y$.\n\nThe proof below is complete except for the reasons. Choose the\njustification for each marked step.\n\nThroughout, $f^{-1}(V) = \\{\\,x \\in X : f(x) \\in V\\,\\}$. No assumption is made\nthat $f$ is injective, surjective or anything else: $f^{-1}$ here is the\npreimage of a set, not an inverse function.",
+  "hints": [
+    "To show a set is open you take an arbitrary point of it and produce a ball about that point inside the set. Write down what that means here before reading on.",
+    "You have two open-set facts available and one continuity fact. The open-set fact about $V$ gives you an $\\eps$; continuity turns that $\\eps$ into a $\\delta$.",
+    "The last step is pure set theory: $f(x) \\in V$ is the definition of $x \\in f^{-1}(V)$, and nothing metric is used."
+  ],
+  "payload": {
+    "claim": "**Theorem.** If $f : X \\to Y$ is continuous at every point, then the preimage of every open set is open.",
+    "steps": [
+      {
+        "text": "Let $V \\subseteq Y$ be open and let $a \\in f^{-1}(V)$. We must produce $r > 0$ with $B(a, r) \\subseteq f^{-1}(V)$."
+      },
+      {
+        "text": "$f(a) \\in V$, so there is $\\eps > 0$ with $B\\bigl(f(a), \\eps\\bigr) \\subseteq V$.",
+        "blank": true
+      },
+      {
+        "text": "There is $\\delta > 0$ such that $d_X(x, a) < \\delta$ implies $d_Y\\bigl(f(x), f(a)\\bigr) < \\eps$.",
+        "blank": true
+      },
+      {
+        "text": "So if $x \\in B(a, \\delta)$ then $f(x) \\in B\\bigl(f(a), \\eps\\bigr)$.",
+        "blank": true
+      },
+      {
+        "text": "Hence $f(x) \\in V$, which is to say $x \\in f^{-1}(V)$.",
+        "blank": true
+      },
+      {
+        "text": "So $B(a,\\delta) \\subseteq f^{-1}(V)$. As $a$ was an arbitrary point of $f^{-1}(V)$, that set is open. $\\blacksquare$"
+      }
+    ],
+    "choices": [
+      "$V$ is open, and every point of an open set has a ball about it inside the set",
+      "continuity of $f$ at the point $a$",
+      "the definitions of the two balls, applied to the implication just quoted",
+      "the choice of $\\eps$ in the second step, which put $B(f(a),\\eps)$ inside $V$",
+      "the triangle inequality in $Y$",
+      "$f$ is injective, so preimages and images agree",
+      "the preimage of a closed set is closed"
+    ]
+  }
+}

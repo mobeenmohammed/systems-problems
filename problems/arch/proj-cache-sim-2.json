@@ -1,0 +1,94 @@
+{
+  "id": "proj-cache-sim-2",
+  "title": "A cache simulator: ways, and what to throw away",
+  "topic": "arch",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "code",
+  "project": {
+    "id": "cache-sim",
+    "title": "Build a cache simulator",
+    "of": 3,
+    "step": 2,
+    "label": "Associativity and LRU",
+    "continues": "proj-cache-sim-1"
+  },
+  "tags": [
+    "cache",
+    "project",
+    "multi-file",
+    "lru",
+    "associativity"
+  ],
+  "estimate": 35,
+  "prereqs": [
+    {
+      "concept": "cache-indexing",
+      "why": "The whole of `decode` is this: which bits are the offset, which are the index, and what is left."
+    },
+    {
+      "concept": "shifts-and-masks",
+      "why": "Each field is one shift and one mask, and the mask for a zero-width field is the case that catches people."
+    },
+    {
+      "concept": "compilation-pipeline",
+      "why": "Three files are compiled separately and linked, so a signature that does not match its declaration is a link error rather than a compile error."
+    },
+    {
+      "concept": "cache-associativity",
+      "why": "A set with several ways is the whole of this milestone, and the replacement policy is the choice it forces."
+    }
+  ],
+  "statement": "**Milestone 2 of 3.** The same simulator, now with more than one line\nper set — and therefore, for the first time, a choice about what to\nthrow away.\n\n### What is new\n\n`main.cpp` now reads **three** numbers: `<sets> <ways> <blockBytes>`.\nA set holds `ways` lines, searched in parallel by a real cache and in a\nloop by this one. `stats` grows a third number.\n\n```\ndecode <addr>   print  tag=<t> index=<i> offset=<o>\nread <addr>     print  hit  or  miss\nstats           print  <hits> hits, <misses> misses, <evictions> evictions\n```\n\nThe header gains one method:\n\n```cpp\nstd::size_t evictions() const;\n```\n\n### The rules, exactly\n\n- A **hit** is a line in this set that is valid and whose tag matches.\n- On a **miss**, the block is brought in. If any way of the set has\n  never been used, it goes there and **nothing is evicted** — filling an\n  empty way is not an eviction, and the counter must not move.\n- If every way is in use, the line **least recently used** is thrown\n  out, and that is one eviction. \"Used\" means a hit on it or the access\n  that brought it in.\n- Least recently *used*, not first in. The difference is testable and it\n  is tested: read A, B, A, C with two ways evicts **B**, so A is still\n  there afterwards. A queue would have thrown out A.\n- `decode` is unchanged. Associativity does not touch the address.\n\n### The sample\n\n```\n1 2 16                   one set of two sixteen-byte lines\nread 0            ->     miss      way 0, nothing evicted\nread 100          ->     miss      way 1, nothing evicted\nread 0            ->     hit       and 0 is now the recent one\nread 200          ->     miss      both ways busy: 100 is the old one\nread 0            ->     hit       so 0 survived\nread 100          ->     miss      100 did not\nstats             ->     2 hits, 4 misses, 2 evictions\n```\n\n### Carrying your work forward\n\nYour `include/cache.hpp` and `src/cache.cpp` come with you from\nmilestone 1. Two things follow from that:\n\n- If you left a file untouched in milestone 1, you get **this**\n  milestone's version of it, which is the one that declares\n  `evictions()`.\n- If you edited the header in milestone 1, you keep **your** version —\n  and yours does not declare `evictions()`, so `main.cpp` will not link\n  until you add it. The compiler will say so by name.\n\nNothing of yours is ever replaced silently. Milestone 1 keeps its own\ndrafts and its own submissions.\n",
+  "hints": [
+    "The lines of set `i` are `lines_[i * ways_]` through `lines_[i * ways_ + ways_ - 1]`. Everything in `access` is a loop over that range.",
+    "Three passes, and in this order: look for a matching valid line; if there is none, look for an invalid one; only if there is none of those do you pick a victim and count an eviction.",
+    "`stamp` is there for the policy. Keep a counter on the cache, increment it on every access, and write it into the line you just touched — on a hit as well as on a fill. The victim is the line with the smallest stamp.",
+    "Updating `stamp` only when a line is filled gives you first-in-first-out, not least-recently-used, and the test with `read 0 / read 200 / read 0 / read 400 / read 0` is the one that tells the two apart."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 5000
+    },
+    "files": [
+      {
+        "path": "include/cache.hpp",
+        "content": "#ifndef CACHE_HPP\n#define CACHE_HPP\n\n#include <cstddef>\n#include <cstdint>\n#include <vector>\n\n/* An address, taken apart the way a cache takes it apart. */\nstruct Decoded {\n    std::uint64_t tag = 0;\n    std::uint64_t index = 0;\n    std::uint64_t offset = 0;\n};\n\n/* A cache of `sets` sets, `ways` lines per set and `blockBytes` bytes\n * per line. `sets` and `blockBytes` are powers of two; `ways` is at\n * least 1.\n *\n * The PUBLIC part is the contract. main.cpp is written against exactly\n * these names and these signatures, so changing one stops it linking.\n * Everything under `private:` is yours.\n */\nclass Cache {\npublic:\n    Cache(std::size_t sets, std::size_t ways, std::size_t blockBytes);\n\n    std::size_t sets() const;\n    std::size_t ways() const;\n    std::size_t blockBytes() const;\n\n    /* The three fields of `addr`, for this geometry. */\n    Decoded decode(std::uint64_t addr) const;\n\n    /* A read. True on a hit. A miss brings the block in, so the same\n     * address read twice in a row hits the second time. */\n    bool access(std::uint64_t addr);\n\n    std::size_t hits() const;\n    std::size_t misses() const;\n\n    /* How many times a VALID line was thrown out to make room. Filling\n     * a way that was never used is not an eviction. */\n    std::size_t evictions() const;\n\nprivate:\n    std::size_t sets_;\n    std::size_t ways_;\n    std::size_t block_;\n    std::size_t offsetBits_ = 0;\n    std::size_t indexBits_ = 0;\n    std::size_t hits_ = 0;\n    std::size_t misses_ = 0;\n    std::size_t evictions_ = 0;\n\n    /* One line. `stamp` is whatever you need it to be to answer \"which\n     * of these was used longest ago\". */\n    struct Line {\n        bool valid = false;\n        bool dirty = false;\n        std::uint64_t tag = 0;\n        std::uint64_t stamp = 0;\n    };\n\n    std::vector<Line> lines_;\n    std::uint64_t clock_ = 0;\n};\n\n#endif\n"
+      },
+      {
+        "path": "src/cache.cpp",
+        "content": "#include \"../include/cache.hpp\"\n\n/* The geometry, which is already done for you: how many low bits pick a\n * byte inside a block, and how many above those pick a set. `n` is a\n * power of two, so this is the position of its only 1 bit.\n */\nstatic std::size_t log2of(std::size_t n) {\n    std::size_t k = 0;\n    while ((std::size_t{1} << k) < n) ++k;\n    return k;\n}\n\nCache::Cache(std::size_t sets, std::size_t ways, std::size_t blockBytes)\n    : sets_(sets), ways_(ways), block_(blockBytes),\n      offsetBits_(log2of(blockBytes)), indexBits_(log2of(sets)),\n      lines_(sets * ways) {}\n\nstd::size_t Cache::sets() const { return sets_; }\nstd::size_t Cache::ways() const { return ways_; }\nstd::size_t Cache::blockBytes() const { return block_; }\n\nstd::size_t Cache::hits() const { return hits_; }\nstd::size_t Cache::misses() const { return misses_; }\nstd::size_t Cache::evictions() const { return evictions_; }\n\n/* Milestone 2: ways, and a replacement policy.\n *\n * `decode` is carried forward from milestone 1 if you wrote one; this\n * is what you get if you did not. `access` now has a set of `ways_`\n * lines to search, and something to choose when they are all in use.\n */\n\nDecoded Cache::decode(std::uint64_t addr) const {\n    /* your code here — the lowest offsetBits_ bits are the offset, the\n       next indexBits_ bits above those are the index, and everything\n       left over is the tag. Mind the geometry where one of the two bit\n       counts is zero: shifting a 64-bit value by 64 is not \"shift it\n       all away\", it is undefined behaviour. */\n    (void) addr;\n    return Decoded{};\n}\n\nbool Cache::access(std::uint64_t addr) {\n    /* your code here — search the ways of this set for a valid line\n       whose tag matches. On a miss: fill a way that was never used if\n       there is one, and otherwise throw out the least recently used\n       line and count that as an eviction. */\n    (void) addr;\n    return false;\n}\n"
+      },
+      {
+        "path": "main.cpp",
+        "content": "/* GIVEN, and read-only: the driver.\n *\n * It reads a geometry, then one command per line, and prints what your\n * cache said. It is the thing src/cache.cpp has to satisfy, which is\n * why you cannot edit it here — a test you can edit is not a test.\n *\n * Every address is hexadecimal, with or without an 0x in front.\n */\n#include <iostream>\n#include <sstream>\n#include <string>\n\n#include \"include/cache.hpp\"\n\nstatic void printDecoded(const Decoded& d) {\n    std::cout << std::hex\n              << \"tag=\" << d.tag\n              << \" index=\" << d.index\n              << \" offset=\" << d.offset\n              << std::dec << '\\n';\n}\n\nint main() {\n    std::ios::sync_with_stdio(false);\n    std::cin.tie(nullptr);\n\n    std::size_t sets = 0, ways = 0, block = 0;\n    if (!(std::cin >> sets >> ways >> block)) return 0;\n    Cache cache(sets, ways, block);\n\n    std::string line;\n    std::getline(std::cin, line);\n\n    while (std::getline(std::cin, line)) {\n        std::istringstream in(line);\n        std::string cmd;\n        if (!(in >> cmd)) continue;\n        std::uint64_t addr = 0;\n\n        if (cmd == \"decode\") {\n            if (!(in >> std::hex >> addr)) continue;\n            printDecoded(cache.decode(addr));\n        } else if (cmd == \"read\") {\n            if (!(in >> std::hex >> addr)) continue;\n            std::cout << (cache.access(addr) ? \"hit\" : \"miss\") << '\\n';\n        } else if (cmd == \"stats\") {\n            std::cout << cache.hits() << \" hits, \"\n                      << cache.misses() << \" misses, \"\n                      << cache.evictions() << \" evictions\" << '\\n';\n        }\n    }\n    return 0;\n}\n",
+        "readOnly": true
+      }
+    ],
+    "entry": "main.cpp",
+    "build": {
+      "sources": [
+        "main.cpp",
+        "src/cache.cpp"
+      ]
+    },
+    "cases": [
+      {
+        "stdin": "1 2 16\nread 0\nread 100\nread 0\nread 200\nread 0\nread 100\nstats\n",
+        "expect": "miss\nmiss\nhit\nmiss\nhit\nmiss\n2 hits, 4 misses, 2 evictions\n"
+      },
+      {
+        "stdin": "4 1 16\ndecode 1234\nread 0\nread 4\nread 40\nread 0\nstats\n",
+        "expect": "tag=48 index=3 offset=4\nmiss\nhit\nmiss\nmiss\n1 hits, 3 misses, 2 evictions\n"
+      },
+      {
+        "stdin": "1 4 16\nread 0\nread 100\nread 200\nread 300\nread 0\nread 400\nread 100\nstats\n",
+        "expect": "miss\nmiss\nmiss\nmiss\nhit\nmiss\nmiss\n1 hits, 6 misses, 2 evictions\n"
+      }
+    ]
+  }
+}

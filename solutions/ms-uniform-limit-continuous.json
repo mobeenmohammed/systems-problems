@@ -1,0 +1,17 @@
+{
+  "key": {
+    "model": true
+  },
+  "explanation": "## The model proof\n\nLet $a \\in X$ and let $\\eps > 0$. We must find $\\delta > 0$ such that $d(x,a) < \\delta$ implies $|f(x) - f(a)| < \\eps$.\n\n**Choose the index first.** Since $f_n \\to f$ uniformly, there is $N$ such that\n\n$$\\sup_{y \\in X} |f_N(y) - f(y)| < \\frac{\\eps}{3}.$$\n\nFix this $N$. Note that the inequality holds at **every** point of $X$ at once; this is the only place uniformity is used, and the proof does not work without it.\n\n**Then choose $\\delta$.** $f_N$ is continuous at $a$, so there is $\\delta > 0$ such that\n\n$$d(x,a) < \\delta \\implies |f_N(x) - f_N(a)| < \\frac{\\eps}{3}.$$\n\n**Combine.** Let $x$ satisfy $d(x,a) < \\delta$. Adding and subtracting,\n\n$$f(x) - f(a) = \\bigl(f(x) - f_N(x)\\bigr) + \\bigl(f_N(x) - f_N(a)\\bigr) + \\bigl(f_N(a) - f(a)\\bigr),$$\n\nso by the triangle inequality\n\n$$|f(x) - f(a)| \\le \\underbrace{|f(x) - f_N(x)|}_{< \\eps/3} + \\underbrace{|f_N(x) - f_N(a)|}_{< \\eps/3} + \\underbrace{|f_N(a) - f(a)|}_{< \\eps/3} < \\eps .$$\n\nThe first and third terms are below $\\eps/3$ because of the choice of $N$ — applied at $x$ and at $a$ respectively — and the middle one because of the choice of $\\delta$.\n\nSo $f$ is continuous at $a$. Since $a \\in X$ was arbitrary, $f$ is continuous on $X$. $\\blacksquare$\n\n## Where uniformity is used, and what happens without it\n\nExactly once: the single $N$ has to work at $x$ as well as at $a$, and $x$ is not known when $N$ is chosen. Under pointwise convergence you could choose $N_a$ for $a$ and $N_x$ for $x$, and there would be no reason for them to agree — so the first and third terms would be controlled by two different functions and the middle term would be about neither of them.\n\nThat is not a gap in the proof technique; the theorem is false pointwise. $f_n(x) = x^n$ on $[0,1]$ is a sequence of continuous functions converging pointwise to a function that is $0$ on $[0,1)$ and $1$ at $1$, which is not continuous. Any argument that would prove the theorem from pointwise convergence alone would prove something false.\n\n## The order of the quantifiers\n\nThe single most common error is choosing $\\delta$ first and then $n$. It reads almost the same and it proves nothing: $\\delta$ must not depend on $n$, because $n$ is what the three-term split is built around, and if $\\delta$ were chosen first then $N$ could depend on $x$ through $\\delta$ and the argument becomes circular.\n\nThe reliable discipline: the three $\\eps/3$ bounds are chosen in the order **index, then radius**, and each choice may depend only on things already fixed. Here $N$ depends on $\\eps$ alone, and $\\delta$ depends on $\\eps$, $a$ and $N$.\n\n## The same proof, said in one line\n\n$C_b(X)$ — the bounded continuous functions with the supremum metric — is a **closed** subset of $B(X)$, the bounded functions. Uniform convergence is convergence in that metric, so a uniform limit of continuous functions, being a limit of points of a closed set, is in the set. The three-$\\eps$ argument above is what proves the closedness.",
+  "readMore": [
+    {
+      "concept": "ms-uniform-limit-theorems",
+      "where": "the three properties that pass to a uniform limit"
+    },
+    {
+      "concept": "ms-complete-function-spaces",
+      "where": "the same fact as a statement about a space"
+    }
+  ],
+  "id": "ms-uniform-limit-continuous"
+}

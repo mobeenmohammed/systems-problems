@@ -146,6 +146,14 @@ export function loadAll() {
   const conceptsPath = path.join(ROOT, 'data/concepts.json');
   const concepts = fs.existsSync(conceptsPath) ? readJson(conceptsPath) : {};
 
+  /* The two university courses, as chapters of concepts. A course is
+     the SHAPE of a subject — what comes in what order, and what is
+     non-examinable — which is a different thing from a track, which is
+     a list of problems. data/courses.json holds the first and
+     data/tracks.json the second, and the track points at the course. */
+  const coursesPath = path.join(ROOT, 'data/courses.json');
+  const courses = fs.existsSync(coursesPath) ? readJson(coursesPath) : {};
+
   const solutions = {};
   const solDir = path.join(ROOT, 'solutions');
   for (const name of fs.existsSync(solDir) ? fs.readdirSync(solDir) : []) {
@@ -153,14 +161,14 @@ export function loadAll() {
     solutions[name.replace(/\.json$/, '')] = readJson(path.join(solDir, name));
   }
 
-  return { problems, concepts, solutions, files };
+  return { problems, concepts, courses, solutions, files };
 }
 
 /* ---------------- validation ---------------- */
 
 /* Returns a list of human-readable problems with the content. Nothing throws:
    the caller decides whether to print and exit or to count failures. */
-export function validate({ problems, concepts, solutions }) {
+export function validate({ problems, concepts, courses = {}, solutions }) {
   const errors = [];
   const err = (where, msg) => errors.push(`${where}: ${msg}`);
 
@@ -183,6 +191,10 @@ export function validate({ problems, concepts, solutions }) {
       if (rd.url && !/^https?:\/\//.test(rd.url)) err(where, `reading ${i} has a non-http url`);
     }
   }
+
+  /* --- the courses --- */
+
+  validateCourses(courses, concepts, err);
 
   /* A cycle would make the Prerequisites chain meaningless, and though the
      page tolerates one it should never be committed. */
@@ -356,6 +368,106 @@ const printsCheck = (source, name) => {
   }
   return false;
 };
+
+/* ---------------- the courses ----------------
+
+   A course is a reading of a real set of lecture notes: chapters in the
+   order the notes have them, and within each chapter the concepts in
+   the order the sections introduce them. Two things are being kept
+   apart, and the whole value of the file is in keeping them apart:
+
+     · COURSE ORDER, which is this file's arrays. Section 3.5 comes
+       after section 3.4 because the lecturer put it there.
+     · PREREQUISITE, which is `needs` on the concept. Section 3.5 needs
+       completeness and it does not need section 3.4.
+
+   Pretending every preceding section is a prerequisite would draw a
+   straight line through the whole course and say nothing. So the graph
+   draws `needs` as edges and the chapter grouping as grouping, and the
+   only thing checked between them is that a prerequisite never points
+   forwards.
+
+   `optional` is material the notes themselves exclude — by saying so in
+   a heading, or in the Probability notes by a bar down the left margin.
+   It is kept, because a reader with the notes in front of them should
+   be able to find out from the tree which parts they can skip. */
+function validateCourses(courses, concepts, err) {
+  const claimed = {};
+  for (const [id, c] of Object.entries(courses)) {
+    const where = `courses.json/${id}`;
+    if (!c.title) err(where, 'has no title');
+    if (!c.source) err(where, 'has no source — a course that does not say which '
+      + 'notes it follows cannot be checked against them');
+    if (!Array.isArray(c.chapters) || !c.chapters.length) {
+      err(where, 'has no chapters');
+      continue;
+    }
+    const seen = new Set();
+    for (const [i, ch] of c.chapters.entries()) {
+      const cw = `${where}/chapter ${ch.n ?? i}`;
+      if (!Number.isInteger(ch.n)) err(cw, 'chapter number is not a whole number');
+      if (ch.n !== i + 1) err(cw, `chapters must run 1..n in order; this one is at position ${i + 1}`);
+      if (!ch.title) err(cw, 'has no title');
+      if (!ch.where) err(cw, 'does not say where in the notes it is');
+      if (!Array.isArray(ch.concepts) || !ch.concepts.length) {
+        err(cw, 'has no concepts');
+        continue;
+      }
+      for (const cid of ch.concepts) {
+        if (!concepts[cid]) { err(cw, `names "${cid}", which is not a concept`); continue; }
+        if (seen.has(cid)) err(cw, `names "${cid}" twice in this course`);
+        seen.add(cid);
+        if (claimed[cid]) err(cw, `"${cid}" is already in course "${claimed[cid]}"`);
+        claimed[cid] = id;
+        const co = concepts[cid];
+        if (co.course !== id) err(`concepts.json/${cid}`, `is listed under course "${id}" but says "${co.course}"`);
+        if (co.chapter !== ch.n) err(`concepts.json/${cid}`, `is in chapter ${ch.n} but says ${co.chapter}`);
+        if (!co.where) err(`concepts.json/${cid}`, 'has no `where` — a course concept must '
+          + 'point at the exact section and page it comes from');
+      }
+    }
+  }
+
+  /* Course order, flattened, so a prerequisite can be checked against it. */
+  const at = {};
+  for (const [id, c] of Object.entries(courses)) {
+    let i = 0;
+    for (const ch of c.chapters || []) for (const cid of ch.concepts || []) at[cid] = `${id}:${i++}`;
+  }
+  const rank = cid => {
+    const v = at[cid];
+    return v ? Number(v.split(':')[1]) : null;
+  };
+
+  for (const [cid, c] of Object.entries(concepts)) {
+    const where = `concepts.json/${cid}`;
+    if (c.course && !courses[c.course]) err(where, `names course "${c.course}", which does not exist`);
+    if (c.course && !claimed[cid]) err(where, `says course "${c.course}" but no chapter of it lists this concept`);
+    if (c.optional !== undefined && c.optional !== true) {
+      err(where, 'optional is a flag: set it to true or leave it out');
+    }
+    for (const need of c.needs || []) {
+      const other = concepts[need];
+      if (!other) continue;                    /* already reported above */
+      /* Within one course, a prerequisite may not come later than the
+         thing that needs it: that would be a tree claiming you have to
+         read chapter 6 before chapter 3. */
+      if (c.course && other.course === c.course) {
+        const a = rank(cid);
+        const b = rank(need);
+        if (a !== null && b !== null && b >= a) {
+          err(where, `needs "${need}", which the course does not reach until later`);
+        }
+      }
+      /* And required material may not rest on material the notes
+         exclude, or "non-examinable" would be a lie. */
+      if (other.optional && !c.optional) {
+        err(where, `needs "${need}", which is marked optional — required material `
+          + 'cannot rest on material the notes exclude');
+      }
+    }
+  }
+}
 
 /* The rules every workspace obeys, whatever type it belongs to. */
 function workspaceFaults(p, err, where) {

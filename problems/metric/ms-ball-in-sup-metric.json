@@ -1,0 +1,42 @@
+{
+  "id": "ms-ball-in-sup-metric",
+  "title": "What does a ball of functions look like?",
+  "topic": "metric",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "mcq",
+  "tags": [
+    "open-balls",
+    "function-spaces",
+    "course-metric-spaces"
+  ],
+  "estimate": 12,
+  "prereqs": [
+    {
+      "concept": "ms-open-balls",
+      "why": "The question is what the definition of an open ball says once the points are functions."
+    },
+    {
+      "concept": "ms-function-spaces",
+      "why": "The metric is the supremum one, so the ball is defined by a condition on a supremum."
+    },
+    {
+      "concept": "ms-compactness-continuity",
+      "why": "That a continuous function on a closed bounded interval attains its supremum is what makes one of the four answers exactly right rather than nearly right."
+    }
+  ],
+  "statement": "Work in $\\bigl(C[0,1], \\|\\cdot\\|_\\infty\\bigr)$ and let $f(t) = t$.\n\nThe open ball of radius 1 about $f$ is\n\n$$B(f, 1) = \\bigl\\{\\, g \\in C[0,1] : \\|g - f\\|_\\infty < 1 \\,\\bigr\\}.$$\n\nWhich of the following describes exactly the same set of functions?",
+  "hints": [
+    "Write out $\\|g-f\\|_\\infty < 1$ as a statement about $\\sup_t |g(t) - t|$, and then ask what that says about each individual $t$.",
+    "A supremum being below 1 certainly implies that every value is below 1. The question is whether the converse holds here.",
+    "If $|g(t) - t| < 1$ for every $t \\in [0,1]$, is $\\sup_t |g(t) - t| < 1$ or only $\\le 1$? The domain is a closed bounded interval and $|g - f|$ is continuous, which settles it."
+  ],
+  "payload": {
+    "options": [
+      "The continuous $g$ with $t - 1 < g(t) < t + 1$ for every $t \\in [0,1]$.",
+      "The continuous $g$ with $t - 1 < g(t) < t + 1$ for at least one $t \\in [0,1]$.",
+      "The continuous $g$ whose graph lies in the closed strip $t - 1 \\le g(t) \\le t + 1$.",
+      "The continuous $g$ with $\\int_0^1 |g(t) - t|\\,\\mathrm{d}t < 1$."
+    ]
+  }
+}

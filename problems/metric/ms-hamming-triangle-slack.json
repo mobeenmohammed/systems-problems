@@ -1,0 +1,36 @@
+{
+  "id": "ms-hamming-triangle-slack",
+  "title": "How much slack is in the triangle inequality?",
+  "topic": "metric",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "exact",
+  "tags": [
+    "hamming-distance",
+    "triangle-inequality",
+    "course-metric-spaces"
+  ],
+  "estimate": 8,
+  "prereqs": [
+    {
+      "concept": "ms-hamming-distance",
+      "why": "Every one of the three distances is a count of disagreeing positions."
+    },
+    {
+      "concept": "ms-metric-axioms",
+      "why": "The quantity asked for is the slack in the triangle inequality, so its sign is the thing the axiom promises."
+    }
+  ],
+  "statement": "On $X = \\{0,1\\}^8$ the **Hamming distance** $d_H(x,y)$ is the number of\npositions at which $x$ and $y$ differ.\n\nTake\n\n$$\\begin{aligned}\nx &= 0\\,1\\,1\\,0\\,1\\,0\\,0\\,1\\\\\ny &= 1\\,1\\,0\\,1\\,1\\,0\\,0\\,0\\\\\nz &= 1\\,0\\,1\\,1\\,0\\,0\\,1\\,1\n\\end{aligned}$$\n\nWork out\n\n$$d_H(x,y) + d_H(y,z) - d_H(x,z).$$",
+  "hints": [
+    "Line the strings up one under another and mark the columns where the two you are comparing disagree. Three comparisons, eight columns each.",
+    "The triangle inequality says the answer cannot be negative. If you get a negative number, one of the three counts is wrong.",
+    "Count $d_H(x,y)$ first: the strings agree in positions 2, 5, 6 and 7, so they disagree in the other four."
+  ],
+  "payload": {
+    "prompt": "The value of the expression.",
+    "label": "The slack",
+    "placeholder": "a whole number",
+    "syntax": "A whole number. Arithmetic is fine: 4+5-5 is read as 4."
+  }
+}

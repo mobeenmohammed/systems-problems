@@ -1,0 +1,22 @@
+{
+  "key": {
+    "answers": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ]
+  },
+  "feedback": {
+    "nudge": "Three of the eight justifications are never used. The argument has exactly three ideas in it — move to $X$, use completeness there, bring the limit back — and the two \"restriction of the metric\" lines are the moving, said in the two directions."
+  },
+  "explanation": "## The three ideas\n\n**Move the problem to $X$.** A Cauchy sequence in $E$ is a Cauchy sequence in $X$, because the Cauchy condition only mentions distances between terms of the sequence and those distances are literally the same numbers. This step looks like nothing and it is the step that makes the proof possible: $E$ is not known to be complete, and $X$ is.\n\n**Use completeness there.** $X$ is complete, so the sequence has a limit $x \\in X$. Nothing yet says $x \\in E$.\n\n**Bring the limit back.** $x$ is a limit of points of $E$, so every ball about it meets $E$ and $x$ is adherent to $E$. A closed set contains its adherent points, so $x \\in E$. Finally convergence in the inherited metric is the same statement as convergence in $X$, so $x_n \\to x$ in $E$.\n\n## Where each hypothesis is spent\n\n| hypothesis | used where | what goes wrong without it |\n| --- | --- | --- |\n| $X$ complete | step 3 | no limit is produced at all |\n| $E$ closed | step 5 | a limit exists, in $X$, outside $E$ |\n\nThe second row is the sequence $1/n$ in $E = (0,1] \\subseteq \\R$: $\\R$ is complete, so the limit exists; $E$ is not closed, so it is not in $E$.\n\n## The converse\n\nThe other half of the corollary says that a **complete** subspace of **any** metric space is closed in it, and that one does not need the ambient space to be complete. Let $x$ be adherent to $E$; take $x_n \\in E$ with $x_n \\to x$; the sequence is convergent, hence Cauchy, hence convergent in $E$ to some $y \\in E$; limits in $X$ are unique, so $x = y \\in E$.\n\nNotice that \"the limit of a convergent sequence is unique\" **is** used there, and is one of the three unused justifications here. Keeping track of which facts a proof actually consumes is most of the skill: it is what tells you how far the statement can be weakened.\n\n## Why it matters\n\nPut together, the two halves say that inside a complete space, \"complete\" and \"closed\" are the same word. That is why $[a,b]$, $\\Z$ and $\\{0\\}\\cup\\{1/n\\}$ are complete and $\\Q$, $(0,1]$ and $\\{1/n\\}$ are not, with no sequences to construct at all — and it is the step that turns the Banach fixed-point theorem from a statement about complete spaces into a statement you can apply to a closed subset of $\\R^n$ or of $C[0,1]$.",
+  "readMore": [
+    {
+      "concept": "ms-complete-iff-closed",
+      "where": "both directions, and the corollary they make"
+    }
+  ],
+  "id": "ms-closed-subset-complete"
+}

@@ -1,0 +1,62 @@
+{
+  "id": "proj-cache-sim-2",
+  "key": {
+    "cases": [
+      {
+        "stdin": "4 2 16\nstats\n",
+        "expect": "0 hits, 0 misses, 0 evictions\n"
+      },
+      {
+        "stdin": "1 4 16\nread 0\nread 100\nread 200\nread 300\nstats\n",
+        "expect": "miss\nmiss\nmiss\nmiss\n0 hits, 4 misses, 0 evictions\n"
+      },
+      {
+        "stdin": "1 2 32\nread 0\nread 200\nread 0\nread 400\nread 0\nstats\n",
+        "expect": "miss\nmiss\nhit\nmiss\nhit\n2 hits, 3 misses, 1 evictions\n"
+      },
+      {
+        "stdin": "1 2 32\nread 0\nread 200\nread 0\nread 400\nread 200\nstats\n",
+        "expect": "miss\nmiss\nhit\nmiss\nmiss\n1 hits, 4 misses, 2 evictions\n"
+      },
+      {
+        "stdin": "8 4 32\ndecode 0\ndecode ff\ndecode 1ff\ndecode cafe\nstats\n",
+        "expect": "tag=0 index=0 offset=0\ntag=0 index=7 offset=1f\ntag=1 index=7 offset=1f\ntag=ca index=7 offset=1e\n0 hits, 0 misses, 0 evictions\n"
+      },
+      {
+        "stdin": "2 2 16\nread 0\nread 10\nread 20\nread 30\nread 0\nread 10\nread 40\nread 0\nstats\n",
+        "expect": "miss\nmiss\nmiss\nmiss\nhit\nhit\nmiss\nhit\n3 hits, 5 misses, 1 evictions\n"
+      },
+      {
+        "stdin": "1 8 8\nread 0\nread 8\nread 10\nread 18\nread 20\nread 28\nread 30\nread 38\nread 40\nread 0\nstats\n",
+        "expect": "miss\nmiss\nmiss\nmiss\nmiss\nmiss\nmiss\nmiss\nmiss\nmiss\n0 hits, 10 misses, 2 evictions\n"
+      },
+      {
+        "stdin": "2 2 1\nread 0\nread 2\nread 4\nread 0\nread 1\nstats\n",
+        "expect": "miss\nmiss\nmiss\nmiss\nmiss\n0 hits, 5 misses, 2 evictions\n"
+      }
+    ],
+    "reference": {
+      "files": [
+        {
+          "path": "include/cache.hpp",
+          "content": "#ifndef CACHE_HPP\n#define CACHE_HPP\n\n#include <cstddef>\n#include <cstdint>\n#include <vector>\n\n/* An address, taken apart the way a cache takes it apart. */\nstruct Decoded {\n    std::uint64_t tag = 0;\n    std::uint64_t index = 0;\n    std::uint64_t offset = 0;\n};\n\n/* A cache of `sets` sets, `ways` lines per set and `blockBytes` bytes\n * per line. `sets` and `blockBytes` are powers of two; `ways` is at\n * least 1.\n *\n * The PUBLIC part is the contract. main.cpp is written against exactly\n * these names and these signatures, so changing one stops it linking.\n * Everything under `private:` is yours.\n */\nclass Cache {\npublic:\n    Cache(std::size_t sets, std::size_t ways, std::size_t blockBytes);\n\n    std::size_t sets() const;\n    std::size_t ways() const;\n    std::size_t blockBytes() const;\n\n    /* The three fields of `addr`, for this geometry. */\n    Decoded decode(std::uint64_t addr) const;\n\n    /* A read. True on a hit. A miss brings the block in, so the same\n     * address read twice in a row hits the second time. */\n    bool access(std::uint64_t addr);\n\n    std::size_t hits() const;\n    std::size_t misses() const;\n\n    /* How many times a VALID line was thrown out to make room. Filling\n     * a way that was never used is not an eviction. */\n    std::size_t evictions() const;\n\nprivate:\n    std::size_t sets_;\n    std::size_t ways_;\n    std::size_t block_;\n    std::size_t offsetBits_ = 0;\n    std::size_t indexBits_ = 0;\n    std::size_t hits_ = 0;\n    std::size_t misses_ = 0;\n    std::size_t evictions_ = 0;\n\n    /* One line. `stamp` is whatever you need it to be to answer \"which\n     * of these was used longest ago\". */\n    struct Line {\n        bool valid = false;\n        bool dirty = false;\n        std::uint64_t tag = 0;\n        std::uint64_t stamp = 0;\n    };\n\n    std::vector<Line> lines_;\n    std::uint64_t clock_ = 0;\n};\n\n#endif\n"
+        },
+        {
+          "path": "src/cache.cpp",
+          "content": "#include \"../include/cache.hpp\"\n\n/* The geometry, which is already done for you: how many low bits pick a\n * byte inside a block, and how many above those pick a set. `n` is a\n * power of two, so this is the position of its only 1 bit.\n */\nstatic std::size_t log2of(std::size_t n) {\n    std::size_t k = 0;\n    while ((std::size_t{1} << k) < n) ++k;\n    return k;\n}\n\nCache::Cache(std::size_t sets, std::size_t ways, std::size_t blockBytes)\n    : sets_(sets), ways_(ways), block_(blockBytes),\n      offsetBits_(log2of(blockBytes)), indexBits_(log2of(sets)),\n      lines_(sets * ways) {}\n\nstd::size_t Cache::sets() const { return sets_; }\nstd::size_t Cache::ways() const { return ways_; }\nstd::size_t Cache::blockBytes() const { return block_; }\n\nstd::size_t Cache::hits() const { return hits_; }\nstd::size_t Cache::misses() const { return misses_; }\nstd::size_t Cache::evictions() const { return evictions_; }\n\nDecoded Cache::decode(std::uint64_t addr) const {\n    Decoded d;\n    const std::uint64_t offMask =\n        offsetBits_ == 0 ? 0 : ((std::uint64_t{1} << offsetBits_) - 1);\n    const std::uint64_t idxMask =\n        indexBits_ == 0 ? 0 : ((std::uint64_t{1} << indexBits_) - 1);\n    d.offset = addr & offMask;\n    d.index = (addr >> offsetBits_) & idxMask;\n    d.tag = addr >> (offsetBits_ + indexBits_);\n    return d;\n}\n\nbool Cache::access(std::uint64_t addr) {\n    const Decoded d = decode(addr);\n    const std::size_t base = static_cast<std::size_t>(d.index) * ways_;\n\n    for (std::size_t w = 0; w < ways_; ++w) {\n        Line& line = lines_[base + w];\n        if (line.valid && line.tag == d.tag) {\n            line.stamp = ++clock_;\n            ++hits_;\n            return true;\n        }\n    }\n    ++misses_;\n\n    /* An unused way first; only when every way is live is anything\n     * thrown out, and only then is it an eviction. */\n    std::size_t victim = ways_;\n    for (std::size_t w = 0; w < ways_; ++w) {\n        if (!lines_[base + w].valid) { victim = w; break; }\n    }\n    if (victim == ways_) {\n        victim = 0;\n        for (std::size_t w = 1; w < ways_; ++w) {\n            if (lines_[base + w].stamp < lines_[base + victim].stamp) victim = w;\n        }\n        ++evictions_;\n    }\n\n    Line& line = lines_[base + victim];\n    line.valid = true;\n    line.tag = d.tag;\n    line.stamp = ++clock_;\n    return false;\n}\n"
+        },
+        {
+          "path": "main.cpp",
+          "content": "/* GIVEN, and read-only: the driver.\n *\n * It reads a geometry, then one command per line, and prints what your\n * cache said. It is the thing src/cache.cpp has to satisfy, which is\n * why you cannot edit it here — a test you can edit is not a test.\n *\n * Every address is hexadecimal, with or without an 0x in front.\n */\n#include <iostream>\n#include <sstream>\n#include <string>\n\n#include \"include/cache.hpp\"\n\nstatic void printDecoded(const Decoded& d) {\n    std::cout << std::hex\n              << \"tag=\" << d.tag\n              << \" index=\" << d.index\n              << \" offset=\" << d.offset\n              << std::dec << '\\n';\n}\n\nint main() {\n    std::ios::sync_with_stdio(false);\n    std::cin.tie(nullptr);\n\n    std::size_t sets = 0, ways = 0, block = 0;\n    if (!(std::cin >> sets >> ways >> block)) return 0;\n    Cache cache(sets, ways, block);\n\n    std::string line;\n    std::getline(std::cin, line);\n\n    while (std::getline(std::cin, line)) {\n        std::istringstream in(line);\n        std::string cmd;\n        if (!(in >> cmd)) continue;\n        std::uint64_t addr = 0;\n\n        if (cmd == \"decode\") {\n            if (!(in >> std::hex >> addr)) continue;\n            printDecoded(cache.decode(addr));\n        } else if (cmd == \"read\") {\n            if (!(in >> std::hex >> addr)) continue;\n            std::cout << (cache.access(addr) ? \"hit\" : \"miss\") << '\\n';\n        } else if (cmd == \"stats\") {\n            std::cout << cache.hits() << \" hits, \"\n                      << cache.misses() << \" misses, \"\n                      << cache.evictions() << \" evictions\" << '\\n';\n        }\n    }\n    return 0;\n}\n"
+        }
+      ]
+    }
+  },
+  "explanation": "## The three passes\n\n```cpp\nbool Cache::access(std::uint64_t addr) {\n    const Decoded d = decode(addr);\n    const std::size_t base = d.index * ways_;\n\n    for (std::size_t w = 0; w < ways_; ++w)\n        if (lines_[base + w].valid && lines_[base + w].tag == d.tag) {\n            lines_[base + w].stamp = ++clock_;   // the line was USED\n            ++hits_;\n            return true;\n        }\n    ++misses_;\n\n    std::size_t victim = ways_;\n    for (std::size_t w = 0; w < ways_; ++w)\n        if (!lines_[base + w].valid) { victim = w; break; }\n\n    if (victim == ways_) {                        // every way is live\n        victim = 0;\n        for (std::size_t w = 1; w < ways_; ++w)\n            if (lines_[base + w].stamp < lines_[base + victim].stamp) victim = w;\n        ++evictions_;\n    }\n    ...\n}\n```\n\n## Why the order matters\n\nSearching for a victim before searching for a match would evict a line\nthat was about to hit. Counting an eviction before checking for an\ninvalid way would report evictions on a cold cache — the first `ways`\nmisses in a set fill it up and throw nothing out, and the test\n`read 0 / read 100 / read 200 / read 300` on a four-way set expects\n`0 evictions` for exactly that reason.\n\n## LRU against FIFO, in five accesses\n\n```\nways = 2        0    200    0    400    0\nLRU            miss  miss  hit   miss  hit     (400 evicts 200)\nFIFO           miss  miss  hit   miss  miss    (400 evicts 0)\n```\n\nBoth policies agree on the first four lines. The fifth is the whole\ndifference, and it is why `stamp` has to be written on a **hit** and not\nonly on a fill. This is not a corner case invented for the test: a loop\nover a working set slightly larger than the cache is the standard place\nwhere the two policies come apart, and LRU is the one that keeps the\nline you are about to use again.\n\n## What associativity actually buys\n\nMilestone 1 alternated between `0` and `0x40` and missed every time. Two\nways makes that pattern free. The cost is real — comparing `ways` tags\nin parallel is `ways` comparators and a wider multiplexer — which is why\nreal L1 caches are 4- or 8-way and not fully associative.\n",
+  "readMore": [
+    {
+      "concept": "cache-indexing",
+      "where": "CS:APP Ch. 6.4, the S/E/B notation"
+    }
+  ]
+}

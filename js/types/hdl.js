@@ -916,6 +916,10 @@
        know which type they are looking at. */
     multiFile: () => multi(),
     files: () => paneFiles(),
+    /* The workspace widget itself, for the controls that belong to the
+       page rather than to the type: the explorer toggle and Reset
+       layout. Null on a single-file problem, which has no explorer. */
+    pane: () => (multi() ? state.pane : null),
     activeFile: () => (multi() ? state.pane.active : null),
     openFile: path => (multi() ? state.pane.open(path, { focus: true }) : false),
     resetCost: () => (multi() ? state.pane.cost() : null),

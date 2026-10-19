@@ -1,0 +1,25 @@
+{
+  "key": {
+    "answers": [
+      0,
+      1,
+      2,
+      3
+    ]
+  },
+  "feedback": {
+    "nudge": "Three of the seven are never used — including one that is a true statement and one that is simply false of a general $f$. Follow the chain: open $V$ gives $\\eps$, continuity gives $\\delta$, the balls carry $x$ to $f(x)$, and the choice of $\\eps$ finishes it."
+  },
+  "explanation": "## The chain\n\nEach step consumes exactly one fact, and they come in a forced order:\n\n1. **$a \\in f^{-1}(V)$** means $f(a) \\in V$. Since $V$ is open, some ball $B(f(a), \\eps)$ sits inside $V$. This is where the openness of $V$ is spent, and it produces the $\\eps$.\n2. **Continuity at $a$** turns that $\\eps$ into a $\\delta$. This is the only place the hypothesis is used, and note that it is used at the single point $a$ — the theorem needs continuity *everywhere* only because $a$ ranges over all of $f^{-1}(V)$.\n3. **The two balls** restate the implication: $x \\in B(a,\\delta)$ is $d_X(x,a) < \\delta$, and $f(x) \\in B(f(a),\\eps)$ is $d_Y(f(x),f(a)) < \\eps$.\n4. **The choice of $\\eps$** carries $f(x)$ from the ball into $V$, and $f(x) \\in V$ is the definition of $x \\in f^{-1}(V)$.\n\n## The two unused true statements\n\n\"The triangle inequality in $Y$\" is not needed: no two distances are ever added here. That is unusual enough to be worth noticing — it happens because every estimate is inherited rather than combined.\n\n\"The preimage of a closed set is closed\" is a true theorem, and it is a *consequence* of this one rather than an ingredient: $f^{-1}(Y \\setminus F) = X \\setminus f^{-1}(F)$, so one statement follows from the other by complementation.\n\n\"$f$ is injective\" is simply false of a general $f$ and plays no part. Preimages of sets are defined for every map; it is the inverse *function* that needs a bijection.\n\n## Why anybody bothers\n\nThe epsilon–delta definition is about one point and mentions distances. This version is about the whole map and mentions only open sets.\n\nThat matters for three reasons:\n\n- **Composition becomes trivial.** $(g \\circ f)^{-1}(W) = f^{-1}\\bigl(g^{-1}(W)\\bigr)$, so a composition of continuous maps is continuous in one line, with no $\\eps/2$ anywhere.\n- **It is the definition that survives.** Drop the metric and keep the open sets and you have a topological space; \"the preimage of every open set is open\" still makes sense and is taken as the definition of continuity there. The $\\eps$–$\\delta$ version does not survive, because there are no distances left.\n- **Two metrics with the same open sets give the same continuous functions.** $d_1$, $d_2$ and $d_\\infty$ on $\\R^n$ are different metrics with the same open sets, and this theorem is why nobody has to say which one they mean when they say \"continuous\".\n\n## The converse\n\nIt also holds: if $f^{-1}(V)$ is open for every open $V$, then $f$ is continuous at every point. Given $a$ and $\\eps$, apply the hypothesis to $V = B(f(a), \\eps)$; the preimage is open and contains $a$, so it contains some $B(a,\\delta)$, and that $\\delta$ is the one the definition wants. So the two are equivalent, which is what makes the open-set version usable as a definition rather than merely as a consequence.",
+  "readMore": [
+    {
+      "concept": "ms-continuity-preimages",
+      "where": "both theorems, for open sets and for closed"
+    },
+    {
+      "concept": "ms-topological-spaces",
+      "where": "where this definition is the only one available"
+    }
+  ],
+  "id": "ms-preimage-of-open"
+}

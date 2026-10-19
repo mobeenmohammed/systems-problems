@@ -1,0 +1,34 @@
+{
+  "key": {
+    "value": "4"
+  },
+  "feedback": {
+    "whenValue": [
+      {
+        "is": "0",
+        "say": "Zero would mean $z$ lies exactly \"between\" $x$ and $y$ — every position where $x$ and $z$ differ, or $y$ and $z$ differ, is counted once on the way. Check each of the three counts separately; at least one of them is out."
+      },
+      {
+        "is": "14",
+        "say": "That is $d_H(x,y) + d_H(y,z) + d_H(x,z)$. The third term is subtracted, not added."
+      },
+      {
+        "is": "-4",
+        "say": "A negative answer is impossible: the triangle inequality says $d_H(x,z) \\le d_H(x,y) + d_H(y,z)$, so this expression is never below zero. You have probably subtracted the wrong one of the three."
+      },
+      {
+        "is": "6",
+        "say": "Close. Recount the columns one at a time rather than scanning — it is very easy to miss a disagreement in the middle of a run of agreements."
+      }
+    ],
+    "nudge": "Write the three strings in a column, then go down the eight positions marking which pairs disagree in each. Every position contributes 0, 1 or 2 to each of the three counts, and nothing else."
+  },
+  "explanation": "## The three counts\n\n| position | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- |\n| $x$ | 0 | 1 | 1 | 0 | 1 | 0 | 0 | 1 |\n| $y$ | 1 | 1 | 0 | 1 | 1 | 0 | 0 | 0 |\n| $z$ | 1 | 0 | 1 | 1 | 0 | 0 | 1 | 1 |\n\n- $d_H(x,y)$: positions 1, 3, 4, 8 — **4**.\n- $d_H(y,z)$: positions 2, 3, 5, 7, 8 — **5**.\n- $d_H(x,z)$: positions 1, 2, 4, 5, 7 — **5**.\n\nSo the expression is $4 + 5 - 5 = \\mathbf{4}$.\n\n## What the number means\n\nThe quantity is the **slack** in the triangle inequality for this triple. It is never negative, and that is the axiom. Position by position:\n\n- a position where all three agree contributes $0 + 0 - 0 = 0$;\n- a position where exactly one of the three differs from the other two contributes $1 + 1 - 0 = 2$ or $1 + 0 - 1 = 0$ or $0 + 1 - 1 = 0$, depending on which one is the odd one out.\n\nOnly positions where $y$ is the odd one out — where $x$ and $z$ agree with each other and $y$ disagrees with both — add anything. Here those are positions 3 and 8, giving $2 + 2 = 4$.\n\nThat is the clean way to see the triangle inequality for $d_H$ without any case analysis: every position contributes a non-negative amount to $d_H(x,y) + d_H(y,z) - d_H(x,z)$, because a position contributing 1 to the right-hand side must contribute at least 1 to the left.\n\n## Where equality holds\n\nThe slack is zero exactly when $y$ is never the odd one out — when, at every position, $y$ agrees with $x$ or with $z$ (or both, in which case $x$ and $z$ agree there too). Such a $y$ sits on a *geodesic* between $x$ and $z$ in the Boolean cube, and there are $2^{d_H(x,z)}$ of them. Hamming space is full of between-ness, which is one reason error-correcting codes can be reasoned about geometrically at all.",
+  "readMore": [
+    {
+      "concept": "ms-hamming-distance",
+      "where": "the definition and the triangle inequality argument"
+    }
+  ],
+  "id": "ms-hamming-triangle-slack"
+}

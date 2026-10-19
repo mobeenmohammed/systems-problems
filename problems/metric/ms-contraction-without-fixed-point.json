@@ -1,0 +1,65 @@
+{
+  "id": "ms-contraction-without-fixed-point",
+  "title": "Shrinking every distance is not enough",
+  "topic": "metric",
+  "difficulty": "advanced",
+  "lane": "core",
+  "type": "counterexample",
+  "tags": [
+    "banach-fixed-point",
+    "contractions",
+    "course-metric-spaces"
+  ],
+  "estimate": 18,
+  "prereqs": [
+    {
+      "concept": "ms-banach-fixed-point",
+      "why": "The claim is the fixed-point theorem with its hypothesis weakened, and the exercise is to break it."
+    },
+    {
+      "concept": "ms-isometries-lipschitz",
+      "why": "The difference between \"shrinks every distance\" and \"is a contraction\" is the whole point."
+    },
+    {
+      "concept": "ms-completeness",
+      "why": "The space has to be complete, or the example would be breaking the wrong hypothesis."
+    }
+  ],
+  "statement": "**Claim.** Let $(X,d)$ be a non-empty **complete** metric space and let\n$f : X \\to X$ satisfy\n\n$$d\\bigl(f(x), f(y)\\bigr) < d(x,y) \\qquad \\text{for all } x \\ne y.$$\n\nThen $f$ has a fixed point.\n\nThis is false. Banach's theorem needs a **uniform** constant $k < 1$ with\n$d(f(x),f(y)) \\le k\\,d(x,y)$; shrinking every distance strictly is weaker,\nbecause the ratios may creep up towards 1.\n\nTake $X = [1, \\infty)$ with the Euclidean metric — a closed subset of $\\R$,\nhence complete — and\n\n$$f(x) = x + \\frac{1}{x}.$$\n\nThen $f$ maps $X$ into $X$ and shrinks every distance strictly, and\n$f(x) > x$ for every $x$, so there is no fixed point.\n\nFill in the four values below. They are the evidence that this really is a\ncounterexample: three values of $f$, and the ratio by which $f$ shrinks one\nparticular pair.",
+  "hints": [
+    "$f(1) = 1 + 1/1$. The other two are the same arithmetic.",
+    "The shrink factor for the pair $2, 4$ is $|f(4) - f(2)| / |4 - 2|$. Work out the two values of $f$ first and then divide.",
+    "In general $f(x) - f(y) = (x - y)\\bigl(1 - \\tfrac{1}{xy}\\bigr)$, so the shrink factor for the pair $x,y$ is exactly $1 - 1/(xy)$. For $x=2, y=4$ that is $1 - 1/8$.",
+    "Notice what that formula does as $x$ and $y$ grow: the factor tends to 1. That is precisely why there is no single $k < 1$ that works everywhere, and why Banach's theorem does not apply."
+  ],
+  "payload": {
+    "claim": "A map of a complete metric space into itself that strictly decreases every distance must have a fixed point.",
+    "guidance": "Fill in $f(1)$, $f(2)$ and $f(4)$ for $f(x) = x + 1/x$ on $[1,\\infty)$, and the ratio $|f(4)-f(2)|/|4-2|$. The checker confirms the three values are right, that they are all different, and that the ratio really is below 1 and above 0 — so the map does shrink that pair, and still has nowhere to stand still.",
+    "fields": [
+      {
+        "id": "f1",
+        "label": "$f(1)$",
+        "placeholder": "a number",
+        "syntax": "A number or a fraction."
+      },
+      {
+        "id": "f2",
+        "label": "$f(2)$",
+        "placeholder": "a fraction",
+        "syntax": "A number or a fraction. 5/2 and 2.5 are the same answer."
+      },
+      {
+        "id": "f4",
+        "label": "$f(4)$",
+        "placeholder": "a fraction",
+        "syntax": "A number or a fraction."
+      },
+      {
+        "id": "ratio",
+        "label": "$\\dfrac{|f(4)-f(2)|}{|4-2|}$",
+        "placeholder": "a fraction",
+        "syntax": "A number or a fraction. Arithmetic is fine."
+      }
+    ]
+  }
+}

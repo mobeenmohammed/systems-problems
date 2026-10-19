@@ -88,6 +88,82 @@
     ]
   },
   {
+    "id": "ms-hamming-triangle-slack",
+    "title": "How much slack is in the triangle inequality?",
+    "topic": "metric",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "exact",
+    "tags": [
+      "hamming-distance",
+      "triangle-inequality",
+      "course-metric-spaces"
+    ],
+    "estimate": 8,
+    "subject": "maths",
+    "prereqs": [
+      "ms-hamming-distance",
+      "ms-metric-axioms"
+    ]
+  },
+  {
+    "id": "ms-infinite-intersection",
+    "title": "Which word is doing the work?",
+    "topic": "metric",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "mcq",
+    "tags": [
+      "open-sets",
+      "closed-sets",
+      "course-metric-spaces"
+    ],
+    "estimate": 8,
+    "subject": "maths",
+    "prereqs": [
+      "ms-open-set-algebra",
+      "ms-interior-open-sets"
+    ]
+  },
+  {
+    "id": "ms-reverse-triangle",
+    "title": "Two distances cannot differ by more than one",
+    "topic": "metric",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "proofsteps",
+    "tags": [
+      "metric-axioms",
+      "triangle-inequality",
+      "course-metric-spaces"
+    ],
+    "estimate": 10,
+    "subject": "maths",
+    "prereqs": [
+      "ms-metric-axioms",
+      "ms-reverse-triangle"
+    ]
+  },
+  {
+    "id": "ms-which-are-norms",
+    "title": "Which of these are norms?",
+    "topic": "metric",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "multi",
+    "tags": [
+      "normed-spaces",
+      "metric-examples",
+      "course-metric-spaces"
+    ],
+    "estimate": 12,
+    "subject": "maths",
+    "prereqs": [
+      "ms-normed-spaces",
+      "ms-euclidean-metrics"
+    ]
+  },
+  {
     "id": "metric-ball-depends-on-ambient",
     "title": "The same ball in two different spaces",
     "topic": "metric",
@@ -183,6 +259,202 @@
     ]
   },
   {
+    "id": "ms-ball-in-sup-metric",
+    "title": "What does a ball of functions look like?",
+    "topic": "metric",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "mcq",
+    "tags": [
+      "open-balls",
+      "function-spaces",
+      "course-metric-spaces"
+    ],
+    "estimate": 12,
+    "subject": "maths",
+    "prereqs": [
+      "ms-open-balls",
+      "ms-function-spaces",
+      "ms-compactness-continuity"
+    ]
+  },
+  {
+    "id": "ms-banach-fixed-point-value",
+    "title": "Where does the iteration land?",
+    "topic": "metric",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "exact",
+    "tags": [
+      "banach-fixed-point",
+      "contractions",
+      "course-metric-spaces"
+    ],
+    "estimate": 12,
+    "subject": "maths",
+    "prereqs": [
+      "ms-banach-fixed-point",
+      "ms-isometries-lipschitz",
+      "ms-complete-iff-closed"
+    ]
+  },
+  {
+    "id": "ms-connected-which",
+    "title": "Which of these are connected?",
+    "topic": "metric",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "multi",
+    "tags": [
+      "connectedness",
+      "path-connectedness",
+      "course-metric-spaces"
+    ],
+    "estimate": 15,
+    "subject": "maths",
+    "prereqs": [
+      "ms-connectedness",
+      "ms-intervals-connected",
+      "ms-connectedness-continuity"
+    ]
+  },
+  {
+    "id": "ms-convergence-which-space",
+    "title": "The same sequence, five different spaces",
+    "topic": "metric",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "multi",
+    "tags": [
+      "convergence",
+      "ambient-space",
+      "course-metric-spaces"
+    ],
+    "estimate": 12,
+    "subject": "maths",
+    "prereqs": [
+      "ms-convergence",
+      "ms-subspace-metric",
+      "ms-discrete-metric"
+    ]
+  },
+  {
+    "id": "ms-interior-of-a-set",
+    "title": "What is the inside of this set?",
+    "topic": "metric",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "structured",
+    "tags": [
+      "open-sets",
+      "interior",
+      "course-metric-spaces"
+    ],
+    "estimate": 12,
+    "subject": "maths",
+    "prereqs": [
+      "ms-interior-open-sets",
+      "ms-open-balls"
+    ]
+  },
+  {
+    "id": "ms-preimage-of-open",
+    "title": "Continuity with the epsilons hidden",
+    "topic": "metric",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "proofsteps",
+    "tags": [
+      "continuity",
+      "open-sets",
+      "course-metric-spaces"
+    ],
+    "estimate": 14,
+    "subject": "maths",
+    "prereqs": [
+      "ms-continuity-preimages",
+      "ms-continuity",
+      "ms-interior-open-sets"
+    ]
+  },
+  {
+    "id": "ms-sup-metric-distance",
+    "title": "The distance between two functions",
+    "topic": "metric",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "exact",
+    "tags": [
+      "function-spaces",
+      "sup-norm",
+      "course-metric-spaces"
+    ],
+    "estimate": 10,
+    "subject": "maths",
+    "prereqs": [
+      "ms-function-spaces",
+      "ms-normed-spaces"
+    ]
+  },
+  {
+    "id": "ms-uniform-or-pointwise",
+    "title": "Which of these converge uniformly?",
+    "topic": "metric",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "multi",
+    "tags": [
+      "uniform-convergence",
+      "sup-norm",
+      "course-metric-spaces"
+    ],
+    "estimate": 15,
+    "subject": "maths",
+    "prereqs": [
+      "ms-uniform-convergence",
+      "ms-function-spaces"
+    ]
+  },
+  {
+    "id": "ms-which-are-complete",
+    "title": "Which of these spaces are complete?",
+    "topic": "metric",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "multi",
+    "tags": [
+      "completeness",
+      "cauchy-sequences",
+      "course-metric-spaces"
+    ],
+    "estimate": 14,
+    "subject": "maths",
+    "prereqs": [
+      "ms-completeness",
+      "ms-complete-iff-closed",
+      "ms-function-spaces"
+    ]
+  },
+  {
+    "id": "ms-which-sequence-space",
+    "title": "Which sequence space does it live in?",
+    "topic": "metric",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "match",
+    "tags": [
+      "sequence-spaces",
+      "series",
+      "course-metric-spaces"
+    ],
+    "estimate": 14,
+    "subject": "maths",
+    "prereqs": [
+      "ms-sequence-spaces",
+      "ms-euclidean-metrics"
+    ]
+  },
+  {
     "id": "metric-compactness-closed-bounded",
     "title": "Closed and bounded is not enough",
     "topic": "metric",
@@ -219,6 +491,127 @@
       "continuity-metric",
       "metric-axioms",
       "metric-examples"
+    ]
+  },
+  {
+    "id": "ms-closed-subset-complete",
+    "title": "A closed piece of a complete space",
+    "topic": "metric",
+    "difficulty": "advanced",
+    "lane": "core",
+    "type": "proofsteps",
+    "tags": [
+      "completeness",
+      "closed-sets",
+      "course-metric-spaces"
+    ],
+    "estimate": 14,
+    "subject": "maths",
+    "prereqs": [
+      "ms-complete-iff-closed",
+      "ms-closed-sets",
+      "ms-cauchy-sequences"
+    ]
+  },
+  {
+    "id": "ms-contraction-without-fixed-point",
+    "title": "Shrinking every distance is not enough",
+    "topic": "metric",
+    "difficulty": "advanced",
+    "lane": "core",
+    "type": "counterexample",
+    "tags": [
+      "banach-fixed-point",
+      "contractions",
+      "course-metric-spaces"
+    ],
+    "estimate": 18,
+    "subject": "maths",
+    "prereqs": [
+      "ms-banach-fixed-point",
+      "ms-isometries-lipschitz",
+      "ms-completeness"
+    ]
+  },
+  {
+    "id": "ms-finite-subcover",
+    "title": "Pick out the finite subcover",
+    "topic": "metric",
+    "difficulty": "advanced",
+    "lane": "core",
+    "type": "structured",
+    "tags": [
+      "compactness",
+      "open-covers",
+      "course-metric-spaces"
+    ],
+    "estimate": 18,
+    "subject": "maths",
+    "prereqs": [
+      "ms-open-covers",
+      "ms-heine-borel",
+      "ms-sequential-compactness"
+    ]
+  },
+  {
+    "id": "ms-sup-distance-of-fn",
+    "title": "A supremum that never gets smaller",
+    "topic": "metric",
+    "difficulty": "advanced",
+    "lane": "core",
+    "type": "exact",
+    "tags": [
+      "uniform-convergence",
+      "sup-norm",
+      "optimisation",
+      "course-metric-spaces"
+    ],
+    "estimate": 14,
+    "subject": "maths",
+    "prereqs": [
+      "ms-uniform-convergence",
+      "ms-function-spaces"
+    ]
+  },
+  {
+    "id": "ms-totally-bounded-which",
+    "title": "Bounded, or totally bounded?",
+    "topic": "metric",
+    "difficulty": "advanced",
+    "lane": "core",
+    "type": "multi",
+    "tags": [
+      "total-boundedness",
+      "compactness",
+      "course-metric-spaces"
+    ],
+    "estimate": 16,
+    "subject": "maths",
+    "prereqs": [
+      "ms-total-boundedness",
+      "ms-closed-balls-boundedness",
+      "ms-sequence-spaces"
+    ]
+  },
+  {
+    "id": "ms-uniform-limit-continuous",
+    "title": "Prove the uniform limit is continuous",
+    "topic": "metric",
+    "difficulty": "advanced",
+    "lane": "core",
+    "type": "proof",
+    "tags": [
+      "uniform-convergence",
+      "continuity",
+      "proof-writing",
+      "course-metric-spaces"
+    ],
+    "estimate": 25,
+    "subject": "maths",
+    "prereqs": [
+      "ms-uniform-convergence",
+      "ms-continuity",
+      "ms-metric-axioms"
     ]
   },
   {
@@ -955,6 +1348,71 @@
     ]
   },
   {
+    "id": "proj-cache-sim-1",
+    "title": "A cache simulator: splitting the address",
+    "topic": "arch",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "cache",
+      "project",
+      "multi-file",
+      "bit-manipulation"
+    ],
+    "estimate": 30,
+    "project": {
+      "id": "cache-sim",
+      "title": "Build a cache simulator",
+      "of": 3,
+      "step": 1,
+      "label": "Address decoding"
+    },
+    "subject": "systems",
+    "prereqs": [
+      "cache-indexing",
+      "shifts-and-masks",
+      "compilation-pipeline"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
+    "id": "proj-cache-sim-2",
+    "title": "A cache simulator: ways, and what to throw away",
+    "topic": "arch",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "cache",
+      "project",
+      "multi-file",
+      "lru",
+      "associativity"
+    ],
+    "estimate": 35,
+    "project": {
+      "id": "cache-sim",
+      "title": "Build a cache simulator",
+      "of": 3,
+      "step": 2,
+      "label": "Associativity and LRU",
+      "continues": "proj-cache-sim-1"
+    },
+    "subject": "systems",
+    "prereqs": [
+      "cache-indexing",
+      "shifts-and-masks",
+      "compilation-pipeline",
+      "cache-associativity"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
     "id": "arch-false-sharing-fixes",
     "title": "Two threads, one cache line",
     "topic": "arch",
@@ -973,6 +1431,41 @@
       "cache-coherence",
       "cache-lines",
       "alignment"
+    ]
+  },
+  {
+    "id": "proj-cache-sim-3",
+    "title": "A cache simulator: writes, and when memory finds out",
+    "topic": "arch",
+    "difficulty": "advanced",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "cache",
+      "project",
+      "multi-file",
+      "write-back",
+      "memory-traffic"
+    ],
+    "estimate": 35,
+    "project": {
+      "id": "cache-sim",
+      "title": "Build a cache simulator",
+      "of": 3,
+      "step": 3,
+      "label": "Write-back and dirty lines",
+      "continues": "proj-cache-sim-2"
+    },
+    "subject": "systems",
+    "prereqs": [
+      "cache-indexing",
+      "shifts-and-masks",
+      "compilation-pipeline",
+      "cache-associativity",
+      "cache-write-policy"
+    ],
+    "langs": [
+      "cpp"
     ]
   },
   {

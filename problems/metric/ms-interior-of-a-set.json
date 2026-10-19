@@ -1,0 +1,37 @@
+{
+  "id": "ms-interior-of-a-set",
+  "title": "What is the inside of this set?",
+  "topic": "metric",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "structured",
+  "tags": [
+    "open-sets",
+    "interior",
+    "course-metric-spaces"
+  ],
+  "estimate": 12,
+  "prereqs": [
+    {
+      "concept": "ms-interior-open-sets",
+      "why": "The interior is defined point by point, and each point of this set has to be tested."
+    },
+    {
+      "concept": "ms-open-balls",
+      "why": "A point is interior when some ball about it stays inside, so the test is about balls."
+    }
+  ],
+  "statement": "Work in $\\R$ with the usual metric and let\n\n$$E = [0,1) \\;\\cup\\; (1,2] \\;\\cup\\; \\{3\\}.$$\n\nA point $x$ is an **interior point** of $E$ when some open ball $B(x,r)$ with\n$r > 0$ is entirely contained in $E$. The **interior** $E^\\circ$ is the set of\nall of them.\n\nGive $E^\\circ$ as a union of intervals.\n\nWrite it like `(0,1) U (1,2)` — round brackets for an open end, square\nbrackets for a closed one, and `U` between the pieces.",
+  "hints": [
+    "Test the points one kind at a time: the ones strictly inside a piece, the endpoints of each piece, and the isolated point.",
+    "At $x = 0$, every ball $(-r, r)$ contains negative numbers, and no negative number is in $E$. So $0$ is not interior.",
+    "At $x = 1$: $1$ is not even a member of $E$, so it certainly is not an interior point of it. At $x = 2$, every ball contains numbers above 2.",
+    "An isolated point can never be interior: every ball about $3$ contains points other than $3$, and none of them is in $E$."
+  ],
+  "payload": {
+    "kind": "intervals",
+    "prompt": "The interior $E^\\circ$, as a union of intervals.",
+    "label": "$E^\\circ =$",
+    "placeholder": "(a,b) U (c,d)"
+  }
+}

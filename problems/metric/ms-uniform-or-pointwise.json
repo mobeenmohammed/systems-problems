@@ -1,0 +1,40 @@
+{
+  "id": "ms-uniform-or-pointwise",
+  "title": "Which of these converge uniformly?",
+  "topic": "metric",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "multi",
+  "tags": [
+    "uniform-convergence",
+    "sup-norm",
+    "course-metric-spaces"
+  ],
+  "estimate": 15,
+  "prereqs": [
+    {
+      "concept": "ms-uniform-convergence",
+      "why": "Uniform convergence is convergence of the suprema, and every line is decided by computing one."
+    },
+    {
+      "concept": "ms-function-spaces",
+      "why": "The supremum norm is the metric in which uniform convergence is ordinary convergence."
+    }
+  ],
+  "statement": "Each line gives a sequence of functions $(f_n)$ and a set. In every case\n$(f_n)$ converges **pointwise** on that set.\n\nSelect every line on which the convergence is also **uniform**, that is, on\nwhich\n\n$$\\sup_{x} \\bigl|f_n(x) - f(x)\\bigr| \\longrightarrow 0$$\n\nwhere $f$ is the pointwise limit.",
+  "hints": [
+    "Find the pointwise limit first — it is $0$ on four of the six lines — and then maximise $|f_n - f|$ over the stated set.",
+    "For $x^n$ the behaviour on $[0,\\tfrac12]$ and on $[0,1]$ is completely different, and the difference is entirely at the right-hand endpoint.",
+    "A bump of fixed height that moves off to the right has supremum equal to its height at every $n$, however far away it has gone."
+  ],
+  "payload": {
+    "options": [
+      "$f_n(x) = x^n$ on $\\bigl[0, \\tfrac12\\bigr]$",
+      "$f_n(x) = x^n$ on $[0,1]$",
+      "$f_n(x) = \\dfrac{\\sin(nx)}{n}$ on $\\R$",
+      "$f_n(x) = \\dfrac{x}{n}$ on $\\R$",
+      "$f_n(x) = \\dfrac{x}{n}$ on $[0,1]$",
+      "$f_n(x) = 1$ for $x \\in [n, n+1]$ and $f_n(x) = 0$ otherwise, on $\\R$"
+    ]
+  }
+}

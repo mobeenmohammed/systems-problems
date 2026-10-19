@@ -1,0 +1,220 @@
+{
+  "metric-spaces": {
+    "title": "Metric Spaces",
+    "subject": "maths",
+    "topic": "metric",
+    "source": "Metric Spaces — Lecture Note (S. Zadeh, 2025), 71 pp.",
+    "note": "Chapter and page numbers point into your own copy of the notes. Nothing from them is reproduced here.",
+    "chapters": [
+      {
+        "n": 1,
+        "title": "Metric definitions and examples",
+        "where": "§§1.1–1.2, pp. 6–17",
+        "concepts": [
+          "ms-metric-axioms",
+          "ms-discrete-metric",
+          "ms-subspace-metric",
+          "ms-reverse-triangle",
+          "ms-euclidean-metrics",
+          "ms-hamming-distance",
+          "ms-sequence-spaces",
+          "ms-normed-spaces",
+          "ms-function-spaces",
+          "ms-matrix-algebras",
+          "ms-path-and-word-metrics"
+        ]
+      },
+      {
+        "n": 2,
+        "title": "Limits and continuity, including uniform convergence",
+        "where": "§§2.1–2.6, pp. 18–31",
+        "concepts": [
+          "ms-open-balls",
+          "ms-closed-balls-boundedness",
+          "ms-convergence",
+          "ms-cauchy-sequences",
+          "ms-continuity",
+          "ms-uniform-continuity",
+          "ms-uniform-convergence",
+          "ms-uniform-limit-theorems"
+        ]
+      },
+      {
+        "n": 3,
+        "title": "Completeness, completion and Banach’s fixed-point theorem",
+        "where": "§§3.1–3.6, pp. 32–42",
+        "concepts": [
+          "ms-completeness",
+          "ms-adherent-points-closure",
+          "ms-closed-sets",
+          "ms-complete-iff-closed",
+          "ms-isometries-lipschitz",
+          "ms-dense-sets",
+          "ms-completion",
+          "ms-complete-function-spaces",
+          "ms-banach-fixed-point"
+        ]
+      },
+      {
+        "n": 4,
+        "title": "Open and closed sets",
+        "where": "§§4.1–4.3, pp. 43–47",
+        "concepts": [
+          "ms-interior-open-sets",
+          "ms-open-set-algebra",
+          "ms-continuity-preimages",
+          "ms-bounded-linear-maps",
+          "ms-topological-spaces"
+        ]
+      },
+      {
+        "n": 5,
+        "title": "Connectedness and path connectedness",
+        "where": "§§5.1–5.3, pp. 48–54",
+        "concepts": [
+          "ms-subspace-topology",
+          "ms-connectedness",
+          "ms-intervals-connected",
+          "ms-connected-components",
+          "ms-connectedness-continuity",
+          "ms-path-connectedness",
+          "ms-open-connected-path-connected"
+        ]
+      },
+      {
+        "n": 6,
+        "title": "Sequential compactness, total boundedness and Arzelà–Ascoli",
+        "where": "§§6.1–6.3, pp. 55–65",
+        "concepts": [
+          "ms-sequential-compactness",
+          "ms-bolzano-weierstrass",
+          "ms-total-boundedness",
+          "ms-seqcompact-characterisation",
+          "ms-compactness-continuity",
+          "ms-equicontinuity",
+          "ms-arzela-ascoli"
+        ]
+      },
+      {
+        "n": 7,
+        "title": "Compactness, and how it relates to sequential compactness",
+        "where": "§§7.1–7.2, pp. 66–71",
+        "concepts": [
+          "ms-open-covers",
+          "ms-lebesgue-number",
+          "ms-compact-equals-seqcompact",
+          "ms-heine-borel",
+          "ms-dini-theorem",
+          "ms-baire-category"
+        ]
+      }
+    ]
+  },
+  "probability-2": {
+    "title": "Probability 2",
+    "subject": "maths",
+    "topic": "prob",
+    "source": "Probability 2 — Lecture Notes (A. E. Holroyd, University of Bristol, 9 August 2025), 96 pp.",
+    "note": "Section and page numbers point into your own copy of the notes. Material the notes rule out of the course — in a section title, or by a bar down the left margin — is marked optional here.",
+    "chapters": [
+      {
+        "n": 1,
+        "title": "Foundations: axioms, continuity, expectation and the strong law",
+        "where": "§§1.1–1.6, pp. 3–11",
+        "concepts": [
+          "p2-probability-axioms",
+          "p2-continuity-of-probability",
+          "p2-union-bound",
+          "p2-conditioning-independence",
+          "p2-expectation",
+          "p2-strong-law",
+          "p2-convergence-notions"
+        ]
+      },
+      {
+        "n": 2,
+        "title": "Random walks, gambler’s ruin, stopping times and Wald’s identity",
+        "where": "§§2.1–2.6, pp. 12–22",
+        "concepts": [
+          "p2-stochastic-processes",
+          "p2-random-walk",
+          "p2-gamblers-ruin",
+          "p2-game-duration",
+          "p2-one-barrier",
+          "p2-stopping-times",
+          "p2-wald-identity"
+        ]
+      },
+      {
+        "n": 3,
+        "title": "Markov chains",
+        "where": "§§3.1–3.13, pp. 23–52",
+        "concepts": [
+          "p2-markov-property",
+          "p2-n-step-transitions",
+          "p2-hitting-probabilities",
+          "p2-hitting-minimality",
+          "p2-strong-markov",
+          "p2-recurrence-transience",
+          "p2-walks-in-dimensions",
+          "p2-communicating-classes",
+          "p2-mean-return-times",
+          "p2-stationary-distributions",
+          "p2-periodicity-convergence",
+          "p2-coupling",
+          "p2-reversibility"
+        ]
+      },
+      {
+        "n": 4,
+        "title": "Poisson processes",
+        "where": "§§4.1–4.6, pp. 53–63",
+        "concepts": [
+          "p2-poisson-process",
+          "p2-poisson-derivation",
+          "p2-arrival-times",
+          "p2-superposition-thinning",
+          "p2-poisson-conditioning",
+          "p2-inhomogeneous-poisson"
+        ]
+      },
+      {
+        "n": 5,
+        "title": "Continuous-time Markov chains and queues",
+        "where": "§§5.1–5.6, pp. 64–77",
+        "concepts": [
+          "p2-ctmc-basics",
+          "p2-jump-chain-explosion",
+          "p2-ctmc-transition-probabilities",
+          "p2-ctmc-classification",
+          "p2-ctmc-stationary",
+          "p2-queues"
+        ]
+      },
+      {
+        "n": 6,
+        "title": "Martingales",
+        "where": "§§6.1–6.4, pp. 78–86",
+        "concepts": [
+          "p2-conditional-expectation",
+          "p2-martingales",
+          "p2-new-martingales",
+          "p2-stopped-martingales",
+          "p2-optional-stopping",
+          "p2-martingale-convergence"
+        ]
+      },
+      {
+        "n": 7,
+        "title": "Brownian motion",
+        "where": "§§7.1–7.3, pp. 87–96",
+        "concepts": [
+          "p2-brownian-motion",
+          "p2-brownian-symmetries",
+          "p2-reflection-principle",
+          "p2-arcsine-laws"
+        ]
+      }
+    ]
+  }
+}

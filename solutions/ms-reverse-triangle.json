@@ -1,0 +1,22 @@
+{
+  "key": {
+    "answers": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ]
+  },
+  "feedback": {
+    "nudge": "Two of the seven justifications are never used. Work out the shape of the argument first — split the absolute value, then prove each half — and the only question left per line is which axiom turned one expression into the next."
+  },
+  "explanation": "## The shape of it\n\nAn absolute value bound is a two-sided bound. $\\bigl|d(x,y) - d(y,z)\\bigr| \\le d(x,z)$ says\n\n$$-d(x,z) \\;\\le\\; d(x,y) - d(y,z) \\;\\le\\; d(x,z),$$\n\nwhich is the pair of inequalities proved separately. Each half is one use of the triangle inequality and one use of symmetry, and the two halves are the same argument with $x$ and $z$ swapped.\n\n## Why it is worth having\n\nThe triangle inequality bounds a distance **above** by a sum. The reverse triangle inequality bounds the **difference of two distances** above by a third. In practice that is what you reach for whenever a distance appears inside an estimate and has to be controlled by something else:\n\n- The function $x \\mapsto d(x, a)$ is Lipschitz with constant 1, for any fixed $a$. That is exactly this inequality, read as $|d(x,a) - d(y,a)| \\le d(x,y)$, and it is the quickest proof that the distance-to-a-point function is continuous.\n- If $x_n \\to x$ then $d(x_n, a) \\to d(x, a)$ for every $a$. Same inequality, applied along the sequence.\n- In $\\R$, with $d(x,y) = |x-y|$ and $y = 0$, it specialises to $\\bigl||x| - |z|\\bigr| \\le |x - z|$, which is the version most people meet first in an analysis course.\n\n## The step that is easy to skip\n\nThe symmetry axiom is doing real work in lines 3 and 5, and it is the step people leave out. The triangle inequality as stated gives $d(x,y) \\le d(x,z) + d(z,y)$, with the arguments in that order; turning $d(z,y)$ into $d(y,z)$ needs an axiom, even though in every example you have met the two are obviously the same number. Without symmetry the statement is false: on a one-way street network where $d(a,b)$ is the driving time from $a$ to $b$, differences of distances are not controlled like this at all.",
+  "readMore": [
+    {
+      "concept": "ms-metric-axioms",
+      "where": "the three axioms, and what each one is for"
+    }
+  ],
+  "id": "ms-reverse-triangle"
+}

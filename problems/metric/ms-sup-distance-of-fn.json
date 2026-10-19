@@ -1,0 +1,37 @@
+{
+  "id": "ms-sup-distance-of-fn",
+  "title": "A supremum that never gets smaller",
+  "topic": "metric",
+  "difficulty": "advanced",
+  "lane": "core",
+  "type": "exact",
+  "tags": [
+    "uniform-convergence",
+    "sup-norm",
+    "optimisation",
+    "course-metric-spaces"
+  ],
+  "estimate": 14,
+  "prereqs": [
+    {
+      "concept": "ms-uniform-convergence",
+      "why": "The number computed here is the one whose behaviour in n decides uniform convergence."
+    },
+    {
+      "concept": "ms-function-spaces",
+      "why": "The supremum norm is the metric the question is phrased in."
+    }
+  ],
+  "statement": "For $n \\ge 1$ define $f_n : [0,1] \\to \\R$ by\n\n$$f_n(x) = \\frac{n x}{1 + n^2 x^2}.$$\n\nEach $f_n$ is continuous, and $f_n(x) \\to 0$ for every fixed $x \\in [0,1]$.\n\nGive the exact value of\n\n$$\\sup_{x \\in [0,1]} \\bigl|f_n(x)\\bigr|$$\n\nfor $n \\ge 1$. (The answer is the same number for every such $n$, which is\nthe point of the exercise.)",
+  "hints": [
+    "Substitute $u = nx$. The whole expression becomes a function of $u$ alone, and the range of $u$ is $[0, n]$.",
+    "In terms of $u$ you are maximising $u/(1+u^2)$. Differentiate, or notice that $1 + u^2 \\ge 2u$ by AM-GM.",
+    "The maximum of $u/(1+u^2)$ over $u \\ge 0$ is attained at $u = 1$, that is at $x = 1/n$ — which lies in $[0,1]$ for every $n \\ge 1$."
+  ],
+  "payload": {
+    "prompt": "The supremum of $|f_n|$ over $[0,1]$.",
+    "label": "$\\sup_{[0,1]} |f_n| =$",
+    "placeholder": "a fraction",
+    "syntax": "A number or a fraction. 1/2 and 0.5 are the same answer."
+  }
+}

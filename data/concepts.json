@@ -2903,5 +2903,2907 @@
         "url": "https://global.oup.com/academic/product/probability-9780198709978"
       }
     ]
+  },
+  "cache-associativity": {
+    "name": "Associativity and replacement",
+    "topic": "arch",
+    "oneLine": "A set with several ways gives a block more than one place to live, and the moment there is a choice of where to put it there is a choice of what to throw out.",
+    "needs": [
+      "cache-indexing"
+    ],
+    "readings": [
+      {
+        "title": "Computer Systems: A Programmer’s Perspective",
+        "kind": "book",
+        "where": "Ch. 6.4.3–6.4.4 — set-associative and fully associative caches"
+      },
+      {
+        "title": "Hennessy & Patterson, Computer Architecture",
+        "kind": "book",
+        "where": "Appendix B.1 — block placement and block replacement"
+      },
+      {
+        "title": "Gallery of Processor Cache Effects",
+        "kind": "article",
+        "where": "examples 5 and 6 are associativity, measured",
+        "url": "https://igoro.com/archive/gallery-of-processor-cache-effects/"
+      }
+    ]
+  },
+  "cache-write-policy": {
+    "name": "Write-back, write-through and allocation",
+    "topic": "arch",
+    "oneLine": "A cache has to decide when a store reaches memory and whether a write miss fetches the line first; write-back with write-allocate is the usual answer and the dirty bit is what makes it work.",
+    "needs": [
+      "cache-associativity"
+    ],
+    "readings": [
+      {
+        "title": "Computer Systems: A Programmer’s Perspective",
+        "kind": "book",
+        "where": "Ch. 6.4.5 — issues with writes"
+      },
+      {
+        "title": "Hennessy & Patterson, Computer Architecture",
+        "kind": "book",
+        "where": "Appendix B.1 — what happens on a write"
+      },
+      {
+        "title": "What Every Programmer Should Know About Memory",
+        "kind": "paper",
+        "where": "§3.3.3 on write behaviour and §6.1 on non-temporal stores",
+        "url": "https://people.freebsd.org/~lstewart/articles/cpumemory.pdf"
+      }
+    ]
+  },
+  "ms-metric-axioms": {
+    "name": "The metric axioms",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 1,
+    "where": "§1.1, Definition 1.1.2, p. 7",
+    "oneLine": "Three conditions — positivity with d(x,y)=0 only when x=y, symmetry, and the triangle inequality — are the whole definition of distance, and everything in the unit is deduced from them and from nothing else.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§1.1, Definition 1.1.2, p. 7"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 5.1, the definition and the first examples"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 2, Definition 2.15"
+      }
+    ]
+  },
+  "ms-discrete-metric": {
+    "name": "The discrete metric",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 1,
+    "where": "§1.1, Definition 1.1.5 and Example 1.1.6, p. 8",
+    "oneLine": "Zero between a point and itself and one between any two different points: a metric that keeps all three axioms and throws every geometric intuition away, which is why it is the first place to test a claim you suspect.",
+    "needs": [
+      "ms-metric-axioms"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§1.1, Definition 1.1.5 and Example 1.1.6, p. 8"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 5.2, Example 5.2.6"
+      }
+    ]
+  },
+  "ms-subspace-metric": {
+    "name": "Restricting a metric to a subset",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 1,
+    "where": "§1.1, Example 1.1.7, p. 8",
+    "oneLine": "Any nonempty subset of a metric space is a metric space under the same distance function, which is how one set can sit inside two different ambient spaces and answer differently in each.",
+    "needs": [
+      "ms-metric-axioms"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§1.1, Example 1.1.7, p. 8"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 5.1 on subspaces"
+      }
+    ]
+  },
+  "ms-reverse-triangle": {
+    "name": "The reverse triangle inequality",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 1,
+    "where": "§1.1, Proposition 1.1.9, p. 9",
+    "oneLine": "Distances to a common point cannot differ by more than the distance between the two places you measured from: |d(x,y) − d(y,z)| ≤ d(x,z), proved by applying the triangle inequality twice and reading it both ways.",
+    "needs": [
+      "ms-metric-axioms"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§1.1, Proposition 1.1.9, p. 9"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 2, exercises after 2.15"
+      },
+      {
+        "title": "Tao, Analysis II",
+        "kind": "book",
+        "where": "Ch. 1.1, exercise 1.1.4"
+      }
+    ]
+  },
+  "ms-euclidean-metrics": {
+    "name": "The three metrics on R^n",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 1,
+    "where": "§1.2.1, Lemma 1.2.1 and Example 1.2.2, pp. 10–11",
+    "oneLine": "Summing the coordinate differences, taking their root mean square, or taking the largest of them each gives a metric on R^n; only the second needs Cauchy–Schwarz to get the triangle inequality.",
+    "needs": [
+      "ms-metric-axioms"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§1.2.1, Lemma 1.2.1 and Example 1.2.2, pp. 10–11"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 5.2, Examples 5.2.1–5.2.4"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 1.37 for the Cauchy–Schwarz inequality"
+      }
+    ]
+  },
+  "ms-hamming-distance": {
+    "name": "Hamming distance",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 1,
+    "where": "§1.2.2, Definition 1.2.4, p. 12",
+    "oneLine": "On binary strings of a fixed length, counting the positions where two strings differ is a metric — the triangle inequality holds because every disagreement between x and z must show up against any third string.",
+    "needs": [
+      "ms-metric-axioms"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§1.2.2, Definition 1.2.4, p. 12"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 5.2 exercises"
+      },
+      {
+        "title": "Hamming, Error detecting and error correcting codes",
+        "kind": "paper",
+        "where": "Bell System Technical Journal 29 (1950)",
+        "url": "https://signallake.com/innovation/hamming.pdf"
+      }
+    ]
+  },
+  "ms-sequence-spaces": {
+    "name": "The sequence spaces",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 1,
+    "where": "§1.2.3, Lemma 1.2.5 to Example 1.2.7, pp. 12–14",
+    "oneLine": "The obvious coordinatewise formulas only define metrics once the space is cut down to the sequences they stay finite on — absolutely summable for the sum, square-summable for the root, bounded for the supremum.",
+    "needs": [
+      "ms-euclidean-metrics"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§1.2.3, Lemma 1.2.5 to Example 1.2.7, pp. 12–14"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 5.2, the sequence space examples"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 3 for the convergence facts the proofs use"
+      }
+    ]
+  },
+  "ms-normed-spaces": {
+    "name": "Norms, and the metrics they give",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 1,
+    "where": "§1.2.4, Definition 1.2.8 and Example 1.2.9, p. 14",
+    "oneLine": "A norm measures a single vector; subtracting first turns it into a metric. Not every metric arises this way, and homogeneity is the condition that fails — the discrete metric is the standard witness.",
+    "needs": [
+      "ms-euclidean-metrics"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§1.2.4, Definition 1.2.8 and Example 1.2.9, p. 14"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 5.2 on normed spaces"
+      },
+      {
+        "title": "Tao, Analysis II",
+        "kind": "book",
+        "where": "Ch. 1.1 on normed vector spaces"
+      }
+    ]
+  },
+  "ms-function-spaces": {
+    "name": "Spaces of functions",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 1,
+    "where": "§1.2.6, Example 1.2.11 and Example 1.2.12, p. 16",
+    "oneLine": "Bounded functions under the supremum norm, and continuous functions on a closed interval under the same norm or under the integral of the absolute value: the distance between two functions becomes a single number.",
+    "needs": [
+      "ms-normed-spaces"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§1.2.6, Example 1.2.11 and Example 1.2.12, p. 16"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 5.2, the function space examples"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 7.14 on the space of bounded functions"
+      }
+    ]
+  },
+  "ms-matrix-algebras": {
+    "name": "Matrix algebras",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 1,
+    "where": "§1.2.5, Definition 1.2.10, p. 15 (non-examinable)",
+    "oneLine": "Singular values give several norms on the n-by-n matrices, and therefore several metrics on them. Marked non-examinable in the notes.",
+    "needs": [
+      "ms-normed-spaces"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§1.2.5, Definition 1.2.10, p. 15 (non-examinable)"
+      },
+      {
+        "title": "Tao, Analysis II",
+        "kind": "book",
+        "where": "Ch. 1.1 exercises on operator norms"
+      }
+    ],
+    "optional": true
+  },
+  "ms-path-and-word-metrics": {
+    "name": "Path and word metrics",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 1,
+    "where": "§§1.2.7–1.2.8, p. 17 (non-examinable)",
+    "oneLine": "Distance as the length of the shortest route: along paths in a space, or along generators in a group. Both are marked non-examinable in the notes.",
+    "needs": [
+      "ms-metric-axioms"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§§1.2.7–1.2.8, p. 17 (non-examinable)"
+      },
+      {
+        "title": "Burago, Burago & Ivanov, A Course in Metric Geometry",
+        "kind": "book",
+        "where": "Ch. 2.1 on length structures"
+      }
+    ],
+    "optional": true
+  },
+  "ms-open-balls": {
+    "name": "Open balls",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 2,
+    "where": "§2.1, Definition 2.1.1 and Examples 2.1.2–2.1.5, p. 19",
+    "oneLine": "The set of points strictly within r of a centre. Every later definition is phrased with these, and what one looks like depends on the metric and on the ambient space, not on the formula alone.",
+    "needs": [
+      "ms-metric-axioms"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§2.1, Definition 2.1.1 and Examples 2.1.2–2.1.5, p. 19"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 6.1 on open balls"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 2.18 on neighbourhoods"
+      }
+    ]
+  },
+  "ms-closed-balls-boundedness": {
+    "name": "Closed balls, and bounded sets",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 2,
+    "where": "§2.1, Definitions 2.1.6–2.1.7 and Example 2.1.10, p. 20",
+    "oneLine": "Swapping the strict inequality for a weak one gives the closed ball, and a set is bounded when some single ball contains it — a property of the metric, so the whole of R is bounded under the discrete one.",
+    "needs": [
+      "ms-open-balls"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§2.1, Definitions 2.1.6–2.1.7 and Example 2.1.10, p. 20"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 6.1, closed balls and bounded sets"
+      }
+    ]
+  },
+  "ms-convergence": {
+    "name": "Convergence in a metric space",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 2,
+    "where": "§2.2, Definition 2.2.1 and Proposition 2.2.4, p. 22",
+    "oneLine": "A sequence converges to x when every ball about x eventually contains all of it; equivalently when the real sequence of distances tends to zero. The positivity axiom is exactly what makes the limit unique.",
+    "needs": [
+      "ms-open-balls"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§2.2, Definition 2.2.1 and Proposition 2.2.4, p. 22"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 7.1 on convergence"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 3.1–3.2"
+      }
+    ]
+  },
+  "ms-cauchy-sequences": {
+    "name": "Cauchy sequences",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 2,
+    "where": "§2.2, Definition 2.2.5 to Lemma 2.2.7, pp. 22–23",
+    "oneLine": "Terms that eventually get close to each other rather than to a named limit. Every convergent sequence is Cauchy; the converse is a property of the space, and a Cauchy sequence with a convergent subsequence converges.",
+    "needs": [
+      "ms-convergence"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§2.2, Definition 2.2.5 to Lemma 2.2.7, pp. 22–23"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 3.8–3.11"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 17.1"
+      }
+    ]
+  },
+  "ms-continuity": {
+    "name": "Continuity at a point, and sequentially",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 2,
+    "where": "§2.3, Definition 2.3.1 and Proposition 2.3.3, p. 24",
+    "oneLine": "The epsilon–delta definition carried over with distances in place of absolute values, and the equivalent statement that f takes every sequence converging to a to a sequence converging to f(a).",
+    "needs": [
+      "ms-convergence"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§2.3, Definition 2.3.1 and Proposition 2.3.3, p. 24"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 8.1–8.2"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 4.2 and 4.6"
+      }
+    ]
+  },
+  "ms-uniform-continuity": {
+    "name": "Uniform continuity",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 2,
+    "where": "§2.3, Definition 2.3.5 and Example 2.3.6, p. 24",
+    "oneLine": "One delta has to work at every point at once. The quantifier moves, and that is the whole difference: squaring on the whole line and the reciprocal on (0,1) are continuous and not uniformly so.",
+    "needs": [
+      "ms-continuity"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§2.3, Definition 2.3.5 and Example 2.3.6, p. 24"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 4.18–4.19"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 13.3"
+      }
+    ]
+  },
+  "ms-uniform-convergence": {
+    "name": "Pointwise against uniform convergence",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 2,
+    "where": "§2.4, Example 2.4.1 to Example 2.4.8, pp. 25–28",
+    "oneLine": "Pointwise convergence lets each x choose its own N; uniform convergence is convergence of the suprema, which is convergence in the supremum metric. The moving bump separates them.",
+    "needs": [
+      "ms-continuity",
+      "ms-function-spaces"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§2.4, Example 2.4.1 to Example 2.4.8, pp. 25–28"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 7.1–7.9"
+      },
+      {
+        "title": "Tao, Analysis II",
+        "kind": "book",
+        "where": "Ch. 3.2–3.4"
+      }
+    ]
+  },
+  "ms-uniform-limit-theorems": {
+    "name": "What survives a uniform limit",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 2,
+    "where": "§2.5, Theorems 2.5.1, 2.5.4 and 2.5.5, pp. 29–30",
+    "oneLine": "Continuity passes to a uniform limit, and so does the integral; the derivative does not, unless it is the derivatives that converge uniformly. Three theorems, and three counterexamples if you drop \"uniform\".",
+    "needs": [
+      "ms-uniform-convergence"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§2.5, Theorems 2.5.1, 2.5.4 and 2.5.5, pp. 29–30"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 7.11, 7.16 and 7.17"
+      },
+      {
+        "title": "Tao, Analysis II",
+        "kind": "book",
+        "where": "Ch. 3.4 and 3.7"
+      }
+    ]
+  },
+  "ms-completeness": {
+    "name": "Complete metric spaces",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 3,
+    "where": "§3.1, Definition 3.1.1 and Example 3.1.2, p. 33",
+    "oneLine": "A space is complete when being Cauchy is enough to converge in it. Completeness is a property of the space, not of the sequence: the same sequence is Cauchy in Q and in R and converges in only one of them.",
+    "needs": [
+      "ms-cauchy-sequences"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§3.1, Definition 3.1.1 and Example 3.1.2, p. 33"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 3.11"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 17.1–17.2"
+      }
+    ]
+  },
+  "ms-adherent-points-closure": {
+    "name": "Adherent points and the closure",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 3,
+    "where": "§3.1, Definition 3.1.3 and Proposition 3.1.13, pp. 33–35",
+    "oneLine": "A point is adherent to E when every ball about it meets E, equivalently when some sequence in E converges to it. The closure is E together with all of them, and it is the smallest closed set containing E.",
+    "needs": [
+      "ms-convergence"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§3.1, Definition 3.1.3 and Proposition 3.1.13, pp. 33–35"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 7.2 on closure"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 2.26–2.27"
+      }
+    ]
+  },
+  "ms-closed-sets": {
+    "name": "Closed sets",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 3,
+    "where": "§3.1, Definition 3.1.5 and Lemmas 3.1.10–3.1.12, pp. 33–35",
+    "oneLine": "A set is closed when it already contains every point adherent to it — equivalently, when the limit of every convergent sequence of its points lands back inside. Closed balls and finite sets are closed.",
+    "needs": [
+      "ms-adherent-points-closure"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§3.1, Definition 3.1.5 and Lemmas 3.1.10–3.1.12, pp. 33–35"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 7.2"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 2.23–2.27"
+      }
+    ]
+  },
+  "ms-complete-iff-closed": {
+    "name": "Complete subspaces are the closed ones",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 3,
+    "where": "§3.1, Propositions 3.1.7–3.1.8 and Corollary 3.1.9, pp. 33–34",
+    "oneLine": "Inside a complete space, a subspace is complete exactly when it is closed. Both directions are short, and together they turn a question about sequences into a question about one set.",
+    "needs": [
+      "ms-completeness",
+      "ms-closed-sets"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§3.1, Propositions 3.1.7–3.1.8 and Corollary 3.1.9, pp. 33–34"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 3.11(c)"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 17.2"
+      }
+    ]
+  },
+  "ms-isometries-lipschitz": {
+    "name": "Isometries, Lipschitz maps and contractions",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 3,
+    "where": "§3.2, Definitions 3.2.1 and 3.2.3, Examples 3.2.4–3.2.5, p. 36",
+    "oneLine": "Maps graded by how much they can stretch: exactly one, at most K, and at most K with K strictly below one. Every Lipschitz map is uniformly continuous, and a map can shrink every distance without being a contraction.",
+    "needs": [
+      "ms-continuity"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§3.2, Definitions 3.2.1 and 3.2.3, Examples 3.2.4–3.2.5, p. 36"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 17.3"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 9.23 for the fixed-point setting"
+      }
+    ]
+  },
+  "ms-dense-sets": {
+    "name": "Dense subsets",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 3,
+    "where": "§3.3, Definition 3.3.1 and Example 3.3.2, p. 37",
+    "oneLine": "E is dense in X when its closure is all of X — every point of X is a limit of points of E. Whether a set is dense depends on the metric: the rationals are dense in R and nowhere near it under the discrete metric.",
+    "needs": [
+      "ms-adherent-points-closure"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§3.3, Definition 3.3.1 and Example 3.3.2, p. 37"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 7.3"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 2.18(h) and 3.11"
+      }
+    ]
+  },
+  "ms-completion": {
+    "name": "The completion of a metric space",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 3,
+    "where": "§3.3, Theorem 3.3.3 and Example 3.3.4, p. 37",
+    "oneLine": "Every metric space sits as a dense subspace of a complete one, and that complete one is essentially unique. It is how R is built from Q, and it is why an incomplete space is never a dead end.",
+    "needs": [
+      "ms-completeness",
+      "ms-dense-sets"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§3.3, Theorem 3.3.3 and Example 3.3.4, p. 37"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 3, exercise 24"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 17.4"
+      }
+    ]
+  },
+  "ms-complete-function-spaces": {
+    "name": "Completeness of the function spaces",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 3,
+    "where": "§3.4, Theorems 3.4.1–3.4.2, p. 38",
+    "oneLine": "Bounded functions under the supremum norm form a complete space, and the continuous bounded ones are a closed subspace of it — which is the uniform limit theorem of chapter 2, said as a fact about a space.",
+    "needs": [
+      "ms-completeness",
+      "ms-function-spaces",
+      "ms-uniform-convergence"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§3.4, Theorems 3.4.1–3.4.2, p. 38"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 7.15"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 17.2"
+      }
+    ]
+  },
+  "ms-banach-fixed-point": {
+    "name": "Banach’s fixed-point theorem",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 3,
+    "where": "§3.5, Theorem 3.5.1 and Examples 3.5.2–3.5.5, pp. 39–41",
+    "oneLine": "A contraction of a nonempty complete space has exactly one fixed point, and iterating from anywhere finds it. Completeness cannot be dropped, and neither can the uniform contraction constant.",
+    "needs": [
+      "ms-completeness",
+      "ms-isometries-lipschitz"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§3.5, Theorem 3.5.1 and Examples 3.5.2–3.5.5, pp. 39–41"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 9.23"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 17.3"
+      },
+      {
+        "title": "Banach fixed-point theorem, worked applications",
+        "kind": "docs",
+        "where": "Picard–Lindelöf as a fixed point",
+        "url": "https://ocw.mit.edu/courses/18-100a-real-analysis-fall-2020/"
+      }
+    ]
+  },
+  "ms-interior-open-sets": {
+    "name": "Interior points and open sets",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 4,
+    "where": "§4.1, Definition 4.1.1 to Lemma 4.1.3, p. 44",
+    "oneLine": "A point is interior to E when some ball about it stays inside E, and E is open when all of its points are. Open balls are open — which has to be proved, and the proof is the triangle inequality.",
+    "needs": [
+      "ms-open-balls"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§4.1, Definition 4.1.1 to Lemma 4.1.3, p. 44"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 6.2"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 2.18 and 2.19"
+      }
+    ]
+  },
+  "ms-open-set-algebra": {
+    "name": "How open and closed sets combine",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 4,
+    "where": "§4.1, Lemmas 4.1.4–4.1.6 and Theorem 4.1.5, p. 45",
+    "oneLine": "Any union and any finite intersection of open sets is open; complements swap open for closed, so closed sets take any intersection and finite unions. The word \"finite\" is where the counterexamples live.",
+    "needs": [
+      "ms-interior-open-sets",
+      "ms-closed-sets"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§4.1, Lemmas 4.1.4–4.1.6 and Theorem 4.1.5, p. 45"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 6.2 and 7.2"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 2.24"
+      }
+    ]
+  },
+  "ms-continuity-preimages": {
+    "name": "Continuity through preimages",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 4,
+    "where": "§4.2, Theorems 4.2.1–4.2.2, p. 46",
+    "oneLine": "f is continuous on all of X exactly when the preimage of every open set is open, and likewise for closed. It is the definition with the epsilons hidden, and it is what makes continuity a topological idea.",
+    "needs": [
+      "ms-continuity",
+      "ms-open-set-algebra"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§4.2, Theorems 4.2.1–4.2.2, p. 46"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 8.3"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 4.8"
+      }
+    ]
+  },
+  "ms-bounded-linear-maps": {
+    "name": "Continuity of linear maps",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 4,
+    "where": "§4.2, Theorem 4.2.3, p. 46 (non-examinable)",
+    "oneLine": "For a linear map between normed spaces, continuous, continuous at zero and bounded are the same condition. Marked non-examinable in the notes.",
+    "needs": [
+      "ms-continuity-preimages",
+      "ms-normed-spaces"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§4.2, Theorem 4.2.3, p. 46 (non-examinable)"
+      },
+      {
+        "title": "Tao, Analysis II",
+        "kind": "book",
+        "where": "Ch. 1.1 exercises on operator norms"
+      }
+    ],
+    "optional": true
+  },
+  "ms-topological-spaces": {
+    "name": "Topological spaces",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 4,
+    "where": "§4.3, Definitions 4.3.1–4.3.2, p. 47 (commercial)",
+    "oneLine": "Keep the rules about unions and intersections, drop the distance, and you have a topology. The notes offer this as a preview of where the course goes next rather than as examinable material.",
+    "needs": [
+      "ms-open-set-algebra"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§4.3, Definitions 4.3.1–4.3.2, p. 47 (commercial)"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 9 on topological spaces"
+      }
+    ],
+    "optional": true
+  },
+  "ms-subspace-topology": {
+    "name": "Open sets of a subspace",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 5,
+    "where": "§5.1, Lemma 5.1.1, p. 49",
+    "oneLine": "A subset of Y is open in Y exactly when it is the intersection of Y with something open in X. Being open stops being a property of a set and becomes a property of a set inside a named space.",
+    "needs": [
+      "ms-open-set-algebra",
+      "ms-subspace-metric"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§5.1, Lemma 5.1.1, p. 49"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 10 on subspaces"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 2.30"
+      }
+    ]
+  },
+  "ms-connectedness": {
+    "name": "Connectedness",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 5,
+    "where": "§5.2, Definition 5.2.1 to Proposition 5.2.5, p. 50",
+    "oneLine": "A space is disconnected when two disjoint nonempty open sets cover it. Connected is the negation, and the useful equivalent forms are \"only the whole space and the empty set are both open and closed\".",
+    "needs": [
+      "ms-subspace-topology"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§5.2, Definition 5.2.1 to Proposition 5.2.5, p. 50"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 12.1"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 2.45"
+      }
+    ]
+  },
+  "ms-intervals-connected": {
+    "name": "The connected subsets of the line",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 5,
+    "where": "§5.2, Proposition 5.2.6, pp. 50–51",
+    "oneLine": "A nonempty subset of R is connected exactly when it is an interval. One classification, and every later statement about connected subsets of the line is read off it.",
+    "needs": [
+      "ms-connectedness"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§5.2, Proposition 5.2.6, pp. 50–51"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 12.2"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 2.47"
+      }
+    ]
+  },
+  "ms-connected-components": {
+    "name": "Connected components",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 5,
+    "where": "§5.2, Lemma 5.2.8 to Theorem 5.2.10, p. 51",
+    "oneLine": "Each point lies in a largest connected set containing it, and those components partition the space. The sunflower lemma — connected sets sharing a point have connected union — is what makes the largest one exist.",
+    "needs": [
+      "ms-connectedness"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§5.2, Lemma 5.2.8 to Theorem 5.2.10, p. 51"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 12.3"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 2, exercise 20"
+      }
+    ]
+  },
+  "ms-connectedness-continuity": {
+    "name": "Connectedness and continuous maps",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 5,
+    "where": "§5.2, Proposition 5.2.11 to Corollary 5.2.14, pp. 51–52",
+    "oneLine": "A continuous image of a connected space is connected. Applied to a real function on an interval that is the intermediate value theorem, and applied to the circle it gives the one-dimensional Borsuk–Ulam theorem.",
+    "needs": [
+      "ms-connectedness",
+      "ms-continuity-preimages"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§5.2, Proposition 5.2.11 to Corollary 5.2.14, pp. 51–52"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 4.22"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 12.4"
+      }
+    ]
+  },
+  "ms-path-connectedness": {
+    "name": "Path connectedness",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 5,
+    "where": "§5.3, Definition 5.3.1 to Example 5.3.5, pp. 53–54",
+    "oneLine": "Any two points joined by a continuous path. It implies connectedness and is strictly stronger: the topologist’s sine curve is connected because of one limit point and path connected to nothing across it.",
+    "needs": [
+      "ms-connectedness"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§5.3, Definition 5.3.1 to Example 5.3.5, pp. 53–54"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 12.5"
+      },
+      {
+        "title": "Tao, Analysis II",
+        "kind": "book",
+        "where": "Ch. 2.4 exercises"
+      }
+    ]
+  },
+  "ms-open-connected-path-connected": {
+    "name": "Open connected sets in a normed space",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 5,
+    "where": "§5.3, Theorem 5.3.7, p. 54 (non-examinable)",
+    "oneLine": "In a normed space, an open connected set is path connected — so the topologist’s sine curve can only exist because it is not open. Marked non-examinable in the notes.",
+    "needs": [
+      "ms-path-connectedness",
+      "ms-normed-spaces"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§5.3, Theorem 5.3.7, p. 54 (non-examinable)"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 12.5 exercises"
+      }
+    ],
+    "optional": true
+  },
+  "ms-sequential-compactness": {
+    "name": "Sequential compactness",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 6,
+    "where": "§6.1, Definition 6.1.3 to Lemma 6.1.8, pp. 57–58",
+    "oneLine": "Every sequence has a subsequence converging inside the space. A sequentially compact space is complete, closed and bounded as a subspace, and closed subsets inherit the property.",
+    "needs": [
+      "ms-convergence",
+      "ms-closed-sets"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§6.1, Definition 6.1.3 to Lemma 6.1.8, pp. 57–58"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 2.37 and 3.6"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 13.2"
+      }
+    ]
+  },
+  "ms-bolzano-weierstrass": {
+    "name": "Bolzano–Weierstrass in R^n",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 6,
+    "where": "§6.1, Lemma 6.1.1, Proposition 6.1.2 and Theorem 6.1.9, pp. 56–58",
+    "oneLine": "Coordinatewise convergence plus a diagonal argument gives a convergent subsequence in every closed ball of R^n, and from there: a subset of R^n is sequentially compact exactly when it is closed and bounded.",
+    "needs": [
+      "ms-sequential-compactness"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§6.1, Lemma 6.1.1, Proposition 6.1.2 and Theorem 6.1.9, pp. 56–58"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 2.41 and 3.6"
+      },
+      {
+        "title": "Tao, Analysis II",
+        "kind": "book",
+        "where": "Ch. 1.5"
+      }
+    ]
+  },
+  "ms-total-boundedness": {
+    "name": "Total boundedness",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 6,
+    "where": "§6.1, Definition 6.1.10 to Proposition 6.1.16, pp. 58–60",
+    "oneLine": "For every epsilon, finitely many balls of that radius cover the set. Strictly stronger than bounded — the discrete line is bounded and not totally bounded — and equivalent to every sequence having a Cauchy subsequence.",
+    "needs": [
+      "ms-closed-balls-boundedness"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§6.1, Definition 6.1.10 to Proposition 6.1.16, pp. 58–60"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 13.2 exercises"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 2, exercise 24"
+      }
+    ]
+  },
+  "ms-seqcompact-characterisation": {
+    "name": "Sequentially compact = complete + totally bounded",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 6,
+    "where": "§6.1, Theorem 6.1.17, p. 60",
+    "oneLine": "The two halves of sequential compactness pulled apart: total boundedness produces a Cauchy subsequence, completeness makes it converge, and neither on its own is enough.",
+    "needs": [
+      "ms-sequential-compactness",
+      "ms-total-boundedness",
+      "ms-completeness"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§6.1, Theorem 6.1.17, p. 60"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 2, exercises 23–24"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 13.2"
+      }
+    ]
+  },
+  "ms-compactness-continuity": {
+    "name": "Continuous maps on a compact space",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 6,
+    "where": "§6.2, Lemma 6.2.1 to Proposition 6.2.6, pp. 61–62",
+    "oneLine": "A continuous image of a sequentially compact space is sequentially compact; a real-valued continuous function on one attains its bounds; and continuity on one is automatically uniform.",
+    "needs": [
+      "ms-sequential-compactness",
+      "ms-uniform-continuity"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§6.2, Lemma 6.2.1 to Proposition 6.2.6, pp. 61–62"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 4.15, 4.16 and 4.19"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 13.3"
+      }
+    ]
+  },
+  "ms-equicontinuity": {
+    "name": "Uniform boundedness and equicontinuity",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 6,
+    "where": "§6.3, Definitions 6.3.1–6.3.2 and Example 6.3.3, p. 63",
+    "oneLine": "Two conditions on a whole family of functions at once: one bound for all of them, and one delta that works for all of them at a point. Both are about the family, not about its members.",
+    "needs": [
+      "ms-uniform-convergence",
+      "ms-sequential-compactness"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§6.3, Definitions 6.3.1–6.3.2 and Example 6.3.3, p. 63"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 7.22–7.23"
+      },
+      {
+        "title": "Tao, Analysis II",
+        "kind": "book",
+        "where": "Ch. 3.8"
+      }
+    ]
+  },
+  "ms-arzela-ascoli": {
+    "name": "The Arzelà–Ascoli theorem",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 6,
+    "where": "§6.3, Theorems 6.3.4–6.3.7 and Examples 6.3.8–6.3.9, pp. 63–65",
+    "oneLine": "A family of continuous functions on a sequentially compact space is totally bounded exactly when it is uniformly bounded and equicontinuous — so a closed such family is compact, and sequences in it have uniformly convergent subsequences.",
+    "needs": [
+      "ms-equicontinuity",
+      "ms-total-boundedness"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§6.3, Theorems 6.3.4–6.3.7 and Examples 6.3.8–6.3.9, pp. 63–65"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 7.25"
+      },
+      {
+        "title": "Tao, Analysis II",
+        "kind": "book",
+        "where": "Ch. 3.8"
+      }
+    ]
+  },
+  "ms-open-covers": {
+    "name": "Open covers and compactness",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 7,
+    "where": "§7.1, Definitions 7.1.1–7.1.2 and Example 7.1.3, p. 67",
+    "oneLine": "A cover is a family of open sets whose union is the space; compact means every one of them has a finite subfamily that still covers. Showing a space is not compact means producing one bad cover.",
+    "needs": [
+      "ms-open-set-algebra"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§7.1, Definitions 7.1.1–7.1.2 and Example 7.1.3, p. 67"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 2.31–2.32"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 13.1"
+      }
+    ]
+  },
+  "ms-lebesgue-number": {
+    "name": "The Lebesgue number lemma",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 7,
+    "where": "§7.1, Lemma 7.1.4, p. 67",
+    "oneLine": "For a cover of a sequentially compact space there is a single radius such that every ball of that radius lies inside some one member. It is the step that turns subsequences into finite subcovers.",
+    "needs": [
+      "ms-open-covers",
+      "ms-sequential-compactness"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§7.1, Lemma 7.1.4, p. 67"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 2, exercise 26"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 13.2"
+      }
+    ]
+  },
+  "ms-compact-equals-seqcompact": {
+    "name": "In a metric space the two compactnesses agree",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 7,
+    "where": "§7.1, Theorem 7.1.6 and Corollary 7.1.7, pp. 67–68",
+    "oneLine": "Compact, sequentially compact, and complete with totally bounded are the same condition for metric spaces — which is false for topological spaces in general, and is why the course can use whichever is convenient.",
+    "needs": [
+      "ms-lebesgue-number",
+      "ms-seqcompact-characterisation"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§7.1, Theorem 7.1.6 and Corollary 7.1.7, pp. 67–68"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 2.37 and Ch. 3"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 13.2"
+      }
+    ]
+  },
+  "ms-heine-borel": {
+    "name": "The Heine–Borel theorem",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 7,
+    "where": "§7.2, Theorem 7.2.1, p. 69",
+    "oneLine": "A subset of R^n is compact exactly when it is closed and bounded. The statement is about R^n and nothing else: in an infinite-dimensional normed space the closed unit ball is closed, bounded and not compact.",
+    "needs": [
+      "ms-compact-equals-seqcompact",
+      "ms-bolzano-weierstrass"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§7.2, Theorem 7.2.1, p. 69"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 2.41"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 13.4"
+      }
+    ]
+  },
+  "ms-dini-theorem": {
+    "name": "Dini’s theorem",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 7,
+    "where": "§7.2, Theorem 7.2.2, pp. 69–70",
+    "oneLine": "A monotone sequence of continuous functions on a compact space converging pointwise to a continuous limit converges uniformly. Drop compactness, monotonicity or continuity of the limit and it fails.",
+    "needs": [
+      "ms-compact-equals-seqcompact",
+      "ms-uniform-convergence"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§7.2, Theorem 7.2.2, pp. 69–70"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 7, exercise 16"
+      },
+      {
+        "title": "Tao, Analysis II",
+        "kind": "book",
+        "where": "Ch. 3.4 exercises"
+      }
+    ]
+  },
+  "ms-baire-category": {
+    "name": "Urysohn, Tietze and Baire",
+    "topic": "metric",
+    "course": "metric-spaces",
+    "chapter": 7,
+    "where": "§7.2, Theorems 7.2.3–7.2.7 and Corollary 7.2.9, pp. 70–71 (non-examinable)",
+    "oneLine": "Separating closed sets by a continuous function, extending a continuous function off a closed set, the Cantor intersection property, and the Baire category theorem. All marked non-examinable in the notes.",
+    "needs": [
+      "ms-completeness",
+      "ms-compact-equals-seqcompact"
+    ],
+    "readings": [
+      {
+        "title": "Metric Spaces — your lecture notes",
+        "kind": "course",
+        "where": "§7.2, Theorems 7.2.3–7.2.7 and Corollary 7.2.9, pp. 70–71 (non-examinable)"
+      },
+      {
+        "title": "Rudin, Principles of Mathematical Analysis",
+        "kind": "book",
+        "where": "Ch. 3, exercise 21 and Ch. 2 for Baire"
+      },
+      {
+        "title": "Sutherland, Introduction to Metric and Topological Spaces",
+        "kind": "book",
+        "where": "Ch. 17.5"
+      }
+    ],
+    "optional": true
+  },
+  "p2-probability-axioms": {
+    "name": "The axioms, and why they need a sigma-algebra",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 1,
+    "where": "§§1.1–1.2, pp. 3–6",
+    "oneLine": "Non-negativity, total mass one and countable additivity over a sigma-algebra of events. The restriction to a sigma-algebra is not bureaucracy: not every subset of an uncountable space can be given a consistent probability.",
+    "needs": [],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§§1.1–1.2, pp. 3–6"
+      },
+      {
+        "title": "Grimmett & Stirzaker, Probability and Random Processes",
+        "kind": "book",
+        "where": "Ch. 1.2–1.3"
+      },
+      {
+        "title": "Durrett, Essentials of Stochastic Processes",
+        "kind": "book",
+        "where": "Appendix A.1"
+      }
+    ]
+  },
+  "p2-continuity-of-probability": {
+    "name": "Continuity of probability",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 1,
+    "where": "§1.3, Theorems 1.2–1.3 and Examples 1.4–1.6, pp. 6–7",
+    "oneLine": "The probability of an increasing union is the limit of the probabilities, and likewise for a decreasing intersection. It is countable additivity rearranged, and it is how statements about \"for ever\" are made finite.",
+    "needs": [
+      "p2-probability-axioms"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§1.3, Theorems 1.2–1.3 and Examples 1.4–1.6, pp. 6–7"
+      },
+      {
+        "title": "Grimmett & Stirzaker, Probability and Random Processes",
+        "kind": "book",
+        "where": "Ch. 1.3, Lemma 1.3.5"
+      },
+      {
+        "title": "Durrett, Essentials of Stochastic Processes",
+        "kind": "book",
+        "where": "Appendix A.1"
+      }
+    ]
+  },
+  "p2-union-bound": {
+    "name": "The union bound",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 1,
+    "where": "§1.3, Theorem 1.7, p. 7",
+    "oneLine": "The probability that at least one of a list of events happens is at most the sum of their probabilities, with no independence assumed anywhere. Crude, free, and often all that is needed.",
+    "needs": [
+      "p2-probability-axioms"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§1.3, Theorem 1.7, p. 7"
+      },
+      {
+        "title": "Grimmett & Stirzaker, Probability and Random Processes",
+        "kind": "book",
+        "where": "Ch. 1.3"
+      },
+      {
+        "title": "Alon & Spencer, The Probabilistic Method",
+        "kind": "book",
+        "where": "Ch. 1 — the union bound doing real work"
+      }
+    ]
+  },
+  "p2-conditioning-independence": {
+    "name": "Conditioning, independence and random variables",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 1,
+    "where": "§1.4, p. 8",
+    "oneLine": "Conditioning renormalises the measure onto an event; independence says conditioning changes nothing. A random variable is a measurable function on the sample space, which is what lets it be conditioned on.",
+    "needs": [
+      "p2-probability-axioms"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§1.4, p. 8"
+      },
+      {
+        "title": "Grimmett & Stirzaker, Probability and Random Processes",
+        "kind": "book",
+        "where": "Ch. 1.4–1.5 and Ch. 2"
+      },
+      {
+        "title": "Durrett, Essentials of Stochastic Processes",
+        "kind": "book",
+        "where": "Appendix A.2"
+      }
+    ]
+  },
+  "p2-expectation": {
+    "name": "Expectation",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 1,
+    "where": "§1.5, Theorem 1.8, pp. 8–10",
+    "oneLine": "Linearity holds with no independence at all, which is most of what expectation is for. For a non-negative integer variable the expectation is the sum of the tail probabilities, and sums of non-negative variables may be exchanged with expectation freely.",
+    "needs": [
+      "p2-conditioning-independence"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§1.5, Theorem 1.8, pp. 8–10"
+      },
+      {
+        "title": "Grimmett & Stirzaker, Probability and Random Processes",
+        "kind": "book",
+        "where": "Ch. 3.3 and 5.6"
+      },
+      {
+        "title": "Durrett, Essentials of Stochastic Processes",
+        "kind": "book",
+        "where": "Appendix A.3"
+      }
+    ]
+  },
+  "p2-strong-law": {
+    "name": "The strong law of large numbers",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 1,
+    "where": "§1.6, Theorem 1.9 and Example 1.10, p. 11",
+    "oneLine": "For independent identically distributed terms with finite mean, the averages converge to the mean almost surely — one event of probability one, not a statement about each large n separately.",
+    "needs": [
+      "p2-expectation"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§1.6, Theorem 1.9 and Example 1.10, p. 11"
+      },
+      {
+        "title": "Grimmett & Stirzaker, Probability and Random Processes",
+        "kind": "book",
+        "where": "Ch. 7.5"
+      },
+      {
+        "title": "Durrett, Essentials of Stochastic Processes",
+        "kind": "book",
+        "where": "Appendix A.4"
+      }
+    ]
+  },
+  "p2-convergence-notions": {
+    "name": "Almost sure against in probability",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 1,
+    "where": "§1.6, the barred remarks, p. 11 (not required for the course)",
+    "oneLine": "Almost sure convergence implies convergence in probability and the converse fails. The notes set this out in a left-barred block, which marks it as outside the course.",
+    "needs": [
+      "p2-strong-law"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§1.6, the barred remarks, p. 11 (not required for the course)"
+      },
+      {
+        "title": "Grimmett & Stirzaker, Probability and Random Processes",
+        "kind": "book",
+        "where": "Ch. 7.2 on modes of convergence"
+      }
+    ],
+    "optional": true
+  },
+  "p2-stochastic-processes": {
+    "name": "What a stochastic process is",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 2,
+    "where": "§2.1, p. 12",
+    "oneLine": "A family of random variables indexed by time on one probability space. The index set being discrete or continuous is the first division in the course, and the questions are all about behaviour as time grows.",
+    "needs": [
+      "p2-probability-axioms"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§2.1, p. 12"
+      },
+      {
+        "title": "Grimmett & Stirzaker, Probability and Random Processes",
+        "kind": "book",
+        "where": "Ch. 8.1"
+      },
+      {
+        "title": "Durrett, Essentials of Stochastic Processes",
+        "kind": "book",
+        "where": "Ch. 1.1"
+      }
+    ]
+  },
+  "p2-random-walk": {
+    "name": "Simple random walk",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 2,
+    "where": "§2.2, Examples 2.1–2.2, pp. 12–13",
+    "oneLine": "Partial sums of independent steps of plus or minus one. Return to the start only at even times and with probability given by a central binomial coefficient, which Stirling turns into an order of n to the minus a half.",
+    "needs": [
+      "p2-stochastic-processes"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§2.2, Examples 2.1–2.2, pp. 12–13"
+      },
+      {
+        "title": "Grimmett & Stirzaker, Probability and Random Processes",
+        "kind": "book",
+        "where": "Ch. 3.9"
+      },
+      {
+        "title": "Durrett, Essentials of Stochastic Processes",
+        "kind": "book",
+        "where": "Ch. 1.3"
+      }
+    ]
+  },
+  "p2-gamblers-ruin": {
+    "name": "Gambler’s ruin",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 2,
+    "where": "§2.3, Examples 2.3–2.5, pp. 14–16",
+    "oneLine": "A walk between absorbing barriers at 0 and m. A one-step argument gives a linear difference equation whose solution is linear in k when the walk is fair and geometric in the odds ratio when it is not.",
+    "needs": [
+      "p2-random-walk"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§2.3, Examples 2.3–2.5, pp. 14–16"
+      },
+      {
+        "title": "Grimmett & Stirzaker, Probability and Random Processes",
+        "kind": "book",
+        "where": "Ch. 3.9"
+      },
+      {
+        "title": "Norris, Markov Chains",
+        "kind": "book",
+        "where": "Ch. 1.3 as a hitting-probability calculation"
+      }
+    ]
+  },
+  "p2-game-duration": {
+    "name": "How long the game lasts",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 2,
+    "where": "§2.4, Examples 2.6–2.7, pp. 17–18",
+    "oneLine": "The same one-step argument applied to the expected time to absorption. For the fair walk it is k(m − k), which is quadratic — a fair game between unequal purses ends quickly, between equal ones slowly.",
+    "needs": [
+      "p2-gamblers-ruin"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§2.4, Examples 2.6–2.7, pp. 17–18"
+      },
+      {
+        "title": "Grimmett & Stirzaker, Probability and Random Processes",
+        "kind": "book",
+        "where": "Ch. 3.9"
+      },
+      {
+        "title": "Durrett, Essentials of Stochastic Processes",
+        "kind": "book",
+        "where": "Ch. 1.8"
+      }
+    ]
+  },
+  "p2-one-barrier": {
+    "name": "One barrier, and none",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 2,
+    "where": "§2.5, Examples 2.8–2.9, pp. 18–19",
+    "oneLine": "Letting the far barrier go to infinity: the walk with positive drift escapes with probability given by the odds ratio, and the fair walk hits every level with probability one while taking infinite expected time.",
+    "needs": [
+      "p2-gamblers-ruin",
+      "p2-continuity-of-probability"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§2.5, Examples 2.8–2.9, pp. 18–19"
+      },
+      {
+        "title": "Grimmett & Stirzaker, Probability and Random Processes",
+        "kind": "book",
+        "where": "Ch. 5.3"
+      },
+      {
+        "title": "Durrett, Essentials of Stochastic Processes",
+        "kind": "book",
+        "where": "Ch. 1.8"
+      }
+    ]
+  },
+  "p2-stopping-times": {
+    "name": "Stopping times",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 2,
+    "where": "§2.6, Example 2.10, p. 20",
+    "oneLine": "A random time is a stopping time when whether it has arrived is decided by what has happened so far. \"The first time the walk hits 5\" is one; \"the last time it is at 5\" is not, and that is the whole distinction.",
+    "needs": [
+      "p2-random-walk"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§2.6, Example 2.10, p. 20"
+      },
+      {
+        "title": "Grimmett & Stirzaker, Probability and Random Processes",
+        "kind": "book",
+        "where": "Ch. 12.4"
+      },
+      {
+        "title": "Norris, Markov Chains",
+        "kind": "book",
+        "where": "Ch. 1.4"
+      }
+    ]
+  },
+  "p2-wald-identity": {
+    "name": "Wald’s identity",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 2,
+    "where": "§2.6, Theorem 2.11 and Examples 2.12–2.13, pp. 21–22",
+    "oneLine": "The expected sum of a random number of independent identically distributed terms is the expected count times the expected term — provided the count is a stopping time with finite mean. Both conditions are load-bearing.",
+    "needs": [
+      "p2-stopping-times",
+      "p2-expectation"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§2.6, Theorem 2.11 and Examples 2.12–2.13, pp. 21–22"
+      },
+      {
+        "title": "Grimmett & Stirzaker, Probability and Random Processes",
+        "kind": "book",
+        "where": "Ch. 12.5"
+      },
+      {
+        "title": "Durrett, Essentials of Stochastic Processes",
+        "kind": "book",
+        "where": "Ch. 1.8"
+      }
+    ]
+  },
+  "p2-markov-property": {
+    "name": "The Markov property",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 3,
+    "where": "§3.1, Theorem 3.1 and Examples 3.2–3.8, pp. 23–26",
+    "oneLine": "Given the present, the future is independent of the past. Whether a process has it depends on what you call the state: a pair of consecutive steps can be Markov where their sum is not.",
+    "needs": [
+      "p2-stochastic-processes",
+      "p2-conditioning-independence"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§3.1, Theorem 3.1 and Examples 3.2–3.8, pp. 23–26"
+      },
+      {
+        "title": "Norris, Markov Chains",
+        "kind": "book",
+        "where": "Ch. 1.1"
+      },
+      {
+        "title": "Grimmett & Stirzaker, Probability and Random Processes",
+        "kind": "book",
+        "where": "Ch. 6.1"
+      }
+    ]
+  },
+  "p2-n-step-transitions": {
+    "name": "Multi-step transitions",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 3,
+    "where": "§3.2, Theorems 3.10–3.15 and Example 3.16, pp. 27–29",
+    "oneLine": "The n-step probabilities are the entries of the nth power of the transition matrix, and Chapman–Kolmogorov is matrix multiplication read as a sum over where the chain was in between.",
+    "needs": [
+      "p2-markov-property"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§3.2, Theorems 3.10–3.15 and Example 3.16, pp. 27–29"
+      },
+      {
+        "title": "Norris, Markov Chains",
+        "kind": "book",
+        "where": "Ch. 1.1"
+      },
+      {
+        "title": "Grimmett & Stirzaker, Probability and Random Processes",
+        "kind": "book",
+        "where": "Ch. 6.1–6.2"
+      }
+    ]
+  },
+  "p2-hitting-probabilities": {
+    "name": "Hitting probabilities and hitting times",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 3,
+    "where": "§3.3, Theorems 3.17–3.20 and Example 3.21, pp. 30–31",
+    "oneLine": "First-step analysis: condition on the first move and you get a linear system for the probability of ever reaching a set, and another for the expected time. The hitting probabilities are its minimal non-negative solution.",
+    "needs": [
+      "p2-n-step-transitions"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§3.3, Theorems 3.17–3.20 and Example 3.21, pp. 30–31"
+      },
+      {
+        "title": "Norris, Markov Chains",
+        "kind": "book",
+        "where": "Ch. 1.3"
+      },
+      {
+        "title": "Durrett, Essentials of Stochastic Processes",
+        "kind": "book",
+        "where": "Ch. 1.8"
+      }
+    ]
+  },
+  "p2-hitting-minimality": {
+    "name": "Why the minimal solution is the right one",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 3,
+    "where": "§3.3, the barred proof, p. 31 (not required for the course)",
+    "oneLine": "The proof that the hitting probabilities are the least non-negative solution, by repeated substitution. The notes bar it out of the course.",
+    "needs": [
+      "p2-hitting-probabilities"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§3.3, the barred proof, p. 31 (not required for the course)"
+      },
+      {
+        "title": "Norris, Markov Chains",
+        "kind": "book",
+        "where": "Ch. 1.3, Theorem 1.3.2"
+      }
+    ],
+    "optional": true
+  },
+  "p2-strong-markov": {
+    "name": "The strong Markov property",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 3,
+    "where": "§3.4, Theorem 3.22 and Example 3.23, pp. 32–33",
+    "oneLine": "The Markov property holds at a stopping time, not only at a fixed time. It is what licenses \"restart the chain when it first reaches i\", and the proof of it is barred out of the course.",
+    "needs": [
+      "p2-markov-property",
+      "p2-stopping-times"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§3.4, Theorem 3.22 and Example 3.23, pp. 32–33"
+      },
+      {
+        "title": "Norris, Markov Chains",
+        "kind": "book",
+        "where": "Ch. 1.4"
+      },
+      {
+        "title": "Grimmett & Stirzaker, Probability and Random Processes",
+        "kind": "book",
+        "where": "Ch. 6.3"
+      }
+    ]
+  },
+  "p2-recurrence-transience": {
+    "name": "Recurrence and transience",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 3,
+    "where": "§3.5, Theorem 3.26 and Examples 3.24–3.25, p. 34",
+    "oneLine": "A state is recurrent when the chain returns to it with probability one, and then it returns infinitely often; transient otherwise, and then the sum of the return probabilities is finite. There is no third case.",
+    "needs": [
+      "p2-strong-markov"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§3.5, Theorem 3.26 and Examples 3.24–3.25, p. 34"
+      },
+      {
+        "title": "Norris, Markov Chains",
+        "kind": "book",
+        "where": "Ch. 1.5"
+      },
+      {
+        "title": "Grimmett & Stirzaker, Probability and Random Processes",
+        "kind": "book",
+        "where": "Ch. 6.2"
+      }
+    ]
+  },
+  "p2-walks-in-dimensions": {
+    "name": "Random walks in d dimensions",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 3,
+    "where": "§3.6, Theorems 3.28–3.29, pp. 35–38",
+    "oneLine": "Pólya’s theorem: the symmetric walk on the integer lattice is recurrent in one and two dimensions and transient in three or more. The proof sketch for d of three and above is barred out of the course.",
+    "needs": [
+      "p2-recurrence-transience"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§3.6, Theorems 3.28–3.29, pp. 35–38"
+      },
+      {
+        "title": "Norris, Markov Chains",
+        "kind": "book",
+        "where": "Ch. 1.6"
+      },
+      {
+        "title": "Durrett, Essentials of Stochastic Processes",
+        "kind": "book",
+        "where": "Ch. 1.5"
+      }
+    ]
+  },
+  "p2-communicating-classes": {
+    "name": "Communicating classes",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 3,
+    "where": "§3.7, Theorems 3.30–3.36 and Examples 3.31–3.35, pp. 38–39",
+    "oneLine": "Mutual reachability is an equivalence relation, so the state space splits into classes. Recurrence is a class property; every recurrent class is closed, and every finite closed class is recurrent.",
+    "needs": [
+      "p2-recurrence-transience"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§3.7, Theorems 3.30–3.36 and Examples 3.31–3.35, pp. 38–39"
+      },
+      {
+        "title": "Norris, Markov Chains",
+        "kind": "book",
+        "where": "Ch. 1.2 and 1.5"
+      },
+      {
+        "title": "Grimmett & Stirzaker, Probability and Random Processes",
+        "kind": "book",
+        "where": "Ch. 6.3"
+      }
+    ]
+  },
+  "p2-mean-return-times": {
+    "name": "Mean return times",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 3,
+    "where": "§3.8, Theorem 3.40 and Examples 3.37–3.42, pp. 40–41",
+    "oneLine": "A recurrent state is positive recurrent when its expected return time is finite and null recurrent when it is not. Both are class properties, and the symmetric walk on the line is the standard null recurrent example.",
+    "needs": [
+      "p2-communicating-classes"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§3.8, Theorem 3.40 and Examples 3.37–3.42, pp. 40–41"
+      },
+      {
+        "title": "Norris, Markov Chains",
+        "kind": "book",
+        "where": "Ch. 1.7"
+      },
+      {
+        "title": "Durrett, Essentials of Stochastic Processes",
+        "kind": "book",
+        "where": "Ch. 1.7"
+      }
+    ]
+  },
+  "p2-stationary-distributions": {
+    "name": "Stationary distributions",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 3,
+    "where": "§§3.10–3.11, Theorems 3.50–3.53, pp. 42–45",
+    "oneLine": "A distribution the chain leaves unchanged: a left eigenvector of the transition matrix for eigenvalue one, normalised. An irreducible chain has one exactly when it is positive recurrent, and then it is unique and equal to the reciprocal mean return times.",
+    "needs": [
+      "p2-mean-return-times"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§§3.10–3.11, Theorems 3.50–3.53, pp. 42–45"
+      },
+      {
+        "title": "Norris, Markov Chains",
+        "kind": "book",
+        "where": "Ch. 1.7"
+      },
+      {
+        "title": "Grimmett & Stirzaker, Probability and Random Processes",
+        "kind": "book",
+        "where": "Ch. 6.4"
+      }
+    ]
+  },
+  "p2-periodicity-convergence": {
+    "name": "Periodicity and the convergence theorem",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 3,
+    "where": "§3.12, Theorems 3.54–3.62, pp. 46–48",
+    "oneLine": "The period of a state is the greatest common divisor of its possible return times, and it is a class property. Irreducible, aperiodic and positive recurrent is exactly when the distribution converges to the stationary one from any start.",
+    "needs": [
+      "p2-stationary-distributions"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§3.12, Theorems 3.54–3.62, pp. 46–48"
+      },
+      {
+        "title": "Norris, Markov Chains",
+        "kind": "book",
+        "where": "Ch. 1.8"
+      },
+      {
+        "title": "Grimmett & Stirzaker, Probability and Random Processes",
+        "kind": "book",
+        "where": "Ch. 6.4"
+      }
+    ]
+  },
+  "p2-coupling": {
+    "name": "The coupling proof of convergence",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 3,
+    "where": "§3.12, the barred proofs and Theorem 3.60, pp. 45–49 (not required for the course)",
+    "oneLine": "Two copies of the chain run independently until they meet and then together; the one started stationary stays stationary, so the other converges. Beautiful, and barred out of the course.",
+    "needs": [
+      "p2-periodicity-convergence"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§3.12, the barred proofs and Theorem 3.60, pp. 45–49 (not required for the course)"
+      },
+      {
+        "title": "Norris, Markov Chains",
+        "kind": "book",
+        "where": "Ch. 1.8, the proof of Theorem 1.8.3"
+      },
+      {
+        "title": "Levin & Peres, Markov Chains and Mixing Times",
+        "kind": "book",
+        "where": "Ch. 5 — coupling, in full",
+        "url": "https://pages.uoregon.edu/dlevin/MARKOV/"
+      }
+    ],
+    "optional": true
+  },
+  "p2-reversibility": {
+    "name": "Reversibility and detailed balance",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 3,
+    "where": "§3.13, Theorems 3.63–3.65 and Examples 3.66–3.69, pp. 49–52",
+    "oneLine": "If a distribution satisfies the detailed balance equations it is stationary, and the chain run backwards looks the same. Birth–death chains and random walks on graphs are reversible, and detailed balance is far easier to solve than the full system.",
+    "needs": [
+      "p2-stationary-distributions"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§3.13, Theorems 3.63–3.65 and Examples 3.66–3.69, pp. 49–52"
+      },
+      {
+        "title": "Norris, Markov Chains",
+        "kind": "book",
+        "where": "Ch. 1.9"
+      },
+      {
+        "title": "Grimmett & Stirzaker, Probability and Random Processes",
+        "kind": "book",
+        "where": "Ch. 6.5"
+      }
+    ]
+  },
+  "p2-poisson-process": {
+    "name": "The Poisson process",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 4,
+    "where": "§§4.1–4.2, Definitions 1 and 2, Theorems 4.1–4.2, pp. 53–56",
+    "oneLine": "Independent stationary increments with the count in an interval Poisson with mean rate times length. Two equivalent definitions: one by increments and one by the infinitesimal rate of a single arrival.",
+    "needs": [
+      "p2-stochastic-processes",
+      "p2-expectation"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§§4.1–4.2, Definitions 1 and 2, Theorems 4.1–4.2, pp. 53–56"
+      },
+      {
+        "title": "Norris, Markov Chains",
+        "kind": "book",
+        "where": "Ch. 2.4"
+      },
+      {
+        "title": "Grimmett & Stirzaker, Probability and Random Processes",
+        "kind": "book",
+        "where": "Ch. 6.8"
+      }
+    ]
+  },
+  "p2-poisson-derivation": {
+    "name": "Deriving the increment distribution",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 4,
+    "where": "§4.2, the barred derivation, pp. 55–56 (not required for the course)",
+    "oneLine": "Differential equations for the probability mass function, solved with a generating function and an integrating factor. The notes bar it out of the course.",
+    "needs": [
+      "p2-poisson-process"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§4.2, the barred derivation, pp. 55–56 (not required for the course)"
+      },
+      {
+        "title": "Grimmett & Stirzaker, Probability and Random Processes",
+        "kind": "book",
+        "where": "Ch. 6.8"
+      }
+    ],
+    "optional": true
+  },
+  "p2-arrival-times": {
+    "name": "Inter-arrival times and the memoryless property",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 4,
+    "where": "§4.3, Theorems 4.4–4.6, pp. 57–58",
+    "oneLine": "The gaps between arrivals are independent exponentials of the same rate, and the exponential is the only continuous distribution that forgets how long it has already waited.",
+    "needs": [
+      "p2-poisson-process"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§4.3, Theorems 4.4–4.6, pp. 57–58"
+      },
+      {
+        "title": "Norris, Markov Chains",
+        "kind": "book",
+        "where": "Ch. 2.3"
+      },
+      {
+        "title": "Durrett, Essentials of Stochastic Processes",
+        "kind": "book",
+        "where": "Ch. 2.1"
+      }
+    ]
+  },
+  "p2-superposition-thinning": {
+    "name": "Superposition and thinning",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 4,
+    "where": "§4.4, Theorems 4.7–4.9, p. 59",
+    "oneLine": "Two independent Poisson processes merge into one of the summed rate, and keeping each arrival independently with probability p splits one into two independent processes of rates p and 1 − p times the original.",
+    "needs": [
+      "p2-poisson-process"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§4.4, Theorems 4.7–4.9, p. 59"
+      },
+      {
+        "title": "Norris, Markov Chains",
+        "kind": "book",
+        "where": "Ch. 2.4"
+      },
+      {
+        "title": "Durrett, Essentials of Stochastic Processes",
+        "kind": "book",
+        "where": "Ch. 2.2"
+      }
+    ]
+  },
+  "p2-poisson-conditioning": {
+    "name": "Conditioning a Poisson process",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 4,
+    "where": "§4.5, Theorems 4.10–4.13, pp. 60–61",
+    "oneLine": "Given n arrivals by time t, they are distributed as the order statistics of n independent uniforms on the interval — the process has no preference about where they go. Exponential races fall out of the same algebra.",
+    "needs": [
+      "p2-arrival-times"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§4.5, Theorems 4.10–4.13, pp. 60–61"
+      },
+      {
+        "title": "Norris, Markov Chains",
+        "kind": "book",
+        "where": "Ch. 2.4"
+      },
+      {
+        "title": "Durrett, Essentials of Stochastic Processes",
+        "kind": "book",
+        "where": "Ch. 2.2"
+      }
+    ]
+  },
+  "p2-inhomogeneous-poisson": {
+    "name": "Inhomogeneous and multidimensional Poisson processes",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 4,
+    "where": "§4.6, Example 4.14, pp. 62–63",
+    "oneLine": "Let the rate vary with time, or drop time and scatter points in a region: the count in a set is Poisson with mean the integral of the rate over it, and disjoint sets stay independent.",
+    "needs": [
+      "p2-poisson-process"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§4.6, Example 4.14, pp. 62–63"
+      },
+      {
+        "title": "Durrett, Essentials of Stochastic Processes",
+        "kind": "book",
+        "where": "Ch. 2.4"
+      },
+      {
+        "title": "Kingman, Poisson Processes",
+        "kind": "book",
+        "where": "Ch. 2 — the general definition on a measure space"
+      }
+    ]
+  },
+  "p2-ctmc-basics": {
+    "name": "Continuous-time Markov chains",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 5,
+    "where": "§5.1, Examples 5.1–5.3, pp. 64–65",
+    "oneLine": "A chain that waits an exponential time in each state and then jumps. The generator collects the jump rates, with each diagonal entry minus the sum of its row — the memoryless property is what keeps it Markov.",
+    "needs": [
+      "p2-poisson-process",
+      "p2-markov-property"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§5.1, Examples 5.1–5.3, pp. 64–65"
+      },
+      {
+        "title": "Norris, Markov Chains",
+        "kind": "book",
+        "where": "Ch. 2.1–2.2"
+      },
+      {
+        "title": "Durrett, Essentials of Stochastic Processes",
+        "kind": "book",
+        "where": "Ch. 4.1"
+      }
+    ]
+  },
+  "p2-jump-chain-explosion": {
+    "name": "The jump chain, and explosion",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 5,
+    "where": "§5.2, Examples 5.4–5.5, pp. 66–67",
+    "oneLine": "Separate where the chain goes from how long it waits: the jump chain is an ordinary discrete chain. If the holding times shrink fast enough the chain makes infinitely many jumps in finite time.",
+    "needs": [
+      "p2-ctmc-basics"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§5.2, Examples 5.4–5.5, pp. 66–67"
+      },
+      {
+        "title": "Norris, Markov Chains",
+        "kind": "book",
+        "where": "Ch. 2.6–2.7"
+      },
+      {
+        "title": "Durrett, Essentials of Stochastic Processes",
+        "kind": "book",
+        "where": "Ch. 4.1"
+      }
+    ]
+  },
+  "p2-ctmc-transition-probabilities": {
+    "name": "Transition probabilities and the Kolmogorov equations",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 5,
+    "where": "§5.3, Theorems 5.6–5.10, pp. 68–70",
+    "oneLine": "The transition matrices at each time satisfy Chapman–Kolmogorov and the forward and backward differential equations driven by the generator. The proofs, and the matrix exponential solution, are barred out of the course.",
+    "needs": [
+      "p2-jump-chain-explosion"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§5.3, Theorems 5.6–5.10, pp. 68–70"
+      },
+      {
+        "title": "Norris, Markov Chains",
+        "kind": "book",
+        "where": "Ch. 2.8"
+      },
+      {
+        "title": "Grimmett & Stirzaker, Probability and Random Processes",
+        "kind": "book",
+        "where": "Ch. 6.9"
+      }
+    ]
+  },
+  "p2-ctmc-classification": {
+    "name": "Classifying the states of a chain in time",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 5,
+    "where": "§5.4, Example 5.11 and Theorem 5.12, pp. 71–72",
+    "oneLine": "Irreducibility, recurrence and transience carry over, and are decided by the jump chain rather than by the rates — how long the chain waits does not change where it can get to.",
+    "needs": [
+      "p2-ctmc-transition-probabilities",
+      "p2-communicating-classes"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§5.4, Example 5.11 and Theorem 5.12, pp. 71–72"
+      },
+      {
+        "title": "Norris, Markov Chains",
+        "kind": "book",
+        "where": "Ch. 3.4"
+      },
+      {
+        "title": "Durrett, Essentials of Stochastic Processes",
+        "kind": "book",
+        "where": "Ch. 4.3"
+      }
+    ]
+  },
+  "p2-ctmc-stationary": {
+    "name": "Stationary distributions in continuous time",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 5,
+    "where": "§5.5, Theorems 5.13–5.18 and Example 5.15, pp. 72–74",
+    "oneLine": "The condition is pi times the generator equal to zero, not pi times a transition matrix. An irreducible chain is positive recurrent exactly when such a distribution exists, and then it is unique.",
+    "needs": [
+      "p2-ctmc-classification",
+      "p2-stationary-distributions"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§5.5, Theorems 5.13–5.18 and Example 5.15, pp. 72–74"
+      },
+      {
+        "title": "Norris, Markov Chains",
+        "kind": "book",
+        "where": "Ch. 3.5"
+      },
+      {
+        "title": "Durrett, Essentials of Stochastic Processes",
+        "kind": "book",
+        "where": "Ch. 4.4"
+      }
+    ]
+  },
+  "p2-queues": {
+    "name": "Queues",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 5,
+    "where": "§5.6, Theorems 5.19–5.27 and Examples 5.23–5.26, pp. 74–77",
+    "oneLine": "Poisson arrivals and exponential service give a birth–death chain. The single-server queue is positive recurrent exactly when the arrival rate is below the service rate, and then its length is geometric in the ratio.",
+    "needs": [
+      "p2-ctmc-stationary",
+      "p2-reversibility"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§5.6, Theorems 5.19–5.27 and Examples 5.23–5.26, pp. 74–77"
+      },
+      {
+        "title": "Norris, Markov Chains",
+        "kind": "book",
+        "where": "Ch. 5.1–5.2"
+      },
+      {
+        "title": "Grimmett & Stirzaker, Probability and Random Processes",
+        "kind": "book",
+        "where": "Ch. 11.2–11.3"
+      }
+    ]
+  },
+  "p2-conditional-expectation": {
+    "name": "Conditional expectation as a variable",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 6,
+    "where": "§6.1, Theorems 6.1–6.2, pp. 78–79",
+    "oneLine": "The expectation of X given Y is a function of Y, and therefore itself a random variable. The tower property — its expectation is the expectation of X — is the identity every martingale argument runs on.",
+    "needs": [
+      "p2-expectation"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§6.1, Theorems 6.1–6.2, pp. 78–79"
+      },
+      {
+        "title": "Grimmett & Stirzaker, Probability and Random Processes",
+        "kind": "book",
+        "where": "Ch. 3.7 and 4.6"
+      },
+      {
+        "title": "Durrett, Essentials of Stochastic Processes",
+        "kind": "book",
+        "where": "Ch. 5.1"
+      }
+    ]
+  },
+  "p2-martingales": {
+    "name": "Martingales",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 6,
+    "where": "§6.1, Example 6.3, pp. 79–80",
+    "oneLine": "A process whose expected next value, given everything so far, is where it is now: a fair game. The symmetric walk, its square minus the time, and an exponential of it are the three standard examples.",
+    "needs": [
+      "p2-conditional-expectation"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§6.1, Example 6.3, pp. 79–80"
+      },
+      {
+        "title": "Grimmett & Stirzaker, Probability and Random Processes",
+        "kind": "book",
+        "where": "Ch. 12.1"
+      },
+      {
+        "title": "Durrett, Essentials of Stochastic Processes",
+        "kind": "book",
+        "where": "Ch. 5.2"
+      }
+    ]
+  },
+  "p2-new-martingales": {
+    "name": "New martingales from old",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 6,
+    "where": "§6.2, Theorems 6.4–6.9 and Examples 6.5–6.10, pp. 80–82 (not required for the course)",
+    "oneLine": "Betting a predictable amount on a fair game keeps it fair — the discrete stochastic integral. The notes put this whole section outside the course.",
+    "needs": [
+      "p2-martingales"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§6.2, Theorems 6.4–6.9 and Examples 6.5–6.10, pp. 80–82 (not required for the course)"
+      },
+      {
+        "title": "Grimmett & Stirzaker, Probability and Random Processes",
+        "kind": "book",
+        "where": "Ch. 12.1, the martingale transform"
+      },
+      {
+        "title": "Durrett, Essentials of Stochastic Processes",
+        "kind": "book",
+        "where": "Ch. 5.2"
+      }
+    ],
+    "optional": true
+  },
+  "p2-stopped-martingales": {
+    "name": "Stopped martingales",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 6,
+    "where": "§6.3, Theorems 6.11–6.13, pp. 82–83",
+    "oneLine": "A martingale stopped at a stopping time is still a martingale, so its expectation at every finite time is still its starting value. The proof is barred out of the course; the statement is not.",
+    "needs": [
+      "p2-martingales",
+      "p2-stopping-times"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§6.3, Theorems 6.11–6.13, pp. 82–83"
+      },
+      {
+        "title": "Grimmett & Stirzaker, Probability and Random Processes",
+        "kind": "book",
+        "where": "Ch. 12.4–12.5"
+      },
+      {
+        "title": "Durrett, Essentials of Stochastic Processes",
+        "kind": "book",
+        "where": "Ch. 5.3"
+      }
+    ]
+  },
+  "p2-optional-stopping": {
+    "name": "Optional stopping, and what it computes",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 6,
+    "where": "§6.3, Examples 6.14–6.17, pp. 83–84",
+    "oneLine": "Under a boundedness condition the expectation at the stopping time equals the starting value, which recovers the ruin probability and the game duration in two lines each. Drop the condition and the doubling strategy appears to make money.",
+    "needs": [
+      "p2-stopped-martingales",
+      "p2-gamblers-ruin"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§6.3, Examples 6.14–6.17, pp. 83–84"
+      },
+      {
+        "title": "Grimmett & Stirzaker, Probability and Random Processes",
+        "kind": "book",
+        "where": "Ch. 12.5"
+      },
+      {
+        "title": "Durrett, Essentials of Stochastic Processes",
+        "kind": "book",
+        "where": "Ch. 5.3"
+      }
+    ]
+  },
+  "p2-martingale-convergence": {
+    "name": "Martingale convergence",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 6,
+    "where": "§6.4, Theorem 6.18 and Example 6.19, pp. 85–86 (not required for the course)",
+    "oneLine": "A non-negative martingale converges almost surely, proved by an upcrossing argument; the Pólya urn is the example. The section is outside the course.",
+    "needs": [
+      "p2-martingales"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§6.4, Theorem 6.18 and Example 6.19, pp. 85–86 (not required for the course)"
+      },
+      {
+        "title": "Grimmett & Stirzaker, Probability and Random Processes",
+        "kind": "book",
+        "where": "Ch. 12.3"
+      },
+      {
+        "title": "Durrett, Essentials of Stochastic Processes",
+        "kind": "book",
+        "where": "Ch. 5.4"
+      }
+    ],
+    "optional": true
+  },
+  "p2-brownian-motion": {
+    "name": "Brownian motion",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 7,
+    "where": "§7.1, Example 7.1, pp. 87–89",
+    "oneLine": "Continuous paths, independent increments, and the increment over an interval normal with variance its length. The covariance of two times is the smaller of them, which is the whole of the dependence structure.",
+    "needs": [
+      "p2-strong-law",
+      "p2-stochastic-processes"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§7.1, Example 7.1, pp. 87–89"
+      },
+      {
+        "title": "Grimmett & Stirzaker, Probability and Random Processes",
+        "kind": "book",
+        "where": "Ch. 13.3"
+      },
+      {
+        "title": "Mörters & Peres, Brownian Motion",
+        "kind": "book",
+        "where": "Ch. 1",
+        "url": "https://www.yuval-peres-books.com/brownian-motion/"
+      }
+    ]
+  },
+  "p2-brownian-symmetries": {
+    "name": "Symmetries of Brownian motion",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 7,
+    "where": "§7.2, Theorems 7.2–7.4, pp. 90–91",
+    "oneLine": "Negation, scaling time by a factor and space by its square root, time reversal on an interval, and inversion all give back a Brownian motion. Each one turns a hard question into an easier one.",
+    "needs": [
+      "p2-brownian-motion"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§7.2, Theorems 7.2–7.4, pp. 90–91"
+      },
+      {
+        "title": "Grimmett & Stirzaker, Probability and Random Processes",
+        "kind": "book",
+        "where": "Ch. 13.4"
+      },
+      {
+        "title": "Mörters & Peres, Brownian Motion",
+        "kind": "book",
+        "where": "Ch. 1.2"
+      }
+    ]
+  },
+  "p2-reflection-principle": {
+    "name": "The reflection principle",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 7,
+    "where": "§7.3, Theorems 7.5–7.8, pp. 91–94",
+    "oneLine": "Reflecting the path after it first hits a level gives another Brownian motion, so the running maximum has the same distribution as the absolute value, and the hitting time of a level gets a density in closed form.",
+    "needs": [
+      "p2-brownian-symmetries",
+      "p2-stopping-times"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§7.3, Theorems 7.5–7.8, pp. 91–94"
+      },
+      {
+        "title": "Grimmett & Stirzaker, Probability and Random Processes",
+        "kind": "book",
+        "where": "Ch. 13.4"
+      },
+      {
+        "title": "Durrett, Essentials of Stochastic Processes",
+        "kind": "book",
+        "where": "Ch. 7.4"
+      }
+    ]
+  },
+  "p2-arcsine-laws": {
+    "name": "The arcsine laws",
+    "topic": "prob",
+    "course": "probability-2",
+    "chapter": 7,
+    "where": "§7.3, the barred remarks, pp. 94–96 (not required for the course)",
+    "oneLine": "Where the maximum falls, the last zero, and the time spent positive all have the arcsine distribution. The notes leave these as left-barred remarks outside the course.",
+    "needs": [
+      "p2-reflection-principle"
+    ],
+    "readings": [
+      {
+        "title": "Probability 2 — your lecture notes",
+        "kind": "course",
+        "where": "§7.3, the barred remarks, pp. 94–96 (not required for the course)"
+      },
+      {
+        "title": "Mörters & Peres, Brownian Motion",
+        "kind": "book",
+        "where": "Ch. 5.2"
+      }
+    ],
+    "optional": true
   }
 }

@@ -1,0 +1,41 @@
+{
+  "id": "ms-finite-subcover",
+  "title": "Pick out the finite subcover",
+  "topic": "metric",
+  "difficulty": "advanced",
+  "lane": "core",
+  "type": "structured",
+  "tags": [
+    "compactness",
+    "open-covers",
+    "course-metric-spaces"
+  ],
+  "estimate": 18,
+  "prereqs": [
+    {
+      "concept": "ms-open-covers",
+      "why": "A finite subcover is what compactness promises, and here it has to be produced explicitly."
+    },
+    {
+      "concept": "ms-heine-borel",
+      "why": "The space is closed and bounded in the line, which is why a finite subcover is guaranteed to exist at all."
+    },
+    {
+      "concept": "ms-sequential-compactness",
+      "why": "The set is the standard example of a convergent sequence together with its limit, which is what makes it compact."
+    }
+  ],
+  "statement": "Let\n\n$$K = \\{0\\} \\cup \\Bigl\\{\\tfrac1n : n = 1, 2, 3, \\dots\\Bigr\\} \\subset \\R$$\n\nwith the usual metric. $K$ is closed and bounded, so by Heine–Borel it is\ncompact: **every** open cover of it has a finite subcover.\n\nConsider the cover $\\mathcal{U} = \\{U_0, U_1, U_2, U_3, \\dots\\}$ given by\n\n$$U_0 = \\Bigl(-\\tfrac{1}{10},\\ \\tfrac{1}{10}\\Bigr), \\qquad\nU_n = \\Bigl(\\tfrac{1}{\\,n + \\tfrac12\\,},\\ \\tfrac{1}{\\,n - \\tfrac12\\,}\\Bigr)\n\\ \\text{ for } n \\ge 1.$$\n\nEach $U_n$ with $n \\ge 1$ contains exactly one point of $K$, namely $1/n$.\n\nThere is a unique **smallest** finite subcover. Give the set of its indices.\n\nWrite it like `{0,1,2}`.",
+  "hints": [
+    "$U_0$ is the only member that contains $0$, so index 0 is in every subcover.",
+    "Which points $1/n$ does $U_0$ already cover? The condition is $1/n < 1/10$.",
+    "Be careful at the boundary: $U_0$ is open, so $1/10$ itself is **not** in it. Does that mean index 10 is needed, or not?",
+    "Every point of $K$ that $U_0$ misses needs its own $U_n$, because no other member of the cover contains it. Count how many that is."
+  ],
+  "payload": {
+    "kind": "set",
+    "prompt": "The indices of the smallest finite subcover.",
+    "label": "Indices",
+    "placeholder": "{ … }"
+  }
+}

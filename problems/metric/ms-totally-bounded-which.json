@@ -1,0 +1,44 @@
+{
+  "id": "ms-totally-bounded-which",
+  "title": "Bounded, or totally bounded?",
+  "topic": "metric",
+  "difficulty": "advanced",
+  "lane": "core",
+  "type": "multi",
+  "tags": [
+    "total-boundedness",
+    "compactness",
+    "course-metric-spaces"
+  ],
+  "estimate": 16,
+  "prereqs": [
+    {
+      "concept": "ms-total-boundedness",
+      "why": "The definition - finitely many balls of every radius - is what each line has to be tested against."
+    },
+    {
+      "concept": "ms-closed-balls-boundedness",
+      "why": "Bounded is the weaker condition the question is separating total boundedness from."
+    },
+    {
+      "concept": "ms-sequence-spaces",
+      "why": "One of the five lives in a sequence space, where the two conditions come apart most dramatically."
+    }
+  ],
+  "statement": "A set $E$ in a metric space is **totally bounded** when, for every\n$\\eps > 0$, finitely many balls of radius $\\eps$ cover $E$.\n\nIt is **bounded** when some single ball contains it.\n\nTotal boundedness implies boundedness and the converse fails. Select every\nset below that is **totally bounded**.",
+  "hints": [
+    "Boundedness is about one ball of some radius; total boundedness is about finitely many balls of every radius. Only the second is being asked for.",
+    "In the discrete metric a ball of radius $\\tfrac12$ is a single point. How many of those does it take to cover an infinite set?",
+    "In $\\ell^2$, the standard basis vectors $e_1, e_2, e_3, \\dots$ all lie in the closed unit ball, and $d_2(e_i, e_j) = \\sqrt2$ whenever $i \\ne j$. How many of them can one ball of radius $\\tfrac12$ hold?",
+    "In $\\R^n$ there is a theorem: totally bounded and bounded are the same condition. Two of the five live in $\\R^n$."
+  ],
+  "payload": {
+    "options": [
+      "The open interval $(0,1)$ in Euclidean $\\R$.",
+      "$\\R$ with the discrete metric $d_d$.",
+      "$\\Z$ in Euclidean $\\R$.",
+      "The closed unit ball $\\{x \\in \\ell^2 : \\|x\\|_2 \\le 1\\}$ of $\\ell^2$.",
+      "$\\{x \\in \\R^2 : \\|x\\|_2 \\le 5\\}$ in Euclidean $\\R^2$."
+    ]
+  }
+}

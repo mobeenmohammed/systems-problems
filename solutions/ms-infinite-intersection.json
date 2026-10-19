@@ -1,0 +1,27 @@
+{
+  "key": {
+    "answer": 0
+  },
+  "feedback": {
+    "options": {
+      "1": "An arbitrary union of open sets is always open, and the proof is one line: if $x$ lies in the union then it lies in one of the sets, that set contains a ball about $x$, and that ball is inside the union. No finiteness is needed anywhere, because only one of the sets is consulted.",
+      "2": "Two open sets always intersect in an open set. If $x \\in U \\cap V$, take $r_U$ and $r_V$ for the two sets separately and use $\\min(r_U, r_V)$ — which is positive precisely because there are finitely many of them to take a minimum over.",
+      "3": "An arbitrary intersection of closed sets is always closed. Take complements: the complements are open, an arbitrary union of open sets is open, so the intersection of the closed sets is the complement of an open set."
+    },
+    "nudge": "Three of the four are provable in a line or two from the definitions. The remaining one needs a counterexample, and the shape to look for is infinitely many open sets shrinking onto a single point."
+  },
+  "distractors": {
+    "0": "Correct. Each $\\bigl(-\\tfrac1n,\\tfrac1n\\bigr)$ is open, and $x$ lies in all of them exactly when $|x| < 1/n$ for every $n$, which forces $x = 0$. The singleton $\\{0\\}$ is not open in $\\R$: every ball $(-r,r)$ contains points other than $0$.",
+    "1": "False. An arbitrary union of open sets is open. If $x$ is in the union it is in one member, that member contains a ball about $x$, and that ball is in the union.",
+    "2": "False. For two open sets, take the two radii and use the smaller. The argument works for any finite collection and breaks for an infinite one, because an infimum of infinitely many positive numbers can be zero.",
+    "3": "False, and it is the complement of the true statement. Arbitrary intersections of closed sets are closed, because arbitrary unions of open sets are open and complementation swaps the two."
+  },
+  "explanation": "## The four rules\n\n| | union | intersection |\n| --- | --- | --- |\n| **open** | any collection | **finite** collections only |\n| **closed** | **finite** collections only | any collection |\n\nThe table is forced by De Morgan: complementation turns open into closed and union into intersection, so the left column and the right column are the same two facts read twice.\n\n## Where the word \"finite\" comes from\n\nThe proof for an intersection of open sets is: given $x \\in \\bigcap_i U_i$, choose $r_i > 0$ with $B(x, r_i) \\subseteq U_i$, and take $r = \\min_i r_i$.\n\nThat is a valid proof exactly when the minimum exists and is positive — which is guaranteed for finitely many positive numbers and for nothing else. An infimum of infinitely many positive numbers can perfectly well be zero, and in the counterexample it is: the radii available at $0$ are $1/n$, whose infimum is $0$.\n\nSo the word \"finite\" in the table is not a safety margin. It is exactly the hypothesis the proof uses, and the counterexample is the proof failing in the smallest possible way.\n\n## The counterexample is the general shape\n\n$\\bigcap_{n\\ge1}\\bigl(-\\tfrac1n,\\tfrac1n\\bigr) = \\{0\\}$ is the standard one, and the pattern generalises. In **any** metric space,\n\n$$\\bigcap_{n \\ge 1} B\\bigl(x, \\tfrac1n\\bigr) = \\{x\\},$$\n\nso every singleton is a countable intersection of open sets. In $\\R$ no singleton is open, so the rule fails in $\\R$ — but in a **discrete** space every singleton *is* open, and there the intersection above is open after all. The rule says an arbitrary intersection *need not* be open; it never says it cannot be.\n\n## And the sets you get\n\nCountable intersections of open sets are called $G_\\delta$ sets and they turn up often enough to have a name. The set of points where a function is continuous is always a $G_\\delta$, which is why there is a function continuous exactly at the irrationals and no function continuous exactly at the rationals.",
+  "readMore": [
+    {
+      "concept": "ms-open-set-algebra",
+      "where": "the lemmas, and the complement argument"
+    }
+  ],
+  "id": "ms-infinite-intersection"
+}

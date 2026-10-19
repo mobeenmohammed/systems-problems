@@ -1,0 +1,50 @@
+{
+  "key": {
+    "answers": [
+      2,
+      4
+    ]
+  },
+  "feedback": {
+    "misconceptions": [
+      {
+        "picked": [
+          0
+        ],
+        "say": "On $[0,1] \\cup (2,3]$: it is not an interval, and the two open sets $(-1, 1.5)$ and $(1.5, 4)$ intersected with the space split it into two non-empty open pieces."
+      },
+      {
+        "picked": [
+          1
+        ],
+        "say": "On $\\Q$: take any irrational $\\alpha$ and split at it. $\\{q \\in \\Q : q < \\alpha\\}$ and $\\{q \\in \\Q : q > \\alpha\\}$ are open in $\\Q$, disjoint, non-empty, and together they are all of $\\Q$ — because no rational equals $\\alpha$. $\\Q$ is in fact **totally** disconnected."
+      },
+      {
+        "picked": [
+          3
+        ],
+        "say": "On the discrete metric: every subset is open, so pick any non-empty proper subset and its complement. A discrete space with more than one point is as disconnected as a space can be."
+      }
+    ],
+    "nudge": "Three of the five come apart, and in each case you can write down the two open sets that do it. The two that do not are a continuous image of an interval and the standard example of a space held together by a limit point."
+  },
+  "distractors": {
+    "0": "No. Take $U = (-1, \\tfrac32) \\cap E$ and $V = (\\tfrac32, 4) \\cap E$: both are open in $E$, disjoint, non-empty, and their union is $E$. It is not an interval, which already settles it.",
+    "1": "No. For any irrational $\\alpha$, the sets $\\Q \\cap (-\\infty, \\alpha)$ and $\\Q \\cap (\\alpha, \\infty)$ are open in $\\Q$, disjoint, non-empty and cover it. $\\Q$ is totally disconnected: its only connected subsets are the single points.",
+    "2": "Yes. The circle is $g\\bigl([0,2\\pi]\\bigr)$ for the continuous $g(t) = (\\cos t, \\sin t)$. $[0,2\\pi]$ is an interval, hence connected, and a continuous image of a connected space is connected. It is also path connected, which gives the same conclusion.",
+    "3": "No. In a discrete space every subset is open, so any non-empty proper subset and its complement disconnect it. A discrete space is connected only when it has at most one point.",
+    "4": "Yes — and this is the point of the example. It is connected: the graph part is a continuous image of $(0,1]$, hence connected, and the whole space is contained in its closure, which keeps it connected. It is **not** path connected: no continuous path can get from the segment to the graph, because approaching $x=0$ the second coordinate oscillates between $-1$ and $1$ for ever."
+  },
+  "explanation": "## The line, settled completely\n\nA non-empty subset of $\\R$ is connected **exactly when it is an interval** — where \"interval\" includes single points, rays and all of $\\R$. One classification, and both of the subsets of $\\R$ here fall out of it: $[0,1]\\cup(2,3]$ has a gap and $\\Q$ has a great many.\n\nThe proof of the hard direction is the one worth remembering. If $E$ is not an interval there are $a < c < b$ with $a, b \\in E$ and $c \\notin E$; then $E \\cap (-\\infty, c)$ and $E \\cap (c, \\infty)$ disconnect it. Finding a missing point in the middle is all that disconnecting a subset of the line ever requires.\n\n## Continuous images\n\n$f$ continuous and $X$ connected implies $f(X)$ connected. The proof is two lines through preimages: a disconnection of $f(X)$ pulls back to a disconnection of $X$.\n\nThat single fact does a great deal of work:\n\n- the circle is connected, being the image of $[0, 2\\pi]$;\n- the intermediate value theorem is the special case $Y = \\R$: a connected subset of $\\R$ is an interval, so a continuous function on $[a,b]$ takes every value between $f(a)$ and $f(b)$;\n- anything path connected is connected, since a path is a continuous map from an interval.\n\n## Connected without being path connected\n\nThe topologist's sine curve is the standard example, and it is standard because it is the *simplest* one.\n\nIt is connected: the graph $G = \\{(x, \\sin(1/x)) : 0 < x \\le 1\\}$ is a continuous image of $(0,1]$ and so is connected, and the whole space $S$ satisfies $G \\subseteq S \\subseteq \\overline{G}$ — every point of the segment is a limit of points of the graph, because $\\sin(1/x)$ takes every value in $[-1,1]$ on every interval $(0,\\eps)$. A set squeezed between a connected set and its closure is connected.\n\nIt is not path connected. A path from a point of the segment into the graph would have to be continuous at the moment it leaves $x = 0$, and in any neighbourhood of that moment the second coordinate must swing from $-1$ to $1$ infinitely often. No continuous function does that.\n\nSo connectedness is strictly weaker than path connectedness. They coincide for **open** subsets of a normed space (Theorem 5.3.7 in the notes, which is marked non-examinable) — and the sine curve is not open, which is why it is allowed to exist.",
+  "readMore": [
+    {
+      "concept": "ms-connectedness",
+      "where": "the definition and the equivalent forms"
+    },
+    {
+      "concept": "ms-path-connectedness",
+      "where": "the implication, and the topologist's sine curve"
+    }
+  ],
+  "id": "ms-connected-which"
+}

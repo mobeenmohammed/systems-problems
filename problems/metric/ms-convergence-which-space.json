@@ -1,0 +1,43 @@
+{
+  "id": "ms-convergence-which-space",
+  "title": "The same sequence, five different spaces",
+  "topic": "metric",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "multi",
+  "tags": [
+    "convergence",
+    "ambient-space",
+    "course-metric-spaces"
+  ],
+  "estimate": 12,
+  "prereqs": [
+    {
+      "concept": "ms-convergence",
+      "why": "Convergence needs a limit that is a point OF the space, which is the whole of this question."
+    },
+    {
+      "concept": "ms-subspace-metric",
+      "why": "Three of the five spaces are subsets of the line carrying the metric they inherit from it."
+    },
+    {
+      "concept": "ms-discrete-metric",
+      "why": "One of the five is the discrete metric, where the answer is not what the formula suggests."
+    }
+  ],
+  "statement": "Consider the single sequence\n\n$$x_n = \\frac{1}{n}, \\qquad n = 1, 2, 3, \\dots$$\n\nSelect every space below **in which this sequence converges**. In each case\nthe sequence is a sequence of points of that space.\n\nRecall that $(x_n)$ converges to $x$ in $(X,d)$ when, for every $\\eps > 0$,\nthere is $N$ with $d(x_n, x) < \\eps$ for all $n \\ge N$ — and $x$ must be a\npoint of $X$.",
+  "hints": [
+    "Convergence is not a property the sequence has on its own. Three things decide it: the terms, the metric, and whether the candidate limit is in the space.",
+    "In the discrete metric, $d(x_n, x) < \\eps$ for $\\eps = 1/2$ forces $x_n = x$. So what do the convergent sequences of a discrete space look like?",
+    "$\\Q$ contains $0$. $(0,2)$ does not. That is the difference between two of these lines, and the terms are the same in both."
+  ],
+  "payload": {
+    "options": [
+      "$\\R$ with the Euclidean metric.",
+      "The subspace $(0,2)$ of Euclidean $\\R$.",
+      "$\\R$ with the discrete metric.",
+      "The subspace $[0,1]$ of Euclidean $\\R$.",
+      "$\\Q$ with the Euclidean metric."
+    ]
+  }
+}

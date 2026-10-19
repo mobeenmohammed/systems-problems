@@ -1,0 +1,49 @@
+{
+  "id": "ms-which-sequence-space",
+  "title": "Which sequence space does it live in?",
+  "topic": "metric",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "match",
+  "tags": [
+    "sequence-spaces",
+    "series",
+    "course-metric-spaces"
+  ],
+  "estimate": 14,
+  "prereqs": [
+    {
+      "concept": "ms-sequence-spaces",
+      "why": "The three spaces are defined by three convergence conditions, and the whole exercise is deciding which hold."
+    },
+    {
+      "concept": "ms-euclidean-metrics",
+      "why": "The three conditions are the infinite versions of the sum, the root-sum-of-squares and the maximum."
+    }
+  ],
+  "statement": "Write\n\n$$\\ell^1 = \\Bigl\\{x : \\sum_{n\\ge1} |x_n| < \\infty \\Bigr\\},\\quad\n\\ell^2 = \\Bigl\\{x : \\sum_{n\\ge1} |x_n|^2 < \\infty \\Bigr\\},\\quad\n\\ell^\\infty = \\Bigl\\{x : \\sup_{n} |x_n| < \\infty \\Bigr\\}.$$\n\nMatch each sequence on the left to the description of its membership on the\nright.\n\nOne of the descriptions on the right fits none of them — and in fact fits no\nsequence at all. Working out why is part of the exercise.",
+  "hints": [
+    "Take the three conditions in order of strength. Which of them implies which?",
+    "For $x_n = 1/n$: $\\sum 1/n$ is the harmonic series and $\\sum 1/n^2$ converges. For $x_n = 1/\\sqrt n$: $\\sum 1/n^{1/2}$ and $\\sum 1/n$ both diverge.",
+    "A sequence whose terms are absolutely summable must have terms tending to zero, so it is bounded. That rules one of the descriptions out entirely."
+  ],
+  "payload": {
+    "leftLabel": "Sequence",
+    "rightLabel": "Where it lives",
+    "left": [
+      "$x_n = 2^{-n}$",
+      "$x_n = 1/n$",
+      "$x_n = 1/\\sqrt{n}$",
+      "$x_n = 1$ for every $n$",
+      "$x_n = n$"
+    ],
+    "right": [
+      "In none of the three: the terms are not even bounded.",
+      "In all three: the terms are absolutely summable, and that forces the other two conditions.",
+      "In $\\ell^\\infty$ and in neither of the others, because the terms do not tend to zero at all.",
+      "In $\\ell^2$ and in $\\ell^\\infty$ but not in $\\ell^1$: the squares are summable, the terms themselves are not.",
+      "In $\\ell^\\infty$ and in neither of the others, because the squares sum like the harmonic series.",
+      "In $\\ell^1$ and in $\\ell^2$ but not in $\\ell^\\infty$."
+    ]
+  }
+}

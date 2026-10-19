@@ -1,0 +1,36 @@
+{
+  "id": "ms-sup-metric-distance",
+  "title": "The distance between two functions",
+  "topic": "metric",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "exact",
+  "tags": [
+    "function-spaces",
+    "sup-norm",
+    "course-metric-spaces"
+  ],
+  "estimate": 10,
+  "prereqs": [
+    {
+      "concept": "ms-function-spaces",
+      "why": "The supremum norm turns two functions into one number, and that number is what is being asked for."
+    },
+    {
+      "concept": "ms-normed-spaces",
+      "why": "The distance is the norm of the difference, so the first move is to write down the difference."
+    }
+  ],
+  "statement": "Work in $\\bigl(C[0,1], \\|\\cdot\\|_\\infty\\bigr)$, the continuous real functions\non $[0,1]$ with\n\n$$\\|h\\|_\\infty = \\sup_{t \\in [0,1]} |h(t)|.$$\n\nLet $f(t) = t^2$ and $g(t) = t^4$.\n\nGive the exact value of $\\|f - g\\|_\\infty$.",
+  "hints": [
+    "The distance is the supremum of $|f(t) - g(t)|$, so write that difference down as a single function of $t$ first.",
+    "On $[0,1]$ the difference $t^2 - t^4$ is never negative, so the absolute value can be dropped and you are maximising an ordinary polynomial.",
+    "Differentiate $t^2 - t^4$ and set it to zero. One of the critical points is an endpoint value of 0; the other is where the maximum is, and you need the value there, not the point."
+  ],
+  "payload": {
+    "prompt": "The supremum distance between the two functions.",
+    "label": "$\\|f - g\\|_\\infty =$",
+    "placeholder": "a fraction",
+    "syntax": "A number or a fraction. 1/4 and 0.25 are the same answer."
+  }
+}

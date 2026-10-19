@@ -1,0 +1,34 @@
+{
+  "key": {
+    "value": "sqrt(2)"
+  },
+  "feedback": {
+    "whenValue": [
+      {
+        "is": "2",
+        "say": "Check it: $T(2) = 1 + \\tfrac12 = \\tfrac32 \\ne 2$. Solve $T(x) = x$ rather than guessing an endpoint."
+      },
+      {
+        "is": "1",
+        "say": "Check it: $T(1) = \\tfrac12 + 1 = \\tfrac32 \\ne 1$. Both endpoints move, which they must — $T$ maps $[1,2]$ into a strictly smaller interval."
+      },
+      {
+        "is": "3/2",
+        "say": "That is $T(1)$ and also $T(2)$, which is a coincidence worth noticing, but it is not fixed: $T(3/2) = 3/4 + 2/3 = 17/12$."
+      },
+      {
+        "is": "-sqrt(2)",
+        "say": "That does solve $x^2 = 2$, and it is not in $[1,2]$. The theorem gives a fixed point of $T$ **as a map of $X$ into $X$**, so only the root inside the space counts."
+      }
+    ],
+    "nudge": "Set $T(x) = x$ and solve. You should reach a quadratic with two roots, exactly one of which lies in $[1,2]$ — and the answer box wants it exactly, not as a decimal."
+  },
+  "explanation": "## Solving for the fixed point\n\n$$\\frac{x}{2} + \\frac1x = x \\iff \\frac1x = \\frac{x}{2} \\iff x^2 = 2 \\iff x = \\pm\\sqrt2 .$$\n\nOnly $\\sqrt 2 \\approx 1.41421$ lies in $[1,2]$, so $x^\\ast = \\sqrt 2$.\n\n## What the theorem adds\n\nSolving the equation finds a fixed point. Banach's theorem tells you three further things, none of which the algebra gives:\n\n- **There is at most one.** Two fixed points $x \\ne y$ would give $d(x,y) = d(T(x),T(y)) \\le \\tfrac12 d(x,y)$, forcing $d(x,y) = 0$.\n- **Iterating finds it from anywhere.** $x_{m+1} = T(x_m)$ converges to $\\sqrt2$ from every starting point in $[1,2]$.\n- **There is an error bound before you start.** $d(x_m, x^\\ast) \\le \\dfrac{k^m}{1-k}\\,d(x_1, x_0)$, which here is $2^{-m+1}d(x_1,x_0)$ — so each step buys about one more bit.\n\nStarting from $x_0 = 2$: $x_1 = 1.5$, $x_2 = 1.41\\overline{6}$, $x_3 = 1.414215\\ldots$, $x_4 = 1.4142135623746\\ldots$ against $\\sqrt 2 = 1.4142135623730\\ldots$.\n\n## What this iteration is\n\n$T$ is Newton's method for $x^2 - 2 = 0$:\n\n$$x - \\frac{x^2 - 2}{2x} = x - \\frac{x}{2} + \\frac1x = \\frac{x}{2} + \\frac1x .$$\n\nThe convergence is visibly faster than the $2^{-m}$ the contraction bound promises, and that is not a contradiction — the bound is a guarantee, not a prediction. Near the fixed point $T'(\\sqrt2) = \\tfrac12 - \\tfrac12 = 0$, and a contraction whose derivative vanishes at the fixed point converges quadratically: the number of correct digits roughly doubles each step, which is what the numbers above do.\n\nThis method was known to the Babylonians about three and a half thousand years before Banach, which is a fair summary of what an abstract theorem is for. It does not find the algorithm. It tells you, in one line and without touching the arithmetic, that the algorithm has a limit, that the limit does not depend on where you start, and how fast you are getting there.",
+  "readMore": [
+    {
+      "concept": "ms-banach-fixed-point",
+      "where": "the statement, the proof and the error estimate"
+    }
+  ],
+  "id": "ms-banach-fixed-point-value"
+}

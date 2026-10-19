@@ -1,0 +1,31 @@
+{
+  "key": {
+    "answer": 0
+  },
+  "feedback": {
+    "options": {
+      "1": "This asks for the condition at a single point rather than at all of them. Take $g(t) = 100$: at $t = 0$ the value $100$ is nowhere near the interval $(-1, 1)$, but you only need one point to succeed, so this set contains functions that are a very long way from $f$. A ball is defined by a condition on the whole supremum.",
+      "2": "This is the **closed** ball, and the two are genuinely different. The function $g(t) = t + 1$ satisfies $|g(t) - t| \\le 1$ everywhere and has $\\|g - f\\|_\\infty = 1$ exactly, so it is in your set and not in $B(f,1)$. Compare the definitions once more: one has $<$ and the other $\\le$.",
+      "3": "This is a ball of radius 1, but in a different metric — the $L^1$ metric $\\int_0^1|g-f|$, which is also a metric on $C[0,1]$ and is not this one. A tall narrow spike has small integral and large supremum, so the two balls contain different functions."
+    },
+    "nudge": "Two things to pin down. First, is the condition about one $t$ or about all of them? Second, with the condition holding strictly at every point of the closed interval $[0,1]$, can the supremum still equal 1?"
+  },
+  "distractors": {
+    "0": "Correct. $\\|g-f\\|_\\infty < 1$ gives the strict pointwise bound immediately. The converse is the interesting direction, and it works because $[0,1]$ is compact: $|g-f|$ is continuous, so its supremum is attained at some $t_0$, and $|g(t_0) - t_0| < 1$ by assumption, so the supremum itself is below 1.",
+    "1": "No. One point is not enough: $g(t) = 100$ satisfies the condition at no point at all, but $g(t) = t + 5$ satisfies it nowhere either while $g(t) = t + 1 - t/2$ satisfies it at some points and not others. A ball constrains the whole function.",
+    "2": "No — this is the closed ball $\\overline{B}(f,1)$. The function $g(t) = t+1$ is in it and not in the open ball. In this space the open ball and the closed ball of the same radius are genuinely different sets, and the closed ball is the closure of the open one.",
+    "3": "No. This is the unit ball of the $L^1$ metric on $C[0,1]$. The two metrics are not equivalent: $g_n(t) = \\max(0, 1 - nt)$ has $\\|g_n - 0\\|_\\infty = 1$ for every $n$ while $\\int_0^1 g_n \\to 0$."
+  },
+  "explanation": "## The two directions\n\n$B(f,1)$ is defined by $\\sup_t |g(t) - t| < 1$. One direction is free: a supremum below 1 bounds every individual value below 1.\n\nThe other direction is the one with content. Suppose $|g(t) - t| < 1$ for **every** $t \\in [0,1]$. Does it follow that the supremum is below 1?\n\nIn general, no. The function $u(t) = 1 - 1/(1+t)$ on $[0,\\infty)$ is strictly below 1 everywhere and has supremum exactly 1. A strict inequality at every point does not survive a supremum.\n\nHere it does, and the reason is compactness. $|g - f|$ is continuous on $[0,1]$, which is closed and bounded, so it **attains** its supremum: there is a $t_0$ with $|g(t_0) - t_0| = \\sup_t |g(t) - t|$. The hypothesis applies at $t_0$, so the supremum is itself strictly below 1.\n\nChange the domain to $(0,1)$ — still a metric space, still the supremum norm — and the equivalence breaks. $g(t) = t + 1 - t$... more simply, take $g(t) = t + t$ on $(0,1)$: then $|g(t) - t| = t < 1$ for every $t$, and the supremum is 1. So $g$ satisfies the pointwise condition and is not in the open ball.\n\n## The picture\n\n$B(f,1)$ is the set of continuous functions whose graph stays strictly inside a band of vertical half-width 1 around the line $y = t$. The closed ball allows the graph to touch the edges of the band, and $g(t) = t+1$ does, which is why the two are different sets.\n\nThis is the standard picture for the supremum metric and it is worth carrying: a ball is a band, the radius is the half-width, and \"close in $C[0,1]$\" means \"nowhere far apart\".\n\n## And the one in a different metric\n\n$C[0,1]$ carries more than one natural metric. The $L^1$ metric $\\int_0^1|g-f|$ is also a metric, and its balls look nothing like bands: a function can be enormous on a very short interval and still be $L^1$-close to zero. The two metrics give different open sets, different convergent sequences and — as it happens — different answers to whether the space is complete.",
+  "readMore": [
+    {
+      "concept": "ms-open-balls",
+      "where": "balls in a general metric space"
+    },
+    {
+      "concept": "ms-function-spaces",
+      "where": "the two natural norms on C[0,1]"
+    }
+  ],
+  "id": "ms-ball-in-sup-metric"
+}

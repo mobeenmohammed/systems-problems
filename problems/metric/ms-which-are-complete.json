@@ -1,0 +1,43 @@
+{
+  "id": "ms-which-are-complete",
+  "title": "Which of these spaces are complete?",
+  "topic": "metric",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "multi",
+  "tags": [
+    "completeness",
+    "cauchy-sequences",
+    "course-metric-spaces"
+  ],
+  "estimate": 14,
+  "prereqs": [
+    {
+      "concept": "ms-completeness",
+      "why": "Completeness is the property being tested, and refuting it means producing one Cauchy sequence with nowhere to go."
+    },
+    {
+      "concept": "ms-complete-iff-closed",
+      "why": "Three of the five are subspaces of a complete space, where completeness and closedness are the same question."
+    },
+    {
+      "concept": "ms-function-spaces",
+      "why": "The last two are the same set of functions under two different metrics, and only one of them is complete."
+    }
+  ],
+  "statement": "Select every space below that is **complete** — every Cauchy sequence in\nit converges to a point of it.\n\nRefuting completeness means producing a single Cauchy sequence whose only\npossible limit lies outside the space.",
+  "hints": [
+    "For a subspace of $\\R$, completeness and being closed in $\\R$ are the same condition. Which of these subsets of $\\R$ are closed?",
+    "In the discrete metric a Cauchy sequence must be eventually constant. What does that make the space?",
+    "For the last one, look for a sequence of continuous functions whose integral distances shrink but whose natural limit has a jump in it."
+  ],
+  "payload": {
+    "options": [
+      "$\\Q$ with the metric $d(x,y) = |x-y|$.",
+      "$\\Z$ with the metric $d(x,y) = |x-y|$.",
+      "$(0,1]$ with the metric $d(x,y) = |x-y|$.",
+      "$\\R$ with the discrete metric $d_d$.",
+      "$C[0,1]$ with $d(f,g) = \\int_0^1 |f(t) - g(t)|\\,\\mathrm{d}t$."
+    ]
+  }
+}

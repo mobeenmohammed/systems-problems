@@ -1,0 +1,20 @@
+{
+  "key": {
+    "value": "{0,1,2,3,4,5,6,7,8,9,10}"
+  },
+  "feedback": {
+    "nudge": "Two questions. Which members of the cover are forced to be there, because they are the only ones containing some point of $K$? And which points does $U_0$ leave uncovered? Watch the endpoint $1/10$ carefully: the interval is open."
+  },
+  "explanation": "## Which set covers which point\n\n$U_0 = \\bigl(-\\tfrac1{10}, \\tfrac1{10}\\bigr)$ contains $0$, and contains $1/n$ exactly when $1/n < 1/10$, that is when $n \\ge 11$.\n\nIn particular $1/10$ is **not** in $U_0$: the interval is open and $1/10$ is its right endpoint.\n\nFor $n \\ge 1$, $U_n = \\bigl(\\tfrac1{n+1/2}, \\tfrac1{n-1/2}\\bigr)$ contains $1/n$, since\n\n$$\\frac{1}{n + \\tfrac12} < \\frac1n < \\frac{1}{n - \\tfrac12}.$$\n\nIt contains no other point of $K$: the next point down, $1/(n+1)$, satisfies $1/(n+1) < 1/(n+\\tfrac12)$, and the next point up is above the right endpoint. It does not contain $0$ either.\n\n## Which indices are forced\n\nThe points $1, \\tfrac12, \\tfrac13, \\dots, \\tfrac1{10}$ are each in exactly one member of $\\mathcal U$ — namely $U_1, \\dots, U_{10}$ — so all ten of those indices are forced. The point $0$ is in exactly one member, $U_0$, so index 0 is forced. That is eleven forced indices, and together they cover everything: $U_0$ mops up $1/11, 1/12, \\dots$, which is the whole infinite tail.\n\n$$\\{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10\\}.$$\n\nEvery index is forced, so the subcover is not merely smallest, it is the only minimal one.\n\n## What compactness is doing\n\nThe cover is infinite and the subcover is finite, and the reason is entirely the point $0$. Any open set containing $0$ contains a whole interval $(-r, r)$, and therefore contains **all but finitely many** points of $K$ — because $1/n \\to 0$. So in every open cover, the one member chosen to contain $0$ does almost all of the work, and the finitely many stragglers get one member each.\n\nThat is the whole proof that $K$ is compact, and it is worth separating from the Heine–Borel appeal in the statement: Heine–Borel tells you a finite subcover exists; this argument tells you *why*, and it works in any metric space, not only in $\\R$.\n\n## Remove the limit point\n\n$K \\setminus \\{0\\} = \\{1/n : n \\ge 1\\}$ is **not** compact, and the same cover shows it: drop $U_0$ and keep $U_1, U_2, \\dots$, which now covers the set with each member containing exactly one point. No finite subfamily covers infinitely many points.\n\nThe set is still bounded. What it has stopped being is closed — $0$ is adherent to it and missing — and that single missing point is the whole difference. It is the cleanest illustration available of why Heine–Borel needs both halves.",
+  "readMore": [
+    {
+      "concept": "ms-open-covers",
+      "where": "covers, subcovers, and the example of a non-compact interval"
+    },
+    {
+      "concept": "ms-heine-borel",
+      "where": "the theorem, and what it does not say outside R^n"
+    }
+  ],
+  "id": "ms-finite-subcover"
+}

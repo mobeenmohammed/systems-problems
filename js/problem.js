@@ -938,9 +938,18 @@ const ProblemView = (() => {
 
     /* Switching the statement for the hints must not rebuild the editor
        beside it; only the pane that changed is repainted. */
+    const leftStrip = tabStrip(tabsNow(), activeTab, setLeftTab);
+    leftStrip.append(el('button', {
+      class: 'ws-collapse', type: 'button', id: 'descHide',
+      title: 'Hide the description and give the room to the editor (Alt+D)',
+      'aria-label': 'Hide the description',
+      onclick: () => setDesc(false),
+    }, ['«']));
     const left = el('section', { class: 'ws-left' }, [
-      tabStrip(tabsNow(), activeTab, setLeftTab),
-      el('div', { class: 'ws-pane', id: 'leftPane' }),
+      leftStrip,
+      /* Focusable so that bringing the statement back can put the
+         caret in it: the reader pressed Alt+D to read something. */
+      el('div', { class: 'ws-pane', id: 'leftPane', tabindex: '-1' }),
     ]);
     fillLeftPane(left.querySelector('#leftPane'));
 
@@ -955,7 +964,9 @@ const ProblemView = (() => {
       el('div', { class: 'ws-foot', id: 'wsFoot' }),
     ]);
 
-    const body = el('div', { class: 'ws-body' }, [left, vGutter(), right]);
+    const body = el('div', {
+      class: 'ws-body', 'data-desc': String(descOpen()),
+    }, [left, vGutter(), right]);
     const wrap = el('div', { class: 'ws' }, [header(), body]);
 
     /* The widget is mounted after the frame exists, so CodeMirror is created
@@ -981,7 +992,51 @@ const ProblemView = (() => {
     const strip = tabStrip(workTabs(), workTab, setWorkTab, 'ws-tabs ws-tabs-work');
     const editorTab = strip.querySelector('[data-tab="editor"]');
     if (editorTab) editorTab.after(el('div', { class: 'ws-lang-slot', id: 'langSlot' }));
+    /* Always in the DOM and shown only while the statement is hidden.
+       A control that only exists once the panel is gone is a control
+       the reader has to discover while the thing it brings back is
+       invisible — see .ws-body[data-desc] in the stylesheet. */
+    strip.prepend(el('button', {
+      class: 'ws-show-desc', type: 'button', id: 'descShow',
+      title: 'Bring the description back (Alt+D)',
+      onclick: () => setDesc(true),
+    }, ['» Show description']));
     return strip;
+  }
+
+  /* ---------------- the description panel ----------------
+
+     Collapsing it is not the same as the split: the split says how the
+     two panels share the row, and this says whether there are two.
+     Both are remembered, and neither touches the other, so bringing
+     the statement back puts it at the width it had. */
+  const descOpen = () => Store.pref('descPane', true) !== false;
+
+  function setDesc(on) {
+    Store.setPref('descPane', !!on);
+    const body = host && host.querySelector('.ws-body');
+    if (body) body.dataset.desc = String(!!on);
+    applySplit();
+    const ed = codeEditor();
+    if (ed) ed.refresh();
+    /* Reading the statement is why the panel came back. */
+    if (on) {
+      const pane = host && host.querySelector('#leftPane');
+      if (pane) pane.focus({ preventScroll: true });
+    }
+  }
+
+  function toggleDesc(force = null) {
+    if (!current || !host || !host.isConnected || !isWorkspace(current)) return;
+    setDesc(force === null ? !descOpen() : !!force);
+  }
+
+  /* The explorer belongs to the workspace widget, and only a multi-file
+     problem has one. Asked of the type rather than reached into. */
+  function toggleFiles() {
+    const impl = current ? ProblemTypes.get(current.type) : null;
+    const pane = impl && impl.pane ? impl.pane() : null;
+    if (pane && pane.toggleSidebar) pane.toggleSidebar();
   }
 
   function setWorkTab(id) {
@@ -2029,6 +2084,13 @@ const ProblemView = (() => {
   function resetLayout() {
     Store.setPref('splitFraction', 0.42);
     Store.setPref('editorFontSize', 14);
+    Store.setPref('descPane', true);
+    /* The explorer's own three — its width, whether it is showing and
+       which folders are shut — belong to the widget, which is the only
+       thing that knows what its defaults are. */
+    const impl = current ? ProblemTypes.get(current.type) : null;
+    const pane = impl && impl.pane ? impl.pane() : null;
+    if (pane && pane.resetLayout) pane.resetLayout();
     const ed = codeEditor();
     if (ed && ed.setFontSize) ed.setFontSize(14);
     applySplit();
@@ -2918,6 +2980,9 @@ const ProblemView = (() => {
   return {
     open, leave, toggleFocus, setSplit, splitFraction,
     showResults, resetLayout, setWorkTab,
+    /* The two panels a reader can fold away, reachable from the keyboard
+       handler in app.js as well as from their own buttons. */
+    toggleDesc, toggleFiles,
     /* For a type module that owns a pane: open it, and repaint it. The
        strip belongs to the page, so a type cannot reach it directly. */
     openPane, repaintPane,
