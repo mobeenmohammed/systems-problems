@@ -408,11 +408,17 @@ section('Kind and Subject narrow together, and search overrides both');
     rows: document.querySelectorAll('#catalogList .prow').length,
     count: document.getElementById('catalogCount').textContent,
   }));
-  /* No mathematics problem is a coding exercise, so this is the empty
-     case — which must say so rather than look broken. */
-  ok(`maths + coding is empty, and says so (${both.rows} rows)`,
-    both.rows === 0 && /Nothing matches/i.test(
-      await page.evaluate(() => document.querySelector('#catalogList .empty').textContent)));
+  /* This used to be the empty case, and it is not one any more: two
+     coding exercises live under a mathematics topic on purpose — one
+     checks a finite distance matrix against the metric axioms and one
+     runs a finite Markov chain forward exactly. So the check is that
+     the two filters really do intersect rather than one winning, and
+     the count is taken from the catalogue rather than written down. */
+  const want = await page.evaluate(() => window.SystemsLab.Catalog.all()
+    .filter(p => p.subject === 'maths' && p.type === 'code').length);
+  check(`maths and coding intersect in ${want}`, both.rows, want);
+  ok(`and the count says so ("${both.count}")`,
+    both.count.startsWith(`${want} `));
 
   await page.locator('#fSearch').fill('bayes');
   await page.waitForTimeout(700);
