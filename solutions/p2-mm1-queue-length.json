@@ -1,0 +1,35 @@
+{
+  "key": {
+    "value": "0.107",
+    "tol": 0.001
+  },
+  "feedback": {
+    "whenValue": [
+      {
+        "is": "0.086",
+        "say": "That is $\\pi_{10} = (1-\\rho)\\rho^{10}$, the probability of **exactly** ten. The question asks for ten or more, and the whole tail is larger."
+      },
+      {
+        "is": "0.2",
+        "say": "That is $1 - \\rho = \\pi_0$, the probability the server is idle. A useful number, and not this one."
+      },
+      {
+        "is": "0.8",
+        "say": "That is $\\rho$, the utilisation — the long-run fraction of time the server is busy, which is also $\\P(X \\ge 1)$."
+      },
+      {
+        "is": "0.134",
+        "say": "Close. Check the exponent: the tail from $i = 10$ onwards sums to $\\rho^{10}$, not $\\rho^{9}$."
+      }
+    ],
+    "nudge": "The tail of a geometric distribution is a single power: $\\P(X \\ge n) = \\rho^{\\,n}$. Work out $\\rho$ and raise it to the tenth."
+  },
+  "explanation": "## The computation\n\n$\\rho = \\lambda/\\mu = 8/10 = 0.8 < 1$, so the chain is positive recurrent and the equilibrium distribution exists. Then\n\n$$\\P(X \\ge 10) = \\sum_{i \\ge 10} (1-\\rho)\\rho^{\\,i} = (1-\\rho)\\,\\frac{\\rho^{10}}{1-\\rho} = \\rho^{10} = 0.8^{10} \\approx 0.1074,$$\n\nso $\\mathbf{0.107}$ to three decimal places.\n\nThe tail of a geometric distribution is a single power, which is the memorylessness of the geometric showing up: given that there are already ten customers, the number of *extra* ones has the same distribution as the whole queue length did.\n\n## What else falls out of the same formula\n\n| quantity | value here |\n| --- | --- |\n| server idle, $\\pi_0 = 1-\\rho$ | $0.2$ |\n| mean number present, $\\rho/(1-\\rho)$ | $4$ |\n| mean time in the system, $1/(\\mu - \\lambda)$ | $30$ minutes |\n| mean queue length excluding the one in service | $\\rho^2/(1-\\rho) = 3.2$ |\n\nThe mean waiting time is Example 5.24(d) in the notes, and it comes out as $\\E(\\text{number present} + 1)/\\mu$ by conditioning on the state an arriving customer finds.\n\n## The shape of the answer, and why queues feel bad\n\n$\\rho/(1-\\rho)$ is the number to keep in your head. It is not linear in the load:\n\n| $\\rho$ | $0.5$ | $0.8$ | $0.9$ | $0.95$ | $0.99$ |\n| --- | --- | --- | --- | --- | --- |\n| mean number present | $1$ | $4$ | $9$ | $19$ | $99$ |\n\nGoing from 50% to 80% utilisation quadruples the queue; going from 90% to 99% multiplies it by eleven. A server run at 99% of capacity is not \"nearly perfectly used\", it is a disaster waiting for a quiet period that never comes.\n\nAnd the blow-up is entirely caused by **variability**. If arrivals came exactly every 7.5 minutes and each service took exactly 6 minutes, nobody would ever wait. It is the randomness of the Poisson arrivals and the exponential services that makes a queue form at all, which is why the Poisson process of chapter 4 has to come before this chapter.\n\n## Where the geometric comes from\n\nA birth–death chain is reversible, so instead of solving $\\pi G = 0$ you can write down the balance across each edge of the chain:\n\n$$\\pi_i \\lambda = \\pi_{i+1}\\mu \\quad\\Longrightarrow\\quad \\pi_{i+1} = \\rho\\,\\pi_i \\quad\\Longrightarrow\\quad \\pi_i = \\rho^i \\pi_0,$$\n\nand $\\sum_i \\pi_i = 1$ gives $\\pi_0 = 1 - \\rho$ provided the series converges, which needs $\\rho < 1$.\n\nThe three regimes are worth naming. $\\rho > 1$: transient, the queue runs away to infinity. $\\rho = 1$: null recurrent — the queue keeps coming back to empty, and the expected time between empties is infinite. $\\rho < 1$: positive recurrent, with the geometric equilibrium above.",
+  "readMore": [
+    {
+      "concept": "p2-queues",
+      "where": "the M/M/1 chain, its three regimes and the derived quantities"
+    }
+  ],
+  "id": "p2-mm1-queue-length"
+}

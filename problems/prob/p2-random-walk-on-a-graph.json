@@ -1,0 +1,42 @@
+{
+  "id": "p2-random-walk-on-a-graph",
+  "title": "A walk on a graph, balanced edge by edge",
+  "topic": "prob",
+  "difficulty": "advanced",
+  "lane": "core",
+  "type": "exact",
+  "tags": [
+    "reversibility",
+    "detailed-balance",
+    "stationary-distributions",
+    "course-probability-2"
+  ],
+  "estimate": 16,
+  "prereqs": [
+    {
+      "concept": "p2-reversibility",
+      "why": "Detailed balance is what makes the answer a guess that can be checked in one line instead of a linear system."
+    },
+    {
+      "concept": "p2-stationary-distributions",
+      "why": "Detailed balance implies stationarity, which is the theorem being used."
+    },
+    {
+      "concept": "p2-communicating-classes",
+      "why": "The chain has to be irreducible for the stationary distribution to be the unique one, and a connected graph is exactly that."
+    }
+  ],
+  "statement": "Let $G$ be the graph on vertices $\\{1,2,3,4\\}$ with edges\n\n$$\\{1,2\\},\\quad \\{2,3\\},\\quad \\{3,4\\},\\quad \\{1,3\\}.$$\n\nA walker at vertex $v$ moves to a uniformly chosen neighbour of $v$, so\n\n$$p_{v,w} = \\frac{1}{\\deg(v)} \\ \\text{ if } \\{v,w\\} \\text{ is an edge}, \\qquad 0 \\text{ otherwise.}$$\n\n$G$ is connected, so the chain is irreducible and has a unique stationary\ndistribution $\\pi$.\n\n**Detailed balance** says: if a distribution $\\pi$ satisfies\n$\\pi_v p_{v,w} = \\pi_w p_{w,v}$ for every pair, it is stationary. Guess a\n$\\pi$ proportional to something about each vertex, check the balance\nequations, and normalise.\n\nGive $\\pi_3$ exactly.",
+  "hints": [
+    "Write down the degree of each of the four vertices first. Vertex 3 is the busiest.",
+    "Try $\\pi_v \\propto \\deg(v)$ and substitute into $\\pi_v p_{v,w} = \\pi_w p_{w,v}$. Both sides collapse to the same thing.",
+    "With $\\pi_v = \\deg(v)/c$, the balance equation reads $\\tfrac{\\deg(v)}{c}\\cdot\\tfrac{1}{\\deg(v)} = \\tfrac{\\deg(w)}{c}\\cdot\\tfrac{1}{\\deg(w)}$, which is $1/c = 1/c$.",
+    "The normalising constant is the sum of all the degrees, which is twice the number of edges."
+  ],
+  "payload": {
+    "prompt": "The stationary probability of vertex 3.",
+    "label": "$\\pi_3 =$",
+    "placeholder": "a fraction",
+    "syntax": "A number or a fraction. Arithmetic is fine."
+  }
+}

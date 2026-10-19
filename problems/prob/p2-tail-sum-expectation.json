@@ -1,0 +1,37 @@
+{
+  "id": "p2-tail-sum-expectation",
+  "title": "Expectation from the tail",
+  "topic": "prob",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "exact",
+  "tags": [
+    "expectation",
+    "tail-sum",
+    "course-probability-2"
+  ],
+  "estimate": 14,
+  "prereqs": [
+    {
+      "concept": "p2-expectation",
+      "why": "The tail-sum formula is the expectation identity being applied, and it comes from exchanging a sum with an expectation."
+    },
+    {
+      "concept": "p2-probability-axioms",
+      "why": "Each tail probability is computed from the independence of the two rolls."
+    }
+  ],
+  "statement": "For a random variable $X$ taking values in $\\{0, 1, 2, \\dots\\}$,\n\n$$\\E X = \\sum_{n \\ge 1} \\P(X \\ge n).$$\n\nTwo fair six-sided dice are rolled independently. Let\n\n$$X = \\max(\\text{first roll},\\ \\text{second roll}).$$\n\nUse the formula above to compute $\\E X$ exactly.",
+  "hints": [
+    "The sum has only six terms that are not zero, because $\\P(X \\ge n) = 0$ once $n > 6$.",
+    "$\\P(X \\ge n) = 1 - \\P(X \\le n-1)$, and $X \\le n-1$ means **both** rolls are at most $n-1$.",
+    "By independence $\\P(\\text{both rolls} \\le n-1) = \\bigl(\\tfrac{n-1}{6}\\bigr)^2$, so $\\P(X \\ge n) = 1 - \\tfrac{(n-1)^2}{36}$.",
+    "Add the six terms for $n = 1$ to $6$. The sum of $(n-1)^2$ over those is $0+1+4+9+16+25$."
+  ],
+  "payload": {
+    "prompt": "The expected value of the larger of the two rolls.",
+    "label": "$\\E X =$",
+    "placeholder": "a fraction",
+    "syntax": "A number or a fraction. Arithmetic is fine: 6 - 55/36 is read as 161/36."
+  }
+}

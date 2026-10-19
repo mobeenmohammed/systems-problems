@@ -1,0 +1,42 @@
+{
+  "key": {
+    "value": "400",
+    "alsoAccept": [
+      "2500 - 2100",
+      "50*50 - 30*70"
+    ]
+  },
+  "feedback": {
+    "whenValue": [
+      {
+        "is": "20",
+        "say": "That is $50 - 30$, the difference in starting wealth. The expected duration is quadratic in the starting point, not linear."
+      },
+      {
+        "is": "4600",
+        "say": "That is $t_{50} + t_{30}$. The question asks for the difference."
+      },
+      {
+        "is": "2500",
+        "say": "That is $t_{50}$ on its own. Subtract $t_{30} = 30 \\times 70$."
+      },
+      {
+        "is": "-400",
+        "say": "Right size, wrong sign. $t_{50} = 2500$ is the **larger** of the two, because $k(m-k)$ peaks in the middle."
+      }
+    ],
+    "nudge": "Two evaluations of $k(100-k)$ and one subtraction. Both numbers are in the thousands."
+  },
+  "explanation": "## The two sessions\n\n$$t_{30} = 30 \\times 70 = 2100, \\qquad t_{50} = 50 \\times 50 = 2500,$$\n\nso the difference is $\\mathbf{400}$ games.\n\n## Why the numbers are so large\n\n$t_k = k(m-k)$ is quadratic, and it is easy to underestimate. A gambler who only needs to gain $\\pounds 70$ or lose $\\pounds 30$ — on a game that moves her wealth by $\\pounds 1$ at a time — will on average play **two thousand one hundred** games before either happens.\n\nThe quadratic is not an accident. $S_n$ is approximately normal with mean $0$ and standard deviation $\\sqrt n$, so to move a distance of order $m$ takes a time of order $m^2$. That is the same $\\sqrt{\\text{time}}$ scaling that gives Brownian motion its variance in chapter 7, and it is why the walk is such a slow way to get anywhere.\n\n## The shape of the answer\n\n$k \\mapsto k(m-k)$ is a downward parabola, zero at both barriers and maximal at $k = m/2$ where it takes the value $m^2/4$. So:\n\n- a session that starts near a barrier is short, because it is likely to be absorbed there quickly;\n- a session that starts in the middle is the longest possible, because both barriers are far away;\n- the longest expected session for $m = 100$ is $2500$ games, which is session B.\n\nThat is also why the difference here is positive. Moving the start *towards* the centre always lengthens the expected game, even though it is \"fairer\".\n\n## The same problem when the game is not fair\n\nThe difference equation $t_k = 1 + p\\,t_{k+1} + q\\,t_{k-1}$ can be solved for $p \\ne \\tfrac12$ too, and the answer is considerably messier. The elegant route, which the notes take at Example 2.12, is **Wald's identity**: $\\E S_T = k + (p-q)\\E T$, and $\\E S_T = h_k m$ is already known, so\n\n$$\\E T = \\frac{h_k m - k}{p - q}.$$\n\nOne line, no difference equation. The fair case cannot be done that way — $p - q = 0$ and the formula divides by zero — which is exactly why it needs the quadratic particular solution $-k^2$, and why its answer looks so different.",
+  "readMore": [
+    {
+      "concept": "p2-game-duration",
+      "where": "the difference equation and its particular solution"
+    },
+    {
+      "concept": "p2-wald-identity",
+      "where": "the quicker route for the biased case"
+    }
+  ],
+  "id": "p2-ruin-duration"
+}

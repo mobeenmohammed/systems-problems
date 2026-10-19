@@ -1,0 +1,42 @@
+{
+  "id": "p2-optional-stopping-duration",
+  "title": "Two martingales, one random walk",
+  "topic": "prob",
+  "difficulty": "advanced",
+  "lane": "core",
+  "type": "exact",
+  "tags": [
+    "martingales",
+    "optional-stopping",
+    "random-walk",
+    "course-probability-2"
+  ],
+  "estimate": 20,
+  "prereqs": [
+    {
+      "concept": "p2-optional-stopping",
+      "why": "Both halves of the calculation are one application each of the optional stopping theorem."
+    },
+    {
+      "concept": "p2-martingales",
+      "why": "The two martingales - the walk itself, and its square minus the time - are the tools."
+    },
+    {
+      "concept": "p2-stopped-martingales",
+      "why": "The second martingale has unbounded increments, so it is the stopped version that is used."
+    }
+  ],
+  "statement": "Let $S = (S_n)$ be the simple **symmetric** random walk started at\n$S_0 = 0$, and let\n\n$$T = \\min\\{\\,n : S_n = -4 \\ \\text{ or } \\ S_n = 7\\,\\}.$$\n\nTwo facts you may use:\n\n- $(S_n)$ is a martingale with bounded increments, and $\\E T < \\infty$, so\n  optional stopping gives $\\E S_T = \\E S_0 = 0$.\n- $(S_n^2 - n)$ is a martingale. Its increments are not bounded, but the\n  **stopped** process $(S_{n \\wedge T}^2 - n\\wedge T)$ has bounded\n  increments, because $S_{n\\wedge T}$ stays between $-4$ and $7$. So\n  $\\E\\bigl(S_T^2 - T\\bigr) = 0$ as well.\n\nGive $\\E T$ exactly.",
+  "hints": [
+    "Start with the first martingale. $S_T$ takes only two values, so $\\E S_T = 0$ is one linear equation in the probability of hitting 7 first.",
+    "Write $h = \\P(S_T = 7)$. Then $7h - 4(1-h) = 0$, which pins $h$ down.",
+    "Now use the second martingale: $\\E T = \\E(S_T^2)$, and $S_T^2$ also takes only two values.",
+    "$\\E(S_T^2) = 49h + 16(1-h)$. Substitute the $h$ you found."
+  ],
+  "payload": {
+    "prompt": "The expected number of steps until the walk hits $-4$ or $7$.",
+    "label": "$\\E T =$",
+    "placeholder": "a whole number",
+    "syntax": "A whole number. Arithmetic is fine."
+  }
+}

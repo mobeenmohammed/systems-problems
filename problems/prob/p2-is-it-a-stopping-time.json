@@ -1,0 +1,40 @@
+{
+  "id": "p2-is-it-a-stopping-time",
+  "title": "Which of these are stopping times?",
+  "topic": "prob",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "multi",
+  "tags": [
+    "stopping-times",
+    "random-walk",
+    "course-probability-2"
+  ],
+  "estimate": 14,
+  "prereqs": [
+    {
+      "concept": "p2-stopping-times",
+      "why": "The definition - decidable from what has happened so far - is the only thing being tested."
+    },
+    {
+      "concept": "p2-random-walk",
+      "why": "Every candidate is a random time defined in terms of one simple random walk."
+    }
+  ],
+  "statement": "Let $S = (S_n)_{n \\ge 0}$ be the simple random walk, $S_0 = 0$ and\n$S_n = X_1 + \\cdots + X_n$ with the $X_i$ independent and taking the values\n$\\pm 1$.\n\nA random time $T$ (taking values in $\\{0,1,2,\\dots\\} \\cup \\{\\infty\\}$) is a\n**stopping time** for $S$ if, for every $n$, whether $T \\le n$ is determined\nby $S_0, S_1, \\dots, S_n$ alone.\n\nSelect every $T$ below that **is** a stopping time.",
+  "hints": [
+    "The test is always the same: standing at time $n$, having seen the walk up to $n$ and nothing after it, can you say whether $T$ has already happened?",
+    "'The first time something happens' is almost always a stopping time. 'The last time something happens' almost never is, because you would have to know the future to be sure nothing happens again.",
+    "For the one that subtracts 1: to know at time $n$ whether $T \\le n$, you would need to know what $S_{n+1}$ is about to do.",
+    "The minimum of a stopping time and a constant is still decidable at each step: either the event has happened, or time has run out."
+  ],
+  "payload": {
+    "options": [
+      "$T = \\min\\{\\,n \\ge 0 : S_n = 5\\,\\}$.",
+      "$T = \\max\\{\\,n \\le 100 : S_n = 0\\,\\}$, the last visit to $0$ before time $100$.",
+      "$T = \\min\\{\\,n \\ge 0 : S_n = 5\\,\\} - 1$, the step just before first reaching $5$.",
+      "$T = \\min\\bigl(\\min\\{n : S_n = 5\\},\\ 100\\bigr)$.",
+      "$T = \\min\\{\\,n \\ge 1 : S_n + S_{n-1} = 7\\,\\}$."
+    ]
+  }
+}

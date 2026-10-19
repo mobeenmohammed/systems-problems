@@ -27,7 +27,7 @@
     "test:unit": "node tests/learn-layout.test.mjs && node tests/complete.test.mjs && node tests/maths-expr.test.mjs && node tests/maths-render.test.mjs && node tests/store.test.mjs && node tests/vault.test.mjs && node tests/md.test.mjs && node tests/contrast.test.mjs && node tests/grade.test.mjs && node tests/runner.test.mjs && node tests/lint.test.mjs && node tests/judge.test.mjs && node tests/proxy.test.mjs && node tests/rust-toolchain.test.mjs && node tests/content.test.mjs",
     "test:browser": "node tests/browser/app.test.mjs && node tests/browser/styles.test.mjs && node tests/browser/states.test.mjs && node tests/browser/runner.test.mjs",
     "test:journeys": "node tests/browser/journeys.test.mjs",
-    "test:ui": "node tests/browser/landing.test.mjs && node tests/browser/submissions.test.mjs && node tests/browser/results.test.mjs && node tests/browser/complete.test.mjs && node tests/browser/navigation.test.mjs && node tests/browser/resize.test.mjs && node tests/browser/feedback.test.mjs && node tests/browser/usability.test.mjs && node tests/browser/maths.test.mjs && node tests/browser/learn.test.mjs && node tests/browser/assessment.test.mjs && node tests/browser/review.test.mjs && node tests/browser/audit.test.mjs && node tests/browser/hdl.test.mjs",
+    "test:ui": "node tests/browser/landing.test.mjs && node tests/browser/submissions.test.mjs && node tests/browser/results.test.mjs && node tests/browser/complete.test.mjs && node tests/browser/navigation.test.mjs && node tests/browser/resize.test.mjs && node tests/browser/feedback.test.mjs && node tests/browser/usability.test.mjs && node tests/browser/maths.test.mjs && node tests/browser/learn.test.mjs && node tests/browser/assessment.test.mjs && node tests/browser/review.test.mjs && node tests/browser/audit.test.mjs && node tests/browser/hdl.test.mjs && node tests/browser/workspace.test.mjs && node tests/browser/courses.test.mjs",
     "test:runner": "node tests/browser/runner.test.mjs",
     "serve": "node scripts/serve.mjs",
     "vendor:py": "node scripts/vendor-py.mjs",
@@ -61,7 +61,9 @@
     "probe:rust-gap": "node scripts/probe-rust-gap.mjs",
     "test:editor-sv": "node tests/browser/editor-sv.test.mjs",
     "build:rustc": "bash scripts/build-rustc-wasm.sh",
-    "test:project": "node tests/browser/project.test.mjs"
+    "test:project": "node tests/browser/project.test.mjs",
+    "test:workspace": "node tests/browser/workspace.test.mjs",
+    "test:courses": "node tests/browser/courses.test.mjs"
   },
   "devDependencies": {
     "@bjorn3/browser_wasi_shim": "^0.4.2",

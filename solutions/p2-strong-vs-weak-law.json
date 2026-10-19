@@ -1,0 +1,45 @@
+{
+  "key": {
+    "answers": [
+      0,
+      1,
+      3
+    ]
+  },
+  "feedback": {
+    "misconceptions": [
+      {
+        "picked": [
+          2
+        ],
+        "say": "On the uniform $N$: take fair coin tosses with $\\mu = 1/2$. The outcome that begins with a thousand heads has $S_n/n$ nowhere near $1/2$ until well past $n = 1000$, and for every $N$ there is an outcome that misbehaves past it. The $N$ has to be allowed to depend on the outcome."
+      },
+      {
+        "picked": [
+          4
+        ],
+        "say": "On finite variance: look at the hypotheses of the theorem as it is stated. The condition is $\\E|X_1| < \\infty$, and nothing is assumed about the second moment."
+      }
+    ],
+    "nudge": "Three of the five are true. The two that are not are the two ways of over-reading \"almost surely\": demanding one $N$ for all outcomes, and assuming a hypothesis the theorem does not make."
+  },
+  "distractors": {
+    "0": "Yes — this is the theorem, written out.",
+    "1": "Yes. This is the **weak** law, and almost sure convergence implies convergence in probability, so it follows. (The converse fails in general, which is the content of the barred remark on p. 11 of the notes.)",
+    "2": "No. That would be uniform convergence over outcomes, which is far stronger and false. For coin tosses, whatever $N$ you name there are outcomes beginning with $N$ consecutive heads, and for those $S_N/N = 1$.",
+    "3": "Yes — and this is the correct reading of \"almost surely\". The exceptional set has probability zero; on its complement, each outcome has a convergent sequence of averages and therefore its own threshold.",
+    "4": "No. The hypothesis is $\\E|X_1| < \\infty$ alone. Finite variance makes some *proofs* much easier (Chebyshev gives the weak law in three lines) but it is not needed for the statement. Kolmogorov’s strong law holds with a finite first moment only."
+  },
+  "explanation": "## Where the quantifiers live\n\nAlmost sure convergence:\n\n$$\\P\\Bigl(\\bigl\\{\\omega : \\tfrac{S_n(\\omega)}{n} \\to \\mu \\bigr\\}\\Bigr) = 1 .$$\n\nThe convergence is a property of **each individual outcome** $\\omega$, and the theorem says the set of outcomes with that property has probability 1. Unwrapping the limit, for almost every $\\omega$ and every $\\eps > 0$ there is $N(\\omega, \\eps)$ with $|S_n(\\omega)/n - \\mu| < \\eps$ for all $n \\ge N(\\omega,\\eps)$.\n\n$N$ depends on the outcome. Demanding a single $N$ for all outcomes is the mistake in option 3, and it is the same mistake as confusing pointwise with uniform convergence in analysis — which is exactly what it is, with $\\omega$ in the role of $x$.\n\n## Strong against weak\n\nConvergence in probability — the weak law — is a statement about each $n$ separately:\n\n$$\\forall \\eps>0:\\quad \\P\\bigl(|S_n/n - \\mu| > \\eps\\bigr) \\to 0 .$$\n\nIt says the proportion of outcomes currently misbehaving shrinks. It does **not** say that a given outcome stops misbehaving: in principle a sequence could step outside the band infinitely often while the probability of being outside at any one time tends to zero. The strong law rules that out.\n\nAlmost sure convergence implies convergence in probability, so option 2 follows from option 1 and the first two are both correct. The converse fails, which is why \"strong\" and \"weak\" are not two names for one theorem.\n\n## The hypothesis\n\nThe theorem as stated in the notes assumes $\\E|X_1| < \\infty$ and nothing else. That is Kolmogorov's version and it is sharp: if $\\E|X_1| = \\infty$ then $S_n/n$ almost surely fails to converge to anything finite.\n\nFinite variance is a convenience, not a requirement. With it, Chebyshev's inequality gives the weak law immediately, and a fourth-moment assumption gives the strong law with a short Borel–Cantelli argument. Without it the proof is genuinely harder — which is why so many courses state the easy version first and why it is easy to remember the wrong hypothesis.\n\n## What it licenses\n\nThe strong law is what makes the frequentist reading of probability a theorem rather than a definition: taking $X_i = I_{A_i}$ for independent repetitions of an experiment, the long-run proportion of times $A$ occurs converges almost surely to $\\P(A)$. That is Example 1.10 in the notes, and it is the reason the theorem is in chapter 1 rather than filed under \"limit theorems\".",
+  "readMore": [
+    {
+      "concept": "p2-strong-law",
+      "where": "the statement and the frequency interpretation"
+    },
+    {
+      "concept": "p2-convergence-notions",
+      "where": "the barred remarks on how the two laws differ"
+    }
+  ],
+  "id": "p2-strong-vs-weak-law"
+}

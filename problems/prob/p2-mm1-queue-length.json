@@ -1,0 +1,41 @@
+{
+  "id": "p2-mm1-queue-length",
+  "title": "How often is the queue ten deep?",
+  "topic": "prob",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "approx",
+  "tags": [
+    "queues",
+    "birth-death",
+    "course-probability-2"
+  ],
+  "estimate": 14,
+  "prereqs": [
+    {
+      "concept": "p2-queues",
+      "why": "The geometric equilibrium distribution of the M/M/1 queue is the result being applied."
+    },
+    {
+      "concept": "p2-ctmc-stationary",
+      "why": "The distribution is the stationary one of a continuous-time birth-death chain."
+    },
+    {
+      "concept": "p2-reversibility",
+      "why": "Detailed balance is what turns the stationarity equations into a one-line recursion."
+    }
+  ],
+  "statement": "Customers arrive at a single-server desk as a Poisson process of rate\n$\\lambda = 8$ per hour, and each service takes an independent\n$\\mathrm{Exponential}(\\mu)$ time with $\\mu = 10$ per hour. Customers wait if\nthe server is busy, and the queue may grow without limit.\n\nLet $X(t)$ be the number of customers present. It is a birth–death chain in\ncontinuous time with birth rate $\\lambda$ and death rate $\\mu$, so the\ndetailed balance equations $\\pi_i \\lambda = \\pi_{i+1}\\mu$ hold and give\n\n$$\\pi_i = (1-\\rho)\\,\\rho^{\\,i}, \\qquad \\rho = \\frac{\\lambda}{\\mu}, \\qquad i \\ge 0,$$\n\nwhich is a distribution precisely when $\\rho < 1$.\n\nIn equilibrium, find the probability that there are **at least ten**\ncustomers present.\n\nGive the answer as a decimal to **three decimal places**; it is checked to\nwithin $\\pm 0.001$.",
+  "hints": [
+    "Work out $\\rho$ first. It is the long-run fraction of time the server is busy.",
+    "$\\P(X \\ge 10) = \\sum_{i \\ge 10} (1-\\rho)\\rho^{\\,i}$, which is a geometric series starting at $i = 10$.",
+    "That series collapses: the factor $(1-\\rho)$ cancels against the sum of the series and a single power of $\\rho$ is left.",
+    "The answer is $\\rho^{10}$ with $\\rho = 0.8$."
+  ],
+  "payload": {
+    "prompt": "The equilibrium probability of ten or more customers present.",
+    "label": "$\\P(X \\ge 10) \\approx$",
+    "placeholder": "e.g. 0.123",
+    "syntax": "A decimal, to three decimal places. Checked to within 0.001."
+  }
+}

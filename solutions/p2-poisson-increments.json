@@ -1,0 +1,27 @@
+{
+  "key": {
+    "value": "0.161",
+    "tol": 0.001
+  },
+  "feedback": {
+    "whenValue": [
+      {
+        "is": "0.101",
+        "say": "That is $\\P(N(1) = 5)$ with mean 3 — the one-hour window rather than the two-hour one. The mean scales with the length of the interval."
+      },
+      {
+        "is": "0.916",
+        "say": "That looks like a cumulative probability, $\\P(N(2) \\le 5)$ or similar. The question asks for exactly five."
+      }
+    ],
+    "nudge": "Two numbers to fix before the formula: the mean is $\\lambda t$ with $t = 2$, and $k$ is 5. Then it is one multiplication and one division."
+  },
+  "explanation": "## The computation\n\nThe window has length $t = 2$ and the rate is $\\lambda = 3$, so $N(2)$ is Poisson with mean $\\lambda t = 6$:\n\n$$\\P\\bigl(N(2) = 5\\bigr) = e^{-6}\\,\\frac{6^5}{5!} = e^{-6}\\cdot\\frac{7776}{120} = 64.8\\,e^{-6} \\approx 64.8 \\times 0.0024788 \\approx 0.1606 .$$\n\nTo three decimal places, $\\mathbf{0.161}$.\n\n## What is being assumed\n\nThe formula is not a definition of the Poisson process — it is Theorem 4.2, derived from the defining properties. The definition in the notes asks for:\n\n- $N(0) = 0$ and paths that increase in unit jumps;\n- **independent increments**: counts in disjoint intervals are independent;\n- **stationary increments**: the distribution of $N(t+s) - N(s)$ depends on $t$ and not on $s$;\n- arrivals one at a time.\n\nFrom those alone the increment distribution comes out Poisson, which is the content of the barred derivation on pp. 55–56.\n\nTwo consequences used here without comment: the answer does not depend on *which* two-hour window (stationarity), and it would be the same conditioned on anything that happened before it (independent increments).\n\n## Where the mode is\n\nThe Poisson distribution with mean 6 is largest at $k = 5$ and $k = 6$, which both have probability about $0.161$ — and even the most likely single value has only a one-in-six chance. A count with mean 6 has standard deviation $\\sqrt6 \\approx 2.45$, so values from about 3 to 9 are all unremarkable.\n\nThat is worth internalising before meeting queueing theory. \"Three per hour\" does not mean six in two hours; it means a distribution centred on six and routinely delivering four or eight, and it is the variability rather than the mean that makes a queue form.\n\n## The same number, two other ways\n\n$\\P(N(2) = 5)$ can also be read as a statement about arrival times: the fifth arrival happens before time 2 and the sixth does not. And by the conditioning theorem (§4.5), given that five arrived, their times are distributed as five independent uniforms on $[0,2]$ in increasing order — so the count and the positions carry completely separate information.",
+  "readMore": [
+    {
+      "concept": "p2-poisson-process",
+      "where": "the two equivalent definitions and the increment theorem"
+    }
+  ],
+  "id": "p2-poisson-increments"
+}

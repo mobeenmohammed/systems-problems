@@ -435,6 +435,14 @@
         <a class="btn btn-sm" id="learnProblems" href="#/problems">All its problems</a>
       </div>
 
+      <!-- The chapter rail, for a track that follows a course. A chapter
+           is a group of sections, and folding one collapses its boxes
+           into a single box on the canvas rather than hiding them: the
+           lines into and out of the chapter are still drawn, so the
+           picture stays true while getting smaller. Shown only when the
+           track names a course. -->
+      <div class="learn-chapters" id="learnChapters" hidden></div>
+
       <!-- The canvas. The boxes are real buttons in a role="tree", so the
            picture is also a list you can walk with the arrow keys — there
            is no second, plainer view to fall back to, so this one has to

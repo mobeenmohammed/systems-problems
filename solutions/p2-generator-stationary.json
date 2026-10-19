@@ -1,0 +1,38 @@
+{
+  "key": {
+    "value": "6/13"
+  },
+  "feedback": {
+    "whenValue": [
+      {
+        "is": "1/3",
+        "say": "The uniform distribution would be stationary only if the chain were symmetric between the three states, and it is not — the rates differ."
+      },
+      {
+        "is": "3/13",
+        "say": "That is $\\pi_a$. Column $a$ of $G$ gives $-2\\pi_a + \\pi_b = 0$, so $\\pi_b$ is the larger of the two."
+      },
+      {
+        "is": "4/13",
+        "say": "That is $\\pi_c$. Check which column you solved: $b$ is the middle state, and it has the largest share."
+      },
+      {
+        "is": "2/9",
+        "say": "That looks like a solution of $\\pi P = \\pi$ for some transition matrix. In continuous time the equation is $\\pi G = 0$, and $G$ has negative diagonal entries and rows summing to zero."
+      }
+    ],
+    "nudge": "Sum down the columns of $G$ and set each to zero. Column $a$ has two non-zero entries and column $c$ has two; between them everything is in terms of $\\pi_a$."
+  },
+  "explanation": "## Solving $\\pi G = 0$\n\nColumn by column:\n\n$$\\begin{aligned}\nj = a:&\\quad -2\\pi_a + 1\\cdot\\pi_b + 0 = 0 &&\\Longrightarrow\\quad \\pi_b = 2\\pi_a\\\\\nj = c:&\\quad 0 + 2\\pi_b - 3\\pi_c = 0 &&\\Longrightarrow\\quad \\pi_c = \\tfrac23\\pi_b = \\tfrac43\\pi_a\n\\end{aligned}$$\n\nColumn $b$ is then automatic: $2\\pi_a - 3\\pi_b + 3\\pi_c = 2\\pi_a - 6\\pi_a + 4\\pi_a = 0$. (It always is — the rows of $G$ sum to zero, so the columns of $\\pi G$ sum to zero.)\n\nNormalising, $\\pi_a\\bigl(1 + 2 + \\tfrac43\\bigr) = \\tfrac{13}{3}\\pi_a = 1$, so\n\n$$\\pi = \\Bigl(\\tfrac3{13},\\ \\tfrac6{13},\\ \\tfrac4{13}\\Bigr), \\qquad \\pi_b = \\frac{6}{13}.$$\n\n## $\\pi G = 0$, not $\\pi P = \\pi$\n\nThis is the one thing to get right about continuous time. In discrete time, stationarity is $\\pi P = \\pi$, equivalently $\\pi(P - I) = 0$. The generator $G$ plays the part of $P - I$: it is the derivative of $P(t)$ at $t = 0$, and the stationarity condition is $\\pi G = 0$.\n\nRead as a balance equation, column $j$ says\n\n$$\\sum_{i \\ne j} \\pi_i g_{i,j} = \\pi_j \\sum_{k \\ne j} g_{j,k},$$\n\nthat is, **the rate of probability flowing into $j$ equals the rate flowing out**. In continuous time these really are rates — probability per unit time — rather than per-step probabilities, which is why the diagonal is negative and the rows sum to zero rather than to one.\n\n## What it does not say\n\n$\\pi$ is **not** the stationary distribution of the jump chain. The jump chain here has transition matrix\n\n$$\\tilde P = \\begin{pmatrix} 0 & 1 & 0\\\\ \\tfrac13 & 0 & \\tfrac23\\\\ 0 & 1 & 0\\end{pmatrix},$$\n\nwhose stationary distribution is $\\bigl(\\tfrac16, \\tfrac12, \\tfrac13\\bigr)$ — a different vector. The two differ because the continuous-time chain spends longer in states it leaves slowly: state $a$ has total rate 2 and so holds for $\\tfrac12$ on average, while state $b$ has total rate 3 and holds for $\\tfrac13$.\n\nThe relation between them is $\\pi_i \\propto \\tilde\\pi_i / g_i$, where $g_i$ is the total exit rate. Checking: $\\tfrac16/2 : \\tfrac12/3 : \\tfrac13/3 = \\tfrac1{12} : \\tfrac16 : \\tfrac19$, which scales to $3 : 6 : 4$. As it should.\n\n## What the numbers are good for\n\nBy Theorem 5.19, $\\P(X(t) = b) \\to \\tfrac6{13}$ from any start, and the long-run fraction of **time** spent at $b$ is $\\tfrac6{13}$. The mean return time to $b$ is $m_b = 1/(\\pi_b g_b) = 1/(\\tfrac6{13}\\cdot3) = \\tfrac{13}{18}$ — note the extra factor of $g_b$, which is not there in discrete time and is the other place the holding rates show up.",
+  "readMore": [
+    {
+      "concept": "p2-ctmc-stationary",
+      "where": "the theorems, and the worked example this one follows"
+    },
+    {
+      "concept": "p2-jump-chain-explosion",
+      "where": "why the jump chain has a different stationary distribution"
+    }
+  ],
+  "id": "p2-generator-stationary"
+}

@@ -1,0 +1,36 @@
+{
+  "id": "p2-ruin-duration",
+  "title": "How much longer does an even match take?",
+  "topic": "prob",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "exact",
+  "tags": [
+    "gamblers-ruin",
+    "hitting-times",
+    "course-probability-2"
+  ],
+  "estimate": 12,
+  "prereqs": [
+    {
+      "concept": "p2-game-duration",
+      "why": "The expected duration of the fair game is the formula being applied twice."
+    },
+    {
+      "concept": "p2-gamblers-ruin",
+      "why": "The set-up is the same two-barrier walk; only the quantity being computed changes."
+    }
+  ],
+  "statement": "A gambler plays independent **fair** $\\pounds1$ games, stopping when her\nwealth reaches $\\pounds 0$ or $\\pounds 100$.\n\nConditioning on the first game gives $t_k = 1 + \\tfrac12 t_{k+1} + \\tfrac12 t_{k-1}$\nwith $t_0 = t_{100} = 0$, whose solution is\n\n$$t_k = k\\,(m - k), \\qquad m = 100 .$$\n\n**Session A** starts with $\\pounds 30$. **Session B** starts with $\\pounds 50$.\n\nGive $\\;\\E(\\text{games in session B}) - \\E(\\text{games in session A})$.",
+  "hints": [
+    "Work out $t_{30}$ and $t_{50}$ separately from the formula and subtract.",
+    "$t_{30} = 30 \\times 70$ and $t_{50} = 50 \\times 50$. Both are larger than most people expect.",
+    "The function $k \\mapsto k(m-k)$ is a downward parabola with its maximum at $k = m/2$, so session B is the longest possible session for this target."
+  ],
+  "payload": {
+    "prompt": "The difference in expected number of games.",
+    "label": "$t_{50} - t_{30} =$",
+    "placeholder": "a whole number",
+    "syntax": "A whole number. Arithmetic is fine: 2500-2100 is read as 400."
+  }
+}

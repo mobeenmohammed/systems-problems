@@ -1,0 +1,37 @@
+{
+  "key": {
+    "value": "161/36",
+    "alsoAccept": [
+      "6 - 55/36"
+    ]
+  },
+  "feedback": {
+    "whenValue": [
+      {
+        "is": "7/2",
+        "say": "That is the expectation of **one** roll. The maximum of two is larger than either on average, so the answer must exceed $3.5$."
+      },
+      {
+        "is": "91/36",
+        "say": "That is $\\sum (n-1)^2/36$ — the part you subtract, not the answer. The six ones have to be added first."
+      },
+      {
+        "is": "5",
+        "say": "A reasonable guess, and too big. Work the six terms out: $\\P(X\\ge1)=1$, $\\P(X\\ge2)=35/36$, $\\P(X\\ge3)=32/36$, and so on."
+      },
+      {
+        "is": "49/12",
+        "say": "That is $\\tfrac{7}{2} \\cdot \\tfrac{7}{6}$, which is not what the maximum of two rolls is. Go back to the tail formula and compute the six probabilities one at a time."
+      }
+    ],
+    "nudge": "Six terms. For each $n$ from 1 to 6, $\\P(X \\ge n) = 1 - \\bigl(\\tfrac{n-1}{6}\\bigr)^2$ because $X < n$ needs both rolls below $n$. Add them."
+  },
+  "explanation": "## The six terms\n\n$X \\le n-1$ means both rolls are at most $n-1$, which by independence has probability $\\bigl(\\tfrac{n-1}{6}\\bigr)^2$. So for $1 \\le n \\le 6$,\n\n$$\\P(X \\ge n) = 1 - \\frac{(n-1)^2}{36},$$\n\nand $\\P(X \\ge n) = 0$ for $n \\ge 7$.\n\n| $n$ | 1 | 2 | 3 | 4 | 5 | 6 |\n| --- | --- | --- | --- | --- | --- | --- |\n| $\\P(X\\ge n)$ | $\\tfrac{36}{36}$ | $\\tfrac{35}{36}$ | $\\tfrac{32}{36}$ | $\\tfrac{27}{36}$ | $\\tfrac{20}{36}$ | $\\tfrac{11}{36}$ |\n\n$$\\E X = \\frac{36+35+32+27+20+11}{36} = \\frac{161}{36} = 4.4\\overline{7} .$$\n\nEquivalently $\\E X = 6 - \\dfrac{0+1+4+9+16+25}{36} = 6 - \\dfrac{55}{36}$.\n\n## Why the formula is true\n\nWrite $X = \\sum_{n \\ge 1} I_{\\{X \\ge n\\}}$ — for a non-negative integer $X$ exactly $X$ of those indicators are 1. Taking expectations and exchanging the sum with the expectation,\n\n$$\\E X = \\sum_{n \\ge 1} \\E\\,I_{\\{X \\ge n\\}} = \\sum_{n \\ge 1} \\P(X \\ge n).$$\n\nThe exchange is legitimate because every term is non-negative (Theorem 1.8 in the notes), and that non-negativity is the only hypothesis. No independence, no finiteness assumed in advance: if the right side is infinite then so is $\\E X$.\n\n## When to reach for it\n\nThe direct route is $\\E X = \\sum_{k=1}^{6} k\\,\\P(X = k)$, which needs the probability mass function $\\P(X=k) = \\tfrac{2k-1}{36}$ — a small extra computation, because you have to difference the distribution function.\n\nThe tail formula skips that step. It is the better tool whenever $\\P(X \\ge n)$ is easier than $\\P(X = n)$, and \"the maximum of several things\" is the standard case: $X \\ge n$ fails only when *everything* is below $n$, which is a product, while $X = n$ needs an inclusion–exclusion.\n\nThe same shape appears throughout the course. The geometric distribution has $\\P(X \\ge n) = (1-p)^{n-1}$, so $\\E X = \\sum (1-p)^{n-1} = 1/p$ with no series manipulation at all — and Wald's identity, at the end of chapter 2, is proved with the same exchange of a sum and an expectation.",
+  "readMore": [
+    {
+      "concept": "p2-expectation",
+      "where": "the exchange theorem, and the indicator proof of the union bound beside it"
+    }
+  ],
+  "id": "p2-tail-sum-expectation"
+}

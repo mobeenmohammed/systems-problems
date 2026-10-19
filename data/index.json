@@ -615,6 +615,61 @@
     ]
   },
   {
+    "id": "p2-poisson-increments",
+    "title": "Five arrivals in two hours",
+    "topic": "prob",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "approx",
+    "tags": [
+      "poisson-process",
+      "course-probability-2"
+    ],
+    "estimate": 10,
+    "subject": "maths",
+    "prereqs": [
+      "p2-poisson-process",
+      "p2-expectation"
+    ]
+  },
+  {
+    "id": "p2-two-step-transition",
+    "title": "Where is the chain after two steps?",
+    "topic": "prob",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "exact",
+    "tags": [
+      "markov-chains",
+      "transition-matrix",
+      "course-probability-2"
+    ],
+    "estimate": 10,
+    "subject": "maths",
+    "prereqs": [
+      "p2-n-step-transitions",
+      "p2-markov-property"
+    ]
+  },
+  {
+    "id": "p2-union-bound-run-of-heads",
+    "title": "A bound you can get for nothing",
+    "topic": "prob",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "exact",
+    "tags": [
+      "union-bound",
+      "course-probability-2"
+    ],
+    "estimate": 10,
+    "subject": "maths",
+    "prereqs": [
+      "p2-union-bound",
+      "p2-probability-axioms"
+    ]
+  },
+  {
     "id": "prob-conditional-two-children",
     "title": "At least one is a girl",
     "topic": "prob",
@@ -683,6 +738,238 @@
     "prereqs": [
       "counting",
       "sample-space"
+    ]
+  },
+  {
+    "id": "p2-classes-and-recurrence",
+    "title": "Four classes, four verdicts",
+    "topic": "prob",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "match",
+    "tags": [
+      "communicating-classes",
+      "recurrence",
+      "course-probability-2"
+    ],
+    "estimate": 16,
+    "subject": "maths",
+    "prereqs": [
+      "p2-communicating-classes",
+      "p2-recurrence-transience",
+      "p2-periodicity-convergence"
+    ]
+  },
+  {
+    "id": "p2-exponential-race",
+    "title": "Which of three finishes first?",
+    "topic": "prob",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "exact",
+    "tags": [
+      "exponential-races",
+      "poisson-process",
+      "course-probability-2"
+    ],
+    "estimate": 12,
+    "subject": "maths",
+    "prereqs": [
+      "p2-poisson-conditioning",
+      "p2-arrival-times"
+    ]
+  },
+  {
+    "id": "p2-infinitely-many-heads",
+    "title": "Heads, infinitely often",
+    "topic": "prob",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "proofsteps",
+    "tags": [
+      "continuity-of-probability",
+      "union-bound",
+      "course-probability-2"
+    ],
+    "estimate": 12,
+    "subject": "maths",
+    "prereqs": [
+      "p2-continuity-of-probability",
+      "p2-union-bound",
+      "p2-probability-axioms"
+    ]
+  },
+  {
+    "id": "p2-is-it-a-stopping-time",
+    "title": "Which of these are stopping times?",
+    "topic": "prob",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "multi",
+    "tags": [
+      "stopping-times",
+      "random-walk",
+      "course-probability-2"
+    ],
+    "estimate": 14,
+    "subject": "maths",
+    "prereqs": [
+      "p2-stopping-times",
+      "p2-random-walk"
+    ]
+  },
+  {
+    "id": "p2-mm1-queue-length",
+    "title": "How often is the queue ten deep?",
+    "topic": "prob",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "approx",
+    "tags": [
+      "queues",
+      "birth-death",
+      "course-probability-2"
+    ],
+    "estimate": 14,
+    "subject": "maths",
+    "prereqs": [
+      "p2-queues",
+      "p2-ctmc-stationary",
+      "p2-reversibility"
+    ]
+  },
+  {
+    "id": "p2-pattern-waiting-times",
+    "title": "Which pattern takes longest to appear?",
+    "topic": "prob",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "order",
+    "tags": [
+      "hitting-times",
+      "markov-chains",
+      "course-probability-2"
+    ],
+    "estimate": 18,
+    "subject": "maths",
+    "prereqs": [
+      "p2-hitting-probabilities",
+      "p2-markov-property"
+    ]
+  },
+  {
+    "id": "p2-ruin-duration",
+    "title": "How much longer does an even match take?",
+    "topic": "prob",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "exact",
+    "tags": [
+      "gamblers-ruin",
+      "hitting-times",
+      "course-probability-2"
+    ],
+    "estimate": 12,
+    "subject": "maths",
+    "prereqs": [
+      "p2-game-duration",
+      "p2-gamblers-ruin"
+    ]
+  },
+  {
+    "id": "p2-ruin-probability",
+    "title": "An unfavourable game, and the odds of surviving it",
+    "topic": "prob",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "exact",
+    "tags": [
+      "gamblers-ruin",
+      "random-walk",
+      "course-probability-2"
+    ],
+    "estimate": 14,
+    "subject": "maths",
+    "prereqs": [
+      "p2-gamblers-ruin",
+      "p2-random-walk"
+    ]
+  },
+  {
+    "id": "p2-stationary-distribution",
+    "title": "The distribution that does not move",
+    "topic": "prob",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "exact",
+    "tags": [
+      "stationary-distributions",
+      "markov-chains",
+      "course-probability-2"
+    ],
+    "estimate": 16,
+    "subject": "maths",
+    "prereqs": [
+      "p2-stationary-distributions",
+      "p2-n-step-transitions"
+    ]
+  },
+  {
+    "id": "p2-strong-vs-weak-law",
+    "title": "What the strong law actually says",
+    "topic": "prob",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "multi",
+    "tags": [
+      "strong-law",
+      "convergence",
+      "course-probability-2"
+    ],
+    "estimate": 14,
+    "subject": "maths",
+    "prereqs": [
+      "p2-strong-law",
+      "p2-expectation"
+    ]
+  },
+  {
+    "id": "p2-tail-sum-expectation",
+    "title": "Expectation from the tail",
+    "topic": "prob",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "exact",
+    "tags": [
+      "expectation",
+      "tail-sum",
+      "course-probability-2"
+    ],
+    "estimate": 14,
+    "subject": "maths",
+    "prereqs": [
+      "p2-expectation",
+      "p2-probability-axioms"
+    ]
+  },
+  {
+    "id": "p2-thinning-and-superposition",
+    "title": "Splitting and merging arrivals",
+    "topic": "prob",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "multi",
+    "tags": [
+      "superposition",
+      "thinning",
+      "poisson-process",
+      "course-probability-2"
+    ],
+    "estimate": 14,
+    "subject": "maths",
+    "prereqs": [
+      "p2-superposition-thinning",
+      "p2-poisson-process"
     ]
   },
   {
@@ -832,6 +1119,109 @@
     "prereqs": [
       "distributions",
       "random-variables"
+    ]
+  },
+  {
+    "id": "p2-generator-stationary",
+    "title": "Equilibrium in continuous time",
+    "topic": "prob",
+    "difficulty": "advanced",
+    "lane": "core",
+    "type": "exact",
+    "tags": [
+      "continuous-time-markov",
+      "generator-matrix",
+      "course-probability-2"
+    ],
+    "estimate": 18,
+    "subject": "maths",
+    "prereqs": [
+      "p2-ctmc-stationary",
+      "p2-ctmc-basics",
+      "p2-stationary-distributions"
+    ]
+  },
+  {
+    "id": "p2-optional-stopping-duration",
+    "title": "Two martingales, one random walk",
+    "topic": "prob",
+    "difficulty": "advanced",
+    "lane": "core",
+    "type": "exact",
+    "tags": [
+      "martingales",
+      "optional-stopping",
+      "random-walk",
+      "course-probability-2"
+    ],
+    "estimate": 20,
+    "subject": "maths",
+    "prereqs": [
+      "p2-optional-stopping",
+      "p2-martingales",
+      "p2-stopped-martingales"
+    ]
+  },
+  {
+    "id": "p2-random-walk-on-a-graph",
+    "title": "A walk on a graph, balanced edge by edge",
+    "topic": "prob",
+    "difficulty": "advanced",
+    "lane": "core",
+    "type": "exact",
+    "tags": [
+      "reversibility",
+      "detailed-balance",
+      "stationary-distributions",
+      "course-probability-2"
+    ],
+    "estimate": 16,
+    "subject": "maths",
+    "prereqs": [
+      "p2-reversibility",
+      "p2-stationary-distributions",
+      "p2-communicating-classes"
+    ]
+  },
+  {
+    "id": "p2-reflection-principle",
+    "title": "How high does it get?",
+    "topic": "prob",
+    "difficulty": "advanced",
+    "lane": "core",
+    "type": "approx",
+    "tags": [
+      "brownian-motion",
+      "reflection-principle",
+      "course-probability-2"
+    ],
+    "estimate": 16,
+    "subject": "maths",
+    "prereqs": [
+      "p2-reflection-principle",
+      "p2-brownian-motion",
+      "p2-brownian-symmetries"
+    ]
+  },
+  {
+    "id": "p2-wald-expected-duration",
+    "title": "The duration of the unfair game",
+    "topic": "prob",
+    "difficulty": "advanced",
+    "lane": "core",
+    "type": "exact",
+    "tags": [
+      "wald-identity",
+      "stopping-times",
+      "gamblers-ruin",
+      "course-probability-2"
+    ],
+    "estimate": 18,
+    "subject": "maths",
+    "prereqs": [
+      "p2-wald-identity",
+      "p2-gamblers-ruin",
+      "p2-stopping-times"
     ]
   },
   {

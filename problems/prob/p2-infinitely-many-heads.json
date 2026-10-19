@@ -1,0 +1,69 @@
+{
+  "id": "p2-infinitely-many-heads",
+  "title": "Heads, infinitely often",
+  "topic": "prob",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "proofsteps",
+  "tags": [
+    "continuity-of-probability",
+    "union-bound",
+    "course-probability-2"
+  ],
+  "estimate": 12,
+  "prereqs": [
+    {
+      "concept": "p2-continuity-of-probability",
+      "why": "The probability of an infinite intersection is reached as a limit, which is the whole of step three."
+    },
+    {
+      "concept": "p2-union-bound",
+      "why": "A countable union of null events is null, and that is step four."
+    },
+    {
+      "concept": "p2-probability-axioms",
+      "why": "Everything here is countable additivity and its two consequences; nothing else is used."
+    }
+  ],
+  "statement": "**Claim.** A fair coin is tossed repeatedly, independently. Then, almost\nsurely, heads occurs infinitely often.\n\nThe proof below is complete except for the reasons. Choose the\njustification for each marked step.\n\nNote what is **not** available: there is no \"probability that heads occurs\ninfinitely often\" to compute directly. Everything has to come from the\nprobabilities of events depending on finitely many tosses, through the two\nlimit theorems.",
+  "hints": [
+    "Start from the complement. What does 'only finitely many heads' look like as a union of simpler events?",
+    "To get $\\P(B_n) = 0$ you need a limit: $B_n$ is the intersection of a decreasing family of events whose probabilities you can write down.",
+    "The last two steps are the cheapest facts in the chapter. One bounds the probability of a union; the other is about complements."
+  ],
+  "payload": {
+    "claim": "**Claim.** For a fair coin tossed repeatedly and independently, $\\P(\\text{heads occurs infinitely often}) = 1$.",
+    "steps": [
+      {
+        "text": "For $n \\ge 1$ let $B_n$ be the event that tosses $n, n+1, n+2, \\dots$ are all tails. The event that heads occurs only finitely often is exactly $\\bigcup_{n \\ge 1} B_n$."
+      },
+      {
+        "text": "For each $m \\ge n$, write $C_{n,m}$ for the event that tosses $n, \\dots, m$ are all tails. Then $\\P(C_{n,m}) = 2^{-(m-n+1)}$.",
+        "blank": true
+      },
+      {
+        "text": "The events $C_{n,n} \\supseteq C_{n,n+1} \\supseteq \\cdots$ decrease to $B_n$, so $\\P(B_n) = \\lim_{m\\to\\infty} 2^{-(m-n+1)} = 0$.",
+        "blank": true
+      },
+      {
+        "text": "Therefore $\\P\\bigl(\\bigcup_{n\\ge1} B_n\\bigr) \\le \\sum_{n \\ge 1} \\P(B_n) = 0$.",
+        "blank": true
+      },
+      {
+        "text": "So the event that heads occurs only finitely often has probability $0$, and the event that it occurs infinitely often has probability $1$.",
+        "blank": true
+      },
+      {
+        "text": "That is the claim. $\\blacksquare$"
+      }
+    ],
+    "choices": [
+      "independence of the tosses",
+      "continuity of probability along a decreasing sequence of events",
+      "the union bound",
+      "$\\P(A^c) = 1 - \\P(A)$",
+      "continuity of probability along an increasing sequence of events",
+      "the strong law of large numbers"
+    ]
+  }
+}

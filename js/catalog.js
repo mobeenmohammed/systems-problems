@@ -18,6 +18,7 @@ const Catalog = (() => {
   const INDEX_URL     = 'data/index.json';
   const CONCEPTS_URL  = 'data/concepts.json';
   const TRACKS_URL    = 'data/tracks.json';
+  const COURSES_URL   = 'data/courses.json';
   const WEEKLY_URL    = 'data/weekly.json';
   const RESOURCES_URL = 'data/resources.json';
 
@@ -77,6 +78,7 @@ const Catalog = (() => {
   let byId      = {};
   let concepts  = {};
   let tracks    = [];
+  let courses   = {};
   let weekly    = { weeks: [] };
   let resources = { topics: {} };
   let loadError = null;
@@ -85,10 +87,11 @@ const Catalog = (() => {
   const solCache  = new Map();
 
   async function init() {
-    const [idx, con, trk, wk, res] = await Promise.all([
+    const [idx, con, trk, crs, wk, res] = await Promise.all([
       fetchJson(INDEX_URL),
       fetchJson(CONCEPTS_URL),
       fetchJson(TRACKS_URL),
+      fetchJson(COURSES_URL),
       fetchJson(WEEKLY_URL),
       fetchJson(RESOURCES_URL),
     ]);
@@ -103,10 +106,11 @@ const Catalog = (() => {
        missing or malformed file leaves the feature out rather than breaking
        the page. */
     tracks    = trk.ok && Array.isArray(trk.data) ? trk.data : [];
+    courses   = crs.ok && crs.data && typeof crs.data === 'object' ? crs.data : {};
     weekly    = wk.ok && wk.data && Array.isArray(wk.data.weeks) ? wk.data : { weeks: [] };
     resources = res.ok && res.data && res.data.topics ? res.data : { topics: {} };
 
-    return { index, concepts, tracks, weekly, resources, loadError };
+    return { index, concepts, tracks, courses, weekly, resources, loadError };
   }
 
   async function fetchJson(url) {
@@ -440,15 +444,73 @@ const Catalog = (() => {
 
   const treeCache = {};
 
-  function trackTree(trackId) {
-    if (treeCache[trackId]) return treeCache[trackId];
+  /* ---------------- courses ----------------
 
+     A track is a list of problems. A COURSE is the shape of a subject:
+     chapters in the order the lecture notes have them, and inside each
+     chapter the sections in the order they are introduced. The two are
+     different objects and are kept in different files, because the
+     answer to "what is in this unit" is not the answer to "what should
+     I attempt".
+
+     Where a track names a course, the tree is drawn from the COURSE —
+     every concept of it, whether or not a problem in the track happens
+     to rest on that one. A reader looking at the Metric Spaces tree
+     wants the unit, including the parts the notes mark non-examinable
+     and the parts nothing has been set on yet. */
+
+  const allCourses = () => courses;
+  const course = id => courses[id] || null;
+  const courseOf = (trackId) => {
+    const t = track(trackId);
+    return t && t.course ? courses[t.course] || null : null;
+  };
+  const chapterConcepts = (c) =>
+    (c.chapters || []).flatMap(ch => ch.concepts || []);
+
+  /* Which chapters the reader has folded shut, per track. A fold is a
+     view of the picture rather than a fact about it, so it is a
+     preference and it is keyed by track. */
+  const FOLD_PREF = 'learnChapters';
+  function foldedChapters(trackId) {
+    const all = Store.pref(FOLD_PREF, null) || {};
+    const mine = all[trackId];
+    return new Set(Array.isArray(mine) ? mine : []);
+  }
+  function setFoldedChapters(trackId, set) {
+    const all = { ...(Store.pref(FOLD_PREF, null) || {}) };
+    if (set && set.size) all[trackId] = [...set].sort((a, b) => a - b);
+    else delete all[trackId];
+    Store.setPref(FOLD_PREF, all);
+    /* The tree is cached by key, and a fold changes which tree it is. */
+    for (const k of Object.keys(treeCache)) {
+      if (k === trackId || k.startsWith(`${trackId}|`)) delete treeCache[k];
+    }
+  }
+
+  function trackTree(trackId, folded = null) {
     const t = track(trackId);
     if (!t) return null;
 
+    const crs = courseOf(trackId);
+    /* A fold only means anything for a course tree, where the chapters
+       exist. Everything else ignores it. */
+    const shut = crs && folded ? [...folded].filter(n => Number.isInteger(n)).sort((a, b) => a - b) : [];
+    const key = shut.length ? `${trackId}|${shut.join(',')}` : trackId;
+    if (treeCache[key]) return treeCache[key];
+
     /* Every concept the track's problems name, plus everything those rest
-       on, transitively. chain() already closes over `needs`. */
+       on, transitively. chain() already closes over `needs`.
+
+       For a course track the starting set is the course itself, so a
+       chapter nothing has been set on yet is still in the picture. */
     const inSet = new Set();
+    if (crs) {
+      for (const cid of chapterConcepts(crs)) {
+        if (!concepts[cid]) continue;
+        for (const c of chain(cid)) inSet.add(c.id);
+      }
+    }
     for (const pid of t.problems) {
       const meta = byId[pid];
       if (!meta) continue;
@@ -457,7 +519,41 @@ const Catalog = (() => {
       }
     }
 
-    const needsOf = id => (concepts[id] && concepts[id].needs || []).filter(n => inSet.has(n));
+    /* A folded chapter is drawn as one box. Its concepts leave the
+       graph and a synthetic node takes their place, inheriting every
+       prerequisite that pointed into the chapter from outside and
+       every dependent that pointed out of it — so the lines around it
+       still say what they said. */
+    const foldOf = {};        /* concept id -> synthetic node id */
+    const synthetic = {};     /* synthetic node id -> { chapter, name, members } */
+    if (crs && shut.length) {
+      for (const ch of crs.chapters || []) {
+        if (!shut.includes(ch.n)) continue;
+        const members = (ch.concepts || []).filter(cid => inSet.has(cid));
+        if (!members.length) continue;
+        const nid = `__chapter-${ch.n}`;
+        synthetic[nid] = { chapter: ch.n, title: ch.title, where: ch.where, members };
+        for (const cid of members) foldOf[cid] = nid;
+      }
+    }
+    const asNode = id => foldOf[id] || id;
+
+    /* The prerequisites of a node, in the graph as it is being drawn:
+       folded concepts are replaced by their chapter, and an edge from a
+       chapter to itself is dropped rather than drawn as a self-loop. */
+    const needsOf = (id) => {
+      const raw = synthetic[id]
+        ? synthetic[id].members.flatMap(m => (concepts[m] || {}).needs || [])
+        : ((concepts[id] || {}).needs || []);
+      const out = [];
+      for (const n of raw) {
+        if (!inSet.has(n)) continue;
+        const to = asNode(n);
+        if (to === id) continue;
+        if (!out.includes(to)) out.push(to);
+      }
+      return out;
+    };
 
     const measuring = new Set();
     const depths = {};
@@ -472,7 +568,9 @@ const Catalog = (() => {
       return d;
     }
 
-    const ids = [...inSet];
+    /* The nodes actually drawn: every unfolded concept, plus one box per
+       folded chapter. */
+    const ids = [...new Set([...inSet].map(asNode))];
     for (const id of ids) depth(id);
 
     const kids = {};
@@ -487,7 +585,9 @@ const Catalog = (() => {
       (kids[parent] = kids[parent] || []).push(id);
     }
 
-    const name = id => (concepts[id] || {}).name || id;
+    const name = id => (synthetic[id]
+      ? `Chapter ${synthetic[id].chapter}: ${synthetic[id].title}`
+      : ((concepts[id] || {}).name || id));
     const byName = (a, b) => name(a).localeCompare(name(b));
     roots.sort(byName);
     for (const list of Object.values(kids)) list.sort(byName);
@@ -495,16 +595,59 @@ const Catalog = (() => {
     /* How much of the track's own work sits at this node, so the tree can
        show progress without the reader opening every branch. */
     const own = new Set(t.problems);
+    /* A folded chapter answers for every concept inside it: its
+       readings, its exercises and its progress are the union of theirs,
+       so folding hides detail and never hides work. */
+    const problemsOf = (id) => {
+      if (!synthetic[id]) return problemsForConcept(id);
+      const seenP = new Set();
+      const out = [];
+      for (const m of synthetic[id].members) {
+        for (const pr of problemsForConcept(m)) {
+          if (seenP.has(pr.id)) continue;
+          seenP.add(pr.id);
+          out.push(pr);
+        }
+      }
+      return out;
+    };
+    const readingsOf = (id) => {
+      if (!synthetic[id]) return (concepts[id] || {}).readings || [];
+      const out = [];
+      const seenR = new Set();
+      for (const m of synthetic[id].members) {
+        for (const rd of (concepts[m] || {}).readings || []) {
+          const k = `${rd.title}|${rd.where || rd.url || ''}`;
+          if (seenR.has(k)) continue;
+          seenR.add(k);
+          out.push(rd);
+        }
+      }
+      return out;
+    };
+
     const build = (id, seen) => {
-      const mine = problemsForConcept(id);
+      const mine = problemsOf(id);
+      const c = concepts[id] || {};
+      const syn = synthetic[id] || null;
       return {
         id,
         name: name(id),
-        oneLine: (concepts[id] || {}).oneLine || '',
-        topic: (concepts[id] || {}).topic || '',
+        oneLine: syn
+          ? `${syn.members.length} ${syn.members.length === 1 ? 'section' : 'sections'}, folded into one. ${syn.where}`
+          : (c.oneLine || ''),
+        topic: syn ? (concepts[syn.members[0]] || {}).topic || '' : (c.topic || ''),
+        /* Which chapter of its course this is, where in the notes it
+           comes from, and whether the notes rule it out of the course. */
+        chapter: syn ? syn.chapter : (c.chapter || null),
+        where: syn ? syn.where : (c.where || ''),
+        optional: syn
+          ? syn.members.every(m => (concepts[m] || {}).optional)
+          : !!c.optional,
+        folded: syn ? syn.members.slice() : null,
         depth: depths[id] || 0,
         alsoNeeds: (extra[id] || []).map(n => ({ id: n, name: name(n) })),
-        readings: (concepts[id] || {}).readings || [],
+        readings: readingsOf(id),
         problems: mine,
         inTrack: mine.filter(m => own.has(m.id)).length,
         /* A node reachable by two paths is drawn once, under the deepest
@@ -516,8 +659,19 @@ const Catalog = (() => {
 
     const seen = new Set(roots);
     const forest = roots.map(r => build(r, seen));
-    treeCache[trackId] = { track: t, roots: forest, size: ids.length };
-    return treeCache[trackId];
+    treeCache[key] = {
+      track: t, roots: forest, size: ids.length,
+      course: crs,
+      /* What the chapter rail draws: every chapter, whether it is
+         folded, and how many of its concepts are actually in the tree. */
+      chapters: crs ? (crs.chapters || []).map(ch => ({
+        n: ch.n, title: ch.title, where: ch.where,
+        folded: shut.includes(ch.n),
+        concepts: (ch.concepts || []).filter(cid => inSet.has(cid)),
+        optional: (ch.concepts || []).filter(cid => (concepts[cid] || {}).optional).length,
+      })) : null,
+    };
+    return treeCache[key];
   }
 
   /* What a track is made of: readings, and then problems split four ways.
@@ -729,6 +883,7 @@ const Catalog = (() => {
     concept, allConcepts, chain, prereqsFor, readProgress,
     allTracks, track, trackProgress, thisWeek, topicResources, allResources,
     counts, nextUp, problemsForConcept, readStatus, trackTree, treeProgress,
+    allCourses, course, courseOf, foldedChapters, setFoldedChapters,
     trackCounts, trackRequired,
     TYPES, TYPE_BY_ID, TRACK_STATE_LABEL, READ_STATE_LABEL,
     LANGS, LANG_LABEL, registerPool, isPooled, WRITTEN_TYPES, TYPE_WORDS,

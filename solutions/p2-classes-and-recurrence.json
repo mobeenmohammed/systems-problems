@@ -1,0 +1,25 @@
+{
+  "key": {
+    "pairs": [
+      0,
+      1,
+      2,
+      3
+    ]
+  },
+  "feedback": {
+    "nudge": "Two questions per class. Can the chain leave it? And if it comes back, at which times can it come back? The first question separates recurrent from transient; the second separates the two recurrent classes from each other."
+  },
+  "explanation": "## The four classes\n\n**$\\{1,2\\}$.** $1 \\to 2 \\to 1$ and nothing else; no arrow leaves. It is closed and finite, so it is recurrent (Theorem 3.36(b)). Starting at 1 the chain is at 1 exactly at even times, so $J_1 = \\{2,4,6,\\dots\\}$ and the period is $\\gcd J_1 = 2$.\n\n**$\\{3\\}$.** Both arrows out of 3 leave the class — to 1 and to 4 — so the chain is gone after one step and never returns, because neither $\\{1,2\\}$ nor $\\{4,5\\}$ leads back. $\\P_3(\\text{return to } 3) = 0$, so 3 is transient.\n\n**$\\{4,5\\}$.** $4 \\to 5 \\to 4$, and $4 \\to 4$. No arrow leaves, so it is closed and finite, hence recurrent. The self-loop at 4 gives $1 \\in J_4$, so the period is 1: aperiodic.\n\n**$\\{6\\}$.** The self-loop keeps the chain at 6, but with probability $\\tfrac12$ each step it moves to 3 and is gone. The number of steps spent at 6 is geometric with mean 2, and after that there is no way back. Transient.\n\n## The verdict that cannot happen\n\n\"Recurrent but not closed\" is impossible, and that is Theorem 3.36(a): **every recurrent class is closed.**\n\nThe argument is short and worth knowing. Suppose $C$ is a class, $i \\in C$, and $p_{i,j} > 0$ for some $j \\notin C$. Then $j \\not\\to i$ — otherwise $j$ would be in $C$ — so with probability at least $p_{i,j} > 0$ the chain leaves $i$ and never comes back. That makes the return probability strictly less than 1, so $i$ is transient.\n\nRead in the other direction: if you can get out and cannot get back, you are transient. That single sentence decides $\\{3\\}$ and $\\{6\\}$ here without any computation.\n\n## The converse needs \"finite\"\n\n\"Every finite closed class is recurrent\" is Theorem 3.36(b), and the word **finite** is not decoration. The simple random walk on $\\mathbb{Z}$ with $p > \\tfrac12$ is a single closed class and every state is transient: the chain escapes to $+\\infty$ and never returns. In a finite closed class there is nowhere to escape to, so some state must be visited infinitely often, and a class property argument spreads that to all of them.\n\n## Why the classification is the right first move\n\nEvery later question in the chapter is a question about one class at a time. Stationary distributions live on recurrent classes; the convergence theorem needs irreducible, aperiodic and positive recurrent, which is three class properties at once; hitting probabilities are computed by asking which closed class the chain ends up in.\n\nFor this chain the long-run answer is now immediate: from 3 or from 6 the chain is eventually absorbed into $\\{1,2\\}$ or $\\{4,5\\}$ and stays there for ever, oscillating in the first and settling into a stationary distribution in the second.",
+  "readMore": [
+    {
+      "concept": "p2-communicating-classes",
+      "where": "the equivalence relation and the two theorems about closed classes"
+    },
+    {
+      "concept": "p2-periodicity-convergence",
+      "where": "period as a class property"
+    }
+  ],
+  "id": "p2-classes-and-recurrence"
+}

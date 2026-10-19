@@ -1,0 +1,25 @@
+{
+  "key": {
+    "answers": [
+      0,
+      1,
+      2,
+      3
+    ]
+  },
+  "feedback": {
+    "nudge": "Two of the six are never used, and one of those two is the other direction of the theorem that **is** used. Ask of each step: is this about a product of probabilities, a limit of events, a union, or a complement?"
+  },
+  "explanation": "## Why it has to be done this way\n\n\"Heads occurs infinitely often\" is not an event about any finite number of tosses, so there is no formula to write down for it. The only machinery available is countable additivity and the two things that follow from it: continuity along monotone sequences, and the union bound.\n\nThe standard move is the one used here. Express the complement as a **countable union of events you can get at**, show each has probability zero, and add up.\n\n## Each step\n\n**Step 2 — independence.** $\\P(C_{n,m}) = \\bigl(\\tfrac12\\bigr)^{m-n+1}$ because the tosses are independent; without that the joint probability of a specific pattern is not the product.\n\n**Step 3 — continuity from above.** $C_{n,m}$ decreases in $m$ with intersection $B_n$, so $\\P(B_n) = \\lim_m \\P(C_{n,m}) = 0$. This is where \"infinitely many tails in a row\" becomes a number, and it is the only place a limit of events appears.\n\n**Step 4 — the union bound.** $\\P\\bigl(\\bigcup B_n\\bigr) \\le \\sum \\P(B_n)$, with no independence needed. Each term is zero, so the union is null. (Countable additivity would have given equality here, since the $B_n$ are increasing; the bound is simply the cheapest tool that finishes it.)\n\n**Step 5 — complements.** $\\P(A^c) = 1 - \\P(A)$.\n\n## The one that is a trap\n\nContinuity along an **increasing** sequence is the other half of the same theorem, and it is not what step 3 needs: $C_{n,m}$ gets smaller as $m$ grows, not larger. Both directions hold for probability measures, so using the wrong one is not fatal to the conclusion — but it is the wrong reason, and in a general measure space only the increasing version is unconditional. Continuity from above needs $\\P(C_{n,n}) < \\infty$, which for a probability measure is free and in measure theory generally is not.\n\n## What the result is good for\n\nThis is the prototype of a **zero–one** argument: an event that depends on the whole infinite future has probability 0 or 1 and nothing in between. The Borel–Cantelli lemmas are the general version, and the first of them is exactly the argument above with $\\sum \\P(A_n) < \\infty$ in place of each term being zero.\n\nThe same pattern shows up throughout the course. It is how the strong law is proved, how recurrence of a Markov chain is turned into \"returns infinitely often almost surely\", and how \"the gambler's wealth eventually reaches 0 or $m$\" is established in chapter 2 — all of them are \"almost surely something happens infinitely often\", and all of them go through a countable union of finite-horizon events.",
+  "readMore": [
+    {
+      "concept": "p2-continuity-of-probability",
+      "where": "the two limit theorems and the coin examples"
+    },
+    {
+      "concept": "p2-union-bound",
+      "where": "the statement, and the indicator proof of it"
+    }
+  ],
+  "id": "p2-infinitely-many-heads"
+}

@@ -1,0 +1,52 @@
+{
+  "id": "p2-classes-and-recurrence",
+  "title": "Four classes, four verdicts",
+  "topic": "prob",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "match",
+  "tags": [
+    "communicating-classes",
+    "recurrence",
+    "course-probability-2"
+  ],
+  "estimate": 16,
+  "prereqs": [
+    {
+      "concept": "p2-communicating-classes",
+      "why": "The partition into classes and the class properties are exactly what each row has to be decided by."
+    },
+    {
+      "concept": "p2-recurrence-transience",
+      "why": "Recurrent or transient is the first half of each verdict."
+    },
+    {
+      "concept": "p2-periodicity-convergence",
+      "why": "Period is the second half, and one of the classes has period two."
+    }
+  ],
+  "statement": "A Markov chain on $S = \\{1,2,3,4,5,6\\}$ has these transitions (every\narrow not listed has probability $0$):\n\n$$\\begin{aligned}\n&p_{1,2} = 1 &\\quad& p_{2,1} = 1\\\\\n&p_{3,1} = \\tfrac12 && p_{3,4} = \\tfrac12\\\\\n&p_{4,4} = \\tfrac12 && p_{4,5} = \\tfrac12\\\\\n&p_{5,4} = 1\\\\\n&p_{6,3} = \\tfrac12 && p_{6,6} = \\tfrac12\n\\end{aligned}$$\n\nThe communicating classes are $\\{1,2\\}$, $\\{3\\}$, $\\{4,5\\}$ and $\\{6\\}$.\n\nMatch each class to the correct verdict. One verdict on the right fits none\nof them, and in fact describes something that cannot happen at all.",
+  "hints": [
+    "A class is **closed** when no arrow leaves it. Check each of the four for an escape route.",
+    "A finite closed class is recurrent, and a class that is not closed is transient. That settles all four immediately.",
+    "For period: from state 1 the chain can only be back at 1 after an even number of steps. From state 4 it can be back after one step.",
+    "The verdict that fits nothing is the one that contradicts a theorem in the notes: every recurrent class is closed."
+  ],
+  "payload": {
+    "leftLabel": "Class",
+    "rightLabel": "Verdict",
+    "left": [
+      "$\\{1,2\\}$",
+      "$\\{3\\}$",
+      "$\\{4,5\\}$",
+      "$\\{6\\}$"
+    ],
+    "right": [
+      "Closed and recurrent, and periodic with period 2: returns happen only at even times.",
+      "Transient, and the chain leaves it on the very next step whichever way it goes.",
+      "Closed and recurrent, and aperiodic, because one of its states can be returned to in a single step.",
+      "Transient, though the chain may linger: a self-loop keeps it there for a geometric number of steps and then it leaves for good.",
+      "Recurrent but not closed."
+    ]
+  }
+}

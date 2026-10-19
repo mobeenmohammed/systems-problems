@@ -1,0 +1,41 @@
+{
+  "key": {
+    "value": "3/10",
+    "alsoAccept": [
+      "0.3"
+    ]
+  },
+  "feedback": {
+    "whenValue": [
+      {
+        "is": "1/3",
+        "say": "That would be right if the three rates were equal. They are not: job 3 is the fastest and job 1 the slowest, so the three probabilities differ."
+      },
+      {
+        "is": "1/2",
+        "say": "That is $1/\\lambda_2$ — the **expected duration** of job 2, in hours. The race is decided by rates, not by means."
+      },
+      {
+        "is": "2/10",
+        "say": "That is $\\P(J = 1)$, using job 1’s rate of 2. Job 2 has rate 3."
+      },
+      {
+        "is": "5/10",
+        "say": "That is $\\P(J = 3)$, using the fastest job’s rate. Job 2 has rate 3, not 5."
+      }
+    ],
+    "nudge": "The probability of winning is the share of the total rate. Add $2 + 3 + 5$ and take the right numerator."
+  },
+  "explanation": "## The answer\n\n$$\\P(J = 2) = \\frac{\\lambda_2}{\\lambda_1+\\lambda_2+\\lambda_3} = \\frac{3}{2+3+5} = \\frac{3}{10}.$$\n\nThe three probabilities are $\\tfrac{2}{10}, \\tfrac{3}{10}, \\tfrac{5}{10}$, in proportion to the rates — so the job with twice the rate is twice as likely to win, however long any of them is expected to take.\n\n## Two proofs, and why the second is better\n\n**Directly.** $\\P(T_2 < T_1, T_2 < T_3) = \\int_0^\\infty 3e^{-3t}\\,e^{-2t}e^{-5t}\\,\\mathrm{d}t = \\int_0^\\infty 3e^{-10t}\\,\\mathrm{d}t = \\tfrac{3}{10}$. Correct, and it says nothing about why.\n\n**By thinning.** Take one Poisson process of rate $10$ and colour each arrival independently: type 1 with probability $\\tfrac2{10}$, type 2 with $\\tfrac3{10}$, type 3 with $\\tfrac5{10}$. By the thinning theorem the three coloured streams are independent Poisson processes of rates 2, 3 and 5 — which is exactly the set-up. $T_j$ is the first type-$j$ arrival, the race is won by whoever owns the first arrival overall, and the colour of that arrival is independent of when it happens.\n\nThe second proof gives all three parts of the theorem at once, including the part that is genuinely surprising: **the winner and the winning time are independent**. Knowing the race finished after four minutes tells you nothing about who won.\n\n## Where it is used\n\nThis is the engine of continuous-time Markov chains in chapter 5. A chain at state $i$ has an independent exponential clock for each possible move, with rate $g_{i,j}$; the chain waits for the first alarm and takes that move. The race theorem says:\n\n- the holding time at $i$ is $\\mathrm{Exponential}\\bigl(\\sum_{j \\ne i} g_{i,j}\\bigr)$;\n- the next state is $j$ with probability $g_{i,j}/\\sum_{k \\ne i} g_{i,k}$, which is the jump chain;\n- and the two are independent, which is what makes the jump chain an ordinary discrete Markov chain that can be analysed on its own.\n\nAll three come straight from this one calculation, with the memorylessness of the exponential doing the work of making the clocks restartable.",
+  "readMore": [
+    {
+      "concept": "p2-poisson-conditioning",
+      "where": "the exponential race theorem and its thinning proof"
+    },
+    {
+      "concept": "p2-ctmc-basics",
+      "where": "where the race is used to build a chain"
+    }
+  ],
+  "id": "p2-exponential-race"
+}

@@ -1,0 +1,35 @@
+{
+  "id": "p2-union-bound-run-of-heads",
+  "title": "A bound you can get for nothing",
+  "topic": "prob",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "exact",
+  "tags": [
+    "union-bound",
+    "course-probability-2"
+  ],
+  "estimate": 10,
+  "prereqs": [
+    {
+      "concept": "p2-union-bound",
+      "why": "The bound asked for is one application of the theorem, and the point is that nothing about dependence is needed."
+    },
+    {
+      "concept": "p2-probability-axioms",
+      "why": "The events overlap heavily, so additivity would be wrong and subadditivity is what is available."
+    }
+  ],
+  "statement": "A fair coin is tossed $20$ times, independently.\n\nFor $i = 1, 2, \\dots, 16$, let $A_i$ be the event that tosses\n$i, i+1, i+2, i+3, i+4$ are **all heads**. The event that a run of five\nconsecutive heads occurs somewhere is $A_1 \\cup A_2 \\cup \\cdots \\cup A_{16}$.\n\nThe $A_i$ overlap heavily — $A_1$ and $A_2$ share four tosses — so their\nprobabilities cannot simply be added.\n\nGive the bound that the **union bound** provides for\n\n$$\\P\\Bigl(\\bigcup_{i=1}^{16} A_i\\Bigr).$$",
+  "hints": [
+    "The union bound says the probability of a union is at most the sum of the probabilities. Nothing about overlap or independence enters it.",
+    "Each $A_i$ fixes five specific tosses as heads and says nothing about the other fifteen, so $\\P(A_i) = 2^{-5}$.",
+    "There are sixteen events, each of probability $1/32$. The bound is the sum of those sixteen numbers."
+  ],
+  "payload": {
+    "prompt": "The bound the union bound gives.",
+    "label": "$\\P\\bigl(\\bigcup A_i\\bigr) \\le$",
+    "placeholder": "a fraction",
+    "syntax": "A number or a fraction. 16/32 and 1/2 are the same answer."
+  }
+}

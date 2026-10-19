@@ -1,0 +1,41 @@
+{
+  "id": "p2-thinning-and-superposition",
+  "title": "Splitting and merging arrivals",
+  "topic": "prob",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "multi",
+  "tags": [
+    "superposition",
+    "thinning",
+    "poisson-process",
+    "course-probability-2"
+  ],
+  "estimate": 14,
+  "prereqs": [
+    {
+      "concept": "p2-superposition-thinning",
+      "why": "The two theorems are exactly what three of the five statements are, and the other two are near misses."
+    },
+    {
+      "concept": "p2-poisson-process",
+      "why": "Whether the result is Poisson is the question, and that needs the defining properties rather than just the right mean."
+    }
+  ],
+  "statement": "Let $(N(t))$ be a Poisson process of rate $\\lambda$.\n\nSelect every statement below that is **true**.",
+  "hints": [
+    "Two of the statements are the superposition and thinning theorems. Find them first.",
+    "Rates add when processes are merged. Ask yourself what units a rate has, and whether multiplying two of them could give a rate.",
+    "Thinning means an **independent coin flip per arrival**. What happens if the rule for keeping an arrival depends on the ones before it?",
+    "If you keep every second arrival, how long do you wait between the kept ones — and is that an exponential random variable?"
+  ],
+  "payload": {
+    "options": [
+      "Keeping each arrival independently with probability $p$, and discarding it otherwise, gives a Poisson process of rate $p\\lambda$.",
+      "In that construction, the kept stream and the discarded stream are independent processes.",
+      "Merging two **independent** Poisson processes of rates $\\lambda$ and $\\mu$ gives a Poisson process of rate $\\lambda + \\mu$.",
+      "Merging two independent Poisson processes both of rate $\\lambda$ gives a Poisson process of rate $\\lambda^2$.",
+      "Keeping every second arrival — the 2nd, 4th, 6th, and so on — gives a Poisson process of rate $\\lambda/2$."
+    ]
+  }
+}

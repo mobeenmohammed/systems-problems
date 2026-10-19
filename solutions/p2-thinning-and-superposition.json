@@ -1,0 +1,41 @@
+{
+  "key": {
+    "answers": [
+      0,
+      1,
+      2
+    ]
+  },
+  "feedback": {
+    "misconceptions": [
+      {
+        "picked": [
+          3
+        ],
+        "say": "On the merged rate: count arrivals in one unit of time. The first process contributes $\\lambda$ on average and the second $\\lambda$, so the merged process averages $2\\lambda$. Multiplying rates would not even have the right units."
+      },
+      {
+        "picked": [
+          4
+        ],
+        "say": "On keeping every second arrival: the long-run rate really is $\\lambda/2$, so the mean is right. But look at the gap between two kept arrivals — it is the **sum of two** independent exponentials, which is a Gamma variable, not an exponential. A Poisson process has exponential gaps."
+      }
+    ],
+    "nudge": "Three are true. For the two that are not, one gets the arithmetic of rates wrong and the other gets the right average arrival rate by a rule that is not an independent coin flip."
+  },
+  "distractors": {
+    "0": "True — the thinning theorem (Theorem 4.8). Each arrival is kept or dropped by an independent coin flip, independent of the process, and the survivors form a Poisson process of rate $p\\lambda$.",
+    "1": "True, and the genuinely surprising part (Theorem 4.9). The two streams come from the same arrivals, so it is natural to expect them to be negatively correlated — more kept means fewer dropped. They are not: $\\P(M(t) = m, L(t) = \\ell)$ factorises exactly into two Poisson probabilities with means $p\\lambda t$ and $(1-p)\\lambda t$.",
+    "2": "True — the superposition theorem (Theorem 4.7). Independence of the two processes is essential; merging a process with itself gives arrivals in pairs, which is not Poisson.",
+    "3": "False. Rates add under superposition, they do not multiply. In one unit of time the merged process has $\\lambda + \\mu$ arrivals on average, and $\\lambda\\mu$ is not even dimensionally a rate.",
+    "4": "False, although the long-run rate is indeed $\\lambda/2$. The inter-arrival times of the kept stream are sums of two independent $\\mathrm{Exponential}(\\lambda)$ variables, which have a $\\mathrm{Gamma}(2,\\lambda)$ distribution — notably, the density is $0$ at $t=0$, so two kept arrivals almost never come close together. A Poisson process has exponential gaps and is perfectly happy to deliver two arrivals in quick succession."
+  },
+  "explanation": "## The two theorems\n\n**Superposition.** Independent Poisson processes of rates $\\lambda$ and $\\mu$ merge into a Poisson process of rate $\\lambda + \\mu$. Rates add because expected counts add and the defining properties — independent and stationary increments — survive the merge.\n\n**Thinning.** Flip an independent $p$-coin per arrival and keep the heads: the kept arrivals form a Poisson process of rate $p\\lambda$, the discarded ones a Poisson process of rate $(1-p)\\lambda$, and the two are independent.\n\nTogether they say the two pictures are the same picture:\n\n| | |\n| --- | --- |\n| one process of rate $\\lambda$, each arrival coloured red with probability $p$ | two independent processes, red of rate $p\\lambda$ and blue of rate $(1-p)\\lambda$ |\n\nEither description may be used, whichever is easier for the question in front of you. That is how the exponential race theorem is proved, and how a Poisson process gets split across several servers or several customer types.\n\n## Why independence of the split streams is surprising, and true\n\nThe kept and discarded counts are built from the same arrivals, so a correlation seems inevitable. The calculation in the notes shows otherwise:\n\n$$\\P(M(t) = m,\\ L(t) = \\ell) = \\binom{m+\\ell}{m}p^m q^\\ell \\cdot e^{-\\lambda t}\\frac{(\\lambda t)^{m+\\ell}}{(m+\\ell)!}\n= e^{-\\lambda p t}\\frac{(\\lambda p t)^m}{m!}\\cdot e^{-\\lambda q t}\\frac{(\\lambda q t)^\\ell}{\\ell!},$$\n\nwhich factorises exactly. The reason, informally, is that the **total** $N(t)$ is itself random with the Poisson's very particular variance — the same as its mean. Condition on a fixed total and the two counts are of course negatively correlated; letting the total be Poisson supplies precisely enough extra variability to cancel that.\n\n## The near miss\n\nKeeping every second arrival is a deterministic rule rather than an independent coin flip, and it fails. The rate is right, the independent increments are not: knowing that a kept arrival just happened tells you the next one needs *two* further arrivals, so short gaps become unlikely in a way no Poisson process allows.\n\nThe resulting process is a **renewal process** with $\\mathrm{Gamma}(2,\\lambda)$ gaps. It is a perfectly reasonable arrival process and it is not Poisson — which is the point. \"The right average rate\" is a long way short of \"Poisson\", and most of the usefulness of the Poisson process lies in the properties that this example loses.",
+  "readMore": [
+    {
+      "concept": "p2-superposition-thinning",
+      "where": "both theorems and the independence proof"
+    }
+  ],
+  "id": "p2-thinning-and-superposition"
+}

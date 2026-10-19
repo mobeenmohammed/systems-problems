@@ -1,0 +1,40 @@
+{
+  "id": "p2-strong-vs-weak-law",
+  "title": "What the strong law actually says",
+  "topic": "prob",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "multi",
+  "tags": [
+    "strong-law",
+    "convergence",
+    "course-probability-2"
+  ],
+  "estimate": 14,
+  "prereqs": [
+    {
+      "concept": "p2-strong-law",
+      "why": "The statement is the subject, and the question is which of five readings of it are correct."
+    },
+    {
+      "concept": "p2-expectation",
+      "why": "The hypothesis is a finite mean and nothing more, which rules one of the options out."
+    }
+  ],
+  "statement": "**Strong law of large numbers.** Let $X_1, X_2, \\dots$ be independent and\nidentically distributed with $\\E|X_1| < \\infty$, and write\n$S_n = X_1 + \\cdots + X_n$ and $\\mu = \\E X_1$. Then\n\n$$\\P\\Bigl(\\lim_{n\\to\\infty} \\tfrac{S_n}{n} = \\mu\\Bigr) = 1 .$$\n\nSelect every statement below that **follows from** this theorem (or is part\nof it).",
+  "hints": [
+    "'Almost surely' names a single event of probability one. Which of the statements are about that event, and which quietly claim something for every outcome?",
+    "Convergence almost surely implies convergence in probability. One of the options is the weak law, which is therefore implied.",
+    "Look closely at where the $N$ comes from. Is it allowed to depend on which infinite sequence of outcomes you got?",
+    "Check the hypotheses of the theorem as stated: what exactly is assumed about the distribution of $X_1$?"
+  ],
+  "payload": {
+    "options": [
+      "$\\P\\bigl(\\lim_n S_n/n = \\mu\\bigr) = 1$.",
+      "For every $\\eps > 0$, $\\P\\bigl(|S_n/n - \\mu| > \\eps\\bigr) \\to 0$ as $n \\to \\infty$.",
+      "There is an $N$, the same for every outcome, with $|S_n/n - \\mu| < 0.01$ for all $n \\ge N$.",
+      "For almost every outcome there is an $N$ — depending on that outcome — beyond which $|S_n/n - \\mu| < 0.01$.",
+      "The conclusion requires $X_1$ to have finite variance."
+    ]
+  }
+}

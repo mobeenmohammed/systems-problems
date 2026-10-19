@@ -1,0 +1,37 @@
+{
+  "id": "p2-stationary-distribution",
+  "title": "The distribution that does not move",
+  "topic": "prob",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "exact",
+  "tags": [
+    "stationary-distributions",
+    "markov-chains",
+    "course-probability-2"
+  ],
+  "estimate": 16,
+  "prereqs": [
+    {
+      "concept": "p2-stationary-distributions",
+      "why": "The equation pi P = pi is what has to be solved, and the normalising condition is what makes the answer unique."
+    },
+    {
+      "concept": "p2-n-step-transitions",
+      "why": "That a distribution multiplies the matrix on the left is what makes the equation a column-by-column one."
+    }
+  ],
+  "statement": "A Markov chain on $\\{1,2,3\\}$ has transition matrix\n\n$$P = \\begin{pmatrix}\n\\tfrac12 & \\tfrac12 & 0\\\\[2pt]\n\\tfrac13 & \\tfrac13 & \\tfrac13\\\\[2pt]\n0 & \\tfrac14 & \\tfrac34\n\\end{pmatrix}.$$\n\nIt is irreducible and aperiodic, so it has a unique stationary distribution\n$\\pi = (\\pi_1, \\pi_2, \\pi_3)$ — the unique row vector with non-negative\nentries summing to $1$ that satisfies $\\pi P = \\pi$.\n\nGive $\\pi_3$ exactly.",
+  "hints": [
+    "$\\pi P = \\pi$ means $\\sum_i \\pi_i p_{i,j} = \\pi_j$ for each $j$ — a sum down **column** $j$ of $P$, not along a row.",
+    "Write the three equations out. The one for $j = 1$ involves only $\\pi_1$ and $\\pi_2$, so start there.",
+    "Column 1 gives $\\pi_1 = \\tfrac12\\pi_1 + \\tfrac13\\pi_2$, so $\\pi_2 = \\tfrac32 \\pi_1$. Column 3 then gives $\\pi_3$ in terms of $\\pi_1$ too.",
+    "One of the three equations is redundant — it always is. Use two of them plus $\\pi_1 + \\pi_2 + \\pi_3 = 1$."
+  ],
+  "payload": {
+    "prompt": "The stationary probability of state 3.",
+    "label": "$\\pi_3 =$",
+    "placeholder": "a fraction",
+    "syntax": "A number or a fraction. Arithmetic is fine."
+  }
+}

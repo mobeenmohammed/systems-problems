@@ -1,0 +1,38 @@
+{
+  "key": {
+    "value": "1/2",
+    "alsoAccept": [
+      "16/32",
+      "0.5"
+    ]
+  },
+  "feedback": {
+    "whenValue": [
+      {
+        "is": "1/32",
+        "say": "That is $\\P(A_i)$ for a single $i$. There are sixteen of them, and the bound adds them all up."
+      },
+      {
+        "is": "16",
+        "say": "You have counted the events but not weighted them: each contributes its probability $1/32$, not $1$."
+      },
+      {
+        "is": "20/32",
+        "say": "Count the starting positions again. A run of five inside twenty tosses can begin at position $1$ through position $16$, not through position $20$."
+      },
+      {
+        "is": "1",
+        "say": "That is what you get from twenty or thirty-two events rather than sixteen. A probability bound of $1$ would also be true and completely useless, which is a hint that the count is wrong."
+      }
+    ],
+    "nudge": "Two numbers: how many events there are, and what each one is worth. Multiply. The bound asks for nothing else — no inclusion-exclusion, no independence."
+  },
+  "explanation": "## The computation\n\n$A_i$ specifies five particular tosses and says nothing about the rest, so\n\n$$\\P(A_i) = \\Bigl(\\tfrac12\\Bigr)^{5} = \\tfrac1{32}.$$\n\nA run of five can start at position $1, 2, \\dots, 16$, so there are sixteen events and\n\n$$\\P\\Bigl(\\bigcup_{i=1}^{16} A_i\\Bigr) \\;\\le\\; \\sum_{i=1}^{16} \\P(A_i) \\;=\\; \\frac{16}{32} \\;=\\; \\frac12 .$$\n\n## What makes the bound worth having\n\nNothing about the $A_i$ was used except their individual probabilities. They are not disjoint — $A_1 \\cap A_2$ is the event that tosses 1 to 6 are all heads, with probability $1/64$ — and they are not independent. Inclusion–exclusion would need all $2^{16}$ intersections.\n\nThe union bound is the fact that none of that matters when you only want an upper bound. It is countable subadditivity, it follows from the axioms in two lines with indicators, and it is probably the single most used inequality in probability.\n\n## How good is it here?\n\nThe true probability of a run of five heads in twenty fair tosses is about $0.25$. So the bound of $0.5$ is out by a factor of two — loose, and still in the right region.\n\nThe bound degrades exactly when the events overlap a lot or when there are many of them. Ask the same question for a run of **three** heads in twenty tosses: eighteen events of probability $1/8$ each gives a bound of $18/8 = 2.25$, which is true and says nothing at all. A bound above 1 is the signal that the events are overlapping too much for this tool.\n\n## Where it is sharp\n\nThe union bound is an equality exactly when the events are disjoint. More usefully, it is *nearly* sharp when the events are rare and barely overlap — which is why it is the workhorse of the probabilistic method: to prove that something with no bad property exists, show that the sum of the probabilities of the bad events is below 1.",
+  "readMore": [
+    {
+      "concept": "p2-union-bound",
+      "where": "the theorem and the indicator proof"
+    }
+  ],
+  "id": "p2-union-bound-run-of-heads"
+}

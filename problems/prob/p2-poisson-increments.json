@@ -1,0 +1,35 @@
+{
+  "id": "p2-poisson-increments",
+  "title": "Five arrivals in two hours",
+  "topic": "prob",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "approx",
+  "tags": [
+    "poisson-process",
+    "course-probability-2"
+  ],
+  "estimate": 10,
+  "prereqs": [
+    {
+      "concept": "p2-poisson-process",
+      "why": "That the count in an interval is Poisson with mean rate times length is the theorem being applied."
+    },
+    {
+      "concept": "p2-expectation",
+      "why": "The mean of the Poisson variable is what the rate and the length produce between them."
+    }
+  ],
+  "statement": "Requests arrive at a server as a Poisson process of rate\n$\\lambda = 3$ per hour.\n\nFor a Poisson process, the number of arrivals in an interval of length $t$ is\nPoisson distributed with mean $\\lambda t$:\n\n$$\\P\\bigl(N(t) = k\\bigr) = e^{-\\lambda t}\\,\\frac{(\\lambda t)^k}{k!}.$$\n\nFind the probability that **exactly five** requests arrive in a given\ntwo-hour window.\n\nGive the answer as a decimal to **three decimal places**; it is checked to\nwithin $\\pm 0.001$. You may take $e^{-6} \\approx 0.0024788$.",
+  "hints": [
+    "Work out the mean first. The rate is per hour and the window is two hours long.",
+    "With mean $6$ and $k = 5$, the expression is $e^{-6} \\cdot 6^5 / 5!$.",
+    "$6^5 = 7776$ and $5! = 120$, so the fraction is $64.8$. Multiply by $e^{-6}$."
+  ],
+  "payload": {
+    "prompt": "The probability of exactly five arrivals in two hours.",
+    "label": "$\\P\\bigl(N(2) = 5\\bigr) \\approx$",
+    "placeholder": "e.g. 0.123",
+    "syntax": "A decimal, to three decimal places. Checked to within 0.001."
+  }
+}

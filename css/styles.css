@@ -2716,12 +2716,20 @@ body[data-graph="true"] .main {
 }
 body[data-graph="true"] #view-learn { height: 100%; min-height: 0; }
 
+/* The bar, the chapter rail, and the canvas. The rail is `hidden`
+   unless the track follows a course, and a hidden element is not a grid
+   item at all — so the rows are named rather than inferred, or
+   auto-placement drops the canvas into the empty middle row and gives
+   it no height. (The same trap as .ws-body and .mf.) */
 .graph {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
   height: 100%;
   min-height: 0;
 }
+.graph > .graph-bar       { grid-row: 1; }
+.graph > .learn-chapters  { grid-row: 2; }
+.graph > .learn-canvas    { grid-row: 3; }
 
 .graph-bar {
   display: flex; align-items: center; gap: var(--s3);
@@ -2843,6 +2851,101 @@ body[data-graph="true"] #view-learn { height: 100%; min-height: 0; }
    reading a thing is not knowing it. */
 .lnode[data-state="read"] { border-left: 2px solid var(--text-faint); }
 .lnode[data-state="done"] { border-left: 2px solid var(--ok); }
+
+/* ---- a concept that belongs to a course ----
+
+   The chapter number sits in the corner of the box, and material the
+   notes rule out of the course is dimmed and labelled. Neither is
+   colour alone: the number is a numeral and the label is a word, and
+   both are in the aria-label as well. */
+.lnode-ch {
+  position: absolute; top: .2rem; right: .35rem;
+  font-size: .62rem; font-variant-numeric: tabular-nums;
+  color: var(--text-faint); opacity: .85;
+}
+.lnode[data-optional="true"] { border-style: dashed; }
+.lnode-opt {
+  align-self: flex-start;
+  font-size: .58rem; text-transform: uppercase; letter-spacing: .05em;
+  padding: 0 .25rem; border-radius: var(--radius-s);
+  border: 1px solid var(--border-strong); color: var(--text-faint);
+}
+/* A folded chapter is one box standing for several, so it is drawn
+   heavier than the sections it replaced. */
+.lnode[data-folded] {
+  border-width: 2px; border-color: var(--border-strong);
+  background: var(--bg-elev-2);
+  font-weight: 600;
+}
+.lnode[data-folded] .lnode-ch { display: none; }
+
+/* ---- the chapter rail ---- */
+
+/* `display: grid` beats the `hidden` attribute's own `display: none`,
+   so the attribute has to be honoured explicitly — otherwise every
+   non-course track grows an empty bar. */
+.learn-chapters[hidden] { display: none; }
+.learn-chapters {
+  display: grid; gap: .3rem;
+  padding: .4rem var(--s4) .5rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elev);
+}
+.lchap-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); }
+.lchap-acts { display: flex; gap: .3rem; flex: none; }
+.lchap-list {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-wrap: wrap; gap: .3rem;
+}
+.lchap {
+  display: flex; align-items: stretch;
+  border: 1px solid var(--border); border-radius: var(--radius-s);
+  background: var(--bg);
+  overflow: hidden;
+}
+.lchap-fold, .lchap-name {
+  appearance: none; border: 0; background: none; cursor: pointer;
+  color: var(--text-dim); font: inherit; font-size: .74rem;
+  padding: .25rem .4rem;
+  display: flex; align-items: center; gap: .35rem;
+}
+.lchap-fold { border-right: 1px solid var(--border); color: var(--text-faint); }
+.lchap-fold:hover, .lchap-name:hover { background: var(--bg-elev-2); color: var(--text); }
+.lchap-fold:focus-visible, .lchap-name:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: -2px;
+}
+.lchap-fold[aria-expanded="false"] { background: var(--accent-soft); color: var(--text); }
+.lchap-n {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 1.1rem; height: 1.1rem; border-radius: var(--radius-s);
+  background: var(--bg-elev-2); color: var(--text-faint);
+  font-size: .64rem; font-variant-numeric: tabular-nums;
+}
+.lchap-title { white-space: nowrap; }
+.lchap-count { font-variant-numeric: tabular-nums; }
+.lchap-opt { color: var(--text-faint); font-size: .62rem; }
+
+/* ---- where a concept comes from, in the panel ---- */
+
+.lpanel-where { display: flex; flex-wrap: wrap; gap: .35rem; align-items: baseline; margin: .2rem 0; }
+.lpanel-src { color: var(--text-dim); }
+.lpanel-opt {
+  font-size: .62rem; text-transform: uppercase; letter-spacing: .05em;
+  padding: 0 .3rem; border-radius: var(--radius-s);
+  border: 1px solid var(--border-strong); color: var(--text-faint);
+}
+.lpanel-folded { margin: .5rem 0; }
+.lpanel-sections { list-style: none; margin: .2rem 0; padding: 0; display: grid; gap: .2rem; }
+.lpanel-sections li {
+  display: flex; flex-wrap: wrap; gap: .35rem; align-items: baseline;
+  padding: .15rem .35rem; border-left: 2px solid var(--border);
+}
+.lpanel-sections li[data-optional="true"] { border-left-style: dashed; opacity: .8; }
+
+@media (max-width: 860px) {
+  .lchap-title { display: none; }
+  .lchap-count { display: none; }
+}
 
 .learn-hint {
   position: absolute; left: var(--s3); bottom: var(--s2);

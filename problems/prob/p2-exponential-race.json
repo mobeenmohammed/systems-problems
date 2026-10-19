@@ -1,0 +1,36 @@
+{
+  "id": "p2-exponential-race",
+  "title": "Which of three finishes first?",
+  "topic": "prob",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "exact",
+  "tags": [
+    "exponential-races",
+    "poisson-process",
+    "course-probability-2"
+  ],
+  "estimate": 12,
+  "prereqs": [
+    {
+      "concept": "p2-poisson-conditioning",
+      "why": "The exponential race theorem is the statement being applied, and the answer is its second part."
+    },
+    {
+      "concept": "p2-arrival-times",
+      "why": "Each competitor is the first arrival of a Poisson process, which is where the exponential comes from."
+    }
+  ],
+  "statement": "Three independent jobs are running. Job $i$ finishes after an\n$\\mathrm{Exponential}(\\lambda_i)$ time, with\n\n$$\\lambda_1 = 2, \\qquad \\lambda_2 = 3, \\qquad \\lambda_3 = 5$$\n\n(all per hour), and the three times are independent.\n\nFor independent exponentials, the index $J$ of the smallest satisfies\n\n$$\\P(J = j) = \\frac{\\lambda_j}{\\lambda_1 + \\lambda_2 + \\lambda_3},$$\n\nthe minimum is $\\mathrm{Exponential}$ of the summed rate, and the two are\nindependent of each other.\n\nGive the exact probability that **job 2** finishes first.",
+  "hints": [
+    "Add the three rates to get the denominator.",
+    "The numerator is the rate of the job you are asking about, not its expected duration.",
+    "A faster job (higher rate) is more likely to win, so the answer should be larger than $1/3$ for job 3 and smaller than $1/3$ for job 1."
+  ],
+  "payload": {
+    "prompt": "The probability that job 2 finishes before the other two.",
+    "label": "$\\P(J = 2) =$",
+    "placeholder": "a fraction",
+    "syntax": "A number or a fraction. Arithmetic is fine."
+  }
+}

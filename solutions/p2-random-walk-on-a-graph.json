@@ -1,0 +1,37 @@
+{
+  "key": {
+    "value": "3/8",
+    "alsoAccept": [
+      "0.375"
+    ]
+  },
+  "feedback": {
+    "whenValue": [
+      {
+        "is": "1/4",
+        "say": "That is the uniform distribution. It would be stationary if every vertex had the same degree, and here vertex 3 has three neighbours while vertex 4 has one."
+      },
+      {
+        "is": "3/4",
+        "say": "That is $\\deg(3)$ divided by the number of edges rather than by the sum of the degrees. The normaliser is $2|E| = 8$, not $|E| = 4$."
+      },
+      {
+        "is": "1/3",
+        "say": "That is $1/\\deg(3)$, which is the probability of each individual move out of vertex 3, not the stationary probability of being there."
+      },
+      {
+        "is": "3/10",
+        "say": "Recount the degrees. Vertex 3 is in three of the four edges, and the four degrees are $2, 2, 3, 1$, summing to 8."
+      }
+    ],
+    "nudge": "Count the degrees, guess $\\pi_v \\propto \\deg(v)$, check one balance equation, and divide by the sum of the degrees."
+  },
+  "explanation": "## The degrees\n\n| vertex | neighbours | $\\deg$ |\n| --- | --- | --- |\n| 1 | 2, 3 | 2 |\n| 2 | 1, 3 | 2 |\n| 3 | 1, 2, 4 | 3 |\n| 4 | 3 | 1 |\n\nThe degrees sum to $8 = 2|E|$ — every edge is counted at each of its two ends — so\n\n$$\\pi_v = \\frac{\\deg(v)}{2|E|} = \\frac{\\deg(v)}{8}, \\qquad\n\\pi = \\Bigl(\\tfrac28, \\tfrac28, \\tfrac38, \\tfrac18\\Bigr), \\qquad \\pi_3 = \\frac38 .$$\n\n## Why the guess works\n\nSubstituting into the detailed balance equation, for an edge $\\{v,w\\}$:\n\n$$\\pi_v p_{v,w} = \\frac{\\deg(v)}{2|E|}\\cdot\\frac{1}{\\deg(v)} = \\frac{1}{2|E|}\n= \\frac{\\deg(w)}{2|E|}\\cdot\\frac{1}{\\deg(w)} = \\pi_w p_{w,v}.$$\n\nBoth sides equal $1/(2|E|)$ **for every edge**, and both sides are $0$ for every non-edge. So the chain is reversible and $\\pi$ is stationary.\n\nThe quantity $1/(2|E|)$ has a reading: in equilibrium, each *directed* edge is traversed at the same rate, and there are $2|E|$ of them. The walk has no preferred direction anywhere, which is exactly what reversibility means — a recording of it played backwards is statistically indistinguishable from the original.\n\n## Detailed balance against the full system\n\nSolving $\\pi P = \\pi$ here means four linear equations in four unknowns with one redundancy, by hand. Detailed balance replaces that with one guess and one substitution, and it works for every graph on any number of vertices.\n\nThat is the usual trade. Detailed balance is a **stronger** condition than stationarity — it is balance on each edge rather than at each vertex — so it is easier to verify and it does not always hold. When it does, it is almost always the quickest route to $\\pi$:\n\n- **birth–death chains** (only nearest-neighbour moves) are always reversible, which is why the M/M/1 queue in chapter 5 is solved in two lines;\n- **random walks on graphs**, as here, including the king-on-a-chessboard example in the notes;\n- **anything built to be reversible**, which is the whole of Markov chain Monte Carlo: the Metropolis algorithm chooses the transition probabilities precisely so that detailed balance holds for the distribution you want to sample from.\n\nA chain with a one-way cycle — say $1 \\to 2 \\to 3 \\to 1$ with probability 1 — is stationary at the uniform distribution and is not reversible, so the condition really is stronger.\n\n## The mean return time\n\n$\\mu_3 = 1/\\pi_3 = \\tfrac83$. Starting at vertex 3, the walk takes on average $2\\tfrac23$ steps to come back — and for vertex 4, the leaf, $\\mu_4 = 8$. In general $\\mu_v = 2|E|/\\deg(v)$, so a vertex with one neighbour is visited $\\deg$-times less often than its neighbour, which is about as direct a statement as a stationary distribution can make.",
+  "readMore": [
+    {
+      "concept": "p2-reversibility",
+      "where": "the detailed balance theorems and the random-walk-on-a-graph example"
+    }
+  ],
+  "id": "p2-random-walk-on-a-graph"
+}

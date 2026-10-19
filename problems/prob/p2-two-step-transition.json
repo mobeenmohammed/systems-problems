@@ -1,0 +1,36 @@
+{
+  "id": "p2-two-step-transition",
+  "title": "Where is the chain after two steps?",
+  "topic": "prob",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "exact",
+  "tags": [
+    "markov-chains",
+    "transition-matrix",
+    "course-probability-2"
+  ],
+  "estimate": 10,
+  "prereqs": [
+    {
+      "concept": "p2-n-step-transitions",
+      "why": "The distribution after n steps is the initial row vector times the nth power of the transition matrix."
+    },
+    {
+      "concept": "p2-markov-property",
+      "why": "That the matrix can be applied twice at all is the Markov property plus time homogeneity."
+    }
+  ],
+  "statement": "A Markov chain on $S = \\{1,2,3\\}$ has transition matrix\n\n$$P = \\begin{pmatrix}\n\\tfrac12 & \\tfrac12 & 0\\\\[2pt]\n0 & \\tfrac12 & \\tfrac12\\\\[2pt]\n\\tfrac12 & 0 & \\tfrac12\n\\end{pmatrix}$$\n\nwhere the entry in row $i$ and column $j$ is $p_{i,j} = \\P(X_{n+1} = j \\mid X_n = i)$.\n\nThe initial distribution is $\\lambda^{(0)} = \\bigl(\\tfrac12, \\tfrac12, 0\\bigr)$.\n\nGive $\\P(X_2 = 2)$ exactly.",
+  "hints": [
+    "The distribution after $n$ steps is $\\lambda^{(0)} P^n$, a row vector times a matrix — so you multiply on the left.",
+    "Do it in two steps rather than squaring the matrix: compute $\\lambda^{(1)} = \\lambda^{(0)} P$ first, and check that its entries sum to 1.",
+    "$\\lambda^{(1)} = (1/4, 1/2, 1/4)$. Now take its product with the **second column** of $P$."
+  ],
+  "payload": {
+    "prompt": "The probability of being in state 2 at time 2.",
+    "label": "$\\P(X_2 = 2) =$",
+    "placeholder": "a fraction",
+    "syntax": "A number or a fraction. Arithmetic is fine."
+  }
+}

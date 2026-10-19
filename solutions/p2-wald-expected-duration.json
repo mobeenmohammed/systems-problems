@@ -1,0 +1,38 @@
+{
+  "key": {
+    "value": "57/7",
+    "alsoAccept": [
+      "285/35",
+      "(3 - 48/35)*5"
+    ]
+  },
+  "feedback": {
+    "whenValue": [
+      {
+        "is": "9",
+        "say": "That is $3 \\times 3 = k(m-k)$, the answer for a **fair** game. The game here is unfavourable, and the drift carries her to a barrier slightly sooner."
+      },
+      {
+        "is": "-57/7",
+        "say": "Right magnitude, wrong sign. $p - q = -\\tfrac15$ is negative and so is $\\E S_T - k$, so the quotient of the two is positive — as any expected number of games must be."
+      },
+      {
+        "is": "48/35",
+        "say": "That is $\\E S_T$, the expected final wealth. Substitute it into Wald and solve for $\\E T$."
+      },
+      {
+        "is": "8",
+        "say": "Close. Carry the fractions exactly rather than rounding: $3 - \\tfrac{48}{35} = \\tfrac{57}{35}$, and then multiply by $5$."
+      }
+    ],
+    "nudge": "One linear equation: $\\tfrac{48}{35} = 3 + (p-q)\\E T$ with $p - q = -\\tfrac15$. Rearrange and keep everything as fractions."
+  },
+  "explanation": "## Solving it\n\n$p - q = \\tfrac25 - \\tfrac35 = -\\tfrac15$, so Wald gives\n\n$$\\frac{48}{35} = 3 - \\frac{1}{5}\\,\\E T\n\\quad\\Longrightarrow\\quad\n\\frac{1}{5}\\,\\E T = 3 - \\frac{48}{35} = \\frac{105 - 48}{35} = \\frac{57}{35},$$\n\nhence\n\n$$\\E T = \\frac{57}{7} \\approx 8.14 .$$\n\n## Why this is the easy route\n\nThe direct route is the difference equation $t_k = 1 + p\\,t_{k+1} + q\\,t_{k-1}$ with $t_0 = t_m = 0$. For $p \\ne \\tfrac12$ the homogeneous solutions are $1$ and $(q/p)^k$, neither of which is constant-free, so a particular solution has to be found and the general answer is\n\n$$\\E T = \\frac{1}{p-q}\\Bigl(m\\,\\frac{1-(q/p)^k}{1-(q/p)^m} - k\\Bigr),$$\n\nwhich is what the Wald route produced in one line. The notes make the same point at Example 2.12: it is \"a much neater way\".\n\n## The two hypotheses, and why they are checked\n\nWald's identity needs the steps to be independent and identically distributed with finite mean (true), and $T$ to be a **stopping time with $\\E T < \\infty$** (stated in the problem, and argued in the notes by splitting the games into blocks of $m$ and comparing with a geometric variable).\n\nBoth are load-bearing. Example 2.13 in the notes is the cautionary case: for the **symmetric** walk started at $0$, let $T$ be the first time it hits $1$. Then $S_T = 1$ always, so $\\E S_T = 1$; but $\\E X_1 = 0$, so Wald would give $1 = 0 \\cdot \\E T = 0$. The contradiction shows $\\E T = \\infty$ — the walk reaches $+1$ with probability one and takes infinitely long on average to do it.\n\nSo Wald does not merely compute expected durations; applied in reverse it proves that some of them are infinite.\n\n## A sanity check on the number\n\nThe fair version of this game would last $k(m-k) = 3 \\times 3 = 9$ games. The unfavourable version lasts $\\tfrac{57}{7} \\approx 8.14$, which is slightly **shorter**.\n\nThat is the right direction. A drift towards one barrier gets the walk absorbed sooner than an aimless one; a fair walk wanders, and wandering takes time. The drift makes the game both worse and quicker, which is a reasonable summary of an unfavourable bet.",
+  "readMore": [
+    {
+      "concept": "p2-wald-identity",
+      "where": "the theorem, its proof, and the two worked examples"
+    }
+  ],
+  "id": "p2-wald-expected-duration"
+}

@@ -1,0 +1,26 @@
+{
+  "key": {
+    "order": [
+      2,
+      0,
+      4,
+      1,
+      3
+    ]
+  },
+  "feedback": {
+    "nudge": "Work out $HT$ and $HH$ first and notice that they differ even though both have probability $1/4$ at any fixed position. The reason is overlap, and it decides the rest of the order too."
+  },
+  "explanation": "## The five answers\n\n| pattern | $\\E T$ | overlaps itself? |\n| --- | --- | --- |\n| $HT$ | 4 | no |\n| $HH$ | 6 | yes, by one |\n| $HTT$ | 8 | no |\n| $HTH$ | 10 | yes, by one |\n| $HHH$ | 14 | yes, by one and by two |\n\n## How $HTT$ is computed\n\nTake the state to be the length of the longest suffix of the tosses so far that is a prefix of $HTT$. The states are $\\varnothing$, $H$, $HT$ and $HTT$, the last absorbing. From $\\varnothing$: heads moves to $H$, tails stays. From $H$: tails moves to $HT$, heads stays at $H$ (the new head restarts the match). From $HT$: tails finishes, **heads goes back to $H$** rather than to $\\varnothing$, because that head is a fresh start.\n\nFirst-step analysis, writing $t_s$ for the expected number of further tosses from state $s$:\n\n$$t_{HT} = 1 + \\tfrac12 \\cdot 0 + \\tfrac12 t_H, \\qquad\nt_H = 1 + \\tfrac12 t_H + \\tfrac12 t_{HT}, \\qquad\nt_\\varnothing = 1 + \\tfrac12 t_H + \\tfrac12 t_\\varnothing .$$\n\nThe middle one gives $t_H = 2 + t_{HT}$; substituting into the first gives $t_{HT} = 1 + \\tfrac12(2 + t_{HT})$, so $t_{HT} = 4$, then $t_H = 6$ and $t_\\varnothing = \\mathbf{8}$.\n\n## Why overlap costs you\n\nEvery pattern of length $\\ell$ has probability $2^{-\\ell}$ at any fixed starting position, so the **average number of occurrences** in $n$ tosses is the same for all patterns of the same length. The expected **waiting time** is not, and the reason is clustering.\n\n$HH$ can overlap itself: in $HHH$ the pattern occurs twice. So occurrences of $HH$ arrive in clumps, and the same total number of occurrences packed into clumps means longer gaps between clumps. $HT$ cannot overlap itself at all, so its occurrences are spread out as evenly as possible, and the wait is as short as it can be.\n\n$HHH$ is the extreme case: it overlaps itself by one *and* by two, so occurrences clump hardest, and it has the longest wait of the five.\n\nThere is a clean formula behind the table — **Conway's leading-number algorithm** — which says $\\E T = \\sum_k 2^{k}$ over the lengths $k$ at which the pattern matches its own prefix. For $HTH$ that is $k = 3$ (the whole thing) and $k = 1$ (the leading $H$ against the trailing $H$), giving $2^3 + 2^1 = 10$. For $HTT$ only $k = 3$ matches, giving $8$. For $HHH$: $2^3 + 2^2 + 2^1 = 14$.\n\n## The consequence worth remembering\n\nWaiting times for patterns are **not** transitive in the way you would expect, and in the non-transitive game of Penney's game the second player can always choose a pattern that beats the first player's. \"Each pattern is equally likely at each position\" is true and tells you almost nothing about which appears first.\n\nThe notes meet this at Example 1.1, come back to it with Markov chains at Example 3.21, and finish it with martingales in chapter 6 — three methods for one question, and the martingale proof is the one that produces Conway's formula in a line.",
+  "readMore": [
+    {
+      "concept": "p2-hitting-probabilities",
+      "where": "the expected hitting time equations and the HTH example"
+    },
+    {
+      "concept": "p2-optional-stopping",
+      "where": "the martingale argument for the same number"
+    }
+  ],
+  "id": "p2-pattern-waiting-times"
+}

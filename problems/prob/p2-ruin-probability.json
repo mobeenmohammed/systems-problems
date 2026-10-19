@@ -1,0 +1,36 @@
+{
+  "id": "p2-ruin-probability",
+  "title": "An unfavourable game, and the odds of surviving it",
+  "topic": "prob",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "exact",
+  "tags": [
+    "gamblers-ruin",
+    "random-walk",
+    "course-probability-2"
+  ],
+  "estimate": 14,
+  "prereqs": [
+    {
+      "concept": "p2-gamblers-ruin",
+      "why": "The formula for the biased case is what the question asks for, and deriving it is one difference equation."
+    },
+    {
+      "concept": "p2-random-walk",
+      "why": "The wealth is a simple random walk with absorbing barriers at the two ends."
+    }
+  ],
+  "statement": "A gambler starts with $\\pounds 3$ and plays a sequence of independent\n$\\pounds 1$ games. She wins each game with probability $p = \\tfrac25$ and\nloses it with probability $q = \\tfrac35$. She stops when her wealth reaches\n$\\pounds 0$ or $\\pounds 6$.\n\nHer wealth is a simple random walk with absorbing barriers at $0$ and $m = 6$,\nstarted at $k = 3$. Conditioning on the first game gives\n$h_k = p\\,h_{k+1} + q\\,h_{k-1}$ with $h_0 = 0$ and $h_m = 1$, whose solution\nfor $p \\ne \\tfrac12$ is\n\n$$h_k = \\frac{1 - (q/p)^k}{1 - (q/p)^m}.$$\n\nGive the exact probability that she finishes with $\\pounds 6$.",
+  "hints": [
+    "First work out $q/p$. With $p = 2/5$ and $q = 3/5$ it is a simple fraction greater than 1.",
+    "With $q/p = 3/2$ you need $(3/2)^3$ on top and $(3/2)^6$ underneath.",
+    "Both the numerator and the denominator come out negative, and the two signs cancel. Simplify the fraction fully — it reduces a long way."
+  ],
+  "payload": {
+    "prompt": "The probability of reaching 6 before 0.",
+    "label": "$h_3 =$",
+    "placeholder": "a fraction",
+    "syntax": "A number or a fraction. Arithmetic is fine."
+  }
+}

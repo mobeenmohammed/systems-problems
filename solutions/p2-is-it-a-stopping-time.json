@@ -1,0 +1,45 @@
+{
+  "key": {
+    "answers": [
+      0,
+      3,
+      4
+    ]
+  },
+  "feedback": {
+    "misconceptions": [
+      {
+        "picked": [
+          1
+        ],
+        "say": "On the last visit to $0$: suppose $S_{40} = 0$. Is $T \\le 40$? Only if the walk never returns to $0$ during times $41$ to $100$ — and that is a fact about the future, which the definition forbids you from consulting."
+      },
+      {
+        "picked": [
+          2
+        ],
+        "say": "On \"one step before\": at time $n$ you would have to know whether $S_{n+1} = 5$ to decide whether $T = n$. That is exactly one step too far ahead, and one step is enough to break the definition."
+      }
+    ],
+    "nudge": "Three of the five are stopping times. For each, stand at a specific time $n$, cover up everything after it, and ask whether you could answer \"has $T$ happened yet?\" with certainty."
+  },
+  "distractors": {
+    "0": "Yes. $\\{T \\le n\\} = \\{S_m = 5 \\text{ for some } m \\le n\\}$, which is visibly a statement about $S_0, \\dots, S_n$. First hitting times are the standard example.",
+    "1": "No. $\\{T \\le n\\}$ for $n < 100$ would require knowing that the walk does not return to $0$ at any time between $n+1$ and $100$, which is information about the future. \"Last time\" is the standard example of a random time that is not a stopping time.",
+    "2": "No. $\\{T \\le n\\} = \\{S_m = 5 \\text{ for some } m \\le n+1\\}$, which depends on $S_{n+1}$. Looking one step ahead is still looking ahead, and this is precisely the random time a gambler would love to have — stop just before the win — which is a hint that it cannot be allowed.",
+    "3": "Yes. $\\{T \\le n\\}$ is $\\{S_m = 5$ for some $m \\le n\\}$ when $n < 100$, and the certain event when $n \\ge 100$. Truncating a stopping time at a constant keeps it one, and this is the trick that makes the optional stopping theorem usable in chapter 6.",
+    "4": "Yes. $S_n + S_{n-1} = 7$ is a statement about two values the walk has already taken, so whether it has happened at or before time $n$ is decided by $S_0, \\dots, S_n$. (It never actually happens for this walk, since $S_n + S_{n-1}$ is always odd plus even; an event that never occurs gives $T = \\infty$, which is a permitted value and does not stop $T$ being a stopping time.)"
+  },
+  "explanation": "## The one test\n\n$T$ is a stopping time when $\\{T \\le n\\}$ is determined by $S_0, \\dots, S_n$ for every $n$. Equivalently, $\\{T = n\\}$ is determined by $S_0, \\dots, S_n$.\n\nThe intuition is a rule you could actually follow: a gambler with a stopping-time rule can obey it in real time, because at every moment she can tell whether to stop. A rule that is not a stopping time requires clairvoyance.\n\n## First and last\n\n**\"The first time $A$ happens\"** is a stopping time, essentially always. $\\{T \\le n\\}$ is \"$A$ happened at some point up to $n$\", which is a question about the past.\n\n**\"The last time $A$ happens\"** is essentially never one. To know that time $n$ was the last, you must know that $A$ does not happen again — a statement about the future. Note that the trouble is not that $T$ is hard to compute; it is that the information is not there yet.\n\n**\"One step before the first time\"** fails for the same reason in miniature. This is the tempting one, because it is the rule a gambler actually wants: leave just before the loss. The definition exists to rule it out, and the optional stopping theorem in chapter 6 is why that matters — a rule that could see one step ahead would let you beat a fair game.\n\n## Truncation\n\n$T \\wedge c = \\min(T, c)$ is a stopping time whenever $T$ is, and it is the single most useful construction in the whole topic. The optional stopping theorem has an easy case for bounded stopping times, and $T \\wedge c$ is exactly how an unbounded $T$ is reduced to it: prove $\\E X_{T \\wedge n} = \\E X_0$ for each $n$, then let $n \\to \\infty$ under a condition that justifies the limit.\n\n## Where it is used\n\nBoth headline theorems about random times need the hypothesis:\n\n- **Wald's identity**, $\\E\\bigl(\\sum_{i \\le N} X_i\\bigr) = \\E N \\cdot \\E X_1$, needs $N$ to be a stopping time. The proof uses it to make $I_{\\{i \\le N\\}}$ — a function of $X_1, \\dots, X_{i-1}$ — independent of $X_i$, and with a non-stopping time that independence is false.\n- **The strong Markov property** says a Markov chain restarts at a stopping time. Restarting at the *last* visit to a state would give a chain conditioned never to return, which is a different process entirely.",
+  "readMore": [
+    {
+      "concept": "p2-stopping-times",
+      "where": "the definition and the three worked examples"
+    },
+    {
+      "concept": "p2-optional-stopping",
+      "where": "what goes wrong when the rule can see ahead"
+    }
+  ],
+  "id": "p2-is-it-a-stopping-time"
+}

@@ -1,0 +1,42 @@
+{
+  "id": "p2-wald-expected-duration",
+  "title": "The duration of the unfair game",
+  "topic": "prob",
+  "difficulty": "advanced",
+  "lane": "core",
+  "type": "exact",
+  "tags": [
+    "wald-identity",
+    "stopping-times",
+    "gamblers-ruin",
+    "course-probability-2"
+  ],
+  "estimate": 18,
+  "prereqs": [
+    {
+      "concept": "p2-wald-identity",
+      "why": "The identity is what turns the known final wealth into the expected number of games."
+    },
+    {
+      "concept": "p2-gamblers-ruin",
+      "why": "The ruin probability from the previous problem is the input this one needs."
+    },
+    {
+      "concept": "p2-stopping-times",
+      "why": "Wald needs the number of games to be a stopping time with finite mean, and both have to be checked."
+    }
+  ],
+  "statement": "Continue the game of the previous problem: $\\pounds1$ stakes, win\nprobability $p = \\tfrac25$, start at $k = 3$, barriers at $0$ and $m = 6$. Let\n$T$ be the number of games played. It is a stopping time with $\\E T < \\infty$.\n\nWrite $S_T$ for the final wealth. You already know\n$h_3 = \\P(S_T = 6) = \\tfrac{8}{35}$, so\n\n$$\\E S_T = 6 h_3 + 0\\,(1 - h_3) = \\tfrac{48}{35}.$$\n\nWald's identity applied to the steps $X_1, X_2, \\dots$ (each with mean\n$p - q$) gives\n\n$$\\E S_T = k + \\E(X_1)\\,\\E T = 3 + (p-q)\\,\\E T .$$\n\nGive $\\E T$ exactly.",
+  "hints": [
+    "Work out $p - q$ first. It is negative, which it has to be — an unfavourable game drifts downwards.",
+    "Set the two expressions for $\\E S_T$ equal and solve the linear equation for $\\E T$.",
+    "$\\tfrac{48}{35} = 3 - \\tfrac15 \\E T$. Put the right-hand side over 35 before rearranging.",
+    "Both sides being rearranged, $\\tfrac15 \\E T = 3 - \\tfrac{48}{35}$. Expect an answer between 8 and 9."
+  ],
+  "payload": {
+    "prompt": "The expected number of games played.",
+    "label": "$\\E T =$",
+    "placeholder": "a fraction",
+    "syntax": "A number or a fraction. Arithmetic is fine."
+  }
+}

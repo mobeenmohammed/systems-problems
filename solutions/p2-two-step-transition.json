@@ -1,0 +1,37 @@
+{
+  "key": {
+    "value": "3/8",
+    "alsoAccept": [
+      "0.375"
+    ]
+  },
+  "feedback": {
+    "whenValue": [
+      {
+        "is": "1/2",
+        "say": "That is $\\P(X_1 = 2)$, after one step rather than two. Apply $P$ once more."
+      },
+      {
+        "is": "1/4",
+        "say": "That is $\\P(X_2 = 1)$, which is also $\\P(X_2 = 3)$. Check which column you took: state 2 is the middle one."
+      },
+      {
+        "is": "1/8",
+        "say": "That looks like one term of the sum rather than all of it. $\\P(X_2 = 2)$ collects every way of being in state 2 at time 2, over all three possible states at time 1."
+      },
+      {
+        "is": "5/8",
+        "say": "Recheck the second column of $P$: it is $(1/2, 1/2, 0)^{\\mathsf T}$, so state 3 contributes nothing at the second step."
+      }
+    ],
+    "nudge": "Two matrix-vector products. Row vector on the left: $\\lambda^{(1)}_j = \\sum_i \\lambda^{(0)}_i p_{i,j}$, which sums down a **column** of $P$. Then repeat."
+  },
+  "explanation": "## Step by step\n\n$$\\lambda^{(1)} = \\lambda^{(0)} P = \\Bigl(\\tfrac12 \\cdot \\tfrac12 + \\tfrac12 \\cdot 0 + 0,\\ \\ \\tfrac12 \\cdot \\tfrac12 + \\tfrac12 \\cdot \\tfrac12 + 0,\\ \\ 0 + \\tfrac12 \\cdot \\tfrac12 + 0\\Bigr) = \\Bigl(\\tfrac14, \\tfrac12, \\tfrac14\\Bigr).$$\n\nThe entries sum to 1, which is always worth checking before going on.\n\n$$\\P(X_2 = 2) = \\bigl(\\lambda^{(1)} P\\bigr)_2 = \\tfrac14 \\cdot \\tfrac12 + \\tfrac12 \\cdot \\tfrac12 + \\tfrac14 \\cdot 0 = \\tfrac18 + \\tfrac14 = \\tfrac38 .$$\n\n(The full distribution at time 2 is $\\bigl(\\tfrac14, \\tfrac38, \\tfrac38\\bigr)$.)\n\n## Rows and columns\n\nThis is the step that catches people, and it is worth getting right once.\n\n- Row $i$ of $P$ is the distribution of where the chain goes **from** $i$, and it sums to 1.\n- A distribution is a **row** vector and multiplies $P$ on the **left**: $\\lambda^{(n+1)} = \\lambda^{(n)} P$, that is $\\lambda^{(n+1)}_j = \\sum_i \\lambda^{(n)}_i p_{i,j}$, which sums down column $j$.\n\nSo \"where could I have come from\" is a column and \"where could I go\" is a row. The stationary distribution equation $\\pi P = \\pi$ is on the column side; the hitting-probability equations $h_i = \\sum_j p_{i,j} h_j$ are on the row side. Keeping the two apart is most of the arithmetic in this chapter.\n\n## Why the matrix works at all\n\n$\\P(X_2 = 2) = \\sum_i \\P(X_0 = i)\\,\\P(X_2 = 2 \\mid X_0 = i)$ requires the chain to have forgotten everything but its current state (the Markov property) and the transition probabilities not to depend on the time (homogeneity). Given both, Chapman–Kolmogorov says\n\n$$p_{i,j}^{(m+n)} = \\sum_k p_{i,k}^{(m)} p_{k,j}^{(n)},$$\n\nwhich is exactly the definition of matrix multiplication, and by induction the $n$-step probabilities are the entries of $P^n$.\n\nThat identification is what makes the whole chapter computational. Questions about a chain over a long time become questions about powers of a matrix, and the long-run behaviour becomes a question about its eigenvalues — the eigenvalue 1, whose left eigenvector is the stationary distribution, and the next largest, which controls how fast you approach it.",
+  "readMore": [
+    {
+      "concept": "p2-n-step-transitions",
+      "where": "Chapman-Kolmogorov and the matrix-power theorem"
+    }
+  ],
+  "id": "p2-two-step-transition"
+}

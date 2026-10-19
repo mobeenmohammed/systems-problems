@@ -21,13 +21,13 @@ serves it directly.
 ## What is in it
 
 <!-- generated:counts -->
-**145 problems** across 13 topics, 45 of them compiled and run in C++, Rust, Python, JavaScript. **219 concepts** carry **617 readings** between them, every one naming a book and a chapter or a specific page, with 33 more for learning a topic from scratch. **14 tracks** order subsets of the problems so there is always an obvious next one, and the weekly schedule runs to 2027-04-05.
+**165 problems** across 13 topics, 45 of them compiled and run in C++, Rust, Python, JavaScript. **219 concepts** carry **617 readings** between them, every one naming a book and a chapter or a specific page, with 33 more for learning a topic from scratch. **16 tracks** order subsets of the problems so there is always an obvious next one, and the weekly schedule runs to 2027-04-05.
 
 ```
 Topics        cpp · rust · arch · os · linux · compilers · hpc · dist · fpga · algo · sysdesign · metric · prob
 Difficulty    Beginner · Intermediate · Advanced
 Types         mcq · multi · numeric · short · order · match · predict · locate · code · approx · counterexample · exact · hdl · proof · proofsteps · structured
-Total time    about 41 hours at the stated estimates
+Total time    about 45 hours at the stated estimates
 ```
 <!-- /generated:counts -->
 
@@ -51,7 +51,7 @@ across ten topics" by hand, and both numbers were wrong within a day.
 | **Algorithms** | 15 — 6 / 8 / 1 by difficulty | 12 | ~6 h |
 | **System Design** | 5 — 2 / 2 / 1 by difficulty | 1 | ~1 h |
 | **Metric Spaces** | 32 — 9 / 15 / 8 by difficulty | 0 | ~7 h |
-| **Probability** | 12 — 4 / 8 / 0 by difficulty | 0 | ~2 h |
+| **Probability** | 32 — 7 / 20 / 5 by difficulty | 0 | ~7 h |
 <!-- /generated:topics -->
 
 ## Two subjects
@@ -1399,6 +1399,8 @@ beside the catalogue — and three data files back it up:
 | **Writing hardware, and watching it run** | 8 | Five designs you write in SystemVerilog and simulate in this tab — a 2-to-1 multiplexer and a 4-to-1, a counter, an edge detector and a state machine that finds a pattern — with the waveform beside each one. |
 | **Project: a ring-buffer event logger** | 3 | One program over three files and three milestones: a bounded queue, a policy for what to do when it is full, and a view over what it holds. |
 | **Project: a synchronous FIFO** | 2 | Two modules in two files: a parameterised block of storage with a registered read, and the pointers and flags that turn it into a queue. |
+| **Metric Spaces, the whole unit** | 20 | The seven chapters of the Metric Spaces unit as one tree: definitions and examples, limits and uniform convergence, completeness and Banach, open and closed sets, connectedness, sequential compactness, compactness. |
+| **Probability 2, the whole unit** | 20 | The seven chapters of Probability 2 as one tree: foundations and the strong law, random walks and Wald, Markov chains, Poisson processes, continuous-time chains and queues, martingales, Brownian motion. |
 <!-- /generated:tracks -->
 
 ### The workspace

@@ -1,0 +1,34 @@
+{
+  "key": {
+    "value": "4/9"
+  },
+  "feedback": {
+    "whenValue": [
+      {
+        "is": "1/3",
+        "say": "That is $\\pi_2$, and also what you would get by assuming the three states are equally likely. The chain is not symmetric — state 3 has a heavy self-loop — so the uniform distribution is not stationary here."
+      },
+      {
+        "is": "3/4",
+        "say": "That is $p_{3,3}$, the probability of staying at 3 for one more step. The stationary probability is a different quantity."
+      },
+      {
+        "is": "2/9",
+        "say": "That is $\\pi_1$. Check which component you solved for: $\\pi_3$ is the one with the largest share, because state 3 is the stickiest."
+      },
+      {
+        "is": "4/13",
+        "say": "Check the normalisation. The three unnormalised weights are in the ratio $1 : \\tfrac32 : 2$, and their sum is $\\tfrac92$, not $\\tfrac{13}{4}$."
+      }
+    ],
+    "nudge": "Sum down the columns. Column 1 gives $\\pi_2$ in terms of $\\pi_1$; column 3 gives $\\pi_3$ in terms of $\\pi_2$; then normalise so the three sum to 1."
+  },
+  "explanation": "## Solving $\\pi P = \\pi$\n\nColumn by column:\n\n$$\\begin{aligned}\nj = 1:&\\quad \\tfrac12\\pi_1 + \\tfrac13\\pi_2 + 0 = \\pi_1 &&\\Longrightarrow\\quad \\pi_2 = \\tfrac32\\pi_1\\\\\nj = 3:&\\quad 0 + \\tfrac13\\pi_2 + \\tfrac34\\pi_3 = \\pi_3 &&\\Longrightarrow\\quad \\tfrac14\\pi_3 = \\tfrac13\\pi_2 = \\tfrac12\\pi_1 \\;\\Longrightarrow\\; \\pi_3 = 2\\pi_1\n\\end{aligned}$$\n\nThe equation for $j=2$ is then automatically satisfied — it always is, because the columns of $\\pi(P - I)$ sum to zero.\n\nNormalising, $\\pi_1\\bigl(1 + \\tfrac32 + 2\\bigr) = 1$, so $\\pi_1 = \\tfrac29$ and\n\n$$\\pi = \\Bigl(\\tfrac29,\\ \\tfrac13,\\ \\tfrac49\\Bigr), \\qquad \\pi_3 = \\frac49 .$$\n\nA check: $\\tfrac29 + \\tfrac39 + \\tfrac49 = 1$, and $\\pi_2 = \\tfrac12\\cdot\\tfrac29 + \\tfrac13\\cdot\\tfrac13 + \\tfrac14\\cdot\\tfrac49 = \\tfrac19+\\tfrac19+\\tfrac19 = \\tfrac13$.\n\n## What the numbers mean\n\nThree readings of the same vector, and all three are theorems:\n\n- **Equilibrium.** Start the chain with distribution $\\pi$ and it has distribution $\\pi$ at every later time.\n- **The limit.** The chain is irreducible, aperiodic and (being finite and irreducible) positive recurrent, so $\\P(X_n = j) \\to \\pi_j$ from **any** starting distribution.\n- **Occupation time and return time.** The long-run fraction of time spent at $j$ is $\\pi_j$, and $\\pi_j = 1/\\mu_j$ where $\\mu_j$ is the mean return time. Here $\\mu_3 = \\tfrac94 = 2.25$ steps and $\\mu_1 = \\tfrac92 = 4.5$.\n\nState 3 has the largest share because it is the stickiest: once there, the chain stays with probability $\\tfrac34$ each step, so visits to it last a geometric number of steps with mean 4.\n\n## Rows and columns, once more\n\nThe three equations sum down **columns**, which is the opposite of the hitting-probability equations $h_i = \\sum_j p_{i,j} h_j$ in §3.3. The reason is worth saying: $\\pi_j$ is the equilibrium chance of being at $j$, so it is assembled from every way of **arriving** at $j$ — the arrows pointing in. A hitting probability is assembled from every way of **leaving** $i$ — the arrows pointing out.\n\n## Why one equation is always redundant\n\nIf $\\pi$ solves $\\pi P = \\pi$ then so does $c\\pi$ for every constant $c$, so the solution space of the linear system is at least one-dimensional and the system cannot have full rank. That is why the normalisation $\\sum_j \\pi_j = 1$ is not an extra constraint being imposed on a determined system — it is what picks one point out of a line of solutions.\n\nThree states, three equations, one redundant, one normalisation: two independent conditions for two free ratios.",
+  "readMore": [
+    {
+      "concept": "p2-stationary-distributions",
+      "where": "the definition, the worked examples and the mean-return-time formula"
+    }
+  ],
+  "id": "p2-stationary-distribution"
+}

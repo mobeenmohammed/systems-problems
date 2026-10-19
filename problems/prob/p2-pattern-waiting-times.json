@@ -1,0 +1,45 @@
+{
+  "id": "p2-pattern-waiting-times",
+  "title": "Which pattern takes longest to appear?",
+  "topic": "prob",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "order",
+  "tags": [
+    "hitting-times",
+    "markov-chains",
+    "course-probability-2"
+  ],
+  "estimate": 18,
+  "prereqs": [
+    {
+      "concept": "p2-hitting-probabilities",
+      "why": "Each waiting time is an expected hitting time of an absorbing state in a small chain, computed by first-step analysis."
+    },
+    {
+      "concept": "p2-markov-property",
+      "why": "The state has to be chosen so that the process is Markov: how much of the pattern has been matched so far."
+    }
+  ],
+  "statement": "A fair coin is tossed repeatedly. For each pattern below, let $\\E T$ be\nthe expected number of tosses until that pattern first appears as a block of\nconsecutive tosses.\n\nEach $\\E T$ is computed by making a Markov chain whose state is *how much of\nthe pattern has been matched so far*, and solving the first-step equations.\n\nPut the five patterns in order of $\\E T$, **shortest expected wait first**.\n\nEvery pattern of length 2 has probability $\\tfrac14$ in any fixed pair of\ntosses, and every pattern of length 3 has probability $\\tfrac18$ — so if the\nanswer were decided by that alone, the two-letter patterns would tie and so\nwould the three-letter ones. They do not, and that is the point of the\nquestion.",
+  "hints": [
+    "Set up the chain for HH first. The states are 'nothing matched', 'H matched', 'HH matched', and the last is absorbing.",
+    "The key asymmetry: after a failed attempt at HH you may still be partway there — a tail resets you to nothing, but the H you just saw can start the next attempt. For HT a failure leaves you exactly where you were.",
+    "A pattern that can **overlap itself** takes longer. HH overlaps itself (the last H starts a new attempt); HT does not. Among the three-letter patterns, HTH overlaps itself and HTT does not.",
+    "The five answers are 4, 6, 8, 10 and 14, in some order."
+  ],
+  "payload": {
+    "prompt": "Shortest expected wait at the top.",
+    "labels": [
+      "appears soonest",
+      "appears last"
+    ],
+    "items": [
+      "$HH$",
+      "$HTH$",
+      "$HT$",
+      "$HHH$",
+      "$HTT$"
+    ]
+  }
+}

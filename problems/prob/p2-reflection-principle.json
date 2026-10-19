@@ -1,0 +1,41 @@
+{
+  "id": "p2-reflection-principle",
+  "title": "How high does it get?",
+  "topic": "prob",
+  "difficulty": "advanced",
+  "lane": "core",
+  "type": "approx",
+  "tags": [
+    "brownian-motion",
+    "reflection-principle",
+    "course-probability-2"
+  ],
+  "estimate": 16,
+  "prereqs": [
+    {
+      "concept": "p2-reflection-principle",
+      "why": "The identity in distribution between the running maximum and the absolute value is the whole of the calculation."
+    },
+    {
+      "concept": "p2-brownian-motion",
+      "why": "B(1) is standard normal, which is what turns the answer into a number."
+    },
+    {
+      "concept": "p2-brownian-symmetries",
+      "why": "The symmetry of the normal distribution is what collapses the two tails into one."
+    }
+  ],
+  "statement": "Let $B$ be a standard Brownian motion and let\n\n$$M(t) = \\max\\{\\,B(s) : 0 \\le s \\le t\\,\\}$$\n\nbe its running maximum.\n\nThe reflection principle says that reflecting the path after it first\nreaches a level $a$ gives another Brownian motion, and the consequence is\n\n$$M(t) \\ \\overset{d}{=}\\ \\bigl|B(t)\\bigr| .$$\n\nSince $B(1) \\sim N(0,1)$, find $\\P\\bigl(M(1) \\ge 1\\bigr)$.\n\nGive the answer as a decimal to **three decimal places**; it is checked to\nwithin $\\pm 0.001$. You may use $\\Phi(1) = 0.8413$, where $\\Phi$ is the\nstandard normal distribution function.",
+  "hints": [
+    "Rewrite the question using the identity: $\\P(M(1) \\ge 1) = \\P(|B(1)| \\ge 1)$.",
+    "$|Z| \\ge 1$ means $Z \\ge 1$ or $Z \\le -1$, and those two events are disjoint.",
+    "The standard normal is symmetric about zero, so the two tails have the same probability.",
+    "$\\P(Z \\ge 1) = 1 - \\Phi(1)$. Double it."
+  ],
+  "payload": {
+    "prompt": "The probability that Brownian motion reaches level 1 at some point before time 1.",
+    "label": "$\\P\\bigl(M(1) \\ge 1\\bigr) \\approx$",
+    "placeholder": "e.g. 0.123",
+    "syntax": "A decimal, to three decimal places. Checked to within 0.001."
+  }
+}

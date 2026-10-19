@@ -219,5 +219,63 @@
       "proj-sync-fifo-1",
       "proj-sync-fifo-2"
     ]
+  },
+  {
+    "id": "course-metric-spaces",
+    "title": "Metric Spaces, the whole unit",
+    "course": "metric-spaces",
+    "blurb": "The seven chapters of the Metric Spaces unit as one tree: definitions and examples, limits and uniform convergence, completeness and Banach, open and closed sets, connectedness, sequential compactness, compactness. Every node says which section and page of the notes it comes from.",
+    "goal": "Finish this and every chapter of the unit has been tested rather than only read, with the non-examinable material marked as such so you know what you are allowed to skip.",
+    "problems": [
+      "ms-reverse-triangle",
+      "ms-which-are-norms",
+      "ms-hamming-triangle-slack",
+      "ms-which-sequence-space",
+      "ms-sup-metric-distance",
+      "ms-ball-in-sup-metric",
+      "ms-convergence-which-space",
+      "ms-uniform-or-pointwise",
+      "ms-sup-distance-of-fn",
+      "ms-uniform-limit-continuous",
+      "ms-which-are-complete",
+      "ms-closed-subset-complete",
+      "ms-banach-fixed-point-value",
+      "ms-contraction-without-fixed-point",
+      "ms-interior-of-a-set",
+      "ms-infinite-intersection",
+      "ms-preimage-of-open",
+      "ms-connected-which",
+      "ms-totally-bounded-which",
+      "ms-finite-subcover"
+    ]
+  },
+  {
+    "id": "course-probability-2",
+    "title": "Probability 2, the whole unit",
+    "course": "probability-2",
+    "blurb": "The seven chapters of Probability 2 as one tree: foundations and the strong law, random walks and Wald, Markov chains, Poisson processes, continuous-time chains and queues, martingales, Brownian motion. Every node says which section and page of the notes it comes from.",
+    "goal": "Finish this and each chapter has been exercised on its own terms - a difference equation for the walks, a matrix for the chains, a martingale for the stopping theorems - rather than as one undifferentiated subject.",
+    "problems": [
+      "p2-infinitely-many-heads",
+      "p2-union-bound-run-of-heads",
+      "p2-tail-sum-expectation",
+      "p2-strong-vs-weak-law",
+      "p2-ruin-probability",
+      "p2-ruin-duration",
+      "p2-is-it-a-stopping-time",
+      "p2-wald-expected-duration",
+      "p2-two-step-transition",
+      "p2-pattern-waiting-times",
+      "p2-classes-and-recurrence",
+      "p2-stationary-distribution",
+      "p2-random-walk-on-a-graph",
+      "p2-poisson-increments",
+      "p2-exponential-race",
+      "p2-thinning-and-superposition",
+      "p2-generator-stationary",
+      "p2-mm1-queue-length",
+      "p2-optional-stopping-duration",
+      "p2-reflection-principle"
+    ]
   }
 ]

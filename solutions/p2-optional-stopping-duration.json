@@ -1,0 +1,41 @@
+{
+  "key": {
+    "value": "28",
+    "alsoAccept": [
+      "4*7"
+    ]
+  },
+  "feedback": {
+    "whenValue": [
+      {
+        "is": "11",
+        "say": "That is the distance between the two barriers, $7 - (-4)$. The expected duration is the product of the two distances from the start, not their sum."
+      },
+      {
+        "is": "49",
+        "say": "That is $7^2$. $\\E(S_T^2)$ is a weighted average of $49$ and $16$, not $49$ alone — the walk does not always reach 7."
+      },
+      {
+        "is": "12.25",
+        "say": "That looks like $(11/2)^2/\\text{something}$. Work the two steps through in order: first $h$ from $\\E S_T = 0$, then $\\E T = \\E S_T^2$."
+      },
+      {
+        "is": "22",
+        "say": "Close in size. Recheck $h$: $7h = 4(1-h)$ gives $11h = 4$, so $h = 4/11$ and the weighting is $49 \\cdot \\tfrac4{11} + 16\\cdot\\tfrac7{11}$."
+      }
+    ],
+    "nudge": "Two equations, in order. $\\E S_T = 0$ gives the probability of hitting 7 first; then $\\E T = \\E(S_T^2)$, and $S_T^2$ takes only the two values 49 and 16."
+  },
+  "explanation": "## Step one: where does it stop?\n\n$S_T \\in \\{-4, 7\\}$. Write $h = \\P(S_T = 7)$. Optional stopping on the martingale $S$ gives\n\n$$0 = \\E S_T = 7h + (-4)(1-h) = 11h - 4 \\quad\\Longrightarrow\\quad h = \\tfrac{4}{11}.$$\n\n(As a check, the gambler's-ruin formula in shifted coordinates — start at $k = 4$ with barriers at $0$ and $m = 11$ — gives $k/m = 4/11$ too.)\n\n## Step two: how long does it take?\n\nOptional stopping on $S_n^2 - n$ gives $\\E\\bigl(S_T^2\\bigr) = \\E T$. And $S_T^2 \\in \\{16, 49\\}$, so\n\n$$\\E T = 49 \\cdot \\tfrac{4}{11} + 16 \\cdot \\tfrac{7}{11} = \\frac{196 + 112}{11} = \\frac{308}{11} = \\mathbf{28}.$$\n\nWhich agrees with $k(m-k) = 4 \\times 7$ from chapter 2 — as it must.\n\n## Why do it this way\n\nChapter 2 got both numbers from difference equations: one for $h_k$ and another, with a quadratic particular solution, for $t_k$. Each took half a page.\n\nHere each one is a single line, and the work has moved into **choosing the martingale**. $S_n$ gives the hitting probability; $S_n^2 - n$ gives the duration. The same two martingales answer the same two questions for every pair of barriers, with no algebra at all.\n\nThat is the pattern worth taking from chapter 6. A martingale is a conserved quantity, optional stopping says the conservation survives a stopping time, and the art is finding a quantity that is conserved and that involves whatever you want to compute.\n\n## The hypothesis, and where it bites\n\nOptional stopping is not free. The theorem needs one of: $T$ bounded; $X$ bounded with $T < \\infty$ almost surely; or $\\E T < \\infty$ with bounded increments.\n\n- For $S$: the increments are $\\pm1$ and $\\E T < \\infty$, so condition (iii) applies.\n- For $S_n^2 - n$: the increments are **not** bounded, because $S_n^2$ can be large. What saves it is stopping first: $S_{n \\wedge T}$ lies in $[-4, 7]$ for every $n$, so the stopped process has increments bounded by $49 + 1$. That manoeuvre — stop, then apply the theorem to the stopped process — is Theorem 6.11 in the notes and it is used constantly.\n\nSkipping the check is not pedantry. Example 6.14 in the notes is the symmetric walk stopped on first hitting $1$: there $S_T = 1$ always, so $\\E S_T = 1 \\ne 0 = \\E S_0$, and optional stopping fails. The increments are bounded and $T < \\infty$ almost surely, so the only hypothesis that can be failing is $\\E T < \\infty$ — and indeed $\\E T = \\infty$. Run backwards, the failure of the theorem is a proof.",
+  "readMore": [
+    {
+      "concept": "p2-optional-stopping",
+      "where": "the three conditions, and the gambler-ruin examples"
+    },
+    {
+      "concept": "p2-stopped-martingales",
+      "where": "why stopping first makes the second martingale usable"
+    }
+  ],
+  "id": "p2-optional-stopping-duration"
+}

@@ -822,7 +822,12 @@ const UI = (() => {
   function renderLearn(trackId, conceptId) {
     const index = $('#learnIndex');
     const detail = $('#learnTrack');
-    const tree = trackId ? Catalog.trackTree(trackId) : null;
+    /* A course track is drawn with whichever chapters the reader has
+       folded shut. The fold is a preference rather than part of the
+       route, so it survives navigating away and coming back. */
+    const tree = trackId
+      ? Catalog.trackTree(trackId, Catalog.foldedChapters(trackId))
+      : null;
 
     /* An unknown id falls back to the list rather than an empty frame: a
        stale bookmark should land somewhere useful. */
@@ -873,6 +878,7 @@ const UI = (() => {
     $('#learnProgress').title = 'Questions and coding exercises in this track. '
       + 'Related practice and readings are not counted here.';
 
+    drawChapters(tree);
     drawTree(tree, picked);
     drawNode(tree, picked);
 
@@ -1183,6 +1189,97 @@ const UI = (() => {
     };
   }
 
+  /* ---------------- the chapter rail ----------------
+
+     A course has chapters and a chapter has sections. The graph's
+     ranks are prerequisite depth, which is a different ordering and
+     deliberately so — section 3.5 comes after 3.4 in the notes and
+     does not rest on it — so the chapters cannot be rows of the
+     picture. They are a rail above it instead, and each one can be
+     folded into a single box on the canvas.
+
+     Folding is not hiding. A folded chapter keeps every edge that
+     crossed its boundary, so the lines still say what rests on what;
+     what goes away is the detail inside. */
+
+  function drawChapters(tree) {
+    const host = $('#learnChapters');
+    if (!host) return;
+    if (!tree || !tree.chapters || !tree.chapters.length) {
+      host.hidden = true;
+      host.replaceChildren();
+      return;
+    }
+    host.hidden = false;
+
+    const id = tree.track.id;
+    const folded = Catalog.foldedChapters(id);
+    const anyFolded = tree.chapters.some(ch => ch.folded);
+
+    const setAll = (shut) => {
+      const next = new Set(shut ? tree.chapters.map(ch => ch.n) : []);
+      Catalog.setFoldedChapters(id, next);
+      renderLearn(id, selectedId || null);
+    };
+
+    const toggle = (n) => {
+      const next = new Set(folded);
+      if (next.has(n)) next.delete(n); else next.add(n);
+      Catalog.setFoldedChapters(id, next);
+      renderLearn(id, selectedId || null);
+    };
+
+    host.replaceChildren(
+      el('div', { class: 'lchap-head' }, [
+        el('span', { class: 'tiny faint', text: tree.course ? tree.course.source : 'Chapters' }),
+        el('div', { class: 'lchap-acts' }, [
+          el('button', {
+            class: 'btn btn-sm btn-ghost', type: 'button',
+            onclick: () => setAll(true),
+            title: 'Collapse every chapter to a single box',
+          }, ['Fold all']),
+          el('button', {
+            class: 'btn btn-sm btn-ghost', type: 'button',
+            disabled: !anyFolded,
+            onclick: () => setAll(false),
+            title: 'Show every section again',
+          }, ['Unfold all']),
+        ]),
+      ]),
+      el('ul', { class: 'lchap-list', 'aria-label': 'Chapters of this course' },
+        tree.chapters.map(ch => el('li', { class: 'lchap' }, [
+          el('button', {
+            class: 'lchap-fold', type: 'button',
+            'data-chapter': String(ch.n),
+            'aria-expanded': String(!ch.folded),
+            'aria-label': `${ch.folded ? 'Unfold' : 'Fold'} chapter ${ch.n}: ${ch.title}`,
+            title: ch.folded
+              ? 'Show this chapter’s sections separately'
+              : 'Collapse this chapter into one box',
+            onclick: () => toggle(ch.n),
+          }, [ch.folded ? '▸' : '▾']),
+          el('button', {
+            class: 'lchap-name', type: 'button',
+            'data-chapter': String(ch.n),
+            title: `${ch.where} — ${ch.concepts.length} sections`
+              + (ch.optional ? `, ${ch.optional} of them non-examinable` : ''),
+            onclick: () => {
+              const want = ch.folded ? `__chapter-${ch.n}` : ch.concepts[0];
+              if (want) location.hash = `#/learn/${id}/${want}`;
+            },
+          }, [
+            el('span', { class: 'lchap-n', text: String(ch.n) }),
+            el('span', { class: 'lchap-title', text: ch.title }),
+            el('span', { class: 'lchap-count tiny faint', text: String(ch.concepts.length) }),
+            ch.optional ? el('span', {
+              class: 'lchap-opt tiny', title: 'sections the notes mark as not required',
+              text: `${ch.optional} optional`,
+            }) : null,
+          ]),
+        ]))),
+    );
+  }
+
   function drawTree(tree, picked) {
     const nodesHost = $('#learnNodes');
     const svg = $('#learnEdges');
@@ -1219,16 +1316,34 @@ const UI = (() => {
         'aria-selected': String(n.id === chosen),
         'data-concept': n.id,
         'data-state': p.state,
+        /* Which chapter of the course this belongs to, so the boxes of
+           one chapter read as a group without being placed as one —
+           the ranks are prerequisite depth and a chapter crosses
+           several of them. */
+        'data-chapter': n.chapter ? String(n.chapter) : undefined,
+        'data-optional': n.optional ? 'true' : undefined,
+        'data-folded': n.folded ? String(n.folded.length) : undefined,
         /* The numbers in words: the bar is three pixels tall and a
            screen reader cannot see it at all. Readings are said
            separately from solves because they mean different things. */
-        'aria-label': `${n.name}. ${p.solved} of ${n.problems.length} problems solved`
+        'aria-label': `${n.name}.${n.where ? ` ${n.where}.` : ''}`
+          + `${n.optional ? ' Not required for the course.' : ''}`
+          + `${n.folded ? ` A folded chapter of ${n.folded.length} sections.` : ''}`
+          + ` ${p.solved} of ${n.problems.length} problems solved`
           + `${required.length === n.problems.length ? '' : `, ${required.length} of them in this track`}`
           + `. ${p.read.read} of ${p.read.total} readings ticked.`,
         tabindex: n.id === chosen ? '0' : '-1',
         style: `left:${pos.x}px; top:${pos.y}px; width:${pos.w}px; height:${pos.h}px`,
       }, [
+        n.chapter ? el('span', {
+          class: 'lnode-ch tiny', 'aria-hidden': 'true', text: String(n.chapter),
+          title: n.where,
+        }) : null,
         el('span', { class: 'lnode-name', text: n.name }),
+        n.optional ? el('span', {
+          class: 'lnode-opt tiny', title: 'the notes mark this as not required for the course',
+          text: 'optional',
+        }) : null,
         p.total ? el('div', { class: 'bar' }, [el('i', { style: `width:${p.pct}%` })]) : null,
       ]);
     }));
@@ -1702,8 +1817,34 @@ const UI = (() => {
       topic ? el('a', {
         class: 'chip-link tiny', href: `#/problems?topic=${n.topic}`, text: topic.label,
       }) : null,
+      /* Where this came from, exactly. A course concept is a reading of
+         one section of one set of notes, and the reader has those notes
+         open beside them. */
+      n.where ? el('p', { class: 'lpanel-where tiny' }, [
+        el('span', { class: 'lpanel-src', text: n.where }),
+        n.optional ? el('span', {
+          class: 'lpanel-opt', text: 'not required for the course',
+        }) : null,
+      ]) : null,
       n.oneLine ? el('p', { class: 'muted small', html: MD.renderInline(n.oneLine) }) : null,
     ];
+
+    /* A folded chapter stands for its sections, and the panel is where
+       you get at them without unfolding the whole thing. */
+    if (n.folded && n.folded.length) {
+      parts.push(el('div', { class: 'lpanel-folded' }, [
+        el('h3', { class: 'tiny faint', text: 'Sections in this chapter' }),
+        el('ul', { class: 'lpanel-sections' }, n.folded.map((cid) => {
+          const c = Catalog.concept(cid) || {};
+          return el('li', { 'data-optional': c.optional ? 'true' : undefined }, [
+            el('span', { class: 'tiny', text: c.name || cid }),
+            c.where ? el('span', { class: 'tiny faint', text: c.where }) : null,
+          ]);
+        })),
+        el('p', { class: 'tiny faint', text:
+          'Unfold the chapter in the rail above to see these as separate boxes.' }),
+      ]));
+    }
 
     if (next) {
       parts.push(el('div', { class: 'lpanel-next' }, [

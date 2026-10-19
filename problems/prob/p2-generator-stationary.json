@@ -1,0 +1,41 @@
+{
+  "id": "p2-generator-stationary",
+  "title": "Equilibrium in continuous time",
+  "topic": "prob",
+  "difficulty": "advanced",
+  "lane": "core",
+  "type": "exact",
+  "tags": [
+    "continuous-time-markov",
+    "generator-matrix",
+    "course-probability-2"
+  ],
+  "estimate": 18,
+  "prereqs": [
+    {
+      "concept": "p2-ctmc-stationary",
+      "why": "The condition is pi G = 0, not pi P = pi, and getting that right is most of the exercise."
+    },
+    {
+      "concept": "p2-ctmc-basics",
+      "why": "The generator collects the jump rates, with each diagonal entry minus the sum of its row."
+    },
+    {
+      "concept": "p2-stationary-distributions",
+      "why": "The discrete-time analogue is what the equation has to be distinguished from."
+    }
+  ],
+  "statement": "A continuous-time Markov chain on $\\{a, b, c\\}$ has generator\n\n$$G = \\begin{pmatrix}\n-2 & 2 & 0\\\\\n1 & -3 & 2\\\\\n0 & 3 & -3\n\\end{pmatrix}$$\n\nwith rows and columns in the order $a, b, c$. The off-diagonal entry\n$g_{i,j}$ is the rate of jumps from $i$ to $j$, and each diagonal entry is\nminus the sum of the rest of its row.\n\nThe chain is irreducible and finite, hence non-explosive and positive\nrecurrent, so it has a unique stationary distribution $\\pi$, characterised by\n\n$$\\pi G = 0, \\qquad \\sum_i \\pi_i = 1 .$$\n\nGive $\\pi_b$ exactly.",
+  "hints": [
+    "$\\pi G = 0$ means $\\sum_i \\pi_i g_{i,j} = 0$ for each $j$ — a sum down **column** $j$ of $G$.",
+    "Column $a$ involves only two entries, because $g_{c,a} = 0$. Start there: it gives $\\pi_b$ in terms of $\\pi_a$ at once.",
+    "Column $c$ is also short: $2\\pi_b - 3\\pi_c = 0$. Between the two you can write everything in terms of $\\pi_a$.",
+    "As in discrete time, one of the three equations is redundant. Use two of them and the normalisation."
+  ],
+  "payload": {
+    "prompt": "The stationary probability of state $b$.",
+    "label": "$\\pi_b =$",
+    "placeholder": "a fraction",
+    "syntax": "A number or a fraction. Arithmetic is fine."
+  }
+}
