@@ -1,0 +1,47 @@
+{
+  "id": "hdl-round-robin-arbiter",
+  "title": "Taking turns, fairly",
+  "topic": "fpga",
+  "difficulty": "advanced",
+  "lane": "core",
+  "type": "hdl",
+  "tags": [
+    "arbitration",
+    "fairness",
+    "priority-encoder"
+  ],
+  "estimate": 35,
+  "prereqs": [
+    {
+      "concept": "finite-state-machines",
+      "why": "The arbiter has exactly one bit of state per lap - where the last grant went - and everything else is a function of it."
+    },
+    {
+      "concept": "hdl-assignments",
+      "why": "The grant is combinational and the pointer is registered, and swapping the two changes when a requester is served."
+    },
+    {
+      "concept": "timing-closure",
+      "why": "A combinational grant puts the whole search on the path from req to grant, which is the cost of serving in the same cycle."
+    }
+  ],
+  "statement": "Several requesters share one resource. Write the arbiter that decides\nwhose turn it is, **round-robin**, so that nobody can be starved.\n\n```systemverilog\nmodule rr_arbiter #(parameter int N = 4) (\n    input  logic         clk,\n    input  logic         rst_n,   // synchronous, active low\n    input  logic [N-1:0] req,\n    output logic [N-1:0] grant,   // one-hot, or all zero\n    output logic         valid\n);\n```\n\n`N` is at least 2.\n\n### Precisely\n\n- `grant` and `valid` are **combinational**: a requester that raises\n  `req` sees its grant in the **same** cycle, not the next one.\n- At most one bit of `grant` is ever high. `valid` is high exactly when\n  one is.\n- With no requests, `grant` is zero and `valid` is low.\n- The arbiter remembers the index it granted most recently. The next\n  grant goes to the **first requester at or after the position after\n  that**, searching cyclically. Requesters that are not asking are\n  skipped, not given a wasted turn.\n- `rst_n` is synchronous and active low, and resets the arbiter so that\n  index 0 has top priority on the first cycle after it.\n- The memory only moves on a cycle where a grant is actually made. Idle\n  cycles leave it where it was.\n\n### The sample, with all four asking every cycle\n\n```\ncycle   1  2  3  4  5  6\ngrant   0  1  2  3  0  1\n```\n\n### Fairness\n\nThe property this buys is that a requester holding `req` high waits at\nmost `N - 1` grants before being served, whatever the others do. A\nfixed-priority arbiter — always granting the lowest asking index — gives\nno such bound, and index 3 may never be served at all.",
+  "hints": [
+    "One register and one combinational block. The register is the index granted most recently; everything else is computed from it and from `req`.",
+    "The search is over the positions `last+1, last+2, ..., last+N`, all taken modulo `N`. Writing it as a loop over `i` from 1 to `N` with `k = (last + i) % N` gets the wrap for free and visits each position exactly once.",
+    "Stop at the first requester found. A loop with no early exit will leave the LAST one set instead, so guard the body with a flag — `if (!valid && req[k])` — or break out.",
+    "Reset `last` to `N - 1`, so that `last + 1` is 0 and index 0 has top priority on the first cycle. Resetting it to 0 gives index 1 the first turn, which is the off-by-one the grading testbench looks for."
+  ],
+  "payload": {
+    "top": "rr_arbiter",
+    "generation": "2012",
+    "template": "// A round-robin arbiter.\n\nmodule rr_arbiter #(\n    parameter int N = 4            // at least 2\n) (\n    input  logic         clk,\n    input  logic         rst_n,    // synchronous, active low\n    input  logic [N-1:0] req,      // one bit per requester\n    output logic [N-1:0] grant,    // one-hot, or all zero\n    output logic         valid     // high exactly when a grant is made\n);\n\n    // your code here.\n    //\n    // One register: which index was granted most recently. `grant` and\n    // `valid` are combinational functions of it and of `req`, so a\n    // requester is granted in the cycle it asks rather than the cycle\n    // after.\n    //\n    // The search runs over the N positions AFTER the last one granted,\n    // wrapping round, and stops at the first requester it finds. Reset\n    // it so that index 0 has top priority on the first cycle.\n\n    assign grant = '0;\n    assign valid = 1'b0;\n\nendmodule\n",
+    "testbench": "`timescale 1ns/1ps\n\n// The sample testbench. Submit uses another one, which checks the\n// rotation over a longer run and that nobody is starved.\nmodule tb;\n\n  localparam int N = 4;\n\n  logic clk = 1'b0;\n  always #5 clk = ~clk;\n\n  logic rst_n = 1'b1;\n  logic [N-1:0] req = '0;\n  logic [N-1:0] grant;\n  logic valid;\n\n  rr_arbiter #(.N(N)) dut (\n    .clk(clk), .rst_n(rst_n), .req(req), .grant(grant), .valid(valid)\n  );\n\n  integer i;\n\n  // Present a request pattern for one cycle and return just after the\n  // rising edge, with `grant` still showing that cycle's decision.\n  task ask(input [N-1:0] r);\n    begin\n      @(negedge clk); req = r;\n      #1;\n    end\n  endtask\n\n  // Let the edge happen, so the arbiter's pointer moves on.\n  task settle;\n    begin\n      @(posedge clk); #1;\n    end\n  endtask\n\n  task reset;\n    begin\n      @(negedge clk); rst_n = 1'b0; req = '0;\n      @(posedge clk); #1;\n      rst_n = 1'b1;\n    end\n  endtask\n\n  function automatic integer onehot_index(input [N-1:0] g);\n    integer k, c, idx;\n    begin\n      c = 0; idx = -1;\n      for (k = 0; k < N; k = k + 1) if (g[k]) begin c = c + 1; idx = k; end\n      onehot_index = (c == 1) ? idx : -1;\n    end\n  endfunction\n\n  integer g0, g1, g2;\n  logic v_idle;\n\n  initial begin\n    $dumpfile(\"dump.vcd\");\n    $dumpvars(0, tb);\n\n    reset();\n\n    // Nobody asking.\n    ask(4'b0000);\n    v_idle = valid;\n    settle();\n\n    // Everybody asking: 0 first, then 1, then 2.\n    ask(4'b1111); g0 = onehot_index(grant); settle();\n    ask(4'b1111); g1 = onehot_index(grant); settle();\n    ask(4'b1111); g2 = onehot_index(grant); settle();\n\n    $display(\"CHECK quiet_when_no_requests 0 %0d AT %0d\", v_idle, $time);\n    $display(\"CHECK first_grant_is_zero 0 %0d AT %0d\", g0, $time);\n    $display(\"CHECK then_one 1 %0d AT %0d\", g1, $time);\n    $display(\"CHECK then_two 2 %0d AT %0d\", g2, $time);\n    $display(\"DONE 4\");\n    $finish;\n  end\n\nendmodule\n",
+    "checks": [
+      "quiet_when_no_requests",
+      "first_grant_is_zero",
+      "then_one",
+      "then_two"
+    ]
+  }
+}

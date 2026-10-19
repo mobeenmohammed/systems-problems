@@ -1,0 +1,67 @@
+{
+  "id": "proj-seq-detect-1",
+  "title": "A sequence detector: a pattern you can change",
+  "topic": "fpga",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "hdl",
+  "project": {
+    "id": "seq-detect",
+    "title": "Build a sequence detector",
+    "of": 3,
+    "step": 1,
+    "label": "The detector"
+  },
+  "tags": [
+    "project",
+    "multi-file",
+    "shift-registers",
+    "pattern-matching"
+  ],
+  "estimate": 30,
+  "prereqs": [
+    {
+      "concept": "shift-registers",
+      "why": "The last four bits live in a shift register, which is what makes the pattern an input rather than a constant."
+    },
+    {
+      "concept": "hdl-assignments",
+      "why": "Every register here is non-blocking and every output that is not registered is a continuous assignment; mixing the two is how a design ends up a cycle out."
+    },
+    {
+      "concept": "finite-state-machines",
+      "why": "The alternative design is a state machine, and knowing why it cannot be used for a runtime pattern is the point of the first milestone."
+    }
+  ],
+  "statement": "**Milestone 1 of 3.** A sequence detector, built one module at a time.\nThis milestone is the detector itself.\n\n### The design\n\n`seq_match.sv` watches one bit per clock on `din` and raises `found`\nfor exactly one cycle whenever the last four bits equal `pattern`.\n\n```systemverilog\nmodule seq_match (\n    input  logic       clk,\n    input  logic       rst_n,     // synchronous, active low\n    input  logic       din,       // one bit per clock\n    input  logic [3:0] pattern,   // pattern[3] arrives first\n    output logic       found      // registered\n);\n```\n\n`pattern` is an **input**, not a constant. It is held steady while a\nstream is running, and the same hardware is expected to find whichever\nfour-bit pattern it is given.\n\n### The rules, exactly\n\n- `rst_n` is **synchronous** and active low: on a rising edge with\n  `rst_n` low the detector forgets everything and `found` goes low.\n- `found` is **registered**: high during the cycle *after* the edge\n  that clocked in the last bit of the pattern, for exactly one cycle.\n- Occurrences may **overlap**. With `pattern = 1011` the stream\n  `1 0 1 1 0 1 1` contains two, sharing a bit, and both are reported.\n- **Nothing matches until four real bits have arrived.** The register\n  starts at zero, so with `pattern = 0000` a reset followed by three\n  zeros must *not* fire; the fourth zero must.\n\nThat last rule is the one with a trap in it, and it is tested directly.\n\n### The sample\n\n```\npattern = 1011\ndin      0  1  0  1  1  0  0\nfound    0  0  0  0  1  0  0\n```\n\nThe `1` is in the column *after* the last `1` of the pattern, because\nthe output is registered.\n\n### What to build\n\nThree pieces of state and nothing else: the last four bits, a count of\nhow many bits have arrived since reset (which stops at four — it only\nhas to answer \"at least four?\"), and the registered output.\n\n### How it is checked\n\nRun simulates your design against the sample testbench below. Submit\nruns a longer one: several streams, overlap, a reset part-way through a\nhalf-finished pattern, the width of the pulse, the four-bit rule, and\ntwo other patterns on the same hardware.\n\nThis is one milestone of three. Your files are carried forward to the\nnext one.\n",
+  "hints": [
+    "One shift register, four bits wide. On each edge it takes in `din` at the bottom and drops the oldest bit off the top, which in SystemVerilog is `hist <= {hist[2:0], din};`.",
+    "The comparison has to be against what the register will hold AFTER this edge, not what it holds now — otherwise `found` is a cycle late. Give that value a name: `wire [3:0] next_hist = {hist[2:0], din};` and compare with that.",
+    "For the four-bit rule, keep a small counter of how many bits have arrived and stop it at 4. At the edge that clocks in the fourth bit, the counter still reads 3, so the condition is `fill >= 3`.",
+    "Everything belongs in one `always_ff @(posedge clk)` block with the reset first. `found` is a register here, so it is assigned with `<=` inside that block, not with a continuous assignment."
+  ],
+  "payload": {
+    "top": "seq_match",
+    "generation": "2012",
+    "files": [
+      {
+        "path": "seq_match.sv",
+        "content": "// A programmable four-bit pattern detector.\n//\n// The ports are the contract. The later milestones instantiate this\n// module by exactly these names, so changing one breaks them.\n\nmodule seq_match (\n    input  logic       clk,\n    input  logic       rst_n,     // synchronous, active low\n    input  logic       din,       // one bit per clock\n    input  logic [3:0] pattern,   // held steady; pattern[3] arrives first\n    output logic       found      // registered: high for one cycle on a match\n);\n\n    // your code here.\n    //\n    // Three pieces of state and no more:\n    //\n    //   hist  the last four bits that arrived, oldest at the top\n    //   fill  how many bits have arrived since reset, so that the\n    //         register cannot match on the zeros it was reset to\n    //   found the output, which is registered\n    //\n    // `found` must be high during the cycle AFTER the edge that\n    // clocked in the last bit of the pattern, for exactly one cycle.\n\n    assign found = 1'b0;\n\nendmodule\n"
+      }
+    ],
+    "entry": "seq_match.sv",
+    "build": {
+      "sources": [
+        "seq_match.sv"
+      ]
+    },
+    "testbench": "`timescale 1ns/1ps\n\n// The sample testbench for the detector. Submit uses another one, with\n// longer streams, the overlapping cases and a reset in the middle.\nmodule tb;\n\n  logic clk = 1'b0;\n  always #5 clk = ~clk;\n\n  logic rst_n   = 1'b1;\n  logic din     = 1'b0;\n  logic [3:0] pattern = 4'b1011;\n  logic found;\n\n  seq_match dut (.clk(clk), .rst_n(rst_n), .din(din),\n                 .pattern(pattern), .found(found));\n\n  integer hits;\n  integer i;\n\n  // One cycle: drive at the falling edge, return just after the rising\n  // one. `found` is a Moore output, so what it reads here is the value\n  // produced by the edge that just happened.\n  task tick(input logic b);\n    begin\n      @(negedge clk); din = b;\n      @(posedge clk); #1;\n      if (found) hits = hits + 1;\n    end\n  endtask\n\n  task reset;\n    begin\n      @(negedge clk); rst_n = 1'b0; din = 1'b0;\n      @(posedge clk); #1;\n      rst_n = 1'b1;\n      hits = 0;\n    end\n  endtask\n\n  // The low `n` bits of `bits`, most significant first.\n  task stream(input integer n, input [31:0] bits);\n    begin\n      for (i = n - 1; i >= 0; i = i - 1) tick(bits[i]);\n    end\n  endtask\n\n  logic f_after_reset, f_mid, f_after_1011;\n  integer one_hit, other_hits;\n\n  initial begin\n    $dumpfile(\"dump.vcd\");\n    $dumpvars(0, tb);\n\n    reset();\n    f_after_reset = found;\n\n    tick(1'b1); f_mid = found;\n    tick(1'b0);\n    tick(1'b1);\n    tick(1'b1); f_after_1011 = found;\n\n    tick(1'b0);\n    tick(1'b0);\n    one_hit = hits;\n\n    // The pattern is an input, so the same design finds a different one.\n    pattern = 4'b1100;\n    reset();\n    stream(4, 4'b1100);\n    other_hits = hits;\n\n    $display(\"CHECK quiet_after_reset 0 %0d AT %0d\", f_after_reset, $time);\n    $display(\"CHECK no_early_fire 0 %0d AT %0d\", f_mid, $time);\n    $display(\"CHECK fires_on_1011 1 %0d AT %0d\", f_after_1011, $time);\n    $display(\"CHECK exactly_one_hit 1 %0d AT %0d\", one_hit, $time);\n    $display(\"CHECK finds_another_pattern 1 %0d AT %0d\", other_hits, $time);\n    $display(\"DONE 5\");\n    $finish;\n  end\n\nendmodule\n",
+    "checks": [
+      "quiet_after_reset",
+      "no_early_fire",
+      "fires_on_1011",
+      "exactly_one_hit",
+      "finds_another_pattern"
+    ]
+  }
+}

@@ -203,6 +203,29 @@
     ]
   },
   {
+    "id": "metric-code-axiom-checker",
+    "title": "Check a distance table against the axioms",
+    "topic": "metric",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "metric-axioms",
+      "coding",
+      "exhaustive-check"
+    ],
+    "estimate": 30,
+    "subject": "maths",
+    "prereqs": [
+      "ms-metric-axioms",
+      "loop-invariants",
+      "array-bounds"
+    ],
+    "langs": [
+      "python"
+    ]
+  },
+  {
     "id": "metric-convergence-discrete",
     "title": "Which sequences converge here?",
     "topic": "metric",
@@ -992,6 +1015,29 @@
     ]
   },
   {
+    "id": "prob-code-markov-steps",
+    "title": "Where is the chain after k steps?",
+    "topic": "prob",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "markov-chains",
+      "exact-arithmetic",
+      "coding"
+    ],
+    "estimate": 30,
+    "subject": "maths",
+    "prereqs": [
+      "p2-n-step-transitions",
+      "p2-markov-property",
+      "loop-invariants"
+    ],
+    "langs": [
+      "python"
+    ]
+  },
+  {
     "id": "prob-continuous-uniform",
     "title": "A first continuous distribution",
     "topic": "prob",
@@ -1498,6 +1544,79 @@
     ]
   },
   {
+    "id": "algo-merge-intervals",
+    "title": "Join up what overlaps",
+    "topic": "algo",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "sorting",
+      "sweep",
+      "intervals"
+    ],
+    "estimate": 28,
+    "subject": "systems",
+    "prereqs": [
+      "loop-invariants",
+      "cpp-std-vector",
+      "sentinel-values"
+    ],
+    "langs": [
+      "cpp",
+      "python"
+    ]
+  },
+  {
+    "id": "algo-sliding-window-max",
+    "title": "The largest in every window",
+    "topic": "algo",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "sliding-window",
+      "deque",
+      "amortised"
+    ],
+    "estimate": 30,
+    "subject": "systems",
+    "prereqs": [
+      "amortised-analysis",
+      "ring-buffers",
+      "loop-invariants"
+    ],
+    "langs": [
+      "cpp",
+      "python"
+    ]
+  },
+  {
+    "id": "debug-py-reservoir-draws",
+    "title": "The sampler that can never pick the last one",
+    "topic": "algo",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "debugging",
+      "sampling",
+      "off-by-one",
+      "determinism"
+    ],
+    "estimate": 28,
+    "debugging": true,
+    "subject": "systems",
+    "prereqs": [
+      "loop-invariants",
+      "array-bounds",
+      "sentinel-values"
+    ],
+    "langs": [
+      "python"
+    ]
+  },
+  {
     "id": "debug-ring-overwrite",
     "title": "The trace recorder that scrambles its history",
     "topic": "algo",
@@ -1709,6 +1828,30 @@
     "prereqs": [
       "pipelining",
       "memory-hierarchy"
+    ]
+  },
+  {
+    "id": "arch-sim-branch-predictor",
+    "title": "Guessing which way the branch goes",
+    "topic": "arch",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "branch-prediction",
+      "simulation",
+      "saturating-counters"
+    ],
+    "estimate": 30,
+    "subject": "systems",
+    "prereqs": [
+      "pipelining",
+      "cache-indexing",
+      "shifts-and-masks"
+    ],
+    "langs": [
+      "cpp",
+      "python"
     ]
   },
   {
@@ -2436,6 +2579,31 @@
     ]
   },
   {
+    "id": "debug-cpp-erase-in-loop",
+    "title": "The filter that misses every other outlier",
+    "topic": "cpp",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "debugging",
+      "vectors",
+      "iteration",
+      "off-by-one"
+    ],
+    "estimate": 25,
+    "debugging": true,
+    "subject": "systems",
+    "prereqs": [
+      "cpp-std-vector",
+      "array-bounds",
+      "loop-invariants"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
     "id": "dist-lamport-order",
     "title": "Order the events by their Lamport clock",
     "topic": "dist",
@@ -2653,6 +2821,30 @@
     ]
   },
   {
+    "id": "debug-hdl-inferred-latch",
+    "title": "The classifier that remembers the last answer",
+    "topic": "fpga",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "hdl",
+    "tags": [
+      "debugging",
+      "combinational",
+      "inferred-latch"
+    ],
+    "estimate": 22,
+    "debugging": true,
+    "subject": "systems",
+    "prereqs": [
+      "hdl-assignments",
+      "fpga-fabric",
+      "timing-closure"
+    ],
+    "langs": [
+      "sv"
+    ]
+  },
+  {
     "id": "debug-tickgen",
     "title": "The tick that comes one cycle late, every time",
     "topic": "fpga",
@@ -2801,6 +2993,29 @@
     ]
   },
   {
+    "id": "hdl-gray-counter",
+    "title": "A counter that changes one bit at a time",
+    "topic": "fpga",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "hdl",
+    "tags": [
+      "counters",
+      "gray-code",
+      "cdc"
+    ],
+    "estimate": 25,
+    "subject": "systems",
+    "prereqs": [
+      "hdl-assignments",
+      "shift-registers",
+      "timing-closure"
+    ],
+    "langs": [
+      "sv"
+    ]
+  },
+  {
     "id": "hdl-sequence-fsm",
     "title": "A state machine that finds 1101",
     "topic": "fpga",
@@ -2822,6 +3037,69 @@
     "prereqs": [
       "state-machines",
       "finite-state-machines"
+    ],
+    "langs": [
+      "sv"
+    ]
+  },
+  {
+    "id": "proj-seq-detect-1",
+    "title": "A sequence detector: a pattern you can change",
+    "topic": "fpga",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "hdl",
+    "tags": [
+      "project",
+      "multi-file",
+      "shift-registers",
+      "pattern-matching"
+    ],
+    "estimate": 30,
+    "project": {
+      "id": "seq-detect",
+      "title": "Build a sequence detector",
+      "of": 3,
+      "step": 1,
+      "label": "The detector"
+    },
+    "subject": "systems",
+    "prereqs": [
+      "shift-registers",
+      "hdl-assignments",
+      "finite-state-machines"
+    ],
+    "langs": [
+      "sv"
+    ]
+  },
+  {
+    "id": "proj-seq-detect-2",
+    "title": "A sequence detector: a counter, and a top that is only wiring",
+    "topic": "fpga",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "hdl",
+    "tags": [
+      "project",
+      "multi-file",
+      "counters",
+      "module-hierarchy"
+    ],
+    "estimate": 30,
+    "project": {
+      "id": "seq-detect",
+      "title": "Build a sequence detector",
+      "of": 3,
+      "step": 2,
+      "label": "Counting what it finds",
+      "continues": "proj-seq-detect-1"
+    },
+    "subject": "systems",
+    "prereqs": [
+      "shift-registers",
+      "hdl-assignments",
+      "fpga-fabric"
     ],
     "langs": [
       "sv"
@@ -2908,6 +3186,61 @@
     "prereqs": [
       "pipelining-ii",
       "pipelining"
+    ]
+  },
+  {
+    "id": "hdl-round-robin-arbiter",
+    "title": "Taking turns, fairly",
+    "topic": "fpga",
+    "difficulty": "advanced",
+    "lane": "core",
+    "type": "hdl",
+    "tags": [
+      "arbitration",
+      "fairness",
+      "priority-encoder"
+    ],
+    "estimate": 35,
+    "subject": "systems",
+    "prereqs": [
+      "finite-state-machines",
+      "hdl-assignments",
+      "timing-closure"
+    ],
+    "langs": [
+      "sv"
+    ]
+  },
+  {
+    "id": "proj-seq-detect-3",
+    "title": "A sequence detector: a gate, and two of the same counter",
+    "topic": "fpga",
+    "difficulty": "advanced",
+    "lane": "core",
+    "type": "hdl",
+    "tags": [
+      "project",
+      "multi-file",
+      "gating",
+      "module-hierarchy"
+    ],
+    "estimate": 35,
+    "project": {
+      "id": "seq-detect",
+      "title": "Build a sequence detector",
+      "of": 3,
+      "step": 3,
+      "label": "Arming, and what gets turned away",
+      "continues": "proj-seq-detect-2"
+    },
+    "subject": "systems",
+    "prereqs": [
+      "shift-registers",
+      "hdl-assignments",
+      "timing-closure"
+    ],
+    "langs": [
+      "sv"
     ]
   },
   {
@@ -3280,6 +3613,29 @@
     ]
   },
   {
+    "id": "rust-iterator-chains",
+    "title": "Three chains, no loops",
+    "topic": "rust",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "iterators",
+      "closures",
+      "adaptors"
+    ],
+    "estimate": 28,
+    "subject": "systems",
+    "prereqs": [
+      "rust-ownership",
+      "rust-option",
+      "rust-slices"
+    ],
+    "langs": [
+      "rust"
+    ]
+  },
+  {
     "id": "rust-option-lookup",
     "title": "A value that might not be there",
     "topic": "rust",
@@ -3353,6 +3709,31 @@
     ]
   },
   {
+    "id": "debug-rust-longest-run",
+    "title": "The run that ends when the data does",
+    "topic": "rust",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "debugging",
+      "loops",
+      "off-by-one",
+      "slices"
+    ],
+    "estimate": 25,
+    "debugging": true,
+    "subject": "systems",
+    "prereqs": [
+      "loop-invariants",
+      "rust-slices",
+      "sentinel-values"
+    ],
+    "langs": [
+      "rust"
+    ]
+  },
+  {
     "id": "rust-result-parse",
     "title": "Failure as a value",
     "topic": "rust",
@@ -3401,6 +3782,30 @@
     ]
   },
   {
+    "id": "rust-struct-histogram",
+    "title": "A struct that owns its invariants",
+    "topic": "rust",
+    "difficulty": "intermediate",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "structs",
+      "impl",
+      "methods",
+      "option"
+    ],
+    "estimate": 32,
+    "subject": "systems",
+    "prereqs": [
+      "rust-ownership",
+      "rust-option",
+      "rust-borrowing"
+    ],
+    "langs": [
+      "rust"
+    ]
+  },
+  {
     "id": "rust-question-mark-records",
     "title": "Propagating failure without writing a match",
     "topic": "rust",
@@ -3420,6 +3825,30 @@
       "rust-question-mark",
       "rust-result",
       "rust-option"
+    ],
+    "langs": [
+      "rust"
+    ]
+  },
+  {
+    "id": "rust-two-mutable-halves",
+    "title": "Two mutable views of one buffer",
+    "topic": "rust",
+    "difficulty": "advanced",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "borrowing",
+      "slices",
+      "split-at-mut",
+      "aliasing"
+    ],
+    "estimate": 32,
+    "subject": "systems",
+    "prereqs": [
+      "rust-borrowing",
+      "rust-slices",
+      "rust-ownership"
     ],
     "langs": [
       "rust"

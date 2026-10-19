@@ -21,13 +21,13 @@ serves it directly.
 ## What is in it
 
 <!-- generated:counts -->
-**165 problems** across 13 topics, 45 of them compiled and run in C++, Rust, Python, JavaScript. **219 concepts** carry **617 readings** between them, every one naming a book and a chapter or a specific page, with 33 more for learning a topic from scratch. **16 tracks** order subsets of the problems so there is always an obvious next one, and the weekly schedule runs to 2027-04-05.
+**182 problems** across 13 topics, 56 of them compiled and run in C++, Rust, Python, JavaScript. **219 concepts** carry **617 readings** between them, every one naming a book and a chapter or a specific page, with 33 more for learning a topic from scratch. **16 tracks** order subsets of the problems so there is always an obvious next one, and the weekly schedule runs to 2027-04-05.
 
 ```
 Topics        cpp · rust · arch · os · linux · compilers · hpc · dist · fpga · algo · sysdesign · metric · prob
 Difficulty    Beginner · Intermediate · Advanced
 Types         mcq · multi · numeric · short · order · match · predict · locate · code · approx · counterexample · exact · hdl · proof · proofsteps · structured
-Total time    about 45 hours at the stated estimates
+Total time    about 54 hours at the stated estimates
 ```
 <!-- /generated:counts -->
 
@@ -39,19 +39,19 @@ across ten topics" by hand, and both numbers were wrong within a day.
 <!-- generated:topics -->
 | Topic | Problems | Code | Time |
 | --- | --- | --- | --- |
-| **C++** | 22 — 18 / 4 / 0 by difficulty | 13 | ~6 h |
-| **Rust** | 7 — 3 / 3 / 1 by difficulty | 7 | ~4 h |
-| **Computer Architecture** | 10 — 3 / 5 / 2 by difficulty | 5 | ~3 h |
+| **C++** | 23 — 18 / 5 / 0 by difficulty | 14 | ~6 h |
+| **Rust** | 11 — 4 / 5 / 2 by difficulty | 11 | ~5 h |
+| **Computer Architecture** | 11 — 3 / 6 / 2 by difficulty | 6 | ~4 h |
 | **Operating Systems** | 7 — 2 / 4 / 1 by difficulty | 2 | ~2 h |
 | **Linux & Tooling** | 5 — 2 / 2 / 1 by difficulty | 0 | ~1 h |
 | **Compilers & Interpreters** | 5 — 2 / 2 / 1 by difficulty | 1 | ~1 h |
 | **HPC & Parallelism** | 5 — 2 / 2 / 1 by difficulty | 1 | ~1 h |
 | **Distributed Systems** | 5 — 2 / 2 / 1 by difficulty | 0 | ~1 h |
-| **FPGAs & Hardware** | 15 — 5 / 9 / 1 by difficulty | 3 | ~5 h |
-| **Algorithms** | 15 — 6 / 8 / 1 by difficulty | 12 | ~6 h |
+| **FPGAs & Hardware** | 21 — 5 / 13 / 3 by difficulty | 3 | ~8 h |
+| **Algorithms** | 18 — 6 / 11 / 1 by difficulty | 15 | ~7 h |
 | **System Design** | 5 — 2 / 2 / 1 by difficulty | 1 | ~1 h |
-| **Metric Spaces** | 32 — 9 / 15 / 8 by difficulty | 0 | ~7 h |
-| **Probability** | 32 — 7 / 20 / 5 by difficulty | 0 | ~7 h |
+| **Metric Spaces** | 33 — 9 / 16 / 8 by difficulty | 1 | ~7 h |
+| **Probability** | 33 — 7 / 21 / 5 by difficulty | 1 | ~7 h |
 <!-- /generated:topics -->
 
 ## Two subjects

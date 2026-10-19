@@ -1,0 +1,61 @@
+{
+  "id": "metric-code-axiom-checker",
+  "title": "Check a distance table against the axioms",
+  "topic": "metric",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "metric-axioms",
+    "coding",
+    "exhaustive-check"
+  ],
+  "estimate": 30,
+  "prereqs": [
+    {
+      "concept": "ms-metric-axioms",
+      "why": "The three conditions being checked are the definition, written out as code."
+    },
+    {
+      "concept": "loop-invariants",
+      "why": "Three nested loops with an early return, and knowing which index the answer is about."
+    },
+    {
+      "concept": "array-bounds",
+      "why": "Every loop runs over the same n, and the matrix is square by construction."
+    }
+  ],
+  "statement": "A **finite** set of points with a table of distances between them is a\nmetric space exactly when the table satisfies the three axioms. For a\nfinite table that is something a program can check exhaustively.\n\nRead `n`, then an `n` by `n` matrix of integers, row by row, where\n`d[i][j]` is the distance from point `i` to point `j`.\n\nReport on each axiom, in this order:\n\n```\npositivity ok            or   positivity fails at <i> <j>\nsymmetry ok              or   symmetry fails at <i> <j>\ntriangle ok              or   triangle fails at <i> <j> <k>\nmetric yes               or   metric no\n```\n\n### The three axioms, precisely\n\n- **Positivity.** `d[i][j] >= 0`, and `d[i][j] == 0` **if and only if**\n  `i == j`. Both halves count: a negative entry breaks it, and so does a\n  zero off the diagonal or a non-zero on it.\n- **Symmetry.** `d[i][j] == d[j][i]`.\n- **Triangle inequality.** `d[i][k] <= d[i][j] + d[j][k]` for **all**\n  triples `i`, `j`, `k`, including the ones where two or three of them\n  are equal.\n\nWhen an axiom fails, report the **first** counterexample in index order:\n`i` outermost, then `j`, then `k`. Each axiom is reported on\nindependently — a table can fail all three.\n\n### The sample\n\n```\n3\n0 2 3\n2 0 1\n3 1 0\n```\n\n```\npositivity ok\nsymmetry ok\ntriangle ok\nmetric yes\n```\n\n### What this does and does not establish\n\nChecking every triple of a finite table **proves** that this table is a\nmetric: the axioms are universally quantified over a finite set, so\nexhaustion is a proof.\n\nIt says nothing whatever about any infinite space, and it is not how you\nwould show that $d(x,y) = |x-y|$ is a metric on $\\R$ — there are\nuncountably many triples there, and the argument has to be a proof about\nthe formula rather than a check of its values.",
+  "hints": [
+    "Three functions, three loop nests: two deep for positivity and symmetry, three deep for the triangle inequality.",
+    "Positivity is two conditions, not one. `d[i][j] >= 0` is the easy half; the other half is that zero happens exactly on the diagonal, which in Python is the single line `if (d[i][j] == 0) != (i == j): return (i, j)`.",
+    "Return the indices as soon as you find a failure, so the first one in index order is the one reported. Returning None from a function that found nothing is what lets `main` tell 'ok' from 'fails at'.",
+    "Do not skip the triples where indices coincide. `i == j == k` gives `d[i][i] <= 2*d[i][i]`, which holds; but `i == k` with `j` different gives `0 <= d[i][j] + d[j][i]`, and that one catches a negative entry a second time — which is correct behaviour, not a bug."
+  ],
+  "payload": {
+    "langs": [
+      "python"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 4000
+    },
+    "templates": {
+      "python": "import sys\n\n\ndef read_matrix(data):\n    n = int(data[0])\n    vals = [int(t) for t in data[1:1 + n * n]]\n    return n, [vals[i * n:(i + 1) * n] for i in range(n)]\n\n\ndef positivity(n, d):\n    # your code here — the first (i, j) breaking positivity, or None\n    return None\n\n\ndef symmetry(n, d):\n    # your code here — the first (i, j) with d[i][j] != d[j][i], or None\n    return None\n\n\ndef triangle(n, d):\n    # your code here — the first (i, j, k) breaking the inequality, or None\n    return None\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    n, d = read_matrix(data)\n\n    # your code here — the three verdicts, then the summary line\n\n\nmain()\n"
+    },
+    "cases": [
+      {
+        "stdin": "3\n0 2 3\n2 0 1\n3 1 0\n",
+        "expect": "positivity ok\nsymmetry ok\ntriangle ok\nmetric yes\n"
+      },
+      {
+        "stdin": "3\n0 1 5\n1 0 1\n5 1 0\n",
+        "expect": "positivity ok\nsymmetry ok\ntriangle fails at 0 1 2\nmetric no\n"
+      },
+      {
+        "stdin": "2\n0 3\n4 0\n",
+        "expect": "positivity ok\nsymmetry fails at 0 1\ntriangle ok\nmetric no\n"
+      }
+    ]
+  }
+}

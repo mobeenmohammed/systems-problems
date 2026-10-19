@@ -1,0 +1,61 @@
+{
+  "id": "rust-iterator-chains",
+  "title": "Three chains, no loops",
+  "topic": "rust",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "iterators",
+    "closures",
+    "adaptors"
+  ],
+  "estimate": 28,
+  "prereqs": [
+    {
+      "concept": "rust-ownership",
+      "why": "Every chain here borrows its input rather than consuming it, which is why they all take a slice."
+    },
+    {
+      "concept": "rust-option",
+      "why": "The longest word of an empty list is None, and the compiler will not let you forget it."
+    },
+    {
+      "concept": "rust-slices",
+      "why": "All three functions take &[T], so the same code works on a Vec, on an array and on part of either."
+    }
+  ],
+  "statement": "Read `n`, then `n` integers, then any number of words.\n\nWrite these three functions and use them:\n\n```rust\nfn evens_squared_sum(xs: &[i64]) -> i64\nfn longest(words: &[String]) -> Option<&String>\nfn running(xs: &[i64]) -> Vec<i64>\n```\n\n- `evens_squared_sum` is the sum of the squares of the **even** values.\n  An empty slice gives 0.\n- `longest` is the longest word. On a tie, the **last** one of the\n  longest wins. An empty slice gives `None`.\n- `running` is the running totals: the `i`-th entry is the sum of the\n  first `i + 1` values. An empty slice gives an empty vector.\n\nThen print exactly:\n\n```\nevensq <the sum>\nlongest <the word, or the text none>\nrunning <the totals, space separated>\n```\n\nThe `running` line is printed even when the list is empty, with nothing\nafter the word.\n\n### The sample\n\n```\n5\n1 2 3 4 5\nalpha be gamma\n```\n\n```\nevensq 20\nlongest gamma\nrunning 1 3 6 10 15\n```\n\n### The constraint\n\n**Write each function as a single expression — one iterator chain.** No\n`for` loop and no `mut` accumulator inside them. That is the exercise:\nthe standard adaptors already do all three of these jobs.",
+  "hints": [
+    "`xs.iter()` gives an iterator of `&i64`, so the closure parameters are references. `filter` hands you `&&i64`, which is why you will see a `*` in the condition.",
+    "`.filter(...).map(...).sum()` is the first one. `sum()` needs to know what it is summing to, and the return type of the function tells it.",
+    "For the longest word, `max_by_key(|w| w.len())` is the whole function. On a tie it returns the **last** maximum, which is what the specification asks for — `max_by_key` is documented to do exactly that.",
+    "For the running totals, `scan` is the adaptor that carries a value along: `xs.iter().scan(0i64, |acc, x| { *acc += x; Some(*acc) }).collect()`. Returning `None` from the closure would stop the iteration early, which is not wanted here."
+  ],
+  "payload": {
+    "langs": [
+      "rust"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "rust": "use std::io::{self, Read};\n\nfn input() -> Vec<String> {\n    let mut s = String::new();\n    io::stdin().read_to_string(&mut s).unwrap();\n    s.split_whitespace().map(|t| t.to_string()).collect()\n}\n\nfn evens_squared_sum(xs: &[i64]) -> i64 {\n    let _ = xs;\n    0 // your code here — the sum of the squares of the even values\n}\n\nfn longest(words: &[String]) -> Option<&String> {\n    let _ = words;\n    None // your code here — the longest word, or None if there are none\n}\n\nfn running(xs: &[i64]) -> Vec<i64> {\n    let _ = xs;\n    Vec::new() // your code here — the running totals, one per input\n}\n\nfn main() {\n    let t = input();\n    if t.is_empty() {\n        return;\n    }\n    let n: usize = t[0].parse().unwrap();\n    let xs: Vec<i64> = t[1..1 + n].iter().map(|s| s.parse().unwrap()).collect();\n    let words: Vec<String> = t[1 + n..].to_vec();\n\n    // your code here — the three lines, using the functions above\n    let _ = (&xs, &words);\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "5\n1 2 3 4 5\nalpha be gamma\n",
+        "expect": "evensq 20\nlongest gamma\nrunning 1 3 6 10 15\n"
+      },
+      {
+        "stdin": "0\n",
+        "expect": "evensq 0\nlongest none\nrunning \n"
+      },
+      {
+        "stdin": "3\n-2 -4 7\none two six\n",
+        "expect": "evensq 20\nlongest six\nrunning -2 -6 1\n"
+      }
+    ]
+  }
+}

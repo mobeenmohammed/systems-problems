@@ -1,0 +1,82 @@
+{
+  "id": "proj-seq-detect-3",
+  "title": "A sequence detector: a gate, and two of the same counter",
+  "topic": "fpga",
+  "difficulty": "advanced",
+  "lane": "core",
+  "type": "hdl",
+  "project": {
+    "id": "seq-detect",
+    "title": "Build a sequence detector",
+    "of": 3,
+    "step": 3,
+    "label": "Arming, and what gets turned away",
+    "continues": "proj-seq-detect-2"
+  },
+  "tags": [
+    "project",
+    "multi-file",
+    "gating",
+    "module-hierarchy"
+  ],
+  "estimate": 35,
+  "prereqs": [
+    {
+      "concept": "shift-registers",
+      "why": "The last four bits live in a shift register, which is what makes the pattern an input rather than a constant."
+    },
+    {
+      "concept": "hdl-assignments",
+      "why": "Every register here is non-blocking and every output that is not registered is a continuous assignment; mixing the two is how a design ends up a cycle out."
+    },
+    {
+      "concept": "timing-closure",
+      "why": "The gate’s outputs are combinational on purpose, and what that costs in path length is why the choice is stated rather than left open."
+    }
+  ],
+  "statement": "**Milestone 3 of 3.** A gate in front of the counter, so the detector\ncan be armed for one match at a time — and a second counter for what it\nturns away.\n\n### The files\n\n```\nseq_match.sv    the detector\ndet_counter.sv  the saturating counter\narm_gate.sv     the gate. New.\nseq_detect.sv   the top. Rewired, with three more ports.\n```\n\nThey are elaborated together, the way a real build does it. A\ndiagnostic names the file it is in, and clicking it opens that file at\nthat line.\n\n### arm_gate\n\n```systemverilog\nmodule arm_gate (\n    input  logic clk, rst_n,\n    input  logic arm,         // a one-cycle pulse\n    input  logic found_in,\n    output logic found_out,\n    output logic missed\n);\n```\n\nThe gate holds one bit of state, call it `armed`.\n\n- `rst_n` is synchronous and active low, and clears `armed`.\n- `found_out` is `found_in` while armed; `missed` is `found_in` while\n  not armed. Both are **combinational** — this cycle's input against\n  this cycle's state, not a cycle later. At most one of them is ever\n  high, and only when `found_in` is.\n- An `arm` pulse sets `armed`.\n- A detection that is passed on **shuts the gate**: `armed` clears.\n- **The priority is part of the specification.** Reset beats everything;\n  then `arm`; then the self-disarm. So an `arm` pulse arriving on the\n  same cycle as a passed detection leaves the gate armed for the next\n  one.\n\n### seq_detect, rewired\n\n```systemverilog\nmodule seq_detect #(parameter int W = 4) (\n    input  logic clk, rst_n, din, arm,\n    input  logic [3:0] pattern,\n    output logic found,          // the GATED detection\n    output logic missed,\n    output logic [W-1:0] count,\n    output logic [W-1:0] missed_count,\n    output logic sat\n);\n```\n\nThe detector's raw output goes into the gate, not into a counter. The\ngate's two outputs drive **two `det_counter` instances** — the same\nmodule, twice, which is why it was made a module.\n\n### Where the arm pulse has to land\n\n`found` is registered, so a match is visible during the cycle *after*\nits last bit is clocked in. \"An arm pulse on the same cycle as a\ndetection\" therefore means that cycle, not the one the last bit is\npresented on. The grading testbench tests exactly that distinction.\n\n### Carrying your work forward\n\n`seq_match.sv` and `det_counter.sv` come with you unchanged if you wrote\nthem, and arrive worked if you did not.\n\n`seq_detect.sv` is the interesting one. Its port list has **grown**, so\na version carried forward from milestone 2 will not have `arm`,\n`missed` or `missed_count` on it, and the testbench will not elaborate\nuntil they are there — the error names the ports that are missing. That\nis not a bug in the carry-forward; it is what happens when an interface\nchanges under a module, and meeting it once here is cheaper than\nmeeting it for the first time somewhere that matters.\n",
+  "hints": [
+    "Write the two outputs first, and as continuous assignments rather than inside the clocked block: `found_out = found_in & armed` and `missed = found_in & ~armed`. Registering them delays both by a cycle and every check fails.",
+    "The state register is three branches of one if/else-if chain, and the order IS the specification: reset, then arm, then the self-disarm. Swapping the last two changes what happens when an arm pulse and a passed detection coincide.",
+    "In the top, give the raw detection a name — `logic raw;` — and wire seq_match's `found` to it. The module's own `found` port is the gate's output, not the detector's.",
+    "Two det_counter instances need two different instance names. Give the second one `.sat()` with nothing inside: an output you do not need may be left unconnected, and saying so is clearer than inventing a wire nothing reads."
+  ],
+  "payload": {
+    "top": "seq_detect",
+    "generation": "2012",
+    "files": [
+      {
+        "path": "seq_match.sv",
+        "content": "// A programmable four-bit pattern detector.\n//\n// The pattern is an input, not a constant, so there is no table to\n// precompute: the last four bits are kept in a shift register and\n// compared with it. `fill` is there to stop the register matching\n// before four real bits have arrived.\n\nmodule seq_match (\n    input  logic       clk,\n    input  logic       rst_n,     // synchronous, active low\n    input  logic       din,       // one bit per clock\n    input  logic [3:0] pattern,   // held steady; pattern[3] arrives first\n    output logic       found      // registered: high for one cycle on a match\n);\n\n    logic [3:0] hist;    // the last four bits; hist[3] is the oldest\n    logic [2:0] fill;    // bits received since reset, saturating at 4\n\n    // What the shift register will hold after this edge.\n    wire [3:0] next_hist = {hist[2:0], din};\n\n    always_ff @(posedge clk) begin\n        if (!rst_n) begin\n            hist  <= 4'b0;\n            fill  <= 3'd0;\n            found <= 1'b0;\n        end else begin\n            hist  <= next_hist;\n            if (fill != 3'd4) fill <= fill + 3'd1;\n            // Three bits already in, plus the one arriving now.\n            found <= (fill >= 3'd3) && (next_hist == pattern);\n        end\n    end\n\nendmodule\n"
+      },
+      {
+        "path": "det_counter.sv",
+        "content": "// A saturating counter: it counts `inc` pulses and stops at its\n// maximum rather than wrapping round to zero.\n\nmodule det_counter #(\n    parameter int W = 4\n) (\n    input  logic         clk,\n    input  logic         rst_n,\n    input  logic         inc,\n    output logic [W-1:0] count,\n    output logic         sat\n);\n\n    // Saturated when every bit is set: one more pulse changes nothing.\n    assign sat = &count;\n\n    always_ff @(posedge clk) begin\n        if (!rst_n)           count <= '0;\n        else if (inc && !sat) count <= count + 1'b1;\n    end\n\nendmodule\n"
+      },
+      {
+        "path": "arm_gate.sv",
+        "content": "// A one-shot arming gate.\n//\n// The gate holds one bit of state. A detection arriving while the gate\n// is armed is passed on, and shuts the gate behind it. A detection\n// arriving while the gate is shut is reported as missed instead.\n\nmodule arm_gate (\n    input  logic clk,\n    input  logic rst_n,       // synchronous, active low\n    input  logic arm,         // a one-cycle pulse: arms the gate\n    input  logic found_in,\n    output logic found_out,   // found_in, while armed\n    output logic missed       // found_in, while not armed\n);\n\n    // your code here.\n    //\n    // Both outputs are combinational: this cycle's found_in against\n    // this cycle's armed state, not a cycle later.\n    //\n    // The state register has three cases, and the ORDER of them is the\n    // specification: reset wins over everything, then `arm`, and only\n    // then the self-disarm. So an arm pulse landing on the same cycle\n    // as a passed detection leaves the gate armed.\n\n    assign found_out = 1'b0;\n    assign missed    = 1'b0;\n\nendmodule\n"
+      },
+      {
+        "path": "seq_detect.sv",
+        "content": "// The top of milestone 3: the detector, the gate, and two counters.\n//\n// Note the port list: it has grown since milestone 2. If you carried\n// your own version of this file forward it will not have `arm`,\n// `missed` or `missed_count` on it, and the testbench will not\n// elaborate until they are there.\n//\n// Still no logic of its own. det_counter is instantiated twice, which\n// is the reason it was made a module in the first place.\n\nmodule seq_detect #(\n    parameter int W = 4\n) (\n    input  logic         clk,\n    input  logic         rst_n,\n    input  logic         din,\n    input  logic [3:0]   pattern,\n    input  logic         arm,\n    output logic         found,          // the gated detection\n    output logic         missed,\n    output logic [W-1:0] count,\n    output logic [W-1:0] missed_count,\n    output logic         sat             // the passed counter's saturation\n);\n\n    // your code here -- seq_match, then arm_gate, then two\n    // det_counters. The raw detection goes into the gate, not straight\n    // into a counter.\n\n    assign found        = 1'b0;\n    assign missed       = 1'b0;\n    assign count        = '0;\n    assign missed_count = '0;\n    assign sat          = 1'b0;\n\nendmodule\n"
+      }
+    ],
+    "entry": "seq_detect.sv",
+    "build": {
+      "sources": [
+        "seq_match.sv",
+        "det_counter.sv",
+        "arm_gate.sv",
+        "seq_detect.sv"
+      ]
+    },
+    "testbench": "`timescale 1ns/1ps\n\n// The sample testbench for milestone 3. Submit uses another one, which\n// presses on the priority rule and on both counters.\nmodule tb;\n\n  localparam int W = 4;\n\n  logic clk = 1'b0;\n  always #5 clk = ~clk;\n\n  logic rst_n = 1'b1;\n  logic din   = 1'b0;\n  logic arm   = 1'b0;\n  logic found, missed;\n  logic [W-1:0] count, missed_count;\n  logic sat;\n\n  logic [3:0] pattern = 4'b1011;\n\n  seq_detect #(.W(W)) dut (\n    .clk(clk), .rst_n(rst_n), .din(din), .pattern(pattern), .arm(arm),\n    .found(found), .missed(missed),\n    .count(count), .missed_count(missed_count), .sat(sat)\n  );\n\n  integer i;\n\n  // One cycle, driving both inputs, so that \"arm on the same cycle as\n  // the detection\" is a thing the testbench can actually express.\n  task tick(input logic b, input logic a);\n    begin\n      @(negedge clk); din = b; arm = a;\n      @(posedge clk); #1;\n    end\n  endtask\n\n  task send(input logic b);\n    begin\n      tick(b, 1'b0);\n    end\n  endtask\n\n  task arm_cycle;\n    begin\n      tick(1'b0, 1'b1);\n    end\n  endtask\n\n  task reset;\n    begin\n      @(negedge clk); rst_n = 1'b0; din = 1'b0; arm = 1'b0;\n      @(posedge clk); #1;\n      rst_n = 1'b1;\n    end\n  endtask\n\n  task stream(input integer n, input [31:0] bits);\n    begin\n      for (i = n - 1; i >= 0; i = i - 1) send(bits[i]);\n    end\n  endtask\n\n  logic [W-1:0] c_shut, m_shut, c_armed, m_armed;\n\n  initial begin\n    $dumpfile(\"dump.vcd\");\n    $dumpvars(0, tb);\n\n    // Shut: the pattern is still detected, and reported as missed.\n    reset();\n    stream(4, 4'b1011);\n    send(1'b0);\n    c_shut = count;\n    m_shut = missed_count;\n\n    // Armed: the first match gets through and the gate shuts behind it.\n    reset();\n    arm_cycle();\n    stream(7, 7'b1011011);\n    send(1'b0);\n    c_armed = count;\n    m_armed = missed_count;\n\n    $display(\"CHECK shut_passes_nothing 0 %0d AT %0d\", c_shut, $time);\n    $display(\"CHECK shut_counts_as_missed 1 %0d AT %0d\", m_shut, $time);\n    $display(\"CHECK armed_passes_one 1 %0d AT %0d\", c_armed, $time);\n    $display(\"CHECK and_the_second_is_missed 1 %0d AT %0d\", m_armed, $time);\n    $display(\"DONE 4\");\n    $finish;\n  end\n\nendmodule\n",
+    "checks": [
+      "shut_passes_nothing",
+      "shut_counts_as_missed",
+      "armed_passes_one",
+      "and_the_second_is_missed"
+    ]
+  }
+}

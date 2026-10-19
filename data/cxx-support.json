@@ -6,7 +6,7 @@
     "standard": "C++20",
     "flags": "-O2 -std=c++20 -fno-exceptions -Wall -Wextra"
   },
-  "generated": 40,
+  "generated": 44,
   "browser": [
     "algo-impl-circular-queue",
     "algo-impl-count",
@@ -15,6 +15,9 @@
     "algo-impl-int-stack",
     "algo-impl-lower-bound",
     "algo-lru-cache",
+    "algo-merge-intervals",
+    "algo-sliding-window-max",
+    "arch-sim-branch-predictor",
     "arch-sim-byte-decode",
     "arch-sim-cache-fields",
     "compilers-expression-lexer",
@@ -31,6 +34,7 @@
     "cpp-string-scan",
     "cpp-sum-until-zero",
     "cpp-vector-stats",
+    "debug-cpp-erase-in-loop",
     "debug-ring-overwrite",
     "fpga-sequence-detector",
     "fpga-sim-lfsr",

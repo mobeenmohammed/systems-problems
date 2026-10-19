@@ -1,0 +1,50 @@
+{
+  "key": {
+    "cases": [
+      {
+        "stdin": "1\n5 5\n",
+        "expect": "1\n5 5\ncovered 0\n"
+      },
+      {
+        "stdin": "3\n1 10\n2 3\n4 5\n",
+        "expect": "1\n1 10\ncovered 9\n"
+      },
+      {
+        "stdin": "3\n5 6\n1 2\n3 4\n",
+        "expect": "3\n1 2\n3 4\n5 6\ncovered 3\n"
+      },
+      {
+        "stdin": "4\n1 2\n1 5\n1 3\n1 4\n",
+        "expect": "1\n1 5\ncovered 4\n"
+      },
+      {
+        "stdin": "2\n-10 -5\n-6 0\n",
+        "expect": "1\n-10 0\ncovered 10\n"
+      },
+      {
+        "stdin": "5\n1 2\n3 4\n5 6\n7 8\n9 10\n",
+        "expect": "5\n1 2\n3 4\n5 6\n7 8\n9 10\ncovered 5\n"
+      },
+      {
+        "stdin": "3\n1 1\n1 1\n2 2\n",
+        "expect": "2\n1 1\n2 2\ncovered 0\n"
+      },
+      {
+        "stdin": "4\n0 1000000000\n1 2\n-5 -4\n1000000000 1000000001\n",
+        "expect": "2\n-5 -4\n0 1000000001\ncovered 1000000002\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <algorithm>\n#include <iostream>\n#include <vector>\n\nstruct Range { long long lo, hi; };\n\n/* Sort by start, then sweep: an interval either extends the one being\n   built or starts a new one. Touching counts as overlapping. */\nstatic std::vector<Range> merge(std::vector<Range> v) {\n    std::sort(v.begin(), v.end(),\n              [](const Range& a, const Range& b) {\n                  return a.lo != b.lo ? a.lo < b.lo : a.hi < b.hi;\n              });\n    std::vector<Range> out;\n    for (const Range& r : v) {\n        if (!out.empty() && r.lo <= out.back().hi) {\n            if (r.hi > out.back().hi) out.back().hi = r.hi;\n        } else {\n            out.push_back(r);\n        }\n    }\n    return out;\n}\n\nint main() {\n    std::ios::sync_with_stdio(false);\n    std::cin.tie(nullptr);\n\n    int n = 0;\n    if (!(std::cin >> n)) return 0;\n    std::vector<Range> v(n);\n    for (Range& r : v) std::cin >> r.lo >> r.hi;\n\n    const std::vector<Range> m = merge(v);\n    std::cout << m.size() << '\\n';\n    long long total = 0;\n    for (const Range& r : m) {\n        std::cout << r.lo << ' ' << r.hi << '\\n';\n        total += r.hi - r.lo;\n    }\n    std::cout << \"covered \" << total << '\\n';\n    return 0;\n}\n",
+      "python": "import sys\n\n\ndef merge(v):\n    \"\"\"Sort by start, then sweep: an interval either extends the one\n    being built or starts a new one. Touching counts as overlapping.\"\"\"\n    out = []\n    for lo, hi in sorted(v):\n        if out and lo <= out[-1][1]:\n            if hi > out[-1][1]:\n                out[-1][1] = hi\n        else:\n            out.append([lo, hi])\n    return out\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    n = int(data[0])\n    nums = [int(t) for t in data[1:1 + 2 * n]]\n    v = [(nums[2 * i], nums[2 * i + 1]) for i in range(n)]\n\n    m = merge(v)\n    print(len(m))\n    total = 0\n    for lo, hi in m:\n        print(lo, hi)\n        total += hi - lo\n    print(\"covered\", total)\n\n\nmain()\n"
+    }
+  },
+  "explanation": "## Why sorting first makes one pass enough\n\nUnsorted, an interval can overlap anything, and deciding what merges\nwith what looks like it needs every pair compared.\n\nSorted by `lo`, it cannot. Suppose the merged intervals built so far are\n`m1, m2, ..., mj` in increasing order and the next input interval is\n`r`. Since the input is sorted, `r.lo >= mi.lo` for every `i`. If `r`\noverlapped some `mi` with `i < j`, then `r.lo <= mi.hi < mj.lo <= r.lo`\n— which is a contradiction, because `mi` and `mj` are disjoint and\n`mi` comes first.\n\nSo `r` can only touch the **last** one. The whole algorithm is: sort,\nthen look at the back.\n\n```cpp\nfor (const Range& r : v) {\n    if (!out.empty() && r.lo <= out.back().hi) {\n        if (r.hi > out.back().hi) out.back().hi = r.hi;\n    } else {\n        out.push_back(r);\n    }\n}\n```\n\n`O(n log n)` for the sort and `O(n)` for the sweep, so the sort\ndominates.\n\n## The two places this goes wrong\n\n**`= r.hi` instead of `max`.** Input `[1,10]` then `[2,3]`: the second\nstarts inside the first, so they merge — and setting `hi = 3` has just\nthrown away the second half of an interval that was already there. The\nhidden case `1 10 / 2 3 / 4 5` exists to catch exactly that, and the\nanswer is one interval `[1,10]`, not three and not `[1,5]`.\n\n**`<` instead of `<=`.** Touching intervals are the boundary case and\nthe statement says they merge. Whether they should is a modelling\ndecision — for half-open intervals `[a,b)` the right test is `<`, and\nfor closed ones it is `<=` — and the exercise picks one and says so.\nGetting it from the statement rather than from taste is the skill.\n\n## Sorting by the second key\n\nThe comparator sorts by `lo`, and on a tie by `hi`. The tie-break does\nnot change the merged result — anything with the same `lo` merges\nanyway — but it makes the order deterministic, which matters because\n`std::sort` is not stable and two runs could otherwise produce different\nintermediate states. Python's `sorted` on tuples does the same thing for\nfree.\n\n## Where this shows up\n\nMerging intervals is the shape of a great many real jobs: coalescing\nfree blocks in an allocator, collapsing adjacent dirty ranges before a\ndisk flush, combining overlapping time slots in a calendar, simplifying\na set of IP ranges in a firewall rule. In every one of them the two\nmistakes above are the two bugs, and the second one — losing the far end\nof a longer interval — is the one that does not show up until the inputs\nstop being sorted by accident.",
+  "readMore": [
+    {
+      "concept": "loop-invariants",
+      "where": "what the sweep is maintaining"
+    }
+  ],
+  "id": "algo-merge-intervals"
+}

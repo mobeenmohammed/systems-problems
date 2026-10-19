@@ -1,0 +1,63 @@
+{
+  "id": "arch-sim-branch-predictor",
+  "title": "Guessing which way the branch goes",
+  "topic": "arch",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "branch-prediction",
+    "simulation",
+    "saturating-counters"
+  ],
+  "estimate": 30,
+  "prereqs": [
+    {
+      "concept": "pipelining",
+      "why": "A mispredicted branch costs the pipeline everything it has started, which is why a predictor exists at all."
+    },
+    {
+      "concept": "cache-indexing",
+      "why": "The table is indexed by the low bits of the address, exactly as a direct-mapped cache is, and it has the same conflict problem."
+    },
+    {
+      "concept": "shifts-and-masks",
+      "why": "The index is a shift and a mask, and the shift is the part people leave out."
+    }
+  ],
+  "statement": "Simulate a **bimodal branch predictor**: a direct-mapped table of\ntwo-bit saturating counters, one of the simplest predictors a real\nprocessor has ever shipped.\n\nRead the number of table entries (a power of two), then a trace of\nbranches, one per line:\n\n```\n<address in hexadecimal> <T or N>\n```\n\n`T` means the branch was taken and `N` that it was not.\n\n### The predictor\n\nEach entry is a counter from 0 to 3:\n\n| value | meaning |\n| --- | --- |\n| 0 | strongly not taken |\n| 1 | weakly not taken |\n| 2 | weakly taken |\n| 3 | strongly taken |\n\n- Every counter starts at **1**, weakly not taken.\n- The entry for a branch is `(address >> 2) & (entries - 1)`. The shift\n  by two is there because instructions are four bytes apart, so the\n  bottom two bits of an address are always zero and would waste half the\n  table.\n- The prediction is **taken** when the counter is 2 or 3, and not taken\n  when it is 0 or 1.\n- After the real outcome is known, the counter moves one step towards\n  it — up if taken, down if not — and **saturates** at 0 and 3.\n\n### Print\n\n```\nbranches <how many were in the trace>\nmispredicts <how many predictions were wrong>\ntable <every counter, in index order, space separated>\n```\n\nThe `table` line is printed even when the trace is empty.\n\n### The sample\n\n```\n4\n100 T\n100 T\n100 T\n100 T\n```\n\n```\nbranches 4\nmispredicts 1\ntable 3 1 1 1\n```\n\n`0x100 >> 2` is `0x40`, and `0x40 & 3` is `0`, so every one of those\nfour branches uses entry 0. It starts at 1, the first prediction is\ntherefore wrong, and four taken outcomes drive it up to 3 and hold it\nthere. The other three entries were never touched.\n\nAddresses fit in 64 bits.",
+  "hints": [
+    "Index first, and get the shift right: `(pc >> 2) & (entries - 1)`. Without the shift, every address in a four-byte-aligned program maps to a multiple-of-four index and three quarters of the table is never used.",
+    "Predict BEFORE updating. The prediction is made from the counter as it stands, and only then does the real outcome move it. Doing the update first makes the predictor appear to know the answer.",
+    "Saturating means the counter stops at the ends rather than wrapping: `if (taken) { if (c < 3) ++c; } else { if (c > 0) --c; }`. A counter that wraps from 3 to 0 flips a confident prediction on one surprise.",
+    "The first prediction for any branch is always 'not taken', because every counter starts at 1. So a branch that is always taken is mispredicted exactly once, and the sample's answer of 1 is a check on your start value."
+  ],
+  "payload": {
+    "langs": [
+      "cpp",
+      "python"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 4000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n#include <string>\n#include <vector>\n\nint main() {\n    std::ios::sync_with_stdio(false);\n    std::cin.tie(nullptr);\n\n    unsigned long long entries = 0;\n    if (!(std::cin >> entries)) return 0;\n    std::vector<int> table(entries, 1);\n\n    std::string pcText, outcome;\n    while (std::cin >> pcText >> outcome) {\n        const unsigned long long pc = std::stoull(pcText, nullptr, 16);\n        const bool taken = (outcome == \"T\");\n        (void) pc;\n        (void) taken;\n        // your code here — index the table, predict, count a\n        // mispredict, then move that counter one step.\n    }\n\n    // your code here — the three lines of output.\n    return 0;\n}\n",
+      "python": "import sys\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    entries = int(data[0])\n    table = [1] * entries\n\n    rest = data[1:]\n    for k in range(0, len(rest) - 1, 2):\n        pc = int(rest[k], 16)\n        taken = rest[k + 1] == \"T\"\n        # your code here — index the table, predict, count a\n        # mispredict, then move that counter one step.\n\n    # your code here — the three lines of output.\n\n\nmain()\n"
+    },
+    "cases": [
+      {
+        "stdin": "4\n100 T\n100 T\n100 T\n100 T\n",
+        "expect": "branches 4\nmispredicts 1\ntable 3 1 1 1\n"
+      },
+      {
+        "stdin": "4\n100 T\n104 N\n100 T\n104 N\n",
+        "expect": "branches 4\nmispredicts 1\ntable 3 0 1 1\n"
+      },
+      {
+        "stdin": "2\n100 T\n108 N\n100 T\n108 N\n",
+        "expect": "branches 4\nmispredicts 4\ntable 1 1\n"
+      }
+    ]
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "id": "debug-cpp-erase-in-loop",
+  "title": "The filter that misses every other outlier",
+  "topic": "cpp",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "debugging",
+    "vectors",
+    "iteration",
+    "off-by-one"
+  ],
+  "estimate": 25,
+  "prereqs": [
+    {
+      "concept": "cpp-std-vector",
+      "why": "Erasing from the middle of a vector shuffles everything after it down by one, and that is the whole bug."
+    },
+    {
+      "concept": "array-bounds",
+      "why": "The index and the size both move during the loop, which is the situation indices are worst at."
+    },
+    {
+      "concept": "loop-invariants",
+      "why": "Naming what the loop is supposed to have done by index i is the fastest way to see what it actually does."
+    }
+  ],
+  "statement": "The program below is **already written, and it is wrong.** Your job is\nto find out why and fix it.\n\n`prune` is meant to remove every reading outside the inclusive range\n`[lo, hi]` from the vector, in place, and return how many it removed.\nThe program then prints:\n\n```\nremoved <count>\nkept <how many are left>\n<the kept readings, space separated, on one line>\n```\n\nThe last line is printed even when nothing is left, so the output always\nhas three lines.\n\n### The symptom\n\n```\n6 0 10\n5 -1 -2 7 20 3\n```\n\nshould leave `5 7 3` with three removed. It does not. Worse, the bug is\n**data dependent**: with no two outliers next to each other the program\nis perfectly correct, which is how it got through review.\n\n### What to do\n\nFix `prune`. Do not change what the program prints or how it reads its\ninput — only the function is wrong.\n\nThere is more than one correct fix. Any of them passes.",
+  "hints": [
+    "Run the sample by hand with a table: what is `i`, what is `v`, and what is `v.size()` after each step?",
+    "`v.erase(v.begin() + i)` moves everything after position `i` down by one. So after an erase, the element now AT `i` is one the loop has never looked at — and then `++i` steps over it.",
+    "The fix is to not advance the index on the step that erased. A `while` loop with the `++i` only in the else branch is the smallest change.",
+    "Two other fixes are worth knowing. Walk backwards, from the end down to 0, so the shuffle only moves elements you have already dealt with. Or write it with no erase at all: `std::remove_if` moves the keepers to the front and returns where they end, and a single `erase` of the tail finishes it — which is the erase-remove idiom and is also O(n) rather than O(n^2)."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n#include <string>\n#include <vector>\n\n/* Remove every reading that is outside [lo, hi], in place, and report\n   how many were removed.\n\n   This implementation is BROKEN, and it is wrong in a way that\n   depends on the data: some inputs come out right. Find the bug and\n   fix it; the specification is in the problem statement, and any\n   implementation that meets it is accepted. */\nstatic int prune(std::vector<int>& v, int lo, int hi) {\n    int removed = 0;\n    for (std::size_t i = 0; i < v.size(); ++i) {\n        if (v[i] < lo || v[i] > hi) {\n            v.erase(v.begin() + i);\n            ++removed;\n        }\n    }\n    return removed;\n}\n\nint main() {\n    std::ios::sync_with_stdio(false);\n    std::cin.tie(nullptr);\n\n    int n = 0, lo = 0, hi = 0;\n    if (!(std::cin >> n >> lo >> hi)) return 0;\n    std::vector<int> v(n);\n    for (int& x : v) std::cin >> x;\n\n    const int removed = prune(v, lo, hi);\n\n    std::cout << \"removed \" << removed << '\\n';\n    std::cout << \"kept \" << v.size() << '\\n';\n    for (std::size_t i = 0; i < v.size(); ++i) {\n        std::cout << v[i] << (i + 1 == v.size() ? '\\n' : ' ');\n    }\n    if (v.empty()) std::cout << '\\n';\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "6 0 10\n5 -1 -2 7 20 3\n",
+        "expect": "removed 3\nkept 3\n5 7 3\n"
+      },
+      {
+        "stdin": "5 0 10\n1 2 3 4 5\n",
+        "expect": "removed 0\nkept 5\n1 2 3 4 5\n"
+      },
+      {
+        "stdin": "4 0 10\n-1 -2 -3 -4\n",
+        "expect": "removed 4\nkept 0\n\n"
+      }
+    ]
+  },
+  "debugging": true
+}

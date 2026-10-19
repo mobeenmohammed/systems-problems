@@ -1,0 +1,49 @@
+{
+  "key": {
+    "cases": [
+      {
+        "stdin": "0 1 1\n0\n",
+        "expect": "buckets 1\noutside 0 0\ntotal 1\nmode 0\n"
+      },
+      {
+        "stdin": "0 1 1\n1\n",
+        "expect": "buckets 0\noutside 0 1\ntotal 1\nmode none\n"
+      },
+      {
+        "stdin": "0 10 2\n-1 -2 -3\n",
+        "expect": "buckets 0 0\noutside 3 0\ntotal 3\nmode none\n"
+      },
+      {
+        "stdin": "0 10 2\n100 200\n",
+        "expect": "buckets 0 0\noutside 0 2\ntotal 2\nmode none\n"
+      },
+      {
+        "stdin": "0 10 5\n0 0 0 10 10 20\n",
+        "expect": "buckets 3 2 1 0 0\noutside 0 0\ntotal 6\nmode 0\n"
+      },
+      {
+        "stdin": "100 25 4\n100 124 125 199 200 99\n",
+        "expect": "buckets 2 1 0 1\noutside 1 1\ntotal 6\nmode 0\n"
+      },
+      {
+        "stdin": "0 3 3\n0 1 2 3 4 5 6 7 8\n",
+        "expect": "buckets 3 3 3\noutside 0 0\ntotal 9\nmode 0\n"
+      },
+      {
+        "stdin": "-100 50 4\n-100 -51 -50 -1 0 49 50 99 100\n",
+        "expect": "buckets 2 2 2 2\noutside 0 1\ntotal 9\nmode 0\n"
+      }
+    ],
+    "reference": {
+      "rust": "use std::io::{self, Read};\n\nfn input() -> Vec<String> {\n    let mut s = String::new();\n    io::stdin().read_to_string(&mut s).unwrap();\n    s.split_whitespace().map(|t| t.to_string()).collect()\n}\n\n/// A fixed set of buckets, with saturating counts. Everything the rest\n/// of the program does to it goes through these methods.\nstruct Histogram {\n    lo: i64,\n    width: i64,\n    buckets: Vec<u32>,\n    below: u32,\n    above: u32,\n}\n\nimpl Histogram {\n    fn new(lo: i64, width: i64, n: usize) -> Self {\n        Histogram { lo, width, buckets: vec![0; n], below: 0, above: 0 }\n    }\n\n    /// Which bucket a value belongs in, or None if it is outside.\n    fn bucket_of(&self, x: i64) -> Option<usize> {\n        if x < self.lo {\n            return None;\n        }\n        let i = ((x - self.lo) / self.width) as usize;\n        if i < self.buckets.len() { Some(i) } else { None }\n    }\n\n    fn add(&mut self, x: i64) {\n        match self.bucket_of(x) {\n            Some(i) => self.buckets[i] = self.buckets[i].saturating_add(1),\n            None if x < self.lo => self.below = self.below.saturating_add(1),\n            None => self.above = self.above.saturating_add(1),\n        }\n    }\n\n    fn total(&self) -> u32 {\n        self.buckets.iter().sum::<u32>() + self.below + self.above\n    }\n\n    /// The index of the fullest bucket, ties going to the lowest index.\n    fn mode(&self) -> Option<usize> {\n        let mut best: Option<usize> = None;\n        for (i, c) in self.buckets.iter().enumerate() {\n            if *c > 0 && (best.is_none() || *c > self.buckets[best.unwrap()]) {\n                best = Some(i);\n            }\n        }\n        best\n    }\n}\n\nfn main() {\n    let t = input();\n    if t.is_empty() {\n        return;\n    }\n    let lo: i64 = t[0].parse().unwrap();\n    let width: i64 = t[1].parse().unwrap();\n    let n: usize = t[2].parse().unwrap();\n\n    let mut h = Histogram::new(lo, width, n);\n    for s in &t[3..] {\n        h.add(s.parse().unwrap());\n    }\n\n    let shown: Vec<String> = h.buckets.iter().map(|c| c.to_string()).collect();\n    println!(\"buckets {}\", shown.join(\" \"));\n    println!(\"outside {} {}\", h.below, h.above);\n    println!(\"total {}\", h.total());\n    match h.mode() {\n        Some(i) => println!(\"mode {}\", i),\n        None => println!(\"mode none\"),\n    }\n}\n"
+    }
+  },
+  "explanation": "## The division trap\n\n```rust\nfn bucket_of(&self, x: i64) -> Option<usize> {\n    if x < self.lo { return None; }\n    let i = ((x - self.lo) / self.width) as usize;\n    if i < self.buckets.len() { Some(i) } else { None }\n}\n```\n\nThe early return is not tidiness. Without it, `x = -5` with `lo = 0` and\n`width = 10` gives `(-5) / 10`, which in Rust truncates **towards zero**\nand is therefore `0` — so the value lands in bucket 0 and is counted as\ninside. Change the numbers to `x = -15` and the quotient is `-1`, and\n`-1 as usize` is `18446744073709551615`. One of those is a silently\nwrong answer and the other is an index that will not be less than\n`buckets.len()`, so it happens to be caught; neither is a design.\n\nTruncation towards zero is the C and Rust convention and it makes\nnegative-side bucketing wrong in a way that is easy to miss. Python\nwould floor instead, giving `-1` for `-5 / 10`, which is right for\nbucketing and wrong for other things. Checking the lower bound before\ndividing avoids having to know which language you are in.\n\n## `&self`, `&mut self`, and calling one from the other\n\n`add` takes `&mut self` and calls `bucket_of`, which takes `&self`.\nThat is fine: an exclusive borrow can be reborrowed as a shared one for\nas long as the call lasts.\n\nWhat does **not** compile is\n\n```rust\nself.buckets[self.bucket_of(x).unwrap()] += 1;   // no\n```\n\nbecause the index expression borrows `self` while the assignment is\nalready borrowing `self.buckets` mutably. Finishing the call first —\n`let i = self.bucket_of(x);` and then indexing — makes the two borrows\nconsecutive rather than overlapping. The compiler is pointing at a real\nrule, not being fussy; this is the same rule that makes aliasing bugs\nimpossible, and the fix is always to shorten one of the borrows.\n\n## Saturating arithmetic\n\n`saturating_add(1)` stops at `u32::MAX`. In release mode a plain `+= 1`\nwould wrap silently from `u32::MAX` to 0; in debug mode it would panic.\nNeither is what a counter should do, and saying `saturating_add` makes\nthe decision visible at the point it is taken.\n\nRust makes you choose: `wrapping_add`, `checked_add`, `saturating_add`\nand `overflowing_add` are four methods because there are four\nreasonable answers and the language declines to guess.\n\n## The mode, and why the empty case needs `Option`\n\n```rust\nlet mut best: Option<usize> = None;\nfor (i, c) in self.buckets.iter().enumerate() {\n    if *c > 0 && (best.is_none() || *c > self.buckets[best.unwrap()]) {\n        best = Some(i);\n    }\n}\n```\n\nTwo decisions. `*c > 0` means an all-empty histogram has no mode rather\nthan a mode of 0 — \"bucket 0 is the fullest, with nothing in it\" is not\na useful answer. And `>` rather than `>=` keeps the first of several\nequal maxima, which is what the specification asks for.\n\nReturning `Option<usize>` rather than a sentinel index such as\n`usize::MAX` is the whole argument for having `Option` in the language:\nthe caller cannot use the answer without first saying what it will do\nwhen there is not one, and the compiler checks that it did.",
+  "readMore": [
+    {
+      "concept": "rust-option",
+      "where": "why absence is a type rather than a value"
+    }
+  ],
+  "id": "rust-struct-histogram"
+}

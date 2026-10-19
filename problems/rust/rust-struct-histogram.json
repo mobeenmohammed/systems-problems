@@ -1,0 +1,62 @@
+{
+  "id": "rust-struct-histogram",
+  "title": "A struct that owns its invariants",
+  "topic": "rust",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "structs",
+    "impl",
+    "methods",
+    "option"
+  ],
+  "estimate": 32,
+  "prereqs": [
+    {
+      "concept": "rust-ownership",
+      "why": "The methods take &self or &mut self, and which one is the decision being made each time."
+    },
+    {
+      "concept": "rust-option",
+      "why": "bucket_of returns an Option because a value can fall outside, and the caller has to deal with that."
+    },
+    {
+      "concept": "rust-borrowing",
+      "why": "add takes &mut self and calls bucket_of, which takes &self; seeing why that is allowed is part of the exercise."
+    }
+  ],
+  "statement": "Read `lo`, `width` and `n`, then any number of integers.\n\nBuild a histogram of `n` buckets, each `width` wide, with bucket `i`\ncovering `[lo + i*width, lo + (i+1)*width)` — the lower end included,\nthe upper end not. Values below `lo` and values at or above the top of\nthe last bucket are counted separately.\n\nFill in these four methods:\n\n```rust\nfn bucket_of(&self, x: i64) -> Option<usize>\nfn add(&mut self, x: i64)\nfn total(&self) -> u32\nfn mode(&self) -> Option<usize>\n```\n\n- `bucket_of` is the index, or `None` when the value falls outside.\n- `add` counts the value — in its bucket, or as `below` or `above`.\n  Every count **saturates** at `u32::MAX` rather than wrapping.\n- `total` is everything counted, inside and outside.\n- `mode` is the index of the fullest bucket, with the **lowest** index\n  winning a tie, or `None` when every bucket is empty.\n\nThen print:\n\n```\nbuckets <each bucket count, space separated>\noutside <below> <above>\ntotal <everything>\nmode <index, or the word none>\n```\n\n### The sample\n\n```\n0 10 4\n5 15 25 35 45 -5\n```\n\n```\nbuckets 1 1 1 1\noutside 1 1\ntotal 6\nmode 0\n```\n\n`width` is at least 1 and `n` is at least 1. Values fit in `i64`.",
+  "hints": [
+    "`bucket_of` has two ways to be outside and they are not symmetric. Check `x < lo` first and return early: `(x - lo) / width` on a value below `lo` gives a negative number, and casting that to `usize` gives something enormous rather than something negative.",
+    "After the early return, `(x - lo) / width` is non-negative, and the only remaining question is whether it is less than `buckets.len()`.",
+    "`add` can call `bucket_of`, even though `add` takes `&mut self` and `bucket_of` takes `&self`: an exclusive borrow can be used where a shared one is wanted. Finish the call before touching the field, though — `self.buckets[self.bucket_of(x).unwrap()] += 1` is the shape that does not compile.",
+    "For the mode, skip empty buckets: a histogram where every bucket is zero has no mode, and `None` is how you say that. Strictly greater keeps the lowest index on a tie."
+  ],
+  "payload": {
+    "langs": [
+      "rust"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "rust": "use std::io::{self, Read};\n\nfn input() -> Vec<String> {\n    let mut s = String::new();\n    io::stdin().read_to_string(&mut s).unwrap();\n    s.split_whitespace().map(|t| t.to_string()).collect()\n}\n\nstruct Histogram {\n    lo: i64,\n    width: i64,\n    buckets: Vec<u32>,\n    below: u32,\n    above: u32,\n}\n\nimpl Histogram {\n    fn new(lo: i64, width: i64, n: usize) -> Self {\n        Histogram { lo, width, buckets: vec![0; n], below: 0, above: 0 }\n    }\n\n    fn bucket_of(&self, x: i64) -> Option<usize> {\n        let _ = x;\n        None // your code here — the bucket index, or None if outside\n    }\n\n    fn add(&mut self, x: i64) {\n        let _ = x;\n        // your code here — count it in its bucket, or as below or above\n    }\n\n    fn total(&self) -> u32 {\n        0 // your code here — everything counted, inside and outside\n    }\n\n    fn mode(&self) -> Option<usize> {\n        None // your code here — the fullest bucket, lowest index on a tie\n    }\n}\n\nfn main() {\n    let t = input();\n    if t.is_empty() {\n        return;\n    }\n    let lo: i64 = t[0].parse().unwrap();\n    let width: i64 = t[1].parse().unwrap();\n    let n: usize = t[2].parse().unwrap();\n\n    let mut h = Histogram::new(lo, width, n);\n    for s in &t[3..] {\n        h.add(s.parse().unwrap());\n    }\n\n    // your code here — the four lines of output\n    let _ = &h;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "0 10 4\n5 15 25 35 45 -5\n",
+        "expect": "buckets 1 1 1 1\noutside 1 1\ntotal 6\nmode 0\n"
+      },
+      {
+        "stdin": "0 10 3\n",
+        "expect": "buckets 0 0 0\noutside 0 0\ntotal 0\nmode none\n"
+      },
+      {
+        "stdin": "-10 5 4\n-10 -6 -1 4 9 10\n",
+        "expect": "buckets 2 1 1 1\noutside 0 1\ntotal 6\nmode 0\n"
+      }
+    ]
+  }
+}

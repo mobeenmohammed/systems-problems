@@ -1,0 +1,77 @@
+{
+  "id": "proj-seq-detect-2",
+  "title": "A sequence detector: a counter, and a top that is only wiring",
+  "topic": "fpga",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "hdl",
+  "project": {
+    "id": "seq-detect",
+    "title": "Build a sequence detector",
+    "of": 3,
+    "step": 2,
+    "label": "Counting what it finds",
+    "continues": "proj-seq-detect-1"
+  },
+  "tags": [
+    "project",
+    "multi-file",
+    "counters",
+    "module-hierarchy"
+  ],
+  "estimate": 30,
+  "prereqs": [
+    {
+      "concept": "shift-registers",
+      "why": "The last four bits live in a shift register, which is what makes the pattern an input rather than a constant."
+    },
+    {
+      "concept": "hdl-assignments",
+      "why": "Every register here is non-blocking and every output that is not registered is a continuous assignment; mixing the two is how a design ends up a cycle out."
+    },
+    {
+      "concept": "fpga-fabric",
+      "why": "A saturating counter is a register and an adder, and knowing what those cost is why it is not simply made wider."
+    }
+  ],
+  "statement": "**Milestone 2 of 3.** The detector from milestone 1, with something\ncounting what it finds — and a top module whose whole job is wiring.\n\n### The files\n\n```\nseq_match.sv    the detector. Yours from milestone 1 if you wrote one.\ndet_counter.sv  a saturating counter. New.\nseq_detect.sv   the top. Instantiates the other two and nothing else.\n```\n\nThey are elaborated together, the way a real build does it. A\ndiagnostic names the file it is in, and clicking it opens that file at\nthat line.\n\n### det_counter\n\n```systemverilog\nmodule det_counter #(parameter int W = 4) (\n    input  logic         clk,\n    input  logic         rst_n,\n    input  logic         inc,\n    output logic [W-1:0] count,\n    output logic         sat\n);\n```\n\n- `rst_n` is synchronous and active low; it clears `count`.\n- On a rising edge with `inc` high the count goes up by one — **unless\n  it is already at its maximum**, in which case it stays there. It never\n  wraps round to zero.\n- `sat` is high exactly when `count` is at its maximum, which for `W`\n  bits is $2^W - 1$. It is a function of `count`, so it goes high on the\n  same edge that reaches the maximum rather than a cycle later.\n\n### seq_detect\n\n```systemverilog\nmodule seq_detect #(parameter int W = 4) (\n    input  logic clk, rst_n, din,\n    input  logic [3:0] pattern,\n    output logic found,\n    output logic [W-1:0] count,\n    output logic sat\n);\n```\n\nOne `seq_match` and one `det_counter`, with the detector's `found`\ndriving the counter's `inc`, `pattern` passed through, and `W` passed\ndown. `found` comes straight out.\n\nWrite no logic in this file. If you find yourself adding an `always`\nblock here, the behaviour belongs in one of the two modules below it.\n\n### The sample\n\nWith `pattern = 1011`, the stream `1011011` holds two matches, so the\ncount reaches 2. The grading testbench uses `W = 2`, where the counter\nstops at 3 and a stream with four matches is left reporting three.\n\n### Carrying your work forward\n\n`seq_match.sv` comes with you from milestone 1. Two things follow:\n\n- if you edited it there, you keep **your** version, and this milestone\n  is about the two new files;\n- if you never touched it, you get the worked version shipped here, so\n  you can do this milestone without having done the last one.\n\nNothing of yours is ever replaced silently, and milestone 1 keeps its\nown drafts and its own submissions.\n",
+  "hints": [
+    "Start with det_counter, and get `sat` right before `count`: it is true exactly when every bit of `count` is 1, which in SystemVerilog is the reduction `&count`.",
+    "The increment has two guards and both matter: `inc` and `!sat`. Leaving out the second gives a counter that wraps from its maximum back to zero, which the grading testbench looks for directly.",
+    "In seq_detect, pass the parameter down with `det_counter #(.W(W)) u_count (...)`. Leave the `#(.W(W))` off and the counter is built at its own default width, so the top's `count` port is the wrong size.",
+    "Connect ports by name — `.clk(clk)` — rather than by position. Nothing will tell you that a positional list got two signals the wrong way round; the simulation will simply be wrong."
+  ],
+  "payload": {
+    "top": "seq_detect",
+    "generation": "2012",
+    "files": [
+      {
+        "path": "seq_match.sv",
+        "content": "// A programmable four-bit pattern detector.\n//\n// The pattern is an input, not a constant, so there is no table to\n// precompute: the last four bits are kept in a shift register and\n// compared with it. `fill` is there to stop the register matching\n// before four real bits have arrived.\n\nmodule seq_match (\n    input  logic       clk,\n    input  logic       rst_n,     // synchronous, active low\n    input  logic       din,       // one bit per clock\n    input  logic [3:0] pattern,   // held steady; pattern[3] arrives first\n    output logic       found      // registered: high for one cycle on a match\n);\n\n    logic [3:0] hist;    // the last four bits; hist[3] is the oldest\n    logic [2:0] fill;    // bits received since reset, saturating at 4\n\n    // What the shift register will hold after this edge.\n    wire [3:0] next_hist = {hist[2:0], din};\n\n    always_ff @(posedge clk) begin\n        if (!rst_n) begin\n            hist  <= 4'b0;\n            fill  <= 3'd0;\n            found <= 1'b0;\n        end else begin\n            hist  <= next_hist;\n            if (fill != 3'd4) fill <= fill + 3'd1;\n            // Three bits already in, plus the one arriving now.\n            found <= (fill >= 3'd3) && (next_hist == pattern);\n        end\n    end\n\nendmodule\n"
+      },
+      {
+        "path": "det_counter.sv",
+        "content": "// A saturating counter. It counts `inc` pulses and stops at its\n// maximum rather than wrapping round to zero.\n\nmodule det_counter #(\n    parameter int W = 4\n) (\n    input  logic         clk,\n    input  logic         rst_n,   // synchronous, active low\n    input  logic         inc,     // count this cycle\n    output logic [W-1:0] count,\n    output logic         sat      // high exactly when count is at its maximum\n);\n\n    // your code here -- one register and one comparison. `sat` is a\n    // function of `count`, so it is high the moment the count reaches\n    // its maximum and not a cycle later.\n\n    assign count = '0;\n    assign sat   = 1'b0;\n\nendmodule\n"
+      },
+      {
+        "path": "seq_detect.sv",
+        "content": "// The top of milestone 2: the detector feeding the counter.\n//\n// There is no logic to write here. seq_match.sv and det_counter.sv are\n// beside this file and are compiled with it; instantiate them.\n\nmodule seq_detect #(\n    parameter int W = 4\n) (\n    input  logic         clk,\n    input  logic         rst_n,\n    input  logic         din,\n    input  logic [3:0]   pattern,\n    output logic         found,\n    output logic [W-1:0] count,\n    output logic         sat\n);\n\n    // your code here -- one seq_match and one det_counter, wired so\n    // that every detection is one count. Pass W through to the counter.\n\n    assign found = 1'b0;\n    assign count = '0;\n    assign sat   = 1'b0;\n\nendmodule\n"
+      }
+    ],
+    "entry": "seq_detect.sv",
+    "build": {
+      "sources": [
+        "seq_match.sv",
+        "det_counter.sv",
+        "seq_detect.sv"
+      ]
+    },
+    "testbench": "`timescale 1ns/1ps\n\n// The sample testbench for milestone 2. Submit uses another one, with a\n// narrower counter so that saturation actually happens.\nmodule tb;\n\n  localparam int W = 4;\n\n  logic clk = 1'b0;\n  always #5 clk = ~clk;\n\n  logic rst_n = 1'b1;\n  logic din   = 1'b0;\n  logic found;\n  logic [W-1:0] count;\n  logic sat;\n\n  logic [3:0] pattern = 4'b1011;\n\n  seq_detect #(.W(W)) dut (\n    .clk(clk), .rst_n(rst_n), .din(din), .pattern(pattern),\n    .found(found), .count(count), .sat(sat)\n  );\n\n  integer i;\n\n  task tick(input logic b);\n    begin\n      @(negedge clk); din = b;\n      @(posedge clk); #1;\n    end\n  endtask\n\n  task reset;\n    begin\n      @(negedge clk); rst_n = 1'b0; din = 1'b0;\n      @(posedge clk); #1;\n      rst_n = 1'b1;\n    end\n  endtask\n\n  task stream(input integer n, input [31:0] bits);\n    begin\n      for (i = n - 1; i >= 0; i = i - 1) tick(bits[i]);\n    end\n  endtask\n\n  logic [W-1:0] c_after_reset, c_one, c_overlap;\n  logic sat_early;\n\n  initial begin\n    $dumpfile(\"dump.vcd\");\n    $dumpvars(0, tb);\n\n    reset();\n    c_after_reset = count;\n    sat_early = sat;\n\n    // One occurrence. The counter is registered, so the edge after the\n    // pulse is the one that moves it.\n    stream(4, 4'b1011);\n    tick(1'b0);\n    c_one = count;\n\n    // 1011011 is two occurrences sharing a bit.\n    reset();\n    stream(7, 7'b1011011);\n    tick(1'b0);\n    c_overlap = count;\n\n    $display(\"CHECK count_zero_after_reset 0 %0d AT %0d\", c_after_reset, $time);\n    $display(\"CHECK not_saturated_at_zero 0 %0d AT %0d\", sat_early, $time);\n    $display(\"CHECK counts_one_match 1 %0d AT %0d\", c_one, $time);\n    $display(\"CHECK counts_overlap_twice 2 %0d AT %0d\", c_overlap, $time);\n    $display(\"DONE 4\");\n    $finish;\n  end\n\nendmodule\n",
+    "checks": [
+      "count_zero_after_reset",
+      "not_saturated_at_zero",
+      "counts_one_match",
+      "counts_overlap_twice"
+    ]
+  }
+}

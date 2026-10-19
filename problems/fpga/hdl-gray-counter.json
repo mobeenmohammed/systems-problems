@@ -1,0 +1,49 @@
+{
+  "id": "hdl-gray-counter",
+  "title": "A counter that changes one bit at a time",
+  "topic": "fpga",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "hdl",
+  "tags": [
+    "counters",
+    "gray-code",
+    "cdc"
+  ],
+  "estimate": 25,
+  "prereqs": [
+    {
+      "concept": "hdl-assignments",
+      "why": "The count is a register and the Gray code is a continuous assignment, and keeping the two apart is the design."
+    },
+    {
+      "concept": "shift-registers",
+      "why": "The conversion is a shift and an exclusive-or, which is the same primitive a shift register is built from."
+    },
+    {
+      "concept": "timing-closure",
+      "why": "The whole reason for Gray code is what happens when several bits change at once and a reader samples in between."
+    }
+  ],
+  "statement": "Write a counter with two outputs: the ordinary binary count, and the\nsame value in **Gray code**, where consecutive values differ in exactly\none bit.\n\n```systemverilog\nmodule gray_counter #(parameter int W = 4) (\n    input  logic         clk,\n    input  logic         rst_n,   // synchronous, active low\n    input  logic         en,      // advance on this edge\n    output logic [W-1:0] bin,\n    output logic [W-1:0] gray\n);\n```\n\n### Precisely\n\n- `rst_n` is synchronous and active low: on a rising edge with `rst_n`\n  low, both outputs become 0.\n- With `en` high, the count advances by one on each rising edge. With\n  `en` low it holds — both outputs.\n- Both outputs wrap: after all-ones comes zero.\n- For every value, `gray` is the Gray code of `bin`, so that **every**\n  step of the counter — including the wrap — changes exactly one bit of\n  `gray`.\n\n### Gray code, for `W = 3`\n\n| `bin` | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- |\n| `gray` | 000 | 001 | 011 | 010 | 110 | 111 | 101 | 100 |\n\nRead down the `gray` row: each entry differs from the one before it in\none position, and `100` differs from `000` in one position too, so the\nwrap is covered as well.\n\n### What not to do\n\nDo not try to add one to a Gray code directly. It can be done and it is\nseveral times the logic. Hold the **binary** count as the state and\nproduce the Gray code from it with a combinational expression — the\nexpression is short, and finding it is the exercise.",
+  "hints": [
+    "Write the table out for W = 3 beside the binary values and look for a bitwise relationship. Compare each Gray bit with the binary bit above it and the binary bit to its left.",
+    "Bit `i` of the Gray code is bit `i` of the binary count exclusive-ored with bit `i+1`. The top bit is unchanged, because there is no bit above it.",
+    "In SystemVerilog that whole relation is one expression over the vector: `bin ^ (bin >> 1)`. The shift brings each bit down one place and the exclusive-or pairs them up; the vacated top bit shifts in as zero, which is exactly what leaves the top bit alone.",
+    "Keep the two halves apart: an `always_ff` block that does nothing but hold and advance `bin`, and an `assign` for `gray`. Registering `gray` as well would make it a cycle behind `bin`, which the grading testbench checks."
+  ],
+  "payload": {
+    "top": "gray_counter",
+    "generation": "2012",
+    "template": "// A counter whose second output changes one bit at a time.\n\nmodule gray_counter #(\n    parameter int W = 4\n) (\n    input  logic         clk,\n    input  logic         rst_n,    // synchronous, active low\n    input  logic         en,       // advance on this edge\n    output logic [W-1:0] bin,      // the ordinary count\n    output logic [W-1:0] gray      // the same count in Gray code\n);\n\n    // your code here.\n    //\n    // Hold the ordinary count in a register and produce the Gray code\n    // from it combinationally. Do not try to add one to a Gray code\n    // directly: it is possible and it is far more logic than the\n    // conversion.\n    //\n    // `bin` wraps from all-ones back to zero, and so does `gray`.\n\n    assign bin  = '0;\n    assign gray = '0;\n\nendmodule\n",
+    "testbench": "`timescale 1ns/1ps\n\n// The sample testbench. Submit uses another one, which walks the whole\n// range and checks that every single step moves one bit.\nmodule tb;\n\n  localparam int W = 4;\n\n  logic clk = 1'b0;\n  always #5 clk = ~clk;\n\n  logic rst_n = 1'b1;\n  logic en    = 1'b0;\n  logic [W-1:0] bin, gray;\n\n  gray_counter #(.W(W)) dut (\n    .clk(clk), .rst_n(rst_n), .en(en), .bin(bin), .gray(gray)\n  );\n\n  integer i;\n  logic [W-1:0] prev;\n  integer changed, worst;\n\n  // One cycle: drive at the falling edge, return just after the rising\n  // one, so what is read is what the edge produced.\n  task tick(input logic e);\n    begin\n      @(negedge clk); en = e;\n      @(posedge clk); #1;\n    end\n  endtask\n\n  task reset;\n    begin\n      @(negedge clk); rst_n = 1'b0; en = 1'b0;\n      @(posedge clk); #1;\n      rst_n = 1'b1;\n    end\n  endtask\n\n  // How many bits differ between two values.\n  function automatic integer bits_differing(input [W-1:0] a, input [W-1:0] b);\n    integer k, c;\n    begin\n      c = 0;\n      for (k = 0; k < W; k = k + 1) if (a[k] !== b[k]) c = c + 1;\n      bits_differing = c;\n    end\n  endfunction\n\n  logic [W-1:0] b0, g0, b1, g1, b2, g2, b_held;\n\n  initial begin\n    $dumpfile(\"dump.vcd\");\n    $dumpvars(0, tb);\n\n    reset();\n    b0 = bin; g0 = gray;\n\n    tick(1'b1);\n    b1 = bin; g1 = gray;\n\n    tick(1'b1);\n    b2 = bin; g2 = gray;\n\n    // Disabled: nothing moves.\n    tick(1'b0);\n    b_held = bin;\n\n    $display(\"CHECK bin_zero_after_reset 0 %0d AT %0d\", b0, $time);\n    $display(\"CHECK gray_zero_after_reset 0 %0d AT %0d\", g0, $time);\n    $display(\"CHECK bin_counts 1 %0d AT %0d\", b1, $time);\n    $display(\"CHECK gray_of_one 1 %0d AT %0d\", g1, $time);\n    $display(\"CHECK gray_of_two 3 %0d AT %0d\", g2, $time);\n    $display(\"CHECK holds_when_disabled 2 %0d AT %0d\", b_held, $time);\n    $display(\"DONE 6\");\n    $finish;\n  end\n\nendmodule\n",
+    "checks": [
+      "bin_zero_after_reset",
+      "gray_zero_after_reset",
+      "bin_counts",
+      "gray_of_one",
+      "gray_of_two",
+      "holds_when_disabled"
+    ]
+  }
+}

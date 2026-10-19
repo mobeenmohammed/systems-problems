@@ -9,26 +9,34 @@
     "source": "AngelOnFira/weblings",
     "version": "rustc 1.96.0-dev"
   },
-  "generated": 8,
+  "generated": 12,
   "checks": [
     "algo-running-max",
     "debug-lower-bound",
+    "debug-rust-longest-run",
     "rust-borrow-shared-exclusive",
+    "rust-iterator-chains",
     "rust-option-lookup",
     "rust-ownership-move",
     "rust-question-mark-records",
     "rust-result-parse",
-    "rust-slices-views"
+    "rust-slices-views",
+    "rust-struct-histogram",
+    "rust-two-mutable-halves"
   ],
   "browser": [
     "algo-running-max",
     "debug-lower-bound",
+    "debug-rust-longest-run",
     "rust-borrow-shared-exclusive",
+    "rust-iterator-chains",
     "rust-option-lookup",
     "rust-ownership-move",
     "rust-question-mark-records",
     "rust-result-parse",
-    "rust-slices-views"
+    "rust-slices-views",
+    "rust-struct-histogram",
+    "rust-two-mutable-halves"
   ],
   "nativeOnly": {}
 }

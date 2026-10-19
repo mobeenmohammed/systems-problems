@@ -1,0 +1,63 @@
+{
+  "id": "algo-merge-intervals",
+  "title": "Join up what overlaps",
+  "topic": "algo",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "sorting",
+    "sweep",
+    "intervals"
+  ],
+  "estimate": 28,
+  "prereqs": [
+    {
+      "concept": "loop-invariants",
+      "why": "The sweep keeps one half-built interval, and the invariant about it is what makes one pass enough."
+    },
+    {
+      "concept": "cpp-std-vector",
+      "why": "The answer is built by appending to a vector and occasionally reaching back to the last element of it."
+    },
+    {
+      "concept": "sentinel-values",
+      "why": "The empty input has to produce something, and \"zero intervals\" is not the same as printing nothing."
+    }
+  ],
+  "statement": "Read `n`, then `n` pairs `lo hi` with `lo <= hi`. The pairs are **not**\nsorted.\n\nMerge every group of intervals that overlap or touch into one, and print:\n\n- the number of merged intervals;\n- each of them, `lo hi`, one per line, in increasing order of `lo`;\n- then `covered <total>`, where the total is the sum of `hi - lo` over\n  the merged intervals.\n\nIntervals that **touch** count as overlapping: `[1,4]` and `[4,5]` merge\ninto `[1,5]`.\n\n### The sample\n\n```\n4\n1 3\n2 6\n8 10\n15 18\n```\n\n```\n3\n1 6\n8 10\n15 18\ncovered 10\n```\n\n### Notes\n\n- `n` may be 0, in which case the answer is `0` and `covered 0`.\n- A zero-width interval such as `[5,5]` is a real interval: it is\n  printed if nothing swallows it, and it contributes 0 to the total.\n- Values fit in a 64-bit signed integer and may be negative.",
+  "hints": [
+    "Sort by `lo` first. Once the intervals are in order of their start, an interval can only overlap the one being built — never one further back — and that is what makes a single pass enough.",
+    "Keep the answer in a vector and look at its last element. If the new interval starts at or before that element's `hi`, extend it; otherwise push the new one.",
+    "Extending means `back().hi = max(back().hi, r.hi)`, not `= r.hi`. A long interval followed by a short one inside it would otherwise be cut short — which is what the `1 10 / 2 3 / 4 5` case is for.",
+    "The condition is `r.lo <= back().hi`, with `<=` rather than `<`, because touching counts. With `<`, `[1,4]` and `[4,5]` come out as two intervals."
+  ],
+  "payload": {
+    "langs": [
+      "cpp",
+      "python"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 4000
+    },
+    "templates": {
+      "cpp": "#include <algorithm>\n#include <iostream>\n#include <vector>\n\nstruct Range { long long lo, hi; };\n\nstatic std::vector<Range> merge(std::vector<Range> v) {\n    // your code here — sort by start, then sweep once, joining an\n    // interval to the previous one when it starts at or before its end.\n    return v;\n}\n\nint main() {\n    std::ios::sync_with_stdio(false);\n    std::cin.tie(nullptr);\n\n    int n = 0;\n    if (!(std::cin >> n)) return 0;\n    std::vector<Range> v(n);\n    for (Range& r : v) std::cin >> r.lo >> r.hi;\n\n    // your code here — the count, each merged range on its own line,\n    // then the covered line.\n    (void) merge;\n    return 0;\n}\n",
+      "python": "import sys\n\n\ndef merge(v):\n    # your code here — sort by start, then sweep once, joining an\n    # interval to the previous one when it starts at or before its end.\n    return list(v)\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    n = int(data[0])\n    nums = [int(t) for t in data[1:1 + 2 * n]]\n    v = [(nums[2 * i], nums[2 * i + 1]) for i in range(n)]\n\n    # your code here — the count, each merged range on its own line,\n    # then the covered line.\n\n\nmain()\n"
+    },
+    "cases": [
+      {
+        "stdin": "4\n1 3\n2 6\n8 10\n15 18\n",
+        "expect": "3\n1 6\n8 10\n15 18\ncovered 10\n"
+      },
+      {
+        "stdin": "2\n1 4\n4 5\n",
+        "expect": "1\n1 5\ncovered 4\n"
+      },
+      {
+        "stdin": "0\n",
+        "expect": "0\ncovered 0\n"
+      }
+    ]
+  }
+}

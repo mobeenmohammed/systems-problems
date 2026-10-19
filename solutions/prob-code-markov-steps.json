@@ -1,0 +1,61 @@
+{
+  "key": {
+    "cases": [
+      {
+        "stdin": "1 5\n1\n1\n",
+        "expect": "dist 1\nsum 1\nmost likely 0\n"
+      },
+      {
+        "stdin": "2 1\n0 1\n1 0\n1 0\n",
+        "expect": "dist 0 1\nsum 1\nmost likely 1\n"
+      },
+      {
+        "stdin": "2 10\n0 1\n1 0\n1 0\n",
+        "expect": "dist 1 0\nsum 1\nmost likely 0\n"
+      },
+      {
+        "stdin": "3 1\n1/2 1/2 0\n1/3 1/3 1/3\n0 1/4 3/4\n2/9 1/3 4/9\n",
+        "expect": "dist 2/9 1/3 4/9\nsum 1\nmost likely 2\n"
+      },
+      {
+        "stdin": "3 7\n1/2 1/2 0\n1/3 1/3 1/3\n0 1/4 3/4\n2/9 1/3 4/9\n",
+        "expect": "dist 2/9 1/3 4/9\nsum 1\nmost likely 2\n"
+      },
+      {
+        "stdin": "3 3\n1 0 0\n1/2 0 1/2\n0 0 1\n0 1 0\n",
+        "expect": "dist 1/2 0 1/2\nsum 1\nmost likely 0\n"
+      },
+      {
+        "stdin": "2 4\n3/4 1/4\n1/8 7/8\n1 0\n",
+        "expect": "dist 891/2048 1157/2048\nsum 1\nmost likely 1\n"
+      },
+      {
+        "stdin": "2 1\n1 0\n0 1\n1/2 1/2\n",
+        "expect": "dist 1/2 1/2\nsum 1\nmost likely 0\n"
+      },
+      {
+        "stdin": "2 2\n1/2 1/2\n1/2 1/2\n1 1\n",
+        "expect": "not a distribution\n"
+      },
+      {
+        "stdin": "3 1\n1/2 1/2 0\n0 1/2 1/2\n1/2 0 1/2\n1/2 1/2 1/2\n",
+        "expect": "not a distribution\n"
+      }
+    ],
+    "reference": {
+      "python": "import sys\nfrom fractions import Fraction\n\n\ndef parse(tok):\n    \"\"\"A fraction written a/b, or a whole number.\"\"\"\n    return Fraction(tok)\n\n\ndef step(dist, mat):\n    \"\"\"One step: the row vector times the matrix.\n\n    out[j] = sum_i dist[i] * mat[i][j] -- a sum DOWN column j, which is\n    what distinguishes this from the hitting-time equations.\n    \"\"\"\n    s = len(dist)\n    return [sum(dist[i] * mat[i][j] for i in range(s)) for j in range(s)]\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    s = int(data[0])\n    k = int(data[1])\n    at = 2\n    mat = []\n    for _ in range(s):\n        mat.append([parse(t) for t in data[at:at + s]])\n        at += s\n    dist = [parse(t) for t in data[at:at + s]]\n\n    for i, row in enumerate(mat):\n        if sum(row) != 1 or any(x < 0 for x in row):\n            print(\"not stochastic row\", i)\n            return\n    if sum(dist) != 1 or any(x < 0 for x in dist):\n        print(\"not a distribution\")\n        return\n\n    for _ in range(k):\n        dist = step(dist, mat)\n\n    print(\"dist\", \" \".join(str(x) for x in dist))\n    print(\"sum\", sum(dist))\n    best = 0\n    for j in range(1, s):\n        if dist[j] > dist[best]:\n            best = j\n    print(\"most likely\", best)\n\n\nmain()\n"
+    }
+  },
+  "explanation": "## One step\n\n```python\ndef step(dist, mat):\n    s = len(dist)\n    return [sum(dist[i] * mat[i][j] for i in range(s)) for j in range(s)]\n```\n\nThe outer comprehension owns `j`, the state being arrived at; the inner\nsum runs over `i`, the state being arrived from. That is\n$\\lambda_j = \\sum_i \\lambda_i p_{i,j}$ — a sum down a column.\n\nGetting this backwards produces `[sum(dist[j] * mat[j][i] ...)]`, which\nis the matrix times a column vector. It is a perfectly good\ncomputation of something else, it still sums to 1 for a stochastic\nmatrix, and it is wrong. The quickest way to keep it straight: a **row**\nof the matrix is where the chain can go **from** a state and sums to 1;\na **column** is where it can come **from**, and does not.\n\nApplying the step `k` times is $\\lambda P^k$ computed as\n$((\\lambda P)P)\\cdots$, which costs $O(k s^2)$. Forming $P^k$ first\nwould cost $O(s^3 \\log k)$ with repeated squaring — better for large\n`k` and small `s`, worse here, and the loop is the honest description of\n\"run the chain forward\".\n\n## Why exact arithmetic\n\nEvery number in this exercise is a rational, every operation is\nmultiplication and addition, and `Fraction` closes over both. So:\n\n- `sum(row) != 1` means what it says. With floats, a row of\n  `1/3 1/3 1/3` sums to `0.9999999999999999` and the validation rejects\n  a perfectly good transition matrix.\n- the answer is the answer, not an answer to within a tolerance. There\n  is no `tol` in this problem because there is nothing to tolerate.\n- ties in `most likely` are real ties rather than two numbers that\n  happen to differ in the last bit.\n\nThe cost is speed — `Fraction` is thousands of times slower than\n`float`, and the denominators grow with `k`. For 7 steps of a 3-state\nchain that is irrelevant. For a simulation with millions of steps it\nwould be fatal, and floats with a stated tolerance would be the right\nanswer instead. Choosing between the two deliberately is the point.\n\n## What the numbers mean\n\nThe sample runs two steps from $(\\tfrac12, \\tfrac12, 0)$:\n\n$$\\lambda^{(1)} = \\Bigl(\\tfrac14, \\tfrac12, \\tfrac14\\Bigr),\n\\qquad\n\\lambda^{(2)} = \\Bigl(\\tfrac14, \\tfrac38, \\tfrac38\\Bigr).$$\n\nThe hidden case that runs the same chain for 7 steps from\n$(\\tfrac29, \\tfrac13, \\tfrac49)$ is a chain already **in** its\nstationary distribution, and the answer after 7 steps is the vector it\nstarted with. That is what stationary means, and it is a check worth\nknowing: if you have computed a stationary distribution by hand, one\nstep of this program confirms it exactly.\n\n## And what it does not mean\n\nRunning the loop with a large `k` and watching the vector settle is\n**not** a proof that the chain converges. Convergence needs\nirreducibility, aperiodicity and positive recurrence, and the theorem\nis about the limit rather than about any particular `k`.\n\nThe two-state chain `0 1 / 1 0` in the hidden cases makes the point.\nStarted at $(1,0)$ it is $(0,1)$ after one step and $(1,0)$ after ten —\nit never settles, because it has period 2. A program that printed\n\"converged\" after watching a few hundred steps would be wrong about it,\nand would be wrong for a reason no amount of further computation could\ndetect.",
+  "readMore": [
+    {
+      "concept": "p2-n-step-transitions",
+      "where": "the matrix-power theorem this computes"
+    },
+    {
+      "concept": "p2-periodicity-convergence",
+      "where": "why a long run is not a proof of a limit"
+    }
+  ],
+  "id": "prob-code-markov-steps"
+}

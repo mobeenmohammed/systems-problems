@@ -1,0 +1,49 @@
+{
+  "key": {
+    "cases": [
+      {
+        "stdin": "0\n",
+        "expect": "none\n"
+      },
+      {
+        "stdin": "1\n5\n",
+        "expect": "start 0\nlength 1\nvalue 5\n"
+      },
+      {
+        "stdin": "4\n7 7 7 7\n",
+        "expect": "start 0\nlength 4\nvalue 7\n"
+      },
+      {
+        "stdin": "5\n1 2 3 4 4\n",
+        "expect": "start 3\nlength 2\nvalue 4\n"
+      },
+      {
+        "stdin": "5\n1 2 3 4 5\n",
+        "expect": "start 0\nlength 1\nvalue 1\n"
+      },
+      {
+        "stdin": "8\n0 1 1 0 0 0 2 2\n",
+        "expect": "start 3\nlength 3\nvalue 0\n"
+      },
+      {
+        "stdin": "9\n-1 -1 -1 0 0 -1 -1 -1 -1\n",
+        "expect": "start 5\nlength 4\nvalue -1\n"
+      },
+      {
+        "stdin": "6\n3 3 5 5 5 5\n",
+        "expect": "start 2\nlength 4\nvalue 5\n"
+      }
+    ],
+    "reference": {
+      "rust": "use std::io::{self, Read};\n\nfn input() -> Vec<String> {\n    let mut s = String::new();\n    io::stdin().read_to_string(&mut s).unwrap();\n    s.split_whitespace().map(|t| t.to_string()).collect()\n}\n\n/// The longest run of equal values, as (start index, length).\n///\n/// The run in progress has to be considered once the loop ends, which\n/// is what the original forgot: the check only happened when the value\n/// changed, and the last run never changes.\nfn longest_run(xs: &[i64]) -> (usize, usize) {\n    if xs.is_empty() {\n        return (0, 0);\n    }\n    let mut best_start = 0usize;\n    let mut best_len = 1usize;\n    let mut start = 0usize;\n\n    for i in 1..xs.len() {\n        if xs[i] != xs[i - 1] {\n            let len = i - start;\n            if len > best_len {\n                best_len = len;\n                best_start = start;\n            }\n            start = i;\n        }\n    }\n\n    // The run that was in progress when the data ran out.\n    let len = xs.len() - start;\n    if len > best_len {\n        best_len = len;\n        best_start = start;\n    }\n\n    (best_start, best_len)\n}\n\nfn main() {\n    let t = input();\n    if t.is_empty() {\n        return;\n    }\n    let n: usize = t[0].parse().unwrap();\n    let xs: Vec<i64> = t[1..1 + n].iter().map(|s| s.parse().unwrap()).collect();\n\n    let (start, len) = longest_run(&xs);\n    if xs.is_empty() {\n        println!(\"none\");\n    } else {\n        println!(\"start {}\", start);\n        println!(\"length {}\", len);\n        println!(\"value {}\", xs[start]);\n    }\n}\n"
+    }
+  },
+  "explanation": "## Where it goes wrong\n\nThe loop measures a run only inside\n\n```rust\nif xs[i] != xs[i - 1] { ... }\n```\n\nthat is, only at the moment the value changes. The final run is never\nfollowed by a change, so it is never measured.\n\nOn `1 2 3 4 4` the runs are four of length 1 and one of length 2, and\nthe length-2 run is the last. The program reports `best_len = 1` with\n`best_start = 0` — the initial values, untouched.\n\n## Why the sample inputs look fine\n\n`4 4 4 1 2 3`: the winning run is first, and it is measured when the\nvalue changes at index 3. Correct.\n\n`1 1 2 2 2 3 3`: the winning run `2 2 2` is in the middle and is\nmeasured at index 5. The trailing `3 3` is indeed never measured, and it\nwould not have won anyway. Correct, by luck.\n\nThe bug only shows when the **last** run is strictly longer than\neverything before it. Half of the plausible test inputs do not have that\nproperty, which is why this kind of bug survives review and then fails\non real data.\n\n## The fix\n\n```rust\nlet len = xs.len() - start;\nif len > best_len {\n    best_len = len;\n    best_start = start;\n}\n```\n\nafter the loop, before the return. Three things to notice:\n\n- `xs.len() - start` is the length of the run that was in progress. It\n  is at least 1, because `start` is always a valid index.\n- The comparison is still `>` rather than `>=`, which keeps the earliest\n  run on a tie — the specification asks for that, and swapping it would\n  change the answer for `9 9 1 9 9`.\n- The early return for the empty slice has to stay. Without it, `start`\n  is 0 and `xs.len() - start` is 0, so `best_len` would be reported as\n  1 for an empty list.\n\n## The general shape\n\nThis is one of the standard loop bugs, and it has a name: the **last\ngroup is never flushed.** It appears wherever a loop accumulates\nsomething and emits it on a boundary —\n\n- run-length encoding: the final run is never written;\n- grouping records by key: the last group is dropped;\n- buffered output: the tail of the buffer is never flushed;\n- parsing a line at a time: the last line has no newline after it, so it\n  is lost.\n\nThe cure is always the same and is worth making a habit: after a loop\nthat emits on a transition, ask what is still in the accumulator. Either\nflush it explicitly, as here, or restructure so there is no accumulator\nto flush.\n\n## Two other ways to write it\n\n**Iterate over one more position than there is data.** Loop `i` from 1\nto `xs.len()` **inclusive** and treat `i == xs.len()` as a change. That\nturns the end of the data into an ordinary boundary and makes the extra\nblock unnecessary — at the cost of a bounds check in the condition:\n\n```rust\nfor i in 1..=xs.len() {\n    if i == xs.len() || xs[i] != xs[i - 1] { /* measure */ }\n}\n```\n\n**Use `chunk_by`.** Recent Rust has `xs.chunk_by(|a, b| a == b)`, which\nyields the runs directly, and then the whole function is a\n`max_by_key` over them. No boundary condition exists to get wrong, which\nis the strongest argument for the library version.",
+  "readMore": [
+    {
+      "concept": "loop-invariants",
+      "where": "what to state before writing the loop"
+    }
+  ],
+  "id": "debug-rust-longest-run"
+}

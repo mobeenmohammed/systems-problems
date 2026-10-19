@@ -1,0 +1,63 @@
+{
+  "id": "debug-rust-longest-run",
+  "title": "The run that ends when the data does",
+  "topic": "rust",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "debugging",
+    "loops",
+    "off-by-one",
+    "slices"
+  ],
+  "estimate": 25,
+  "prereqs": [
+    {
+      "concept": "loop-invariants",
+      "why": "Saying what the loop has established by the time it ends is exactly what finds this bug."
+    },
+    {
+      "concept": "rust-slices",
+      "why": "The function takes a slice and never copies it, so the only state is three indices."
+    },
+    {
+      "concept": "sentinel-values",
+      "why": "The empty input has its own answer, and the program already handles it; the bug is elsewhere."
+    }
+  ],
+  "statement": "The program below is **already written, and it is wrong.** Your job is\nto find out why and fix it.\n\n`longest_run` is meant to return the start index and length of the\nlongest run of equal consecutive values. On a tie, the **earliest** run\nwins. The program then prints:\n\n```\nstart <index>\nlength <how long>\nvalue <the repeated value>\n```\n\nand prints `none` for an empty list.\n\n### The symptom\n\n```\n6\n4 4 4 1 2 3\n```\n\nis right: the longest run is `4 4 4`, so `start 0`, `length 3`,\n`value 4`. But\n\n```\n7\n1 1 2 2 2 3 3\n```\n\nis not. The answer should be `start 2`, `length 3`, `value 2`, and it\nis — which makes it worse, not better, because the bug is **data\ndependent** and the sample that would show it is somewhere else.\n\nFind an input where it is wrong before you change anything.\n\n### What to do\n\nFix `longest_run`. Do not change what the program prints or how it\nreads its input.",
+  "hints": [
+    "Do not start from the code. Write down what the loop is supposed to be true of, and then ask when each run is actually measured.",
+    "A run is only measured at the moment the value **changes** — that is the only place `len` is computed. So which run is never measured at all?",
+    "The last run has no change after it to trigger the check. The fix is one block after the loop, measuring the run from `start` to the end: `let len = xs.len() - start;` and then the same comparison.",
+    "Check your fix against three inputs: one where the longest run is last, one where every element is identical, and one of length 1. The second and third are the ones where an off-by-one in `xs.len() - start` shows up."
+  ],
+  "payload": {
+    "langs": [
+      "rust"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "rust": "use std::io::{self, Read};\n\nfn input() -> Vec<String> {\n    let mut s = String::new();\n    io::stdin().read_to_string(&mut s).unwrap();\n    s.split_whitespace().map(|t| t.to_string()).collect()\n}\n\n/// The longest run of equal values, as (start index, length).\n///\n/// This implementation is BROKEN, and it is wrong in a way that\n/// depends on the data: plenty of inputs come out right. Find the bug\n/// and fix it; the specification is in the problem statement, and any\n/// implementation that meets it is accepted.\nfn longest_run(xs: &[i64]) -> (usize, usize) {\n    if xs.is_empty() {\n        return (0, 0);\n    }\n    let mut best_start = 0usize;\n    let mut best_len = 1usize;\n    let mut start = 0usize;\n\n    for i in 1..xs.len() {\n        if xs[i] != xs[i - 1] {\n            let len = i - start;\n            if len > best_len {\n                best_len = len;\n                best_start = start;\n            }\n            start = i;\n        }\n    }\n\n    (best_start, best_len)\n}\n\nfn main() {\n    let t = input();\n    if t.is_empty() {\n        return;\n    }\n    let n: usize = t[0].parse().unwrap();\n    let xs: Vec<i64> = t[1..1 + n].iter().map(|s| s.parse().unwrap()).collect();\n\n    let (start, len) = longest_run(&xs);\n    if xs.is_empty() {\n        println!(\"none\");\n    } else {\n        println!(\"start {}\", start);\n        println!(\"length {}\", len);\n        println!(\"value {}\", xs[start]);\n    }\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "7\n1 1 2 2 2 3 3\n",
+        "expect": "start 2\nlength 3\nvalue 2\n"
+      },
+      {
+        "stdin": "6\n4 4 4 1 2 3\n",
+        "expect": "start 0\nlength 3\nvalue 4\n"
+      },
+      {
+        "stdin": "5\n9 9 1 9 9\n",
+        "expect": "start 0\nlength 2\nvalue 9\n"
+      }
+    ]
+  },
+  "debugging": true
+}

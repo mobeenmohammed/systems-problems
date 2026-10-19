@@ -1,0 +1,49 @@
+{
+  "key": {
+    "cases": [
+      {
+        "stdin": "1 1\n9\n",
+        "expect": "kept 9\n"
+      },
+      {
+        "stdin": "5 1\n1 2 3 4 5\n1 2 3 4\n",
+        "expect": "kept 1\n"
+      },
+      {
+        "stdin": "5 1\n1 2 3 4 5\n0 0 0 0\n",
+        "expect": "kept 5\n"
+      },
+      {
+        "stdin": "8 3\n1 2 3 4 5 6 7 8\n3 0 7 2 1\n",
+        "expect": "kept 5 8 7\n"
+      },
+      {
+        "stdin": "8 3\n1 2 3 4 5 6 7 8\n12 13 14 15 16\n",
+        "expect": "kept 8 7 6\n"
+      },
+      {
+        "stdin": "6 2\n10 20 30 40 50 60\n4 5 6 7\n",
+        "expect": "kept 10 60\n"
+      },
+      {
+        "stdin": "10 4\n1 2 3 4 5 6 7 8 9 10\n4 9 2 11 0 13\n",
+        "expect": "kept 9 2 7 10\n"
+      },
+      {
+        "stdin": "7 2\n1 2 3 4 5 6 7\n2 3 4 5 6\n",
+        "expect": "kept 1 2\n"
+      }
+    ],
+    "reference": {
+      "python": "import sys\n\n\ndef reservoir(items, k, draws):\n    \"\"\"Keep k of the items, using the supplied draws instead of a\n    random number generator so that the run is reproducible.\n\n    Item i is a candidate for every one of the i + 1 positions seen so\n    far, so the draw is reduced modulo i + 1 and not modulo i.\n    \"\"\"\n    res = items[:k]\n    d = 0\n    for i in range(k, len(items)):\n        r = draws[d] % (i + 1)\n        d += 1\n        if r < k:\n            res[r] = items[i]\n    return res\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    n = int(data[0])\n    k = int(data[1])\n    items = [int(t) for t in data[2:2 + n]]\n    draws = [int(t) for t in data[2 + n:]]\n\n    if k <= 0 or k > n:\n        print(\"bad k\")\n        return\n\n    res = reservoir(items, k, draws)\n    print(\"kept\", \" \".join(str(x) for x in res))\n\n\nmain()\n"
+    }
+  },
+  "explanation": "## The bug\n\n```python\nr = draws[d] % i          # wrong\nr = draws[d] % (i + 1)    # right\n```\n\nThe item at index `i` is the `(i + 1)`-th item of the stream. The\nalgorithm has to choose uniformly among `i + 1` possibilities — the `k`\nreservoir slots and the `i + 1 - k` ways of not keeping it — so the\ndraw is reduced modulo `i + 1`.\n\nReducing modulo `i` gives a value in `0 .. i - 1`: one possibility\nshort, every time.\n\n## Working the sample\n\n`n = 6`, `k = 2`, items `10 20 30 40 50 60`, draws `2 0 5 3`. The\nreservoir starts as `[10, 20]`.\n\nCorrect, with `% (i + 1)`:\n\n| i | item | draw | r | kept? | reservoir |\n| --- | --- | --- | --- | --- | --- |\n| 2 | 30 | 2 | 2 % 3 = 2 | no | `10 20` |\n| 3 | 40 | 0 | 0 % 4 = 0 | slot 0 | `40 20` |\n| 4 | 50 | 5 | 5 % 5 = 0 | slot 0 | `50 20` |\n| 5 | 60 | 3 | 3 % 6 = 3 | no | `50 20` |\n\nBroken, with `% i`:\n\n| i | item | draw | r | kept? | reservoir |\n| --- | --- | --- | --- | --- | --- |\n| 2 | 30 | 2 | 2 % 2 = 0 | slot 0 | `30 20` |\n| 3 | 40 | 0 | 0 % 3 = 0 | slot 0 | `40 20` |\n| 4 | 50 | 5 | 5 % 4 = 1 | slot 1 | `40 50` |\n| 5 | 60 | 3 | 3 % 5 = 3 | no | `40 50` |\n\nThree of the four steps differ. Item 30 is kept when it should not be,\nand item 50 goes into the wrong slot.\n\n## What the bias is\n\nWith the modulus one short, item `i` is chosen from `i` possibilities\nrather than `i + 1`, so it is kept with probability `k / i` instead of\n`k / (i + 1)`.\n\nEvery item after the first `k` is therefore slightly **too** likely to\nsurvive, and the error grows with position: at `k = 1` and `i = 10` the\nitem is kept with probability 1/10 instead of 1/11 — a 10% excess — and\nat `i = 1000` it is 0.1%. The sample is no longer uniform, and the\nearly items are the ones that lose out.\n\nIt is a bias rather than a crash, it is small for long streams, and no\nassertion about the output being a subset of the input would ever catch\nit. That is the kind of bug this shape of exercise exists for.\n\n## Why the shape of this exercise matters\n\nA sampler is the classic thing to test badly. \"Run it a million times\nand check the distribution looks uniform\" is a test that fails\noccasionally for no reason, takes seconds, and would not have caught a\n0.1% bias anyway.\n\nSupplying the draws instead turns a probabilistic algorithm into a\ndeterministic function. The test is then exact, instant and repeatable,\nand it checks the thing that actually matters: that the index\narithmetic is right. The randomness was never the part that was likely\nto be wrong.\n\nThat separation — the algorithm takes its randomness as a parameter — is\nworth doing in real code too. It makes the sampler testable, makes a\nrun reproducible from a seed, and makes it possible to swap the source\nof randomness without touching the algorithm.\n\n## The proof the arithmetic is protecting\n\nBy induction: after `m` items, each of them is in the reservoir with\nprobability `k/m`. When item `m` (0-based, the `(m+1)`-th) arrives it is\nkept with probability `k/(m+1)`, which is the base of the step; and an\nitem already in the reservoir survives with probability\n\n$$1 - \\frac{k}{m+1}\\cdot\\frac{1}{k} = \\frac{m}{m+1},$$\n\nso its probability becomes $\\frac{k}{m}\\cdot\\frac{m}{m+1} = \\frac{k}{m+1}$.\n\nBoth halves of that use `m + 1` in the denominator. Using `m` breaks the\ninduction immediately, which is the formal version of \"the modulus is\none short\".",
+  "readMore": [
+    {
+      "concept": "loop-invariants",
+      "where": "the invariant the induction above is maintaining"
+    }
+  ],
+  "id": "debug-py-reservoir-draws"
+}

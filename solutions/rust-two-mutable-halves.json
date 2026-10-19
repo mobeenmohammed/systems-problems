@@ -1,0 +1,49 @@
+{
+  "key": {
+    "cases": [
+      {
+        "stdin": "0\n",
+        "expect": "swaps 0\nleft \nright \n"
+      },
+      {
+        "stdin": "2\n2 1\n",
+        "expect": "swaps 1\nleft 1\nright 2\n"
+      },
+      {
+        "stdin": "2\n1 1\n",
+        "expect": "swaps 0\nleft 1\nright 1\n"
+      },
+      {
+        "stdin": "8\n8 7 6 5 1 2 3 4\n",
+        "expect": "swaps 4\nleft 1 2 3 4\nright 8 7 6 5\n"
+      },
+      {
+        "stdin": "8\n-1 -2 -3 -4 -5 -6 -7 -8\n",
+        "expect": "swaps 4\nleft -5 -6 -7 -8\nright -1 -2 -3 -4\n"
+      },
+      {
+        "stdin": "6\n0 0 0 0 0 0\n",
+        "expect": "swaps 0\nleft 0 0 0\nright 0 0 0\n"
+      },
+      {
+        "stdin": "10\n9 8 7 6 5 4 3 2 1 0\n",
+        "expect": "swaps 5\nleft 4 3 2 1 0\nright 9 8 7 6 5\n"
+      },
+      {
+        "stdin": "1\n7\n",
+        "expect": "odd\n"
+      }
+    ],
+    "reference": {
+      "rust": "use std::io::{self, Read};\n\nfn input() -> Vec<String> {\n    let mut s = String::new();\n    io::stdin().read_to_string(&mut s).unwrap();\n    s.split_whitespace().map(|t| t.to_string()).collect()\n}\n\n/// Make the two halves agree, element by element: wherever the left is\n/// larger than the right, swap them. Both halves are parts of the SAME\n/// buffer, so this needs one split rather than two borrows.\nfn settle(v: &mut [i64]) -> usize {\n    let mid = v.len() / 2;\n    let (left, right) = v.split_at_mut(mid);\n    let mut swaps = 0;\n    for i in 0..left.len() {\n        if left[i] > right[i] {\n            std::mem::swap(&mut left[i], &mut right[i]);\n            swaps += 1;\n        }\n    }\n    swaps\n}\n\nfn show(label: &str, xs: &[i64]) {\n    let parts: Vec<String> = xs.iter().map(|x| x.to_string()).collect();\n    println!(\"{} {}\", label, parts.join(\" \"));\n}\n\nfn main() {\n    let t = input();\n    if t.is_empty() {\n        return;\n    }\n    let n: usize = t[0].parse().unwrap();\n    let mut v: Vec<i64> = t[1..1 + n].iter().map(|s| s.parse().unwrap()).collect();\n\n    if n % 2 != 0 {\n        println!(\"odd\");\n        return;\n    }\n\n    let swaps = settle(&mut v);\n    let mid = v.len() / 2;\n    println!(\"swaps {}\", swaps);\n    show(\"left\", &v[..mid]);\n    show(\"right\", &v[mid..]);\n}\n"
+    }
+  },
+  "explanation": "## The answer\n\n```rust\nfn settle(v: &mut [i64]) -> usize {\n    let mid = v.len() / 2;\n    let (left, right) = v.split_at_mut(mid);\n    let mut swaps = 0;\n    for i in 0..left.len() {\n        if left[i] > right[i] {\n            std::mem::swap(&mut left[i], &mut right[i]);\n            swaps += 1;\n        }\n    }\n    swaps\n}\n```\n\n## Why the obvious version is refused\n\n```rust\nlet left  = &mut v[..mid];\nlet right = &mut v[mid..];\n```\n\nRust's rule is that at most one exclusive reference to a value may exist\nat a time. The two expressions above both borrow `*v`, and the borrow\nchecker reasons about *which value* is borrowed, not about which range\nof it — `[..mid]` and `[mid..]` are index expressions, and in general\nindex expressions can overlap.\n\nThat is not a limitation worth resenting. The alternative is a compiler\nthat tries to prove ranges disjoint, which works for literal constants\nand fails for anything computed, and would therefore either reject real\ncode or accept aliasing it could not actually prove safe.\n\n## What `split_at_mut` is\n\n```rust\npub fn split_at_mut(&mut self, mid: usize) -> (&mut [T], &mut [T])\n```\n\nIt takes **one** exclusive borrow and returns **two**, and it is sound\nbecause the function itself guarantees the halves do not overlap — a\nfact the type system cannot see but a human can check once, inside the\nstandard library, where it is implemented with raw pointers and an\n`unsafe` block.\n\nThis is the pattern Rust uses everywhere the ownership rules are too\ncoarse: a small audited primitive with a safe signature, and everything\nabove it in safe code. `iter_mut`, `chunks_mut`, `split_first_mut` and\n`Vec::drain` are all the same idea.\n\nIt panics if `mid > len`, which cannot happen here because `mid` is\n`len / 2`.\n\n## `mem::swap`\n\n`std::mem::swap(&mut a, &mut b)` exchanges two values through two\nexclusive references. It is the general form; within a single slice,\n`v.swap(i, j)` is shorter and avoids the two borrows entirely by taking\nthe indices rather than references.\n\nEither is better than the three-line version with a temporary, and for\na type that is not `Copy` the three-line version does not even compile:\nmoving out of `left[i]` would leave a hole in the slice, which Rust does\nnot allow. `mem::swap` works for every type because it never leaves one.\n\n## The halves after the swaps\n\nEach position is settled independently of every other. The sample\npairs left `5 1 9` against right `2 7 3`:\n\n| i | before | after | swapped? |\n| --- | --- | --- | --- |\n| 0 | 5, 2 | 2, 5 | yes |\n| 1 | 1, 7 | 1, 7 | no |\n| 2 | 9, 3 | 3, 9 | yes |\n\nwhich gives `left 2 1 3` and `right 5 7 9`, with two swaps.\n\nNote what this is **not**: the halves do not come out sorted. Only the\nsmaller of each pair ends up on the left, and `2 1 3` is not in order.\nWorking out which element pairs with which before writing any code is\nmost of the exercise; pairing `left[i]` with `right[len-1-i]`, or\nsorting afterwards, gives an answer that is self-consistent and not the\none asked for.\n",
+  "readMore": [
+    {
+      "concept": "rust-borrowing",
+      "where": "the rule, and the escape hatches the library provides"
+    }
+  ],
+  "id": "rust-two-mutable-halves"
+}

@@ -1,0 +1,48 @@
+{
+  "id": "debug-hdl-inferred-latch",
+  "title": "The classifier that remembers the last answer",
+  "topic": "fpga",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "hdl",
+  "debugging": true,
+  "tags": [
+    "debugging",
+    "combinational",
+    "inferred-latch"
+  ],
+  "estimate": 22,
+  "prereqs": [
+    {
+      "concept": "hdl-assignments",
+      "why": "A combinational block that does not assign an output on every path stops being combinational, and that is the bug."
+    },
+    {
+      "concept": "fpga-fabric",
+      "why": "What gets built instead of the gates you meant is a latch, and knowing what a latch is on an FPGA is why it matters."
+    },
+    {
+      "concept": "timing-closure",
+      "why": "A latch is transparent rather than edge-triggered, which is why static timing analysis cannot say anything useful about it."
+    }
+  ],
+  "statement": "The design below is **already written, and it is wrong.** Your job is\nto find out why and fix it.\n\n`byte_class` is meant to be purely combinational:\n\n```systemverilog\nmodule byte_class (\n    input  logic       vld,\n    input  logic [7:0] data,\n    output logic [1:0] kind,   // 0 nothing, 1 low, 2 mid, 3 high\n    output logic       odd     // parity of data, and 0 when not valid\n);\n```\n\n- With `vld` low, `kind` is 0 and `odd` is 0, whatever `data` is.\n- With `vld` high: `kind` is 1 for `data < 64`, 2 for\n  `64 <= data < 192`, and 3 for `data >= 192`; and `odd` is the parity\n  of `data` — 1 when an odd number of its bits are set.\n\n### The symptom\n\nPresent a high byte with `vld` high, then drop `vld`. `kind` should go\nto 0. It stays at 3.\n\nThe simulator does not complain, the design elaborates cleanly, and\nthree of the four sample checks pass.\n\n### What to do\n\nFix the module. Keep the same ports and the same bands.\n\n### What went wrong, in one sentence\n\nIt is the most common mistake in SystemVerilog, it has a name, and the\nname is in the title of this exercise.",
+  "hints": [
+    "Look at the `always_comb` block and ask, for each output, whether every path through the block assigns it.",
+    "`odd` is assigned on the first line, unconditionally. `kind` is only assigned inside `if (vld)`. So what is `kind` when `vld` is low?",
+    "Hardware cannot leave a wire undriven. If a combinational block does not say what an output is in some case, the tools build something that **remembers** the last value — a latch — and the simulation models it by leaving the variable alone.",
+    "Two fixes, and both are one line. Add an `else kind = 2'd0;`, or — better as a habit — assign every output a default at the very top of the block, before any `if`, and let the branches overwrite what they need to."
+  ],
+  "payload": {
+    "top": "byte_class",
+    "generation": "2012",
+    "template": "// Classify a byte into a band, and report its parity.\n//\n// This implementation is BROKEN, and the simulator does not complain\n// about it. Find the bug and fix it; the specification is in the\n// problem statement, and any implementation that meets it is accepted.\n\nmodule byte_class (\n    input  logic       vld,\n    input  logic [7:0] data,\n    output logic [1:0] kind,   // 0 nothing, 1 low, 2 mid, 3 high\n    output logic       odd     // parity of data, and 0 when not valid\n);\n\n    always_comb begin\n        odd = vld & (^data);\n        if (vld) begin\n            if (data < 8'd64)       kind = 2'd1;\n            else if (data < 8'd192) kind = 2'd2;\n            else                    kind = 2'd3;\n        end\n    end\n\nendmodule\n",
+    "testbench": "`timescale 1ns/1ps\n\n// The sample testbench. Submit uses another one, which goes round the\n// bands in several orders.\nmodule tb;\n\n  logic clk = 1'b0;\n  always #5 clk = ~clk;\n\n  logic       vld  = 1'b0;\n  logic [7:0] data = 8'd0;\n  logic [1:0] kind;\n  logic       odd;\n\n  byte_class dut (.vld(vld), .data(data), .kind(kind), .odd(odd));\n\n  // The design is combinational; the clock is here only so the\n  // waveform has something to line up against.\n  task present(input logic v, input [7:0] d);\n    begin\n      @(negedge clk); vld = v; data = d;\n      #1;\n    end\n  endtask\n\n  logic [1:0] k_low, k_mid, k_high, k_invalid;\n\n  initial begin\n    $dumpfile(\"dump.vcd\");\n    $dumpvars(0, tb);\n\n    present(1'b1, 8'd10);  k_low     = kind;\n    present(1'b1, 8'd100); k_mid     = kind;\n    present(1'b1, 8'd250); k_high    = kind;\n    present(1'b0, 8'd250); k_invalid = kind;\n\n    $display(\"CHECK low_band 1 %0d AT %0d\", k_low, $time);\n    $display(\"CHECK mid_band 2 %0d AT %0d\", k_mid, $time);\n    $display(\"CHECK high_band 3 %0d AT %0d\", k_high, $time);\n    $display(\"CHECK zero_when_not_valid 0 %0d AT %0d\", k_invalid, $time);\n    $display(\"DONE 4\");\n    $finish;\n  end\n\nendmodule\n",
+    "checks": [
+      "low_band",
+      "mid_band",
+      "high_band",
+      "zero_when_not_valid"
+    ]
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "key": {
+    "cases": [
+      {
+        "stdin": "1\n0 N\n",
+        "expect": "branches 1\nmispredicts 0\ntable 0\n"
+      },
+      {
+        "stdin": "4\n",
+        "expect": "branches 0\nmispredicts 0\ntable 1 1 1 1\n"
+      },
+      {
+        "stdin": "8\n1000 T\n1000 N\n1000 T\n1000 N\n1000 T\n1000 N\n",
+        "expect": "branches 6\nmispredicts 6\ntable 1 1 1 1 1 1 1 1\n"
+      },
+      {
+        "stdin": "4\n100 N\n100 N\n100 T\n100 T\n100 T\n100 T\n",
+        "expect": "branches 6\nmispredicts 2\ntable 3 1 1 1\n"
+      },
+      {
+        "stdin": "16\ndeadbeef T\ndeadbef0 T\ndeadbeef N\n",
+        "expect": "branches 3\nmispredicts 3\ntable 1 1 1 1 1 1 1 1 1 1 1 1 2 1 1 1\n"
+      },
+      {
+        "stdin": "2\n0 T\n4 T\n8 T\nc T\n",
+        "expect": "branches 4\nmispredicts 2\ntable 3 3\n"
+      },
+      {
+        "stdin": "8\nff0 T\nff4 T\nff8 T\nffc T\nff0 T\nff4 T\nff8 T\nffc T\n",
+        "expect": "branches 8\nmispredicts 4\ntable 1 1 1 1 3 3 3 3\n"
+      },
+      {
+        "stdin": "4\n100 T\n100 T\n100 T\n100 T\n100 T\n100 N\n100 T\n",
+        "expect": "branches 7\nmispredicts 2\ntable 3 1 1 1\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n#include <string>\n#include <vector>\n\n/* A bimodal predictor: a direct-mapped table of two-bit saturating\n   counters, indexed by the low bits of the branch address. */\nint main() {\n    std::ios::sync_with_stdio(false);\n    std::cin.tie(nullptr);\n\n    unsigned long long entries = 0;\n    if (!(std::cin >> entries)) return 0;\n    /* Every counter starts weakly not-taken. */\n    std::vector<int> table(entries, 1);\n\n    const unsigned long long mask = entries - 1;\n\n    unsigned long long seen = 0, wrong = 0;\n    std::string pcText, outcome;\n    while (std::cin >> pcText >> outcome) {\n        const unsigned long long pc = std::stoull(pcText, nullptr, 16);\n        const bool taken = (outcome == \"T\");\n        const unsigned long long i = (pc >> 2) & mask;\n\n        const bool predict = table[i] >= 2;\n        if (predict != taken) ++wrong;\n        ++seen;\n\n        if (taken) { if (table[i] < 3) ++table[i]; }\n        else       { if (table[i] > 0) --table[i]; }\n    }\n\n    std::cout << \"branches \" << seen << '\\n';\n    std::cout << \"mispredicts \" << wrong << '\\n';\n    std::cout << \"table\";\n    for (unsigned long long i = 0; i < entries; ++i) std::cout << ' ' << table[i];\n    std::cout << '\\n';\n    return 0;\n}\n",
+      "python": "import sys\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    entries = int(data[0])\n    # Every counter starts weakly not-taken.\n    table = [1] * entries\n    mask = entries - 1\n\n    seen = 0\n    wrong = 0\n    rest = data[1:]\n    for k in range(0, len(rest) - 1, 2):\n        pc = int(rest[k], 16)\n        taken = rest[k + 1] == \"T\"\n        i = (pc >> 2) & mask\n\n        predict = table[i] >= 2\n        if predict != taken:\n            wrong += 1\n        seen += 1\n\n        if taken:\n            if table[i] < 3:\n                table[i] += 1\n        else:\n            if table[i] > 0:\n                table[i] -= 1\n\n    print(\"branches\", seen)\n    print(\"mispredicts\", wrong)\n    print(\"table\", \" \".join(str(x) for x in table))\n\n\nmain()\n"
+    }
+  },
+  "explanation": "## The loop\n\n```cpp\nconst unsigned long long i = (pc >> 2) & mask;\n\nconst bool predict = table[i] >= 2;     // predict from the old value\nif (predict != taken) ++wrong;\n\nif (taken) { if (table[i] < 3) ++table[i]; }   // then move it\nelse       { if (table[i] > 0) --table[i]; }\n```\n\nThree decisions, and each has a hardware reason behind it.\n\n**The shift.** Instructions are four bytes long and aligned, so bits 0\nand 1 of a branch address are always zero. Indexing with them included\nwould map every branch to an index divisible by four and leave three\nquarters of the table permanently empty. Real predictors drop exactly\nthese bits for exactly this reason, and it is the same reasoning as a\ncache dropping the offset bits before taking the index.\n\n**Predict, then update.** The predictor has to commit before the outcome\nis known — that is what prediction *is*. Updating first turns the\nsimulator into an oracle and produces a mispredict count of zero on\nalmost any trace, which is the signature of this bug.\n\n**Saturating, not wrapping.** At 3, another taken branch leaves it at 3.\nIf it wrapped to 0 instead, one surprise would turn \"strongly taken\"\ninto \"strongly not taken\" and the next two predictions would both be\nwrong. The whole point of two bits rather than one is this hysteresis.\n\n## Why two bits\n\nA one-bit predictor remembers only the last outcome. A loop that runs\nten times and then exits mispredicts **twice** per execution of the\nloop: once on the exit, and once on the first iteration of the next\nentry, because the exit flipped the bit.\n\nTwo bits with saturation cost one mispredict instead of two: the single\nnot-taken on exit drops the counter from 3 to 2, which still predicts\ntaken. The counter has to be wrong twice in a row before it changes its\nmind. For loop-dominated code that is nearly a halving of the\nmispredict rate for one extra bit per entry, which is the best trade in\nthe whole of branch prediction.\n\nThe hidden trace `T T T T T N T` shows it directly: the lone `N` is a\nmispredict, the counter goes 3 → 2, and the `T` after it is predicted\ncorrectly.\n\n## Where it fails\n\n**Alternating branches.** `T N T N T N` is perfectly predictable and a\nbimodal predictor gets **every single one wrong** once it settles,\nbecause the counter oscillates around the middle and is always one step\nbehind. The hidden case with eight entries and that trace is there to\nshow it. Fixing this needs history — a predictor indexed by the recent\npattern of outcomes rather than by the address alone, which is what a\ngshare predictor does.\n\n**Aliasing.** Two branches whose indices collide share a counter and\nfight over it. The visible case with `entries = 2`, `0x100` and `0x108`\nis exactly this: `(0x100 >> 2) & 1 = 0` and `(0x108 >> 2) & 1 = 0`, so\none always-taken branch and one never-taken branch are using the same\ntwo bits, and the predictor is worse than useless. It is the same\nconflict problem a direct-mapped cache has, with the same fix — more\nentries, or associativity, or a better index.\n\n## What it is worth\n\nA modern pipeline is fifteen to twenty stages deep, so a mispredict\nthrows away that many cycles of work. At a 5% mispredict rate and one\nbranch in five instructions, that is roughly 0.15 wasted cycles per\ninstruction — enough to matter and nowhere near enough to justify the\nbudget real predictors get. Which is why nothing has shipped a plain\nbimodal predictor for thirty years, and why every one that has shipped\nsince is still built out of saturating counters.",
+  "readMore": [
+    {
+      "concept": "pipelining",
+      "where": "what a mispredict costs"
+    }
+  ],
+  "id": "arch-sim-branch-predictor"
+}

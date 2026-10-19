@@ -6,7 +6,7 @@
     "stdlib": "standard library only, no installable packages",
     "measured": "3.14.2 on emscripten, sys.maxsize 32-bit"
   },
-  "generated": 19,
+  "generated": 25,
   "browser": [
     "algo-impl-circular-queue",
     "algo-impl-count",
@@ -15,17 +15,23 @@
     "algo-impl-int-stack",
     "algo-impl-lower-bound",
     "algo-lru-cache",
+    "algo-merge-intervals",
+    "algo-sliding-window-max",
+    "arch-sim-branch-predictor",
     "arch-sim-byte-decode",
     "arch-sim-cache-fields",
     "compilers-expression-lexer",
+    "debug-py-reservoir-draws",
     "fpga-sequence-detector",
     "fpga-sim-lfsr",
     "fpga-sim-moore-fsm",
     "hpc-inclusive-scan",
+    "metric-code-axiom-checker",
     "oa-fmt-word-summary",
     "oa-run-length",
     "os-sim-page-replacement",
     "os-sim-scheduling",
+    "prob-code-markov-steps",
     "sysdesign-token-bucket"
   ],
   "nativeOnly": {}

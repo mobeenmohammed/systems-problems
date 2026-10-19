@@ -1,0 +1,53 @@
+{
+  "key": {
+    "cases": [
+      {
+        "stdin": "1\n0\n",
+        "expect": "positivity ok\nsymmetry ok\ntriangle ok\nmetric yes\n"
+      },
+      {
+        "stdin": "1\n5\n",
+        "expect": "positivity fails at 0 0\nsymmetry ok\ntriangle ok\nmetric no\n"
+      },
+      {
+        "stdin": "2\n0 0\n0 0\n",
+        "expect": "positivity fails at 0 1\nsymmetry ok\ntriangle ok\nmetric no\n"
+      },
+      {
+        "stdin": "2\n0 -1\n-1 0\n",
+        "expect": "positivity fails at 0 1\nsymmetry ok\ntriangle fails at 0 1 0\nmetric no\n"
+      },
+      {
+        "stdin": "4\n0 1 1 1\n1 0 1 1\n1 1 0 1\n1 1 1 0\n",
+        "expect": "positivity ok\nsymmetry ok\ntriangle ok\nmetric yes\n"
+      },
+      {
+        "stdin": "3\n0 1 2\n1 0 1\n2 1 0\n",
+        "expect": "positivity ok\nsymmetry ok\ntriangle ok\nmetric yes\n"
+      },
+      {
+        "stdin": "3\n1 1 2\n1 0 1\n2 1 0\n",
+        "expect": "positivity fails at 0 0\nsymmetry ok\ntriangle ok\nmetric no\n"
+      },
+      {
+        "stdin": "4\n0 2 4 6\n2 0 2 4\n4 2 0 2\n6 4 2 0\n",
+        "expect": "positivity ok\nsymmetry ok\ntriangle ok\nmetric yes\n"
+      },
+      {
+        "stdin": "3\n0 10 1\n10 0 1\n1 1 0\n",
+        "expect": "positivity ok\nsymmetry ok\ntriangle fails at 0 2 1\nmetric no\n"
+      }
+    ],
+    "reference": {
+      "python": "import sys\n\n\ndef read_matrix(data):\n    n = int(data[0])\n    vals = [int(t) for t in data[1:1 + n * n]]\n    return n, [vals[i * n:(i + 1) * n] for i in range(n)]\n\n\ndef positivity(n, d):\n    \"\"\"Returns the first (i, j) breaking it, in index order, or None.\"\"\"\n    for i in range(n):\n        for j in range(n):\n            if d[i][j] < 0:\n                return (i, j)\n            if (d[i][j] == 0) != (i == j):\n                return (i, j)\n    return None\n\n\ndef symmetry(n, d):\n    for i in range(n):\n        for j in range(n):\n            if d[i][j] != d[j][i]:\n                return (i, j)\n    return None\n\n\ndef triangle(n, d):\n    \"\"\"The first (i, j, k) with d[i][k] > d[i][j] + d[j][k].\"\"\"\n    for i in range(n):\n        for j in range(n):\n            for k in range(n):\n                if d[i][k] > d[i][j] + d[j][k]:\n                    return (i, j, k)\n    return None\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    n, d = read_matrix(data)\n\n    p = positivity(n, d)\n    s = symmetry(n, d)\n    t = triangle(n, d)\n\n    print(\"positivity ok\" if p is None else \"positivity fails at %d %d\" % p)\n    print(\"symmetry ok\" if s is None else \"symmetry fails at %d %d\" % s)\n    print(\"triangle ok\" if t is None else \"triangle fails at %d %d %d\" % t)\n    print(\"metric\", \"yes\" if p is None and s is None and t is None else \"no\")\n\n\nmain()\n"
+    }
+  },
+  "explanation": "## The three checks\n\n```python\ndef positivity(n, d):\n    for i in range(n):\n        for j in range(n):\n            if d[i][j] < 0:\n                return (i, j)\n            if (d[i][j] == 0) != (i == j):\n                return (i, j)\n    return None\n```\n\nThe second condition is the whole of \"identity of indiscernibles\",\nwritten as an exclusive-or: the entry is zero exactly when the indices\nmatch. Writing it as two separate `if`s — one for a zero off the\ndiagonal and one for a non-zero on it — is the same thing and is easier\nto read; writing only one of the two is the usual mistake, and the\nhidden case with an all-zero 2 by 2 matrix catches it.\n\nSymmetry and the triangle inequality are direct transcriptions. The\ntriangle check is `O(n^3)`, which is what \"for all triples\" costs and is\nperfectly fine for the sizes here.\n\n## Why exhaustion is a proof here, and only here\n\nThe axioms are statements of the form \"for all $x, y, z \\in X$ ...\".\nWhen $X$ is finite with $n$ elements there are $n^3$ triples, and\nchecking all of them settles the question completely. The program is not\nsampling, not testing, not gathering evidence: it is evaluating a\nuniversally quantified statement over a finite domain, which is a\ndecision procedure.\n\nThat is worth being precise about, because the same program over\n$\\R$ would be worthless. $d(x,y) = |x - y|$ has uncountably many\ntriples, and no amount of checking would establish anything — the proof\nhas to be about the *formula*, as it is in the notes: non-negativity\nfrom the definition of the absolute value, symmetry from\n$|a| = |{-a}|$, and the triangle inequality from the one for real\nnumbers.\n\nA finite check can **refute** a general claim, by producing a\ncounterexample, and it can **prove** a claim about a finite object. It\ncan never prove a claim about an infinite one.\n\n## The tables in the tests, and what they are\n\n**The all-ones off-diagonal 4 by 4 table** is the discrete metric on\nfour points. It passes everything, as it must.\n\n**`0 1 2 / 1 0 1 / 2 1 0`** is three points on a line at 0, 1 and 2.\nA metric, with the triangle inequality holding with **equality** for\n`i=0, j=1, k=2` — which is what \"between\" means and is why the check\nis `>` rather than `>=`.\n\n**`0 1 5 / 1 0 1 / 5 1 0`** is symmetric and positive and fails the\ntriangle inequality at `0 1 2`: $5 > 1 + 1$. The first two lines say\n\"ok\" and the third does not, which is the point of reporting the axioms\nseparately.\n\n**`0 10 1 / 10 0 1 / 1 1 0`** is the subtler one: every entry is\npositive, the table is symmetric, and it still fails, because point 2 is\nclose to both of the others while they are far from each other. A\ndistance table that \"looks reasonable\" can easily fail the triangle\ninequality, and this is why it is an axiom rather than a consequence.\n\n## Where this is actually used\n\nChecking a distance table is not an academic exercise. Clustering\nalgorithms, nearest-neighbour indexes and metric trees all assume the\ntriangle inequality and silently produce wrong answers without it — a\nball tree prunes a branch because the triangle inequality says nothing\nin it can be close enough, and if the inequality does not hold the\npruning is unsound. Similarity scores invented by hand (edit distances\nwith asymmetric costs, \"percentage overlap\", learned embeddings read\nback as distances) frequently fail exactly one of these three, and the\ncheapest way to find out is a program like this one.",
+  "readMore": [
+    {
+      "concept": "ms-metric-axioms",
+      "where": "the three conditions, and what each rules out"
+    }
+  ],
+  "id": "metric-code-axiom-checker"
+}

@@ -1,0 +1,63 @@
+{
+  "id": "debug-py-reservoir-draws",
+  "title": "The sampler that can never pick the last one",
+  "topic": "algo",
+  "difficulty": "intermediate",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "debugging",
+    "sampling",
+    "off-by-one",
+    "determinism"
+  ],
+  "estimate": 28,
+  "prereqs": [
+    {
+      "concept": "loop-invariants",
+      "why": "The invariant is about what the reservoir holds after i items, and stating it is what exposes the off-by-one."
+    },
+    {
+      "concept": "array-bounds",
+      "why": "A modulus by i rather than i+1 is an off-by-one in a range, which is the same error as an off-by-one in an index."
+    },
+    {
+      "concept": "sentinel-values",
+      "why": "The guard on k has to come before anything else, and the program already does that part."
+    }
+  ],
+  "statement": "The program below is **already written, and it is wrong.** Your job is\nto find out why and fix it.\n\n### Reservoir sampling\n\nThe task is to keep `k` of `n` items when the items arrive one at a\ntime and `n` is not known in advance. The standard algorithm keeps the\nfirst `k`, and then for each later item at index `i` (0-based) replaces\na **uniformly chosen** one of the `k` kept items with probability\n`k / (i + 1)`.\n\nBoth halves of that are done with one draw: pick `r` uniformly from\n`0 .. i` inclusive, and if `r < k`, overwrite slot `r`.\n\n### No random number generator\n\nSo that the run is reproducible and the test is not flaky, the draws\nare **supplied in the input** rather than generated. Read `n`, `k`, the\n`n` items, and then the draw values — one for each item from index `k`\nonwards. Each draw is a non-negative integer, and the choice for item\n`i` is\n\n```\nr = draw % (i + 1)\n```\n\nIf `k` is less than 1 or greater than `n`, print `bad k` and stop.\nOtherwise print\n\n```\nkept <the k kept items, in slot order, space separated>\n```\n\n### The symptom\n\n```\n6 2\n10 20 30 40 50 60\n2 0 5 3\n```\n\nshould keep `50 20`. The program prints `kept 40 50` instead.\n\nWork the four steps through by hand before changing anything: for each\nitem from index 2 onwards, what should `r` be, and what does the\nprogram compute?\n\n### What to do\n\nFix `reservoir`. Do not change what the program prints or how it reads\nits input.",
+  "hints": [
+    "Take one item and work the arithmetic out by hand. When item `i` arrives, how many items have been seen in total, counting that one?",
+    "The item at index `i` is the `(i + 1)`-th item. It has to be a candidate for all `i + 1` positions, so the draw is reduced modulo `i + 1`.",
+    "`draw % i` produces a value in `0 .. i - 1`, which is one short. The practical effect: with `k = 1`, item `i` is kept only when `draw % i == 0`, and the probability is `1/i` rather than `1/(i+1)` — every item is slightly too likely, and the arithmetic no longer adds up to a uniform sample.",
+    "Check the fix against the simplest case there is: `n = 1`, `k = 1`. The loop body never runs, so both versions agree — which is why a test of that shape would not have caught this."
+  ],
+  "payload": {
+    "langs": [
+      "python"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 4000
+    },
+    "templates": {
+      "python": "import sys\n\n\ndef reservoir(items, k, draws):\n    \"\"\"Keep k of the items, using the supplied draws instead of a\n    random number generator so that the run is reproducible.\n\n    This implementation is BROKEN. Find the bug and fix it; the\n    specification is in the problem statement, and any implementation\n    that meets it is accepted.\n    \"\"\"\n    res = items[:k]\n    d = 0\n    for i in range(k, len(items)):\n        r = draws[d] % i\n        d += 1\n        if r < k:\n            res[r] = items[i]\n    return res\n\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    n = int(data[0])\n    k = int(data[1])\n    items = [int(t) for t in data[2:2 + n]]\n    draws = [int(t) for t in data[2 + n:]]\n\n    if k <= 0 or k > n:\n        print(\"bad k\")\n        return\n\n    res = reservoir(items, k, draws)\n    print(\"kept\", \" \".join(str(x) for x in res))\n\n\nmain()\n"
+    },
+    "cases": [
+      {
+        "stdin": "6 2\n10 20 30 40 50 60\n2 0 5 3\n",
+        "expect": "kept 50 20\n"
+      },
+      {
+        "stdin": "3 3\n1 2 3\n",
+        "expect": "kept 1 2 3\n"
+      },
+      {
+        "stdin": "4 5\n1 2 3 4\n",
+        "expect": "bad k\n"
+      }
+    ]
+  },
+  "debugging": true
+}
