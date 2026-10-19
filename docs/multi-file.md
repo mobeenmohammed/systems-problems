@@ -60,6 +60,13 @@ An `hdl` problem, with the same three fields meaning the same three things:
   three segments deep at most, twelve files and 256 KB in all. The page
   checks them, and so does every runner, because a runner that trusts its
   caller because the caller promised has no check at all.
+- **Directories work.** `include/cache.hpp` and `src/cache.cpp` are planted
+  at those paths, the explorer draws them as a tree, and a quoted
+  `#include` resolves against the directory of the file doing the
+  including — so `src/cache.cpp` says `"../include/cache.hpp"` and
+  `main.cpp` says `"include/cache.hpp"`. The cache-simulator project is
+  the worked example, and `npm run audit:cxx` compiles it in the browser
+  toolchain on every run.
 
 The answer key carries `key.reference.files`, a worked copy of the same paths.
 There is deliberately no second copy of the entry point under
@@ -165,6 +172,25 @@ What the type adds:
 The sample testbench tab, the reader's own testbench tab and the waveform
 viewer are unchanged, and a testbench of your own is compiled against the
 whole workspace rather than against one file of it.
+
+## The explorer
+
+`js/filepane.js` draws the files as a tree: directories are rows that
+fold, files are rows that open, and the indentation is a custom
+property rather than a class per level. The explorer collapses
+entirely, and the bar on its right drags it between 120 and 420 pixels.
+Its width and whether it is showing are preferences that outlive the
+problem; which directories are folded is keyed by problem id, because a
+fold is about the shape of that exercise.
+
+The whole widget is reachable from the keyboard: one tab stop, then the
+arrow keys walk the tree, Left folds or goes to the parent, Right
+unfolds, and Enter opens a file. `Alt+B` toggles the explorer from
+anywhere, including from inside the editor.
+
+The problem statement beside it folds away too, with `Alt+D` or the
+control at the end of its tab strip, and the freed width goes to the
+editor. Reset layout puts all of it back and leaves every draft alone.
 
 ## What is deliberately not here
 

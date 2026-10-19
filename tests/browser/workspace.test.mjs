@@ -301,6 +301,41 @@ const undone = await page.evaluate(() =>
 ok('and undo still reaches what was typed before the fold',
   undone.includes('// one') && !undone.includes('// two'));
 
+section('the other panes are reachable without the editor shrinking');
+
+/* The brief this was built to is explicit about it: Results, Compiler
+   output and the waveform have to be reachable, and reaching them must
+   not cost the editor any room permanently. They are tabs over the same
+   grid row rather than a split, so the editor is either full height or
+   not displayed — and the CodeMirror behind it is never rebuilt. */
+{
+  const edBox = () => page.evaluate(() => {
+    const e = document.querySelector('.ws-editor');
+    const b = e.getBoundingClientRect();
+    return { h: Math.round(b.height), shown: getComputedStyle(e).display !== 'none' };
+  });
+  const before = await edBox();
+  ok(`the editor fills its column (${before.h}px)`, before.h > 400);
+
+  for (const tab of ['results', 'cases', 'compiler', 'subs']) {
+    await page.locator(`.ws-tabs-work .tab[data-tab="${tab}"]`).click();
+    await page.waitForTimeout(250);
+    const gone = await edBox();
+    check(`${tab} replaces the editor rather than squeezing it`, gone.shown, false);
+    const pane = await page.evaluate(() =>
+      Math.round(document.querySelector('#resultPane').getBoundingClientRect().height));
+    ok(`and ${tab} gets the whole column (${pane}px)`, pane > 400);
+  }
+
+  await page.locator('.ws-tabs-work .tab[data-tab="editor"]').click();
+  await page.waitForTimeout(300);
+  const back2 = await edBox();
+  check('coming back, the editor is the size it was', back2.h, before.h);
+  const still = await page.evaluate(() =>
+    window.SystemsLab.ProblemTypes.get('code').editor().value);
+  ok('and it still holds what was typed in it', still.includes('// one'));
+}
+
 section('Reset layout puts the panels back and leaves the work alone');
 
 await page.locator('#descHide').click();

@@ -115,8 +115,14 @@ section('one catalogue, with subject as a filter');
     topics: [...document.querySelectorAll('#fTopic option')].map(o => o.textContent),
     titles: [...document.querySelectorAll('#catalogList .prow-link')].map(a => a.textContent),
   }));
-  check('filtering to Mathematics leaves 24', maths.rows, 24);
-  ok(`and says so (${maths.count})`, /24 Mathematics problems/.test(maths.count));
+  /* Counted from the index rather than written down: the number grows
+     every time a mathematics problem is added, and a test that has to
+     be edited for that is a test that gets edited without being read. */
+  const wantMaths = JSON.parse(fs.readFileSync('data/index.json', 'utf8'))
+    .filter(p => p.subject === 'maths').length;
+  check(`filtering to Mathematics leaves ${wantMaths}`, maths.rows, wantMaths);
+  ok(`and says so (${maths.count})`,
+    new RegExp(`${wantMaths} Mathematics problems`).test(maths.count));
   ok('the topic list narrows with it',
     maths.topics.includes('Metric Spaces') && !maths.topics.includes('C++'));
   ok('and the titles are mathematics',

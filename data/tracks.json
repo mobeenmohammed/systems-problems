@@ -48,7 +48,9 @@
       "algo-impl-lower-bound",
       "algo-impl-int-stack",
       "algo-impl-circular-queue",
-      "algo-impl-dynamic-array"
+      "algo-impl-dynamic-array",
+      "algo-sliding-window-max",
+      "algo-merge-intervals"
     ]
   },
   {
@@ -62,7 +64,8 @@
       "os-sim-page-replacement",
       "os-sim-scheduling",
       "fpga-sim-moore-fsm",
-      "fpga-sim-lfsr"
+      "fpga-sim-lfsr",
+      "arch-sim-branch-predictor"
     ]
   },
   {
@@ -76,7 +79,10 @@
       "rust-slices-views",
       "rust-option-lookup",
       "rust-result-parse",
-      "rust-question-mark-records"
+      "rust-question-mark-records",
+      "rust-iterator-chains",
+      "rust-struct-histogram",
+      "rust-two-mutable-halves"
     ]
   },
   {
@@ -196,7 +202,9 @@
       "fpga-blocking-shift-register",
       "hdl-edge-detector",
       "hdl-sequence-fsm",
-      "fpga-max-clock-frequency"
+      "fpga-max-clock-frequency",
+      "hdl-gray-counter",
+      "hdl-round-robin-arbiter"
     ]
   },
   {
@@ -246,7 +254,8 @@
       "ms-preimage-of-open",
       "ms-connected-which",
       "ms-totally-bounded-which",
-      "ms-finite-subcover"
+      "ms-finite-subcover",
+      "metric-code-axiom-checker"
     ]
   },
   {
@@ -275,7 +284,45 @@
       "p2-generator-stationary",
       "p2-mm1-queue-length",
       "p2-optional-stopping-duration",
-      "p2-reflection-principle"
+      "p2-reflection-principle",
+      "prob-code-markov-steps"
+    ]
+  },
+  {
+    "id": "project-cache-sim",
+    "title": "Project: a cache simulator",
+    "blurb": "One program over three files in three directories, and three milestones: taking an address apart, choosing what to throw out, and deciding when memory finds out. Your files are carried forward from each milestone to the next, and each one re-runs everything the ones before it asked for.",
+    "goal": "Finish this and the cache diagrams in an architecture chapter are things you have built - the index, the ways, the dirty bit and the writeback - rather than things you have read about.",
+    "problems": [
+      "proj-cache-sim-1",
+      "proj-cache-sim-2",
+      "proj-cache-sim-3"
+    ]
+  },
+  {
+    "id": "project-seq-detect",
+    "title": "Project: a sequence detector",
+    "blurb": "Four SystemVerilog modules built up over three milestones: a detector whose pattern is an input, a saturating counter, a top that is nothing but wiring, and an arming gate. The same counter is instantiated twice at the end, which is the point of having made it a module.",
+    "goal": "Finish this and you have composed a small design out of separately written modules, with the interface between them doing the work that a specification is supposed to do.",
+    "problems": [
+      "proj-seq-detect-1",
+      "proj-seq-detect-2",
+      "proj-seq-detect-3"
+    ]
+  },
+  {
+    "id": "finding-the-bug",
+    "title": "Programs that are already wrong",
+    "blurb": "Seven complete programs, each with one defect in it, across C++, Rust, Python and SystemVerilog. Every one of them is correct on the obvious inputs and wrong on the ones nobody wrote a test for, which is why they are worth meeting on purpose.",
+    "goal": "Finish this and you have met the common shapes once each: an iterator invalidated, a last group never flushed, an off-by-one in a modulus, a register that is a cycle late, and a combinational block that is secretly a latch.",
+    "problems": [
+      "debug-cpp-erase-in-loop",
+      "debug-ring-overwrite",
+      "debug-rust-longest-run",
+      "debug-lower-bound",
+      "debug-py-reservoir-draws",
+      "debug-hdl-inferred-latch",
+      "debug-tickgen"
     ]
   }
 ]

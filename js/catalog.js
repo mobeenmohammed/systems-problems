@@ -499,23 +499,33 @@ const Catalog = (() => {
     const key = shut.length ? `${trackId}|${shut.join(',')}` : trackId;
     if (treeCache[key]) return treeCache[key];
 
-    /* Every concept the track's problems name, plus everything those rest
-       on, transitively. chain() already closes over `needs`.
+    /* What is in the picture.
 
-       For a course track the starting set is the course itself, so a
-       chapter nothing has been set on yet is still in the picture. */
+       An ordinary track draws every concept its problems name, plus
+       everything those rest on transitively — chain() already closes
+       over `needs`.
+
+       A COURSE track draws the course, and only the course. Every
+       chapter is there whether or not a problem has been set on it
+       yet, and a concept from somewhere else that one of its exercises
+       happens to rest on is NOT — `loop-invariants` is a real
+       prerequisite of the Markov-chain coding exercise and it is not a
+       section of Probability 2, so putting it in the chapter picture
+       would be a lie about what the unit contains. The problem's own
+       Prerequisites tab still shows it. */
     const inSet = new Set();
     if (crs) {
       for (const cid of chapterConcepts(crs)) {
         if (!concepts[cid]) continue;
-        for (const c of chain(cid)) inSet.add(c.id);
+        for (const c of chain(cid)) if (concepts[c.id].course === t.course) inSet.add(c.id);
       }
-    }
-    for (const pid of t.problems) {
-      const meta = byId[pid];
-      if (!meta) continue;
-      for (const cid of meta.prereqs || []) {
-        for (const c of chain(cid)) inSet.add(c.id);
+    } else {
+      for (const pid of t.problems) {
+        const meta = byId[pid];
+        if (!meta) continue;
+        for (const cid of meta.prereqs || []) {
+          for (const c of chain(cid)) inSet.add(c.id);
+        }
       }
     }
 

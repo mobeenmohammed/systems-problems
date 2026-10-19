@@ -46,9 +46,18 @@ written from scratch.
 - 3 debugging challenges.
 - Coding languages in use: cpp 37, python 19, rust 8, sv 8, js 6.
 
-## What this round adds
+## What this round adds — the plan
 
 60 problems, in three batches of twenty.
+
+This section is the checklist as it was written **before** the
+authoring started, and it is kept as the record of the plan. Several
+ids and a few types changed while the problems were being written —
+two of the planned Metric Spaces problems turned out to duplicate
+exercises already in the bank, and the sequence-detector project was
+redesigned for the same reason. **The delivered tables at the end of
+this file are generated from the problem files and are the
+authoritative ones.**
 
 ### Batch A — Metric Spaces, 20
 
@@ -209,3 +218,123 @@ self-review rubric and are marked as self-assessed.
   sequence, a limit, a radius — never prose.
 - Probabilistic coding tasks use fixed inputs or a named seed; no test
   passes or fails on a statistical threshold.
+
+## What was delivered
+
+60 new problems: 20 Metric Spaces, 20 Probability 2,
+20 coding exercises.
+
+Types: approx 3, code 14, counterexample 1, exact 15, hdl 6, match 2, mcq 2, multi 9, order 1, proof 1, proofsteps 4, structured 2.
+Difficulty: advanced 15, beginner 8, intermediate 37.
+Coding languages: cpp 7, python 6, rust 4, sv 6
+(a problem offered in two languages counts in both).
+4 of the coding exercises are debugging
+challenges and 6 are project milestones.
+
+### Metric Spaces, by chapter
+
+| ch | title | in the notes | problems |
+| --- | --- | --- | --- |
+| 1 | Metric definitions and examples | §§1.1–1.2, pp. 6–17 | 5 |
+| 2 | Limits and continuity, including uniform convergence | §§2.1–2.6, pp. 18–31 | 5 |
+| 3 | Completeness, completion and Banach’s fixed-point theorem | §§3.1–3.6, pp. 32–42 | 4 |
+| 4 | Open and closed sets | §§4.1–4.3, pp. 43–47 | 3 |
+| 5 | Connectedness and path connectedness | §§5.1–5.3, pp. 48–54 | 1 |
+| 6 | Sequential compactness, total boundedness and Arzelà–Ascoli | §§6.1–6.3, pp. 55–65 | 1 |
+| 7 | Compactness, and how it relates to sequential compactness | §§7.1–7.2, pp. 66–71 | 1 |
+
+| id | ch | source | type | difficulty |
+| --- | --- | --- | --- | --- |
+| ms-hamming-triangle-slack | 1 | §1.2.2, Definition 1.2.4, p. 12 | exact | beginner |
+| ms-reverse-triangle | 1 | §1.1, Definition 1.1.2, p. 7 | proofsteps | beginner |
+| ms-sup-metric-distance | 1 | §1.2.6, Example 1.2.11 and Example 1.2.12, p. 16 | exact | intermediate |
+| ms-which-are-norms | 1 | §1.2.4, Definition 1.2.8 and Example 1.2.9, p. 14 | multi | beginner |
+| ms-which-sequence-space | 1 | §1.2.3, Lemma 1.2.5 to Example 1.2.7, pp. 12–14 | match | intermediate |
+| ms-ball-in-sup-metric | 2 | §2.1, Definition 2.1.1 and Examples 2.1.2–2.1.5, p. 19 | mcq | intermediate |
+| ms-convergence-which-space | 2 | §2.2, Definition 2.2.1 and Proposition 2.2.4, p. 22 | multi | intermediate |
+| ms-sup-distance-of-fn | 2 | §2.4, Example 2.4.1 to Example 2.4.8, pp. 25–28 | exact | advanced |
+| ms-uniform-limit-continuous | 2 | §2.4, Example 2.4.1 to Example 2.4.8, pp. 25–28 | proof | advanced |
+| ms-uniform-or-pointwise | 2 | §2.4, Example 2.4.1 to Example 2.4.8, pp. 25–28 | multi | intermediate |
+| ms-banach-fixed-point-value | 3 | §3.5, Theorem 3.5.1 and Examples 3.5.2–3.5.5, pp. 39–41 | exact | intermediate |
+| ms-closed-subset-complete | 3 | §3.1, Propositions 3.1.7–3.1.8 and Corollary 3.1.9, pp. 33–34 | proofsteps | advanced |
+| ms-contraction-without-fixed-point | 3 | §3.5, Theorem 3.5.1 and Examples 3.5.2–3.5.5, pp. 39–41 | counterexample | advanced |
+| ms-which-are-complete | 3 | §3.1, Definition 3.1.1 and Example 3.1.2, p. 33 | multi | intermediate |
+| ms-infinite-intersection | 4 | §4.1, Lemmas 4.1.4–4.1.6 and Theorem 4.1.5, p. 45 | mcq | beginner |
+| ms-interior-of-a-set | 4 | §4.1, Definition 4.1.1 to Lemma 4.1.3, p. 44 | structured | intermediate |
+| ms-preimage-of-open | 4 | §4.2, Theorems 4.2.1–4.2.2, p. 46 | proofsteps | intermediate |
+| ms-connected-which | 5 | §5.2, Definition 5.2.1 to Proposition 5.2.5, p. 50 | multi | intermediate |
+| ms-totally-bounded-which | 6 | §6.1, Definition 6.1.10 to Proposition 6.1.16, pp. 58–60 | multi | advanced |
+| ms-finite-subcover | 7 | §7.1, Definitions 7.1.1–7.1.2 and Example 7.1.3, p. 67 | structured | advanced |
+
+### Probability 2, by chapter
+
+| ch | title | in the notes | problems |
+| --- | --- | --- | --- |
+| 1 | Foundations: axioms, continuity, expectation and the strong law | §§1.1–1.6, pp. 3–11 | 4 |
+| 2 | Random walks, gambler’s ruin, stopping times and Wald’s identity | §§2.1–2.6, pp. 12–22 | 4 |
+| 3 | Markov chains | §§3.1–3.13, pp. 23–52 | 5 |
+| 4 | Poisson processes | §§4.1–4.6, pp. 53–63 | 3 |
+| 5 | Continuous-time Markov chains and queues | §§5.1–5.6, pp. 64–77 | 2 |
+| 6 | Martingales | §§6.1–6.4, pp. 78–86 | 1 |
+| 7 | Brownian motion | §§7.1–7.3, pp. 87–96 | 1 |
+
+| id | ch | source | type | difficulty |
+| --- | --- | --- | --- | --- |
+| p2-infinitely-many-heads | 1 | §1.3, Theorems 1.2–1.3 and Examples 1.4–1.6, pp. 6–7 | proofsteps | intermediate |
+| p2-strong-vs-weak-law | 1 | §1.6, Theorem 1.9 and Example 1.10, p. 11 | multi | intermediate |
+| p2-tail-sum-expectation | 1 | §1.5, Theorem 1.8, pp. 8–10 | exact | intermediate |
+| p2-union-bound-run-of-heads | 1 | §1.3, Theorem 1.7, p. 7 | exact | beginner |
+| p2-is-it-a-stopping-time | 2 | §2.6, Example 2.10, p. 20 | multi | intermediate |
+| p2-ruin-duration | 2 | §2.4, Examples 2.6–2.7, pp. 17–18 | exact | intermediate |
+| p2-ruin-probability | 2 | §2.3, Examples 2.3–2.5, pp. 14–16 | exact | intermediate |
+| p2-wald-expected-duration | 2 | §2.6, Theorem 2.11 and Examples 2.12–2.13, pp. 21–22 | exact | advanced |
+| p2-classes-and-recurrence | 3 | §3.7, Theorems 3.30–3.36 and Examples 3.31–3.35, pp. 38–39 | match | intermediate |
+| p2-pattern-waiting-times | 3 | §3.3, Theorems 3.17–3.20 and Example 3.21, pp. 30–31 | order | intermediate |
+| p2-random-walk-on-a-graph | 3 | §3.13, Theorems 3.63–3.65 and Examples 3.66–3.69, pp. 49–52 | exact | advanced |
+| p2-stationary-distribution | 3 | §§3.10–3.11, Theorems 3.50–3.53, pp. 42–45 | exact | intermediate |
+| p2-two-step-transition | 3 | §3.2, Theorems 3.10–3.15 and Example 3.16, pp. 27–29 | exact | beginner |
+| p2-exponential-race | 4 | §4.5, Theorems 4.10–4.13, pp. 60–61 | exact | intermediate |
+| p2-poisson-increments | 4 | §§4.1–4.2, Definitions 1 and 2, Theorems 4.1–4.2, pp. 53–56 | approx | beginner |
+| p2-thinning-and-superposition | 4 | §4.4, Theorems 4.7–4.9, p. 59 | multi | intermediate |
+| p2-generator-stationary | 5 | §5.5, Theorems 5.13–5.18 and Example 5.15, pp. 72–74 | exact | advanced |
+| p2-mm1-queue-length | 5 | §5.6, Theorems 5.19–5.27 and Examples 5.23–5.26, pp. 74–77 | approx | intermediate |
+| p2-optional-stopping-duration | 6 | §6.3, Examples 6.14–6.17, pp. 83–84 | exact | advanced |
+| p2-reflection-principle | 7 | §7.3, Theorems 7.5–7.8, pp. 91–94 | approx | advanced |
+
+### Coding
+
+| id | topic | language | type | difficulty |
+| --- | --- | --- | --- | --- |
+| proj-cache-sim-1 | arch | cpp | code | intermediate |
+| proj-cache-sim-2 | arch | cpp | code | intermediate |
+| proj-cache-sim-3 | arch | cpp | code | advanced |
+| proj-seq-detect-1 | fpga | sv | hdl | intermediate |
+| proj-seq-detect-2 | fpga | sv | hdl | intermediate |
+| proj-seq-detect-3 | fpga | sv | hdl | advanced |
+| algo-merge-intervals | algo | cpp,python | code | intermediate |
+| algo-sliding-window-max | algo | cpp,python | code | intermediate |
+| arch-sim-branch-predictor | arch | cpp,python | code | intermediate |
+| debug-cpp-erase-in-loop | cpp | cpp | code | intermediate |
+| debug-hdl-inferred-latch | fpga | sv | hdl | intermediate |
+| debug-py-reservoir-draws | algo | python | code | intermediate |
+| debug-rust-longest-run | rust | rust | code | intermediate |
+| hdl-gray-counter | fpga | sv | hdl | intermediate |
+| hdl-round-robin-arbiter | fpga | sv | hdl | advanced |
+| metric-code-axiom-checker | metric | python | code | intermediate |
+| prob-code-markov-steps | prob | python | code | intermediate |
+| rust-iterator-chains | rust | rust | code | beginner |
+| rust-struct-histogram | rust | rust | code | intermediate |
+| rust-two-mutable-halves | rust | rust | code | advanced |
+
+### The concept trees
+
+| course | chapters | concepts | of them optional |
+| --- | --- | --- | --- |
+| Metric Spaces | 7 | 53 | 6 |
+| Probability 2 | 7 | 49 | 7 |
+
+Every concept carries the section and page of the notes it is a reading
+of, and `needs` records the real prerequisite rather than the order the
+notes happen to use. The build refuses a prerequisite that points
+forwards through a course, and refuses required material that rests on
+a concept the notes exclude.
