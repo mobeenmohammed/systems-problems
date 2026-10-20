@@ -509,8 +509,27 @@ fn main() {
 
   function switchLang(id) {
     if (!state || state.lang === id) return;
-    /* Anything in flight belongs to the language being left. */
+    /* Anything in flight belongs to the language being left, and the
+       ticket is what tells it so: a run that is out when the language
+       changes finds `current()` false and returns without painting.
+
+       That is right for the chip and the result and wrong for the Run
+       button, because a language switch does NOT redraw the page. The
+       button is the same element the abandoned run disabled, and the
+       abandoned run is the only code that would have enabled it. It sat
+       on "Running…" until a reload — for ever, in practice.
+
+       So the switch ends the run rather than merely disowning it. */
     runEpoch += 1;
+    if (state.abort) {
+      try { state.abort.abort(); } catch { /* already finished */ }
+    }
+    state.abort = null;
+    state.running = false;
+    showStop(false);
+    showDownload(null);
+    const stale = document.getElementById('runBtn');
+    if (stale) { stale.disabled = false; stale.textContent = 'Run tests'; }
     last = { verdict: null, reply: null, submission: false, at: 0 };
     /* The draft is saved per language, so flipping to C++ to look at the
        template and back does not cost you what you had written. */

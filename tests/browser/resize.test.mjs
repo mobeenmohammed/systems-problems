@@ -286,8 +286,18 @@ section('the editor is the column, not half of it');
   const r = await rows();
   ok(`no second divider is left (${r.editor}px of editor)`,
     (await page.locator('.ws-hgutter').count()) === 0);
-  ok('the editor fills what the strip and the bar leave',
-    Math.abs(r.right - (r.strip + r.editor + r.foot)) < 4);
+  /* The action bar is a row of the page now, not the last row of this
+     column, because the column itself can be hidden and Run cannot. So
+     the column is the strip plus the editor, and the bar is below both
+     panels. */
+  ok(`the editor fills what the strip leaves (${r.strip} + ${r.editor} = ${r.right})`,
+    Math.abs(r.right - (r.strip + r.editor)) < 4);
+  ok(`and the action bar is outside it (${r.foot}px, below)`,
+    r.foot > 0 && await page.evaluate(() => {
+      const foot = document.querySelector('.ws-foot').getBoundingClientRect();
+      const right = document.querySelector('.ws-right').getBoundingClientRect();
+      return foot.top >= right.bottom - 2;
+    }));
   ok(`which is most of the column (${r.editor} of ${r.right}px)`,
     r.editor > r.right * 0.75);
 

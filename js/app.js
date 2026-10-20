@@ -192,6 +192,7 @@
     if (e.altKey && !e.ctrlKey && !e.metaKey) {
       const k = String(e.key).toLowerCase();
       if (k === 'd') { e.preventDefault(); ProblemView.toggleDesc(); return; }
+      if (k === 'e') { e.preventDefault(); ProblemView.toggleCode(); return; }
       if (k === 'b') { e.preventDefault(); ProblemView.toggleFiles(); return; }
     }
 

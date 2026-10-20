@@ -717,6 +717,7 @@ const ProblemView = (() => {
       ]),
 
       el('div', { class: 'ws-head-right' }, [
+        isWorkspace(p) ? paneModeControl() : null,
         isWorkspace(p) ? fontSizeControl() : null,
         el('button', {
           class: 'btn btn-sm btn-ghost', type: 'button', id: 'bookmarkBtn',
@@ -943,7 +944,7 @@ const ProblemView = (() => {
       class: 'ws-collapse', type: 'button', id: 'descHide',
       title: 'Hide the description and give the room to the editor (Alt+D)',
       'aria-label': 'Hide the description',
-      onclick: () => setDesc(false),
+      onclick: () => setPaneMode('code'),
     }, ['«']));
     const left = el('section', { class: 'ws-left' }, [
       leftStrip,
@@ -961,13 +962,18 @@ const ProblemView = (() => {
       workStrip(),
       el('div', { class: 'ws-editor', id: 'wsEditor' }),
       el('div', { class: 'ws-pane', id: 'resultPane' }),
-      el('div', { class: 'ws-foot', id: 'wsFoot' }),
     ]);
 
     const body = el('div', {
-      class: 'ws-body', 'data-desc': String(descOpen()),
+      class: 'ws-body', 'data-pane-mode': paneMode(),
     }, [left, vGutter(), right]);
-    const wrap = el('div', { class: 'ws' }, [header(), body]);
+    /* Run, Submit and Reset sit under BOTH panels rather than inside
+       the code column. Hiding the code column is a thing a reader can
+       do now, and a layout where that also hides Run would be
+       punishing them for wanting to read the statement. */
+    const wrap = el('div', { class: 'ws' }, [
+      header(), body, el('div', { class: 'ws-foot', id: 'wsFoot' }),
+    ]);
 
     /* The widget is mounted after the frame exists, so CodeMirror is created
        inside a box that already has its final size. */
@@ -995,40 +1001,95 @@ const ProblemView = (() => {
     /* Always in the DOM and shown only while the statement is hidden.
        A control that only exists once the panel is gone is a control
        the reader has to discover while the thing it brings back is
-       invisible — see .ws-body[data-desc] in the stylesheet. */
+       invisible — see .ws-body[data-pane-mode] in the stylesheet. */
     strip.prepend(el('button', {
       class: 'ws-show-desc', type: 'button', id: 'descShow',
       title: 'Bring the description back (Alt+D)',
-      onclick: () => setDesc(true),
+      onclick: () => setPaneMode('split'),
     }, ['» Show description']));
     return strip;
   }
 
-  /* ---------------- the description panel ----------------
+  /* ---------------- which panels are showing ----------------
 
-     Collapsing it is not the same as the split: the split says how the
-     two panels share the row, and this says whether there are two.
-     Both are remembered, and neither touches the other, so bringing
-     the statement back puts it at the width it had. */
-  const descOpen = () => Store.pref('descPane', true) !== false;
+     Three states, not two: the statement alone, both, or the code
+     alone. They are a different question from the split, which says
+     how two panels share the row — so collapsing one and bringing it
+     back puts it at the width it had, because nothing here touches
+     `splitFraction`.
 
-  function setDesc(on) {
-    Store.setPref('descPane', !!on);
+     Both hidden is not one of the three. A workspace with neither
+     panel is a blank rectangle whose only content is the control that
+     would bring one back. */
+
+  const PANE_MODES = ['desc', 'split', 'code'];
+
+  function paneMode() {
+    const v = Store.pref('wsPaneMode', null);
+    if (PANE_MODES.includes(v)) return v;
+    /* What the previous two-state preference meant, so somebody who
+       folded the statement away last week does not come back to a
+       split they did not ask for. */
+    return Store.pref('descPane', true) === false ? 'code' : 'split';
+  }
+
+  function setPaneMode(mode) {
+    const want = PANE_MODES.includes(mode) ? mode : 'split';
+    Store.setPref('wsPaneMode', want);
+    /* Kept in step, so an older build — or a tab still open on one —
+       does not disagree with this one about the statement. */
+    Store.setPref('descPane', want !== 'code');
+    paintPaneMode();
+  }
+
+  function paintPaneMode() {
+    const mode = paneMode();
     const body = host && host.querySelector('.ws-body');
-    if (body) body.dataset.desc = String(!!on);
+    if (body) body.dataset.paneMode = mode;
+    for (const b of (host ? host.querySelectorAll('.ws-mode-btn') : [])) {
+      b.setAttribute('aria-pressed', String(b.dataset.mode === mode));
+    }
     applySplit();
+    /* CodeMirror measures lazily and has just been given or taken
+       several hundred pixels. */
     const ed = codeEditor();
     if (ed) ed.refresh();
-    /* Reading the statement is why the panel came back. */
-    if (on) {
+    if (mode === 'desc') {
       const pane = host && host.querySelector('#leftPane');
       if (pane) pane.focus({ preventScroll: true });
     }
   }
 
-  function toggleDesc(force = null) {
+  /* The segmented control in the header. Three buttons rather than one
+     toggle, because "only the code" and "only the statement" are
+     different requests and a toggle can answer only one of them. */
+  function paneModeControl() {
+    const mk = (mode, label, title) => el('button', {
+      class: 'ws-mode-btn', type: 'button',
+      'data-mode': mode, 'aria-pressed': String(paneMode() === mode),
+      title,
+      onclick: () => setPaneMode(mode),
+    }, [label]);
+    return el('div', {
+      class: 'ws-mode', role: 'group', 'aria-label': 'Which panels are showing',
+    }, [
+      mk('desc', 'Description', 'The statement alone, full width (Alt+D)'),
+      mk('split', 'Split', 'Both, side by side'),
+      mk('code', 'Code', 'The editor alone, full width (Alt+E)'),
+    ]);
+  }
+
+  /* Alt+D and Alt+E, from anywhere including inside the editor. Each
+     toggles its own panel between "alone" and "both", so neither can
+     be used to hide everything. */
+  function toggleDesc() {
     if (!current || !host || !host.isConnected || !isWorkspace(current)) return;
-    setDesc(force === null ? !descOpen() : !!force);
+    setPaneMode(paneMode() === 'desc' ? 'split' : 'desc');
+  }
+
+  function toggleCode() {
+    if (!current || !host || !host.isConnected || !isWorkspace(current)) return;
+    setPaneMode(paneMode() === 'code' ? 'split' : 'code');
   }
 
   /* The explorer belongs to the workspace widget, and only a multi-file
@@ -2084,6 +2145,7 @@ const ProblemView = (() => {
   function resetLayout() {
     Store.setPref('splitFraction', 0.42);
     Store.setPref('editorFontSize', 14);
+    Store.setPref('wsPaneMode', 'split');
     Store.setPref('descPane', true);
     /* The explorer's own three — its width, whether it is showing and
        which folders are shut — belong to the widget, which is the only
@@ -2980,9 +3042,9 @@ const ProblemView = (() => {
   return {
     open, leave, toggleFocus, setSplit, splitFraction,
     showResults, resetLayout, setWorkTab,
-    /* The two panels a reader can fold away, reachable from the keyboard
+    /* The panels a reader can fold away, reachable from the keyboard
        handler in app.js as well as from their own buttons. */
-    toggleDesc, toggleFiles,
+    toggleDesc, toggleCode, toggleFiles, setPaneMode, paneMode,
     /* For a type module that owns a pane: open it, and repaint it. The
        strip belongs to the page, so a type cannot reach it directly. */
     openPane, repaintPane,

@@ -77,65 +77,122 @@ const widths = () => page.evaluate(() => {
     gutter: box('.ws-gutter'),
     side: box('.mf-side'),
     main: box('.mf-main'),
-    desc: (document.querySelector('.ws-body') || {}).dataset?.desc,
+    mode: (document.querySelector('.ws-body') || {}).dataset?.paneMode,
+    foot: box('.ws-foot'),
+    run: !!document.querySelector('#runBtn'),
+    submit: !!document.querySelector('#submitBtn'),
     files: (document.querySelector('.mf') || {}).dataset?.files,
     showDesc: !!document.querySelector('.ws-show-desc')
       && getComputedStyle(document.querySelector('.ws-show-desc')).display !== 'none',
   };
 });
 
-/* ---------------- the description panel ---------------- */
+/* ---------------- either panel, or both ---------------- */
 
-section('the description panel folds away, and the editor gets the room');
+section('either panel can have the window to itself');
 
 await fresh(`#/p/${FLAT}`);
 const open = await widths();
-ok(`it starts open (${open.left}px of statement)`, open.desc === 'true' && open.left > 300);
+ok(`it starts split (${open.left} | ${open.right})`,
+  open.mode === 'split' && open.left > 300 && open.right > 300);
 check('and the Show control is out of the way', open.showDesc, false);
+ok('all three modes are offered',
+  await page.evaluate(() => document.querySelectorAll('.ws-mode-btn').length) === 3);
 
+/* --- code only --- */
 await page.locator('#descHide').click();
 await page.waitForTimeout(350);
-const shut = await widths();
-check('clicking the fold control hides it', shut.desc, 'false');
-check('the statement column is gone entirely', shut.left, 0);
-check('and so is the divider, which now divides nothing', shut.gutter, 0);
-ok(`the editor column took all of it (${open.right} -> ${shut.right}px)`,
-  shut.right >= open.right + open.left + open.gutter - 2);
-check('and there is a visible way back', shut.showDesc, true);
+const codeOnly = await widths();
+check('the fold control gives the window to the code', codeOnly.mode, 'code');
+check('the statement column is gone entirely', codeOnly.left, 0);
+check('and so is the divider, which now divides nothing', codeOnly.gutter, 0);
+ok(`the editor took all of it (${open.right} -> ${codeOnly.right}px)`,
+  codeOnly.right >= open.right + open.left + open.gutter - 2);
+check('and there is a visible way back', codeOnly.showDesc, true);
+ok('Run and Submit are still there', codeOnly.run && codeOnly.submit && codeOnly.foot > 0);
 
 await page.locator('#descShow').click();
 await page.waitForTimeout(350);
-const back = await widths();
-check('which brings it back', back.desc, 'true');
-check('at the width it had', back.left, open.left);
+check('which brings the statement back', (await widths()).mode, 'split');
+check('at the width it had', (await widths()).left, open.left);
 
-/* Alt+D from inside the editor is the case that matters: CodeMirror's
-   surface is contentEditable, and the typing guard in app.js would
-   swallow an unmodified key. */
+/* --- description only --- */
+await page.locator('.ws-mode-btn[data-mode="desc"]').click();
+await page.waitForTimeout(350);
+const descOnly = await widths();
+check('the other direction works too', descOnly.mode, 'desc');
+check('the code column is gone entirely', descOnly.right, 0);
+check('and the divider with it', descOnly.gutter, 0);
+ok(`the statement took the window (${open.left} -> ${descOnly.left}px)`,
+  descOnly.left >= open.left + open.right + open.gutter - 2);
+ok('and Run and Submit are STILL there, under both panels',
+  descOnly.run && descOnly.submit && descOnly.foot > 0);
+
+/* --- never both --- */
+await page.evaluate(() => window.SystemsLab.ProblemView.setPaneMode('nonsense'));
+await page.waitForTimeout(300);
+check('an unknown mode falls back to split rather than to nothing',
+  (await widths()).mode, 'split');
+for (const m of ['desc', 'code', 'split']) {
+  await page.locator(`.ws-mode-btn[data-mode="${m}"]`).click();
+  await page.waitForTimeout(250);
+  const g = await widths();
+  ok(`${m}: at least one panel has width (${g.left} | ${g.right})`,
+    g.left > 0 || g.right > 0);
+  check(`${m}: and the control says so`,
+    await page.evaluate(() => [...document.querySelectorAll('.ws-mode-btn')]
+      .filter(b => b.getAttribute('aria-pressed') === 'true').map(b => b.dataset.mode)),
+    [m]);
+}
+
+/* Alt+D and Alt+E from inside the editor are the cases that matter:
+   CodeMirror's surface is contentEditable, and the typing guard in
+   app.js would swallow an unmodified key. */
 await page.evaluate(() => window.SystemsLab.ProblemTypes.get('code').editor().focus());
 await page.keyboard.press('Alt+d');
 await page.waitForTimeout(300);
-check('Alt+D folds it from inside the editor', (await widths()).desc, 'false');
+check('Alt+D gives the window to the statement', (await widths()).mode, 'desc');
 await page.keyboard.press('Alt+d');
 await page.waitForTimeout(300);
-check('and again brings it back', (await widths()).desc, 'true');
+check('and again splits it', (await widths()).mode, 'split');
+await page.evaluate(() => window.SystemsLab.ProblemTypes.get('code').editor().focus());
+await page.keyboard.press('Alt+e');
+await page.waitForTimeout(300);
+check('Alt+E gives it to the code', (await widths()).mode, 'code');
+await page.keyboard.press('Alt+e');
+await page.waitForTimeout(300);
+check('and again splits it', (await widths()).mode, 'split');
 
-section('and the choice is remembered');
+section('and the choice is remembered, and stays on this page');
 
-await page.locator('#descHide').click();
+await page.locator('.ws-mode-btn[data-mode="code"]').click();
 await page.waitForTimeout(300);
 await page.reload({ waitUntil: 'networkidle' });
 await page.waitForTimeout(2200);
-check('a reload finds it still folded', (await widths()).desc, 'false');
-await go(`#/p/${ONE}`);
-check('a single-file problem has no description to fold here',
-  await page.evaluate(() => !!document.querySelector('#descHide')), true);
-await go(`#/p/${FLAT}`);
-check('and coming back it is still folded', (await widths()).desc, 'false');
-await page.locator('#descShow').click();
-await page.waitForTimeout(300);
+check('a reload finds it still code-only', (await widths()).mode, 'code');
 
-/* ---------------- the explorer ---------------- */
+/* Workspace layout is a property of the workspace. The catalogue and
+   the Learn graph have their own widths and must not inherit a
+   half-collapsed grid from a problem page. */
+await go('#/problems');
+const elsewhere = await page.evaluate(() => ({
+  ws: document.body.dataset.workspace || null,
+  body: !!document.querySelector('.ws-body'),
+  split: getComputedStyle(document.body).getPropertyValue('--split').trim(),
+  list: document.querySelectorAll('#catalogList .prow').length,
+}));
+check('the catalogue is not in workspace mode', elsewhere.ws, null);
+check('and has no collapsed grid on it', elsewhere.body, false);
+check('nor a split fraction leaked onto the body', elsewhere.split, '');
+ok(`and it still lists problems (${elsewhere.list})`, elsewhere.list > 50);
+
+await go(`#/p/${ONE}`);
+check('a single-file problem has the same three modes',
+  await page.evaluate(() => document.querySelectorAll('.ws-mode-btn').length), 3);
+check('and remembers the choice across problems', (await widths()).mode, 'code');
+await page.locator('.ws-mode-btn[data-mode="split"]').click();
+await page.waitForTimeout(300);
+await go(`#/p/${FLAT}`);
 
 section('the explorer collapses and resizes');
 
@@ -347,7 +404,7 @@ await page.waitForTimeout(300);
 await page.evaluate(() => window.SystemsLab.ProblemView.resetLayout());
 await page.waitForTimeout(1600);
 const reset = await widths();
-check('the statement is back', reset.desc, 'true');
+check('both panels are back', reset.mode, 'split');
 check('the explorer is back', reset.files, 'true');
 check('at its shipped width', reset.side, 190);
 const kept = await page.evaluate(() => {

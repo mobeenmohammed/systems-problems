@@ -1538,9 +1538,17 @@ body[data-workspace="true"] .main {
 body[data-workspace="true"] #view-problem,
 body[data-workspace="true"] #problemHost { height: 100%; min-height: 0; }
 
+/* The header, the two panels, and the action bar. The bar is a row of
+   the page rather than the last row of the code column, because the
+   code column can be hidden now and Run cannot. */
 .ws {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  /* Named, because the implicit column would be an `auto` one, and an
+     auto track is sized to its content before it is clipped to its
+     container. The work strip is wider than a 320px phone, so the whole
+     page grew sideways to fit it instead of the strip wrapping. */
+  grid-template-columns: minmax(0, 1fr);
   height: 100%;
   min-height: 0;
 }
@@ -1599,19 +1607,26 @@ body[data-workspace="true"] #problemHost { height: 100%; min-height: 0; }
 .ws-left, .ws-right { display: grid; min-width: 0; min-height: 0; }
 .ws-left { grid-template-rows: auto minmax(0, 1fr); }
 
-/* ---- the statement, folded away ----
+/* ---- one panel, or both ----
 
-   The freed space goes to the editor and nowhere else: the right
-   column is already the `1fr`, so taking the other two tracks to zero
-   is the whole of it. Both the panel and the divider go — a divider
-   with one panel either side of it is a handle for resizing nothing.
+   Three states on one attribute. In each single-panel state the
+   surviving column is the only track with any width, and the divider
+   goes with the panel it was dividing — a handle for resizing nothing
+   is worse than no handle.
 
-   The way back is a button that lives in the work strip permanently
-   and is shown only here, so there is always something on screen
-   saying where the statement went. */
-.ws-body[data-desc="false"] { grid-template-columns: 0 0 minmax(0, 1fr); }
-.ws-body[data-desc="false"] > .ws-left,
-.ws-body[data-desc="false"] > .ws-gutter { display: none; }
+   `splitFraction` is deliberately untouched by any of this, so coming
+   back to Split puts the statement at the width it was dragged to.
+
+   The way back is always on screen: the segmented control in the
+   header, and a button in the work strip for the one case where the
+   header is far from where the reader is looking. */
+.ws-body[data-pane-mode="code"] { grid-template-columns: 0 0 minmax(0, 1fr); }
+.ws-body[data-pane-mode="code"] > .ws-left,
+.ws-body[data-pane-mode="code"] > .ws-gutter { display: none; }
+
+.ws-body[data-pane-mode="desc"] { grid-template-columns: minmax(0, 1fr) 0 0; }
+.ws-body[data-pane-mode="desc"] > .ws-right,
+.ws-body[data-pane-mode="desc"] > .ws-gutter { display: none; }
 /* Placed explicitly, because `display: none` takes an item OUT of the
    grid rather than leaving an empty track behind it. Auto-placement
    then moved the editor into column 1 — which is the zero-width one —
@@ -1619,8 +1634,28 @@ body[data-workspace="true"] #problemHost { height: 100%; min-height: 0; }
 .ws-body > .ws-left   { grid-column: 1; }
 .ws-body > .ws-gutter { grid-column: 2; }
 .ws-body > .ws-right  { grid-column: 3; }
+/* The segmented control. Three buttons in one box with the current one
+   filled, so the state IS the pressed button rather than a label
+   elsewhere describing it. */
+.ws-mode {
+  display: inline-flex; flex: none;
+  border: 1px solid var(--border); border-radius: var(--radius-s);
+  overflow: hidden;
+}
+.ws-mode-btn {
+  appearance: none; border: 0; background: none; cursor: pointer;
+  font: inherit; font-size: .72rem; padding: .25rem .5rem;
+  color: var(--text-faint); white-space: nowrap;
+}
+.ws-mode-btn + .ws-mode-btn { border-left: 1px solid var(--border); }
+.ws-mode-btn:hover { background: var(--bg-elev-2); color: var(--text); }
+.ws-mode-btn[aria-pressed="true"] {
+  background: var(--accent-soft); color: var(--text); font-weight: 600;
+}
+.ws-mode-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
 .ws-show-desc { display: none; }
-.ws-body[data-desc="false"] .ws-show-desc {
+.ws-body[data-pane-mode="code"] .ws-show-desc {
   display: inline-flex; align-items: center;
   appearance: none; border: 0; cursor: pointer;
   background: var(--accent-soft); color: var(--text);
@@ -1642,7 +1677,7 @@ body[data-workspace="true"] #problemHost { height: 100%; min-height: 0; }
    keeps the undo history, the cursor and the scroll position, and
    rebuilding it to glance at the test cases would throw all three away —
    so they share one grid row and only one of them is displayed. */
-.ws-right { grid-template-rows: auto minmax(0, 1fr) auto; }
+.ws-right { grid-template-rows: auto minmax(0, 1fr); }
 .ws-right > .ws-editor, .ws-right > .ws-pane { grid-row: 2; grid-column: 1; }
 .ws-right[data-pane="editor"] > .ws-pane  { display: none; }
 .ws-right[data-pane="result"] > .ws-editor { display: none; }
@@ -1850,6 +1885,18 @@ body[data-workspace="true"] #problemHost { height: 100%; min-height: 0; }
   outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 3px;
 }
 
+/* At phone width the header has more to carry than three words, so the
+   segmented control becomes three glyphs. The accessible name is on the
+   button's own title and the group's aria-label, neither of which is a
+   label anybody can see. */
+@media (max-width: 860px) {
+  .ws-mode-btn { font-size: 0; padding: .3rem .45rem; }
+  .ws-mode-btn::before { font-size: .8rem; }
+  .ws-mode-btn[data-mode="desc"]::before  { content: "\25e7"; }
+  .ws-mode-btn[data-mode="split"]::before { content: "\25a4"; }
+  .ws-mode-btn[data-mode="code"]::before  { content: "\25e8"; }
+}
+
 /* While a drag is in flight nothing else may select, and the resize cursor
    wins everywhere — otherwise it flickers as the pointer crosses the text. */
 [data-dragging] { user-select: none; }
@@ -1891,7 +1938,24 @@ html[data-focus] .rail { display: none; }
 @media (max-width: 900px) {
   body[data-workspace="true"] .main { height: auto; overflow: visible; }
   .ws { height: auto; }
-  .ws-body { grid-template-columns: minmax(0, 1fr); }
+  /* One column — and it has to beat the two pane-mode rules as well
+     as the base one, since an attribute selector outranks this whatever
+     the width. Folding a panel away on a phone is still folding it
+     away; it just has no second column to give the space to. */
+  .ws-body,
+  .ws-body[data-pane-mode="desc"],
+  .ws-body[data-pane-mode="code"] { grid-template-columns: minmax(0, 1fr); }
+  /* And the placements have to be undone with it. `grid-column: 3` is
+     what keeps the editor out of the folded statement's track on a wide
+     screen; left standing here it pins the editor into an implicit
+     third column that the one-column template does not describe, so
+     that column is auto-sized — to the work strip's content, which is
+     wider than a phone. The page then scrolled sideways by the
+     difference, and the statement, pinned to the 1fr column with
+     nothing left to give it, came out at zero. */
+  .ws-body > .ws-left,
+  .ws-body > .ws-gutter,
+  .ws-body > .ws-right { grid-column: 1; }
   .ws-gutter { display: none; }
   .ws-left { grid-template-rows: auto auto; }
   .ws-right { grid-template-rows: auto auto auto; }
