@@ -642,7 +642,7 @@ section('revealing is deliberate, confirmed, and recorded as reviewed');
   let confirmed = false;
   p.on('dialog', async d => { confirmed = true; await d.accept(); });
 
-  await p.locator('.ws-menu summary').click();
+  await p.locator('.ws-menu-more summary').click();
   await p.waitForTimeout(150);
   const revealBtn = p.locator('.ws-menu-body button', { hasText: 'Reveal' });
   ok('Reveal is offered', await revealBtn.count() > 0);

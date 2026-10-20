@@ -152,7 +152,7 @@
         ctx,
         langOf: () => 'verilog',
         lint: false,
-        onSaved: () => noteSaved(),
+        onSaved: (ok, again) => noteSaved(ok, again),
         onRun: () => doRun(),
         onSubmit: () => {
           const btn = document.getElementById('submitBtn');
@@ -181,8 +181,8 @@
       profile: 'standard',
       readOnly: ctx.locked,
       onChange: src => {
-        Store.saveDraft(problem, 'sv', src);
-        noteSaved();
+        const ok = Store.saveDraft(problem, 'sv', src);
+        noteSaved(ok, () => Store.saveDraft(problem, 'sv', src));
       },
       onRun: () => doRun(),
       onSubmit: () => {
@@ -192,18 +192,11 @@
     });
   }
 
-  let savedTimer = null;
-  function noteSaved() {
-    const nodes = [
-      document.getElementById('draftNote') || document.getElementById('draftState'),
-      document.getElementById('oaSave'),
-    ].filter(Boolean);
-    if (!nodes.length) return;
-    for (const n of nodes) { n.textContent = 'Saving…'; n.dataset.state = 'saving'; }
-    clearTimeout(savedTimer);
-    savedTimer = setTimeout(() => {
-      for (const n of nodes) { n.textContent = 'Saved'; n.dataset.state = 'saved'; }
-    }, 400);
+  /* One implementation for every type — see js/savestate.js. What it
+     says now depends on what storage said, rather than on a timer. */
+  function noteSaved(ok = true, again = null) {
+    SaveState.begin();
+    SaveState.settle(ok !== false, { retry: again });
   }
 
   function resetTemplate(scope) {
@@ -971,7 +964,7 @@
       }
       state = null;
       last = null;
-      clearTimeout(savedTimer);
+      SaveState.cancel();
     },
 
     emptyMessage(mount, problem) {

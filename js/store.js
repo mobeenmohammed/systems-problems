@@ -716,12 +716,22 @@ const Store = (() => {
     return draftStore;
   }
 
+  /* Returns whether the write landed. It always had the answer —
+     `save()` has returned a boolean and emitted `storage-error` the
+     whole time — and threw it away, so every caller said "Saved"
+     with the same confidence on a browser with no room left as on one
+     with plenty. See js/savestate.js for what reads it.
+
+     The assessment store is a map in memory with a write-through
+     behind it: the synchronous half cannot fail, and the durable half
+     reports itself through its own promise, so `true` here is the
+     honest answer rather than an optimistic one. */
   function saveDraft(problem, lang, source) {
     const id = problem && problem.id ? problem.id : problem;
-    if (draftStore) { draftStore.set(id, lang, String(source)); return; }
+    if (draftStore) { draftStore.set(id, lang, String(source)); return true; }
     const r = touch(problem);
     r.draft[lang] = String(source);
-    save();
+    return save();
   }
 
   const draft = (id, lang) => (draftStore

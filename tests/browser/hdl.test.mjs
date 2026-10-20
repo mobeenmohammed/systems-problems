@@ -161,9 +161,13 @@ section('the hardware workspace');
     top: [...document.querySelectorAll('.editor-head span')].map(s => s.textContent.trim()),
   }));
   check('it owns the window like a coding exercise', shape.workspace, 'true');
-  check('the design, two testbenches, results, waveforms, submissions and compiler output',
+  /* Search files sits before Results: a hardware exercise has the
+     design and the sample testbench on screen, which is more than one
+     file, so searching across them means something. */
+  check('the design, two testbenches, search, results, waveforms, submissions and compiler output',
     shape.tabs,
-    ['Design', 'Sample testbench', 'My testbench', 'Results', 'Waveforms', 'Submissions', 'Compiler output']);
+    ['Design', 'Sample testbench', 'My testbench', 'Search files', 'Results',
+      'Waveforms', 'Submissions', 'Compiler output']);
   check('Run says what it does', shape.run.trim(), 'Run simulation');
   ok('there is an editor', shape.editor);
   ok(`the top module is named (${shape.top.join(' ')})`,

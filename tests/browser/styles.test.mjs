@@ -133,6 +133,10 @@ const sources = [read('index.html'), ...[
   /* The hardware exercises: the type, and the waveform viewer, which
      builds its own chrome rather than being handed markup. */
   'js/types/hdl.js', 'js/hdl/wave.js',
+  /* The save row, which grows two buttons of its own when a write is
+     refused and so is the only other place that applies a class
+     nothing else mentions. */
+  'js/savestate.js',
 ].map(read)].join('\n');
 
 /* Candidates come from the obvious forms; membership is then decided by plain
@@ -163,6 +167,12 @@ for (const m of sources.matchAll(/class(?:Name)?\s*[:=]\s*(['"`])([^'"`]*)\1/g))
 }
 for (const m of sources.matchAll(/classList\.(?:add|remove|toggle|contains)\((['"])([^'"]+)\1/g)) {
   appliedCandidates.add(m[2]);
+}
+/* `node.className = 'save-act'` — a blind spot until js/savestate.js
+   built its buttons out of raw DOM rather than through el(). Several
+   classes in one literal, as the attribute form allows. */
+for (const m of sources.matchAll(/\.className\s*=\s*(['"])([a-z][\w- ]*)\1/gi)) {
+  for (const cls of m[2].trim().split(/\s+/)) appliedCandidates.add(cls);
 }
 /* `cls = 'hl-' + kind`, `' action-' + tone` — the leading space is part of the
    literal in the second one, so it is allowed for rather than assumed away. */

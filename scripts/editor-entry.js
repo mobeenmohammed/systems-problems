@@ -2,8 +2,15 @@
 
    Only what the site actually uses is pulled in, so the bundle is the size of
    the feature set rather than the size of the library. Deliberately NOT
-   included: the search panel, code folding, rectangular selection, and
-   tooltips.
+   included: code folding, rectangular selection, and tooltips.
+
+   The search package is in now. Find and replace inside the file you are
+   looking at is the single most asked-for thing a code editor does, and
+   writing a second one over the top of CodeMirror's document would be
+   writing a worse one. It brings `gotoLine` with it, and a `SearchCursor`
+   that the workspace-wide search in js/wssearch.js counts matches with —
+   over the same document model, so a result it offers is a position the
+   editor can actually be sent to.
 
    Autocompletion used to be on that list. It is in now, because C++ without
    it is a worse place to write C++ than anywhere else these problems might
@@ -25,7 +32,15 @@ import {
 } from '@codemirror/view';
 import {
   defaultKeymap, history, historyKeymap, indentWithTab, undo, redo,
+  indentMore, indentLess, toggleComment,
 } from '@codemirror/commands';
+/* `search` is the extension (it holds the panel and the query state),
+   `searchKeymap` the bindings, and the rest are commands a menu item can
+   call so that none of this is reachable only by shortcut. */
+import {
+  search, searchKeymap, openSearchPanel, closeSearchPanel, searchPanelOpen,
+  gotoLine, highlightSelectionMatches, SearchCursor,
+} from '@codemirror/search';
 import {
   syntaxHighlighting, HighlightStyle, indentUnit, bracketMatching, StreamLanguage,
 } from '@codemirror/language';
@@ -83,6 +98,9 @@ export default {
   keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter,
   highlightSpecialChars, drawSelection, dropCursor,
   defaultKeymap, history, historyKeymap, indentWithTab, undo, redo,
+  indentMore, indentLess, toggleComment,
+  search, searchKeymap, openSearchPanel, closeSearchPanel, searchPanelOpen,
+  gotoLine, highlightSelectionMatches, SearchCursor,
   syntaxHighlighting, indentUnit, bracketMatching,
   closeBrackets, closeBracketsKeymap,
   autocompletion, completionKeymap, startCompletion,

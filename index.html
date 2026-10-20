@@ -871,6 +871,17 @@
 <script src="js/editor.js"></script>
 <script src="js/types/registry.js"></script>
 <script src="js/filepane.js"></script>
+<!-- What the reader can see, worked out once so that Quick Open,
+     workspace search and the ZIP download cannot disagree about it.
+     After filepane.js, whose explorer it reads; before the type
+     modules, which is who registers the panes it asks. -->
+<script src="js/wsfiles.js"></script>
+<script src="js/wssearch.js"></script>
+<script src="js/wszip.js"></script>
+<script src="js/wsdiff.js"></script>
+<!-- Saying whether the draft actually saved. After wszip.js, whose
+     download is the way out it offers when it did not. -->
+<script src="js/savestate.js"></script>
 <script src="js/types/mcq.js"></script>
 <script src="js/types/numeric.js"></script>
 <script src="js/types/order.js"></script>

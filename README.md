@@ -2519,10 +2519,31 @@ scripts/check-responsive.mjs  both themes, ten widths, four root font sizes
 | `Ctrl+Enter` | Run the tests (in a code problem) |
 | `Ctrl+Shift+Enter` | Submit |
 
-In the workspace, the panel divider is in the tab order: arrow keys move it,
-`Shift` moves it faster, `Home` and `End` go to the limits, and `Enter` resets
-it. A separator only a mouse can move is one half the people using a page
-cannot.
+In a workspace:
+
+| Key | Action |
+| --- | --- |
+| `Alt+D` | The statement alone, full width — or back to the split |
+| `Alt+E` | The editor alone, full width — or back to the split |
+| `Alt+B` | Show or hide the file explorer |
+| `Alt+P` | Open a file by name |
+| `Ctrl+F` | Find and replace in this file |
+| `F3` / `Ctrl+G` | Find again |
+| `Ctrl+Alt+G` | Go to line |
+| `Ctrl+]` / `Ctrl+[` | Indent, outdent |
+| `Ctrl+/` | Toggle line comment |
+| `Alt+Z` | Word wrap |
+
+All of those are also rows in the ⌨ menu beside the breadcrumbs, because a
+shortcut nobody has been told about is a feature nobody has, and a tablet has
+no Ctrl key. `Ctrl+D` and `Ctrl+Shift+L` are deliberately *not* bound — the
+browser is using the first of them. `Ctrl+F` is bound and stays bound: a
+browser find searches the rendered viewport, and CodeMirror has not drawn the
+lines below the fold.
+
+The panel divider is in the tab order: arrow keys move it, `Shift` moves it
+faster, `Home` and `End` go to the limits, and `Enter` resets it. A separator
+only a mouse can move is one half the people using a page cannot.
 
 ## How data is stored
 
@@ -2536,6 +2557,12 @@ different ones.
 | `invariant/state/v1` | progress, XP, coins, what you own, your drafts, and the **verdicts** of the last ten submissions per problem | the thing worth keeping; the drafts are here because the editor reads them on mount and writes them on every keystroke, and both have to be synchronous |
 | `invariant/judge-url` and `/judge-token` | where the runner listens, and its token | properties of the machine, not of your progress, so they never travel in an export |
 | `invariant/ui/v1` | the panel split, focus mode, the per-track graph view | per-device view preferences; a bad value here can never cost a solve |
+
+Whether a write landed is now shown rather than assumed. The row beside
+Submit reads what `Store.save()` returned: `Saving…`, then `Saved on
+this device`, or `Could not save` with a retry and a download beside it.
+"On this device" is the whole of it — there is no account and nothing is
+synchronised. See `js/savestate.js`.
 
 **IndexedDB**, through `js/vault.js`, for what is large and can be
 asynchronous:

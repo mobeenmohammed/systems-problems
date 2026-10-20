@@ -188,9 +188,165 @@ arrow keys walk the tree, Left folds or goes to the parent, Right
 unfolds, and Enter opens a file. `Alt+B` toggles the explorer from
 anywhere, including from inside the editor.
 
-The problem statement beside it folds away too, with `Alt+D` or the
-control at the end of its tab strip, and the freed width goes to the
-editor. Reset layout puts all of it back and leaves every draft alone.
+Either panel folds away: the segmented control in the header offers
+Description, Split and Code, `Alt+D` and `Alt+E` toggle their own panel
+between "alone" and "both", and whichever panel survives takes the whole
+window. Both hidden is not one of the states. The split fraction is
+untouched by folding, so coming back to Split finds the statement at the
+width it was dragged to. Run, Submit and Reset sit under both panels
+rather than inside the code column, so hiding the code does not hide
+them. Reset layout puts all of it back and leaves every draft alone.
+
+## Which file you are in
+
+A strip under the tabs names the file the editor is showing: each
+directory in the path is a button that reveals it in the explorer, the
+filename is the last step, and a file the exercise supplied carries a
+`given` tag. A single-file exercise gets the strip too, with the name
+its compiler uses — `main.cpp`, `main.rs`, `main.py`, `design.sv` — so a
+diagnostic that names a file is naming something the reader has seen.
+
+`Alt+P` opens a file by name. It matches a substring of the path first
+and a subsequence second, so `cch` finds `include/cache.hpp`. It is
+offered only where there is more than one file.
+
+## The editing tools
+
+The vendored CodeMirror bundle carries `@codemirror/search`, so find and
+replace is the library's own panel over the whole document rather than a
+second one written over the top of it. The keys, all scoped to the
+editor:
+
+| | |
+|---|---|
+| `Ctrl+F` | find and replace in this file |
+| `F3` / `Ctrl+G` | find again |
+| `Ctrl+Alt+G` | go to line |
+| `Ctrl+]` / `Ctrl+[` | indent, outdent |
+| `Ctrl+/` | toggle line comment |
+| `Alt+Z` | word wrap |
+
+Two bindings the search package offers were dropped: `Ctrl+D` (select
+next occurrence) and `Ctrl+Shift+L` (select all occurrences). Neither
+was asked for, and `Ctrl+D` is how a browser bookmarks a page. `Ctrl+F`
+*is* taken, and keeps being taken: a browser find searches the rendered
+viewport, and CodeMirror has not drawn the lines below the fold, so
+inside the editor the browser's one is the broken one.
+
+Every key is also a row in the ⌨ menu beside the breadcrumbs, because a
+shortcut nobody has been told about is a feature nobody has, and a
+tablet has no Ctrl key. All of these are syntactic: they know where a
+line starts and what the language's comment token is. There is no symbol
+index, no go-to-definition and no IntelliSense, and the menu says so.
+
+## Searching every file
+
+The "Search files" tab, on any workspace with more than one file. Plain
+text, grouped by filename, with case-sensitivity and whole-word
+switches; clicking a result opens that file at that line and column.
+Read-only files are searched and labelled, because the thing you
+half-remember is quite likely in the interface the exercise gave you.
+
+What it searches is whatever `js/wsfiles.js` says is on screen, and that
+module is the point: Quick Open, the search and the ZIP download all ask
+it the same question, so they cannot disagree about the answer. It is
+built from sources that are visible by construction — `payload.files`
+for a workspace, the design and the *sample* testbench for hardware, the
+one document otherwise — rather than from everything filtered
+afterwards. The grading harness and the reference design live under
+`key` in the solution file and are not files in any workspace, so there
+is no path from the search to them. `tests/browser/editing.test.mjs`
+checks that by pulling a line that exists only in the grading harness,
+typing it into the search, and expecting nothing.
+
+There is no replace-across-files, deliberately. One typo applied to five
+files, in editors with separate undo histories, is a bad afternoon;
+`Ctrl+F` inside a file replaces within it.
+
+## Comparing two versions
+
+The Submissions tab compares any two saved submissions, or a submission
+against what is in the editor now. `js/wsdiff.js` is a line diff — LCS
+over lines, with the identical ends stripped first and long unchanged
+runs folded into a gap — and for a workspace it runs per file, naming
+the files that differ and reporting an added or deleted file as that
+rather than as a file whose every line changed.
+
+It compares and never writes. The draft, the editor and the stored
+submissions are untouched by opening it, which is deliberate: a
+comparison a reader is afraid to click is one they will not use.
+Restoring is the separate **Load into the editor** button inside a
+submission's own row, and it still asks first, because the draft it
+would replace is the only copy of that draft.
+
+A submission saved before programs were kept whole, or whose program
+could not be written to storage, has nothing to compare. Those are
+listed, labelled *no code kept*, and cannot be picked — rather than
+appearing as an empty diff, which would read as "you changed nothing".
+
+The draft side is what a submission of the draft *would* contain, not
+everything on screen: the sample testbench and the reader's own
+testbench are visible and are not part of a submission, so counting
+them would report two deleted files on every comparison of a hardware
+exercise.
+
+## Downloading your code
+
+**Download your code…** in the ⋯ menu writes a ZIP of the workspace,
+at the relative paths the explorer shows, plus a `README.txt`.
+
+`js/wszip.js` is about eighty lines: CRC-32, local headers, a central
+directory, and STORE rather than deflate. A workspace here is a few
+kilobytes of source, so the saving would be invisible, and a deflate
+implementation is a thing that can be subtly wrong in a file somebody
+only opens months later when they want their work back. The archive is
+read back by `tests/browser/versions.test.mjs` with a reader that is
+not the writer, and checked against a real `unzip` by hand.
+
+The README names every file and its role, says how to build the thing
+locally, and says where the browser differs — `-fno-exceptions` is on
+in the browser and not in the g++ line; the browser runs under WASI
+with no network and an empty filesystem; a local rustc differs in
+backend and panic behaviour from the Cranelift build in the tab. Where
+no local command has been checked for a language, it says so instead of
+printing one that might not work. It is plain ASCII, because a `.txt`
+lands on whatever machine the reader is on.
+
+What goes in is `WsFiles.visible()` and nothing else, so the reference
+solution, the grading harness and the hidden cases are not excluded by
+a rule somebody could forget — there is no path from the ZIP writer to
+them. The README says they are absent and where to find the ones the
+reader is entitled to.
+
+There is no ZIP *import*. A workspace is the set of files the problem
+defines; accepting an arbitrary archive would make that untrue.
+
+## Did it actually save?
+
+`js/savestate.js`, which replaced three debounced timers that each
+wrote "Saved" four hundred milliseconds after a keystroke without
+looking at whether the write had worked. `Store.save()` has returned a
+boolean and emitted `storage-error` the whole time; `Store.saveDraft()`
+now returns it, and the row beside Submit reads it:
+
+| | |
+|---|---|
+| `Saving…` | a write is in flight |
+| `Saved on this device` | the write returned true |
+| `Could not save` | it did not |
+
+"On this device" is the whole truth about it: there is no account and
+nothing is synchronised, so a different browser, a private window or
+cleared site data is a different set of drafts. The tooltip says so.
+
+On failure the editor keeps every character — nothing in that path
+touches the document — and the row grows two buttons: **Try again**,
+which re-runs the same write and reports what it says this time, and
+**Download it**, which is the one route out that does not depend on the
+storage that just refused. The sentence is said once per burst rather
+than once per write: a draft is saved on every keystroke, so a full
+quota used to put one toast on screen per character typed, over the
+editor the reader was trying to rescue work from.
 
 ## What is deliberately not here
 

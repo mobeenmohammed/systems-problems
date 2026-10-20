@@ -33,7 +33,7 @@
    with the gutter inside it, so the alignment cannot drift and
    the horizontal scrollbar is at the bottom by construction.
 
-   The cost is a 669 KB vendored bundle, which is why it is
+   The cost is a 730 KB vendored bundle, which is why it is
    vendored rather than fetched: this site is meant to work on a
    laptop with no network. The site still has no build step —
    the bundle is committed, and scripts/build-editor.mjs is run
@@ -52,6 +52,12 @@ const Editor = (() => {
   const INDENT = '  ';
   const FONT_SIZES = [12, 13, 14, 16, 18];
   const DEFAULT_FONT = 14;
+
+  /* Wrapping is a reading preference, not a property of one file, so it
+     is shared by every editor on the page exactly as the font size is.
+     Off by default: these are mostly short lines, and a wrapped line
+     makes the line numbers lie about where you are. */
+  const wrapOn = () => Store.pref('editorWrap', false) === true;
 
   const ready = () => typeof window !== 'undefined' && !!window.CM;
 
@@ -85,6 +91,9 @@ const Editor = (() => {
       keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter,
       highlightSpecialChars, drawSelection, dropCursor,
       defaultKeymap, history, historyKeymap, indentWithTab, undo, redo,
+      indentMore, indentLess, toggleComment,
+      search, searchKeymap, openSearchPanel, closeSearchPanel, searchPanelOpen,
+      gotoLine, highlightSelectionMatches,
       syntaxHighlighting, indentUnit, bracketMatching,
       closeBrackets, closeBracketsKeymap,
       autocompletion, completionKeymap,
@@ -106,6 +115,7 @@ const Editor = (() => {
     const editable = new Compartment();
     const theming = new Compartment();
     const completions = new Compartment();
+    const wrapping = new Compartment();
 
     const host = document.createElement('div');
     host.className = 'ed';
@@ -214,6 +224,51 @@ const Editor = (() => {
       '.cm-completionMatchedText': {
         color: 'var(--accent)', textDecoration: 'none', fontWeight: '600',
       },
+
+      /* The find panel. CodeMirror ships a serviceable one and styles it
+         for its own themes, which here meant a strip of browser-default
+         grey across the top of an editor that is otherwise the page's
+         colours. Only the surface, the fields and the buttons are
+         restated; the behaviour is untouched. */
+      '.cm-panels': { backgroundColor: 'var(--bg-elev)', color: 'var(--text)' },
+      '.cm-panels.cm-panels-top': { borderBottom: '1px solid var(--border)' },
+      '.cm-panels.cm-panels-bottom': { borderTop: '1px solid var(--border)' },
+      '.cm-panel.cm-search': {
+        padding: '.4rem .5rem', fontFamily: 'var(--font)', fontSize: '.8rem',
+      },
+      '.cm-panel.cm-search input, .cm-panel.cm-search button, .cm-panel.cm-search label': {
+        fontFamily: 'inherit', fontSize: 'inherit',
+      },
+      '.cm-panel.cm-search input[type=text]': {
+        backgroundColor: 'var(--bg-inset)', color: 'var(--text)',
+        border: '1px solid var(--border)', borderRadius: 'var(--radius-s)',
+        padding: '.2rem .4rem', minWidth: '9rem',
+      },
+      '.cm-panel.cm-search input[type=text]:focus-visible': {
+        outline: '2px solid var(--accent)', outlineOffset: '-1px',
+      },
+      '.cm-panel.cm-search button:not([name=close])': {
+        backgroundColor: 'var(--bg-elev-2)', backgroundImage: 'none',
+        color: 'var(--text-dim)', border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-s)', padding: '.2rem .5rem', cursor: 'pointer',
+      },
+      '.cm-panel.cm-search button:not([name=close]):hover': { color: 'var(--text)' },
+      '.cm-panel.cm-search button[name=close]': {
+        color: 'var(--text-faint)', cursor: 'pointer',
+        /* The default is a 30px-wide absolutely positioned x that lands
+           on top of the last button on a narrow panel. */
+        padding: '0 .4rem', fontSize: '1rem',
+      },
+      '.cm-panel.cm-search label': { color: 'var(--text-dim)' },
+      '.cm-searchMatch': {
+        backgroundColor: 'color-mix(in srgb, var(--warn) 35%, transparent)',
+      },
+      '.cm-searchMatch.cm-searchMatch-selected': {
+        backgroundColor: 'color-mix(in srgb, var(--accent) 45%, transparent)',
+      },
+      '.cm-selectionMatch': {
+        backgroundColor: 'color-mix(in srgb, var(--accent) 16%, transparent)',
+      },
     }, { dark: true });
 
     const view = new EditorView({
@@ -231,6 +286,12 @@ const Editor = (() => {
           bracketMatching(),
           closeBrackets(),
           completions.of(completion(currentLang)),
+          wrapping.of(wrapOn() ? EditorView.lineWrapping : []),
+          /* `top: true` puts the panel above the code rather than over
+             the horizontal scrollbar at the bottom, where it covered the
+             last line of a file that happened to end at the fold. */
+          search({ top: true }),
+          highlightSelectionMatches(),
           lintGutter(),
           indentUnit.of(INDENT),
           EditorState.tabSize.of(2),
@@ -257,6 +318,23 @@ const Editor = (() => {
                popup, and Escape closes the popup before anything else
                claims it. */
             ...completionKeymap,
+            /* Find, find-again and go-to-line — minus two bindings.
+
+               `Mod-d` (select next occurrence) and `Mod-Shift-l` (select
+               all occurrences) are multi-cursor conveniences nobody asked
+               for here, and Ctrl+D is how a browser bookmarks a page. A
+               shortcut that quietly stops the browser doing its own job
+               has to earn it; these two do not.
+
+               `Mod-f` does shadow the browser's find, and keeps it: a
+               find that searched the rendered viewport would miss every
+               line CodeMirror has not drawn, so inside the editor it
+               would be the broken one. It is only bound while the editor
+               has focus, the panel says Escape closes it, and the
+               browser's own find is a click away in the statement. */
+            ...searchKeymap.filter(b => !['Mod-d', 'Mod-Shift-l'].includes(b.key)),
+            /* Alt+Z, as every other editor spells it. */
+            { key: 'Alt-z', preventDefault: true, run: () => { setWrap(!wrapOn()); return true; } },
             ...defaultKeymap,
             ...historyKeymap,
             /* Tab indents rather than leaving the editor. Escape then Tab
@@ -369,6 +447,20 @@ const Editor = (() => {
       view.focus();
     }
 
+    /* Shared by every editor on the page, so flipping it in one file of
+       a workspace flips it in the file you open next — the alternative
+       is a setting that appears to have been forgotten. The others are
+       told by re-reading the preference when they are built; this one is
+       reconfigured live because it is the one you are looking at. */
+    function setWrap(on) {
+      Store.setPref('editorWrap', !!on);
+      view.dispatch({
+        effects: wrapping.reconfigure(on ? EditorView.lineWrapping : []),
+      });
+      view.requestMeasure();
+      return !!on;
+    }
+
     /* Nothing is marked up until a compiler has said something. */
     if (opts.lint) setDiagnostics([], null);
 
@@ -435,6 +527,26 @@ const Editor = (() => {
       },
       focus: () => view.focus(),
       goToLine,
+
+      /* ---- the editing tools, as commands ----
+
+         Every one of these is already on a key. They are on the handle
+         as well so the shortcuts menu can be a menu rather than a list
+         of things to memorise, and so a reader on a tablet with no
+         modifier keys is not locked out of them.
+
+         All of them are syntactic. `toggleComment` knows where a line
+         starts and what the language's comment token is; it does not
+         know what the line means. */
+      find: () => { openSearchPanel(view); },
+      closeFind: () => { closeSearchPanel(view); view.focus(); },
+      get finding() { return searchPanelOpen(view.state); },
+      promptLine: () => { gotoLine(view); },
+      indent: () => { indentMore(view); view.focus(); },
+      outdent: () => { indentLess(view); view.focus(); },
+      comment: () => { toggleComment(view); view.focus(); },
+      get wrap() { return wrapOn(); },
+      setWrap,
       /* Panel resizing and zoom: CodeMirror measures lazily, so it is told to
          re-measure rather than left to notice. */
       refresh: () => view.requestMeasure(),
@@ -504,6 +616,20 @@ const Editor = (() => {
       get fontSize() { return fontSize(); },
       setFontSize(px) { Store.setPref('editorFontSize', px); area.style.fontSize = `${px}px`; return px; },
       focus: () => area.focus(),
+      /* The textarea fallback has the browser's own find, its own
+         wrapping and no notion of a comment token. These keep the shape
+         of the handle so callers need no branch; the menu reads
+         `backend` and leaves the rows out rather than offering a
+         button that does nothing. */
+      find: () => {},
+      closeFind: () => {},
+      get finding() { return false; },
+      promptLine: () => {},
+      indent: () => {},
+      outdent: () => {},
+      comment: () => {},
+      get wrap() { return true; },
+      setWrap: () => true,
       goToLine(line) {
         const lines = area.value.split('\n');
         let at = 0;

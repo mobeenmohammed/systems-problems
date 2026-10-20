@@ -342,6 +342,12 @@ const ProblemView = (() => {
     solution = null;
     myRun = null;
     myNote = '';
+    /* A search for `evict` is a question about the exercise it was
+       typed into. Carrying it to the next one would open that pane
+       already showing an answer to somebody else's question; the two
+       switches are a preference about matching and do carry over. */
+    searchState.query = '';
+    closeQuickOpen();
 
     host.replaceChildren(el('p', { class: 'muted', text: 'Loading…' }));
 
@@ -589,7 +595,15 @@ const ProblemView = (() => {
      next one that needs a different strip needs nothing here. */
   function workTabs() {
     const impl = current && ProblemTypes.get(current.type);
-    return (impl && impl.TABS) || WORK_TABS;
+    const own = (impl && impl.TABS) || WORK_TABS;
+    /* Searching every file only means something when there is more
+       than one. On a single-file exercise Ctrl+F in the editor IS
+       searching the workspace, and a tab beside it would be a second
+       answer to a question that has one. */
+    if (!current || !WsFiles.many(current)) return own;
+    const at = own.findIndex(t => t.id === 'results');
+    const tab = { id: 'search', label: 'Search files' };
+    return at < 0 ? [...own, tab] : [...own.slice(0, at), tab, ...own.slice(at)];
   }
 
   /* Which types own the window: an editor and a result pane side by
@@ -917,6 +931,15 @@ const ProblemView = (() => {
       isWorkspace(p) ? el('div', {}, [
         el('hr', { class: 'ws-menu-rule' }),
         el('button', {
+          class: 'btn btn-sm btn-ghost', type: 'button', id: 'downloadZipBtn',
+          title: 'Every file you can see, as a ZIP, with a README',
+          onclick: () => downloadWorkspace(),
+        }, ['Download your code…']),
+        el('p', { class: 'tiny faint', style: 'margin:.3rem 0 0',
+          text: 'The files on screen and a README. Not the reference '
+            + 'solution, and not the cases Submit runs.' }),
+        el('hr', { class: 'ws-menu-rule' }),
+        el('button', {
           class: 'btn btn-sm btn-ghost', type: 'button', id: 'resetLayoutBtn',
           title: 'Panel sizes and editor font back to their defaults',
           onclick: () => resetLayout(),
@@ -926,7 +949,10 @@ const ProblemView = (() => {
       ]) : null,
     ]);
 
-    return el('details', { class: 'ws-menu' }, [
+    /* `ws-menu-more` as well as `ws-menu`, because there are two
+       disclosure menus on a workspace now and "the menu" is no longer
+       a thing anybody — or any selector — can point at. */
+    return el('details', { class: 'ws-menu ws-menu-more' }, [
       el('summary', { class: 'btn btn-sm btn-ghost', title: 'Scoring, reveal, revisit' }, ['⋯']),
       items,
     ]);
@@ -960,6 +986,7 @@ const ProblemView = (() => {
        Only one of the two is visible at a time — see .ws-right[data-pane]. */
     const right = el('section', { class: 'ws-right', 'data-pane': workTab === 'editor' ? 'editor' : 'result' }, [
       workStrip(),
+      crumbBar(),
       el('div', { class: 'ws-editor', id: 'wsEditor' }),
       el('div', { class: 'ws-pane', id: 'resultPane' }),
     ]);
@@ -983,6 +1010,8 @@ const ProblemView = (() => {
       if (!slot || !bar) return;
       mountAnswer(slot, bar);
       fillResultPane(wrap.querySelector('#resultPane'));
+      /* Only now is there an editor to ask which file it is showing. */
+      paintCrumbs(wrap);
       applySplit();
       const ed = codeEditor();
       if (ed) ed.refresh();
@@ -1008,6 +1037,467 @@ const ProblemView = (() => {
       onclick: () => setPaneMode('split'),
     }, ['» Show description']));
     return strip;
+  }
+
+  /* ---------------- taking it with you ----------------
+
+     A ZIP of what is on screen, at the paths the explorer shows, with
+     a README that says what each file is for and how to build it
+     where that has been checked. js/wszip.js does the work; this is
+     the button, and the sentence that is said afterwards.
+
+     It reads WsFiles, so it cannot reach a grading testbench or a
+     reference solution: see the note at the top of js/wsfiles.js. */
+  function downloadWorkspace() {
+    if (!current || !isWorkspace(current)) return null;
+    let out = null;
+    try {
+      out = WsZip.download(current);
+    } catch (err) {
+      UI.toast(`The download failed: ${(err && err.message) || err}`, 'bad');
+      return null;
+    }
+    if (!out) {
+      UI.toast('There is nothing to download yet — the editor has not loaded.', 'info');
+      return null;
+    }
+    const n = out.files.length;
+    UI.toast(`${out.name} — ${n} ${n === 1 ? 'file' : 'files'}, including a README.`, 'good');
+    return out;
+  }
+
+  /* ---------------- the file you are in ----------------
+
+     A strip under the tabs saying which file the editor is showing,
+     and whose it is. On a single-file exercise it is one name and
+     still worth the row: `main.cpp` is what the compiler's errors are
+     about, and a reader who has never been told that name has to
+     guess the diagnostic is talking about the box in front of them.
+
+     Each directory in the path is a button that reveals it in the
+     explorer, which is the one thing a breadcrumb can usefully do in
+     a workspace that has no navigation of its own. */
+
+  function activeFileInfo() {
+    if (!current) return null;
+    const impl = ProblemTypes.get(current.type);
+    if (!impl) return null;
+    const files = WsFiles.visible(current);
+    if (!files.length) return null;
+    const want = impl.activeFile && impl.activeFile();
+    return files.find(f => f.path === want) || files[0];
+  }
+
+  /* The three kinds of file a reader can be looking at that are not
+     simply theirs. Each tag is a word and a sentence: the word fits on
+     the strip, the sentence is the title. */
+  const ROLE_TAG = {
+    given: ['given', 'Supplied by the exercise and read-only'],
+    'sample-tb': ['sample', 'The sample testbench. Submit uses a different one'],
+    mine: ['yours', 'Your own testbench. Never graded'],
+  };
+
+  function crumbBar() {
+    const bar = el('div', { class: 'ws-crumbs', id: 'wsCrumbs' }, [
+      el('nav', {
+        class: 'ws-crumb-path', id: 'wsCrumbPath',
+        'aria-label': 'Which file the editor is showing',
+      }),
+      el('div', { class: 'ws-crumb-tools' }, [
+        WsFiles.many(current) ? el('button', {
+          class: 'btn btn-sm btn-ghost', type: 'button', id: 'quickOpenBtn',
+          title: 'Open a file by name (Alt+P)',
+          onclick: () => openQuickOpen(),
+        }, ['Open…']) : null,
+        editingMenu(),
+      ]),
+    ]);
+    return bar;
+  }
+
+  /* Repainted rather than rebuilt. The strip is a sibling of the
+     editor, so rebuilding the editor's row would not touch it — and
+     the file it names changes whenever a row in the explorer is
+     clicked, which the explorer has no reason to know about. */
+  function paintCrumbs(root = null) {
+    const where = root || host;
+    const bar = where && where.querySelector ? where.querySelector('#wsCrumbs') : null;
+    if (!bar) return;
+    const path = bar.querySelector('#wsCrumbPath');
+    if (!path) return;
+    const file = activeFileInfo();
+    if (!file) { path.replaceChildren(); return; }
+
+    const impl = ProblemTypes.get(current.type);
+    const pane = impl && impl.pane ? impl.pane() : null;
+    const parts = file.path.split('/');
+    const kids = [];
+    let walked = '';
+    parts.forEach((part, i) => {
+      walked = walked ? `${walked}/${part}` : part;
+      if (i) kids.push(el('span', { class: 'ws-crumb-sep', 'aria-hidden': 'true', text: '›' }));
+      if (i === parts.length - 1) {
+        kids.push(el('span', { class: 'ws-crumb-leaf mono', text: part }));
+        return;
+      }
+      const dir = walked;
+      kids.push(el('button', {
+        class: 'ws-crumb-dir mono', type: 'button',
+        title: `Show ${dir} in the explorer`,
+        onclick: () => { if (pane && pane.revealDir) pane.revealDir(dir); },
+      }, [part]));
+    });
+    const tag = ROLE_TAG[file.role];
+    if (tag) kids.push(el('span', { class: 'ws-crumb-tag', title: tag[1], text: tag[0] }));
+    path.replaceChildren(...kids);
+  }
+
+  /* ---------------- the editing tools ----------------
+
+     Every one of these is a CodeMirror command already on a key. The
+     menu exists because a shortcut nobody has been told about is a
+     feature nobody has, and because a tablet has no Ctrl key.
+
+     All of them are syntactic. They know where a line begins and what
+     the language's comment token is; none of them knows what the code
+     MEANS. There is no symbol index and no IntelliSense here, and the
+     menu says so rather than letting the names imply otherwise. */
+
+  const KEY = (() => {
+    const plat = (typeof navigator !== 'undefined' && navigator.platform) || '';
+    const mac = /Mac|iP(hone|ad|od)/.test(plat);
+    return { mod: mac ? '⌘' : 'Ctrl', alt: mac ? '⌥' : 'Alt' };
+  })();
+
+  /* Filled when it is first opened, not when the page is drawn: at
+     draw time the editor has not been mounted yet, so every question
+     about it — is it CodeMirror, is wrap on — would be answered from
+     nothing and the menu would come out empty. */
+  function editingMenu() {
+    const body = el('div', { class: 'ws-menu-body ws-keys' });
+    const menu = el('details', { class: 'ws-menu ws-menu-keys' }, [
+      el('summary', {
+        class: 'btn btn-sm btn-ghost', title: 'Editing tools and shortcuts',
+        'aria-label': 'Editing tools and shortcuts',
+      }, ['⌨']),
+      body,
+    ]);
+    menu.addEventListener('toggle', () => {
+      if (menu.open) fillEditingMenu(body);
+    });
+    return menu;
+  }
+
+  function fillEditingMenu(body) {
+    const ed = codeEditor();
+    /* The textarea fallback has the browser's own find, its own
+       wrapping and no notion of a comment token. Rows that would do
+       nothing are left out rather than offered and ignored. */
+    const full = !!ed && ed.backend === 'codemirror';
+
+    const row = (label, keys, onclick, title = '') => el('button', {
+      class: 'ws-key-row', type: 'button', title, onclick,
+    }, [
+      el('span', { class: 'ws-key-what', text: label }),
+      el('span', { class: 'ws-key-combo mono', text: keys }),
+    ]);
+
+    const wrapRow = () => {
+      const node = el('button', {
+        class: 'ws-key-row', type: 'button',
+        'aria-pressed': String(!!(ed && ed.wrap)),
+      }, [
+        el('span', { class: 'ws-key-what' }, [
+          'Word wrap ', el('span', { class: 'ws-key-on', text: (ed && ed.wrap) ? 'on' : 'off' }),
+        ]),
+        el('span', { class: 'ws-key-combo mono', text: `${KEY.alt}+Z` }),
+      ]);
+      node.addEventListener('click', () => {
+        const live = codeEditor();
+        if (!live) return;
+        const on = live.setWrap(!live.wrap);
+        node.setAttribute('aria-pressed', String(on));
+        const mark = node.querySelector('.ws-key-on');
+        if (mark) mark.textContent = on ? 'on' : 'off';
+      });
+      return node;
+    };
+
+    body.replaceChildren(
+      el('p', { class: 'tiny faint', style: 'margin:0 0 .35rem', text: 'In this file' }),
+      full ? row('Find and replace', `${KEY.mod}+F`, () => { codeEditor().find(); },
+        'CodeMirror’s own panel, over the whole document rather than the part on screen') : null,
+      full ? row('Find again', 'F3', () => { codeEditor().find(); }) : null,
+      full ? row('Go to line', `${KEY.mod}+${KEY.alt}+G`, () => { codeEditor().promptLine(); }) : null,
+      full ? row('Indent', `${KEY.mod}+]`, () => { codeEditor().indent(); }) : null,
+      full ? row('Outdent', `${KEY.mod}+[`, () => { codeEditor().outdent(); }) : null,
+      full ? row('Toggle line comment', `${KEY.mod}+/`, () => { codeEditor().comment(); }) : null,
+      full ? wrapRow() : null,
+      full ? null : el('p', { class: 'tiny faint' }, [
+        'The editor fell back to a plain text box, which has the browser’s '
+        + 'own find and none of the rest.',
+      ]),
+
+      WsFiles.many(current) ? el('div', {}, [
+        el('hr', { class: 'ws-menu-rule' }),
+        el('p', { class: 'tiny faint', style: 'margin:0 0 .35rem', text: 'Across the workspace' }),
+        row('Open a file by name', `${KEY.alt}+P`, () => openQuickOpen()),
+        row('Search every file', '', () => setWorkTab('search')),
+        row('Show or hide the explorer', `${KEY.alt}+B`, () => toggleFiles()),
+      ]) : null,
+
+      el('hr', { class: 'ws-menu-rule' }),
+      el('p', { class: 'tiny faint', style: 'margin:0 0 .35rem', text: 'This page' }),
+      row('Run', `${KEY.mod}+Enter`, () => {
+        const btn = document.getElementById('runBtn');
+        if (btn && !btn.disabled) btn.click();
+      }),
+      row('Submit', `${KEY.mod}+Shift+Enter`, () => {
+        const btn = document.getElementById('submitBtn');
+        if (btn && !btn.disabled) btn.click();
+      }),
+      row('Description only, or back', `${KEY.alt}+D`, () => toggleDesc()),
+      row('Code only, or back', `${KEY.alt}+E`, () => toggleCode()),
+
+      el('p', { class: 'tiny faint', style: 'margin:.45rem 0 0' }, [
+        'These are text tools. Nothing here reads your code for meaning — '
+        + 'there is no symbol index, and no completion beyond the word lists.',
+      ]),
+    );
+  }
+
+  /* ---------------- Quick Open ----------------
+
+     Type part of a path, get the file. A workspace here is five files
+     at the outside, so this is not solving a scale problem — it is
+     solving a reaching problem: the explorer may be folded shut, and
+     on a phone it is a drawer over the code.
+
+     Substring of the path first, subsequence second, so `cch` finds
+     `include/cache.hpp` and somebody who remembers the folder rather
+     than the name is not stuck. */
+
+  let quickOpen = null;
+
+  function subsequence(hay, needle) {
+    if (!needle.length) return true;
+    let i = 0;
+    for (const ch of hay) {
+      if (ch === needle[i]) i += 1;
+      if (i === needle.length) return true;
+    }
+    return false;
+  }
+
+  function quickMatches(query) {
+    const files = WsFiles.visible(current);
+    const q = String(query || '').trim().toLowerCase();
+    if (!q) return files;
+    const subs = [];
+    const seq = [];
+    for (const f of files) {
+      const p = f.path.toLowerCase();
+      if (p.includes(q)) subs.push(f);
+      else if (subsequence(p, q)) seq.push(f);
+    }
+    return [...subs, ...seq];
+  }
+
+  function closeQuickOpen() {
+    if (!quickOpen) return;
+    const { node, lastFocus } = quickOpen;
+    quickOpen = null;
+    node.remove();
+    if (lastFocus && lastFocus.isConnected) lastFocus.focus();
+    else { const ed = codeEditor(); if (ed) ed.focus(); }
+  }
+
+  function openQuickOpen() {
+    if (!current || !host || !host.isConnected) return;
+    if (!isWorkspace(current) || !WsFiles.many(current)) return;
+    if (quickOpen) { quickOpen.input.focus(); quickOpen.input.select(); return; }
+
+    const list = el('div', { class: 'qopen-list', role: 'listbox', id: 'qopenList' });
+    const input = el('input', {
+      class: 'qopen-input', type: 'text', id: 'qopenInput', role: 'combobox',
+      placeholder: 'Go to file…', autocomplete: 'off', spellcheck: 'false',
+      'aria-label': 'Go to file', 'aria-controls': 'qopenList', 'aria-expanded': 'true',
+    });
+    const count = el('p', { class: 'tiny faint qopen-count' });
+    const node = el('div', { class: 'qopen' }, [
+      el('div', { class: 'qopen-back', onclick: () => closeQuickOpen() }),
+      el('div', {
+        class: 'qopen-panel', role: 'dialog', 'aria-modal': 'true',
+        'aria-label': 'Open a file by name',
+      }, [input, list, count]),
+    ]);
+
+    let rows = [];
+    let at = 0;
+
+    const mark = () => {
+      [...list.children].forEach((r, i) => {
+        r.setAttribute('aria-selected', String(i === at));
+        if (i === at) r.scrollIntoView({ block: 'nearest' });
+      });
+    };
+
+    const go = (i) => {
+      const f = rows[i];
+      if (!f) return;
+      closeQuickOpen();
+      WsFiles.open(current, f.path);
+      paintCrumbs();
+    };
+
+    const paint = () => {
+      rows = quickMatches(input.value);
+      at = Math.min(at, Math.max(0, rows.length - 1));
+      list.replaceChildren(...rows.map((f, i) => el('button', {
+        class: 'qopen-row', type: 'button', role: 'option',
+        'aria-selected': String(i === at),
+        onclick: () => go(i),
+        onmousemove: () => { if (at !== i) { at = i; mark(); } },
+      }, [
+        el('span', { class: 'qopen-name mono', text: f.path.split('/').pop() }),
+        el('span', {
+          class: 'qopen-dir mono',
+          text: f.path.includes('/') ? f.path.slice(0, f.path.lastIndexOf('/')) : '',
+        }),
+        f.readOnly ? el('span', { class: 'ws-crumb-tag', text: 'given' }) : null,
+      ])));
+      count.textContent = rows.length
+        ? `${rows.length} of ${WsFiles.visible(current).length} files`
+        : 'No file matches that.';
+      mark();
+    };
+
+    input.addEventListener('input', paint);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); closeQuickOpen(); return; }
+      if (e.key === 'ArrowDown') { e.preventDefault(); at = Math.min(at + 1, rows.length - 1); mark(); return; }
+      if (e.key === 'ArrowUp') { e.preventDefault(); at = Math.max(at - 1, 0); mark(); return; }
+      if (e.key === 'Home') { e.preventDefault(); at = 0; mark(); return; }
+      if (e.key === 'End') { e.preventDefault(); at = rows.length - 1; mark(); return; }
+      if (e.key === 'Enter') { e.preventDefault(); go(at); }
+    });
+
+    host.append(node);
+    quickOpen = { node, input, lastFocus: document.activeElement };
+    paint();
+    input.focus();
+  }
+
+  /* ---------------- searching every file ----------------
+
+     The pane behind the "Search files" tab. Plain text, grouped by
+     file, with the two switches that decide whether a result is the
+     one you meant. Clicking a result opens that file at that line and
+     column.
+
+     Read-only files are searched and labelled, because the thing you
+     half-remember is quite likely in the interface the exercise gave
+     you. Files that are not on screen are not searched, and there is
+     no path from here to one — see js/wsfiles.js. */
+
+  const searchState = { query: '', caseSensitive: false, wholeWord: false };
+
+  function fillSearchPane(pane) {
+    const input = el('input', {
+      class: 'wss-input', type: 'search', id: 'wssInput',
+      placeholder: 'Find in every file…', autocomplete: 'off', spellcheck: 'false',
+      'aria-label': 'Find in every file', value: searchState.query,
+    });
+    const results = el('div', { class: 'wss-results', id: 'wssResults' });
+    const summary = el('p', { class: 'tiny faint', id: 'wssSummary' });
+
+    const toggle = (key, label, title) => el('button', {
+      class: 'wss-opt', type: 'button', title,
+      'aria-pressed': String(searchState[key]),
+      onclick: (e) => {
+        searchState[key] = !searchState[key];
+        e.currentTarget.setAttribute('aria-pressed', String(searchState[key]));
+        paint();
+      },
+    }, [label]);
+
+    const hitRow = (f, h) => el('button', {
+      class: 'wss-hit', type: 'button',
+      /* On the row as well as in the closure, so that what the result
+         CLAIMS it will open can be compared with where the editor
+         actually lands — which is the whole of what a search result
+         promises. */
+      'data-line': String(h.line), 'data-col': String(h.column),
+      title: `Open ${f.path} at line ${h.line}, column ${h.column}`,
+      onclick: () => {
+        setWorkTab('editor');
+        WsFiles.open(current, f.path, { line: h.line, column: h.column });
+        paintCrumbs();
+      },
+    }, [
+      el('span', { class: 'wss-ln mono', text: String(h.line) }),
+      el('span', { class: 'wss-line mono' }, [
+        h.text.slice(0, h.from),
+        el('mark', { text: h.text.slice(h.from, h.to) }),
+        h.text.slice(h.to),
+      ]),
+    ]);
+
+    const paint = () => {
+      searchState.query = input.value;
+      const files = WsFiles.visible(current);
+      if (!searchState.query) {
+        summary.textContent = `${files.length} files, including the ones the exercise gave you.`;
+        results.replaceChildren();
+        return;
+      }
+      const r = WsSearch.run(files, searchState.query, searchState);
+      summary.textContent = r.found
+        ? `${r.found} ${r.found === 1 ? 'match' : 'matches'} in `
+          + `${r.files.length} ${r.files.length === 1 ? 'file' : 'files'}`
+          + (r.capped ? `, showing the first ${r.shown}.` : '.')
+        : 'Nothing in any file matches that.';
+      results.replaceChildren(...r.files.map(f => {
+        const tag = ROLE_TAG[f.role];
+        return el('section', { class: 'wss-file' }, [
+          el('h5', { class: 'wss-file-head' }, [
+            el('span', { class: 'mono', text: f.path }),
+            el('span', { class: 'wss-count', text: String(f.found) }),
+            tag ? el('span', { class: 'ws-crumb-tag', title: tag[1], text: tag[0] }) : null,
+          ]),
+          ...f.hits.map(h => hitRow(f, h)),
+          f.capped ? el('p', {
+            class: 'tiny faint',
+            text: `Showing ${f.hits.length} of ${f.found} in this file.`,
+          }) : null,
+        ]);
+      }));
+    };
+
+    input.addEventListener('input', paint);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { input.value = ''; paint(); }
+    });
+
+    pane.append(
+      el('div', { class: 'wss-bar' }, [
+        input,
+        el('div', { class: 'wss-opts', role: 'group', 'aria-label': 'How to match' }, [
+          toggle('caseSensitive', 'Aa', 'Match capitals exactly'),
+          toggle('wholeWord', 'ab|', 'Whole words only — max does not match max_run'),
+        ]),
+      ]),
+      summary,
+      results,
+      el('p', { class: 'tiny faint', style: 'margin-top:.6rem' }, [
+        'Plain text, across the files you can see. There is deliberately no '
+        + 'replace-everywhere: one typo across five files, in editors with '
+        + `separate undo histories, is a bad afternoon. ${KEY.mod}+F inside a `
+        + 'file replaces within it.',
+      ]),
+    );
+    paint();
+    queueMicrotask(() => input.focus());
   }
 
   /* ---------------- which panels are showing ----------------
@@ -1112,6 +1602,7 @@ const ProblemView = (() => {
       /* CodeMirror was measured in a hidden box; it has to look again. */
       const ed = codeEditor();
       if (ed) ed.refresh();
+      paintCrumbs();
     } else {
       fillResultPane(right.querySelector('#resultPane'));
     }
@@ -1502,6 +1993,8 @@ const ProblemView = (() => {
       return;
     }
 
+    if (workTab === 'search') { fillSearchPane(pane); return; }
+
     if (workTab === 'subs') { fillSubmissions(pane); return; }
 
     if (workTab === 'results') {
@@ -1734,6 +2227,192 @@ const ProblemView = (() => {
 
      Running the samples is not in here. Run is for the editor and happens
      dozens of times; Submit is the thing that goes on the record. */
+  /* ---------------- comparing two versions ----------------
+
+     "What did I change since the one that passed" is a question the
+     Submissions list could not answer: it could show you two programs,
+     one at a time, and leave the comparing to you.
+
+     Nothing here writes. The diff is a reading of two strings, and
+     putting a version back is still the separate button below it,
+     which still asks first. That separation is the whole design: a
+     comparison a reader is afraid to open is one they will not use.
+
+     Submissions saved before programs were kept whole, or whose
+     program could not be written, have nothing to compare. Those say
+     so, by name, rather than appearing as an empty diff that looks
+     like "you changed nothing". */
+
+  /* What a submission of the current draft would contain. Not simply
+     everything on screen: the sample testbench and the reader's own
+     one are visible, and neither is part of a submission, so counting
+     them would report two deleted files on every comparison. */
+  function draftSide() {
+    return WsFiles.visible(current)
+      .filter(f => f.role === 'yours' || f.role === 'given')
+      .map(f => ({ path: f.path, content: f.content }));
+  }
+
+  /* A submission's files, or null when no program was kept for it.
+     One string holding a packed workspace becomes the files it was;
+     a single program becomes one file named the way the toolchain
+     names it, so that it lines up with the draft rather than reading
+     as a rename. */
+  async function submissionSide(sub) {
+    let source = sub.source;
+    if (source == null && typeof Sources !== 'undefined') {
+      try { source = await Sources.get(current.id, sub.at); } catch { source = null; }
+    }
+    if (source == null) return null;
+    const doc = typeof Workspace !== 'undefined' ? Workspace.unpack(source) : null;
+    if (doc) return doc.files.map(f => ({ path: f.path, content: f.content }));
+    return [{ path: WsFiles.soloName(sub.lang), content: source }];
+  }
+
+  function diffRows(result) {
+    const rows = WsDiff.hunks(result);
+    const out = rows.map((r) => {
+      if (r.gap) {
+        return el('div', { class: 'diff-gap', text:
+          `${r.gap} unchanged ${r.gap === 1 ? 'line' : 'lines'}` });
+      }
+      return el('div', { class: 'diff-row', 'data-kind': r.kind }, [
+        el('span', { class: 'diff-ln', text: r.a == null ? '' : String(r.a) }),
+        el('span', { class: 'diff-ln', text: r.b == null ? '' : String(r.b) }),
+        el('span', { class: 'diff-sign', 'aria-hidden': 'true',
+          text: r.kind === 'add' ? '+' : r.kind === 'del' ? '\u2212' : ' ' }),
+        /* Not highlighted. Syntax colour and change colour in the same
+           cell fight each other, and the question here is which lines
+           moved rather than which word is a keyword. */
+        el('code', { class: 'diff-text', text: r.text }),
+      ]);
+    });
+    return el('div', { class: 'diff', role: 'group', 'aria-label': 'What changed' }, out);
+  }
+
+  const STATE_SAID = {
+    added: ['added', 'Not in the version on the left'],
+    deleted: ['deleted', 'Not in the version on the right'],
+    changed: ['changed', ''],
+  };
+
+  function paintComparison(into, left, right, labels) {
+    const cmp = WsDiff.workspaces(left, right);
+
+    if (!cmp.changed.length) {
+      into.replaceChildren(el('p', { class: 'small muted', text:
+        `${labels.left} and ${labels.right} are identical \u2014 `
+        + `all ${cmp.files.length} ${cmp.files.length === 1 ? 'file' : 'files'} match.` }));
+      return;
+    }
+
+    const head = el('p', { class: 'tiny faint' }, [
+      `${cmp.changed.length} of ${cmp.files.length} `
+      + `${cmp.files.length === 1 ? 'file' : 'files'} differ: `,
+      el('span', { class: 'diff-plus', text: `+${cmp.added}` }),
+      ' ',
+      el('span', { class: 'diff-minus', text: `\u2212${cmp.removed}` }),
+      cmp.same ? ` \u00b7 ${cmp.same} unchanged.` : '.',
+    ]);
+
+    into.replaceChildren(head, ...cmp.changed.map((f) => {
+      const said = STATE_SAID[f.state] || ['changed', ''];
+      return el('section', { class: 'diff-file' }, [
+        el('h5', { class: 'diff-file-head' }, [
+          el('span', { class: 'mono', text: f.path }),
+          el('span', { class: 'diff-state', 'data-state': f.state,
+            title: said[1], text: said[0] }),
+          f.diff ? el('span', { class: 'tiny faint',
+            text: `+${f.diff.added} \u2212${f.diff.removed}` }) : null,
+        ]),
+        f.diff && f.diff.truncated
+          ? el('p', { class: 'tiny faint', text:
+            'Too large to line up properly, so it is shown as wholly replaced.' })
+          : null,
+        f.diff ? diffRows(f.diff) : null,
+      ]);
+    }));
+  }
+
+  /* The control. Two pickers and a place to put the answer; the work
+     is async because a program lives in IndexedDB and is read when it
+     is asked for rather than when the list is drawn. */
+  function compareNode(list) {
+    const label = (sub, n) => {
+      const words = { passed: 'Passed', failed: 'Failed', 'build-failed': 'Did not build' };
+      const kept = sub.stored ? '' : ' \u2014 no code kept';
+      return `#${n} ${words[sub.outcome] || sub.outcome}, ${ago(sub.at)}${kept}`;
+    };
+
+    const options = () => [
+      el('option', { value: 'draft' }, ['What is in the editor now']),
+      ...list.map((sub, i) => el('option', {
+        value: String(i), disabled: !sub.stored && sub.source == null,
+      }, [label(sub, list.length - i)])),
+    ];
+
+    /* The newest submission against what is in the editor: the
+       comparison somebody opening this tab is almost always after. */
+    const newest = list.findIndex(s => s.stored || s.source != null);
+    const left = el('select', { class: 'cmp-pick', id: 'cmpLeft', 'aria-label': 'Compare this' },
+      options());
+    const right = el('select', { class: 'cmp-pick', id: 'cmpRight', 'aria-label': 'with this' },
+      options());
+    left.value = newest >= 0 ? String(newest) : 'draft';
+    right.value = 'draft';
+
+    const out = el('div', { class: 'cmp-out', id: 'cmpOut' });
+
+    const nameOf = (v) => (v === 'draft'
+      ? 'the editor'
+      : `#${list.length - Number(v)}`);
+
+    const run = async () => {
+      const a = left.value;
+      const b = right.value;
+      if (a === b) {
+        out.replaceChildren(el('p', { class: 'small muted', text:
+          'Those are the same version. Pick two different ones.' }));
+        return;
+      }
+      out.replaceChildren(el('p', { class: 'tiny faint', text: 'Reading\u2026' }));
+      const side = v => (v === 'draft' ? draftSide() : submissionSide(list[Number(v)]));
+      const [L, R] = await Promise.all([side(a), side(b)]);
+      if (!out.isConnected) return;
+      const missing = [];
+      if (!L) missing.push(nameOf(a));
+      if (!R) missing.push(nameOf(b));
+      if (missing.length) {
+        out.replaceChildren(el('p', { class: 'small muted', text:
+          `No code was kept for ${missing.join(' or ')}, so there is nothing to `
+          + 'compare. What that submission did is still in the list below.' }));
+        return;
+      }
+      paintComparison(out, L, R, { left: nameOf(a), right: nameOf(b) });
+    };
+
+    left.addEventListener('change', run);
+    right.addEventListener('change', run);
+
+    const node = el('details', { class: 'cmp' }, [
+      el('summary', { class: 'cmp-summary' }, ['Compare two versions']),
+      el('div', { class: 'cmp-body' }, [
+        el('div', { class: 'cmp-bar' }, [
+          el('label', { class: 'tiny faint', for: 'cmpLeft' }, ['Compare']),
+          left,
+          el('label', { class: 'tiny faint', for: 'cmpRight' }, ['with']),
+          right,
+        ]),
+        el('p', { class: 'tiny faint', text:
+          'Reading only. Nothing here changes your code \u2014 putting a version '
+          + 'back is the button under it in the list, and it asks first.' }),
+        out,
+      ]),
+    ]);
+    node.addEventListener('toggle', () => { if (node.open) run(); });
+    return node;
+  }
+
   function fillSubmissions(pane) {
     const impl = ProblemTypes.get('code');
     const list = Store.submissions(current.id);
@@ -1747,6 +2426,11 @@ const ProblemView = (() => {
 
     pane.append(el('p', { class: 'tiny faint', text:
       `${list.length} of the last ${Store.SUBS_MAX} submissions, newest first.` }));
+
+    /* Two versions side by side, above the list rather than inside a
+       row of it: it is a question about the pair, and a control that
+       lived on one submission would be asking half of it. */
+    pane.append(compareNode(list));
 
     const words = { passed: 'Passed', failed: 'Failed', 'build-failed': 'Did not build' };
 
@@ -3041,10 +3725,18 @@ const ProblemView = (() => {
 
   return {
     open, leave, toggleFocus, setSplit, splitFraction,
+    /* Which problem is on screen. The type modules are reachable from
+       the console and from the tests; the problem they are showing
+       was not, which made every question about it a question about
+       the DOM instead. */
+    problem: () => current,
     showResults, resetLayout, setWorkTab,
     /* The panels a reader can fold away, reachable from the keyboard
        handler in app.js as well as from their own buttons. */
     toggleDesc, toggleCode, toggleFiles, setPaneMode, paneMode,
+    /* The explorer decides which file is on top; the page draws the
+       strip that says so, and has to be told when it changes. */
+    paintCrumbs, openQuickOpen, closeQuickOpen, downloadWorkspace,
     /* For a type module that owns a pane: open it, and repaint it. The
        strip belongs to the page, so a type cannot reach it directly. */
     openPane, repaintPane,

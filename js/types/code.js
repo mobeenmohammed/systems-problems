@@ -171,7 +171,7 @@ fn main() {
       ctx,
       langOf: langOfFile,
       lint: false,
-      onSaved: () => noteSaved(),
+      onSaved: (ok, again) => noteSaved('', ok, again),
       onRun: () => doRun(false),
       onSubmit: () => {
         const btn = document.getElementById('submitBtn');
@@ -276,8 +276,8 @@ fn main() {
         profile: pay.profile || 'standard',
         readOnly: ctx.locked,
         onChange: src => {
-          Store.saveDraft(problem, state.lang, src);
-          noteSaved();
+          const ok = Store.saveDraft(problem, state.lang, src);
+          noteSaved('', ok, () => Store.saveDraft(problem, state.lang, src));
         },
         onRun: () => doRun(false),
         onSubmit: () => {
@@ -565,37 +565,13 @@ fn main() {
     refreshExec();
   }
 
-  /* Drafts were already saved on every keystroke; what was missing was any
-     sign of it, which is the difference between a feature and a feature
-     someone trusts. The note is debounced so it reads "Saved" rather than
-     flickering on every character. */
-  let savedTimer = null;
-
-  function noteSaved(what = '') {
-    /* Two places, because inside an assessment the save status belongs
-       in the assessment's own header — it is one of the five things that
-       bar is required to show, and the editor's own note scrolls away
-       with the toolbar on a narrow screen. */
-    const nodes = [
-      document.getElementById('draftNote') || document.getElementById('draftState'),
-      document.getElementById('oaSave'),
-    ].filter(Boolean);
-    if (!nodes.length) return;
-    for (const node of nodes) {
-      node.textContent = 'Saving\u2026';
-      node.dataset.state = 'saving';
-    }
-    clearTimeout(savedTimer);
-    savedTimer = setTimeout(() => {
-      const at = new Date();
-      const hh = String(at.getHours()).padStart(2, '0');
-      const mm = String(at.getMinutes()).padStart(2, '0');
-      for (const node of nodes) {
-        node.textContent = node.id === 'oaSave'
-          ? 'Saved' : (what ? `Saved \u2014 ${what}` : `Saved at ${hh}:${mm}`);
-        node.dataset.state = 'saved';
-      }
-    }, 420);
+  /* Drafts were already saved on every keystroke; what was missing was
+     any sign of it, and then what was missing was any sign of it
+     having FAILED. js/savestate.js owns both halves now, for this
+     type, the hardware one and the assessment header alike. */
+  function noteSaved(what = '', ok = true, again = null) {
+    SaveState.begin();
+    SaveState.settle(ok !== false, { note: what, retry: again });
   }
 
   /* ---------------- running ----------------
@@ -1400,7 +1376,7 @@ fn main() {
       }
       state = null;
       last = { verdict: null, reply: null, submission: false, at: 0 };
-      clearTimeout(savedTimer);
+      SaveState.cancel();
     },
     repaintOutput(into) {
       if (!into) return;

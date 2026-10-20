@@ -400,9 +400,12 @@ const FilePane = (() => {
            on every Run, with the file and the line. */
         lint,
         onChange: (src) => {
-          Store.saveDraft(problem, key, src);
+          /* The result goes to the caller rather than being dropped:
+             whether this keystroke reached storage is the only thing
+             the status row has to say. */
+          const ok = Store.saveDraft(problem, key, src);
           markEdited(f);
-          onSaved();
+          onSaved(ok, () => Store.saveDraft(problem, key, src));
         },
         onRun,
         onSubmit,
@@ -453,6 +456,20 @@ const FilePane = (() => {
     return {
       get active() { return active; },
       files: list,
+
+      /* The same files with what the EXERCISE said about them, which
+         `files()` deliberately does not carry: that list goes to a
+         compiler and into a packed submission, and neither has any use
+         for a note or a read-only flag. Quick Open, workspace search
+         and the ZIP all do — a read-only file has to be labelled as
+         given rather than presented as the reader's own work. */
+      info: () => files.map(f => ({
+        path: f.path,
+        content: textOf(f),
+        readOnly: !!f.readOnly,
+        note: f.note || '',
+        entry: !!f.entry,
+      })),
       textOf: path => { const f = fileAt(path); return f ? textOf(f) : null; },
       has: path => !!fileAt(path),
       open: (path, opts) => show(path, opts || { focus: true }),
@@ -462,6 +479,27 @@ const FilePane = (() => {
       /* The explorer, for the page's own controls and its shortcut. */
       sidebarOpen: () => wrap.dataset.files === 'true',
       toggleSidebar: () => setOpen(wrap.dataset.files !== 'true'),
+
+      /* Show a directory: open the explorer if it is shut and unfold
+         that directory and everything above it. What a breadcrumb can
+         usefully do in a workspace with no navigation of its own —
+         "where does this file live" answered by pointing at it. */
+      revealDir(path) {
+        const want = String(path || '');
+        if (!want) return false;
+        let any = false;
+        const parts = want.split('/');
+        let walked = '';
+        for (const part of parts) {
+          walked = walked ? `${walked}/${part}` : part;
+          if (folded.has(walked)) { foldDir(walked, true); any = true; }
+        }
+        saveFolded(problem.id, folded);
+        if (wrap.dataset.files !== 'true') { setOpen(true); any = true; }
+        const row = wrap.querySelector(`.mf-dir[data-path="${CSS.escape(want)}"]`);
+        if (row) { row.scrollIntoView({ block: 'nearest' }); row.focus(); }
+        return any;
+      },
 
       /* Back to the shipped layout. The folds are the reader's view of
          this exercise and are part of the layout, so they go too; the

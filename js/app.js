@@ -193,6 +193,7 @@
       const k = String(e.key).toLowerCase();
       if (k === 'd') { e.preventDefault(); ProblemView.toggleDesc(); return; }
       if (k === 'e') { e.preventDefault(); ProblemView.toggleCode(); return; }
+      if (k === 'p') { e.preventDefault(); ProblemView.openQuickOpen(); return; }
       if (k === 'b') { e.preventDefault(); ProblemView.toggleFiles(); return; }
     }
 
@@ -248,6 +249,9 @@
 
   async function boot() {
     await Store.init();
+    /* Before anything can write: a quota error raised while the first
+       page is drawing belongs on the save row like any other. */
+    SaveState.watch();
     UI.applyCosmetics();
     UI.refreshPurse();
 
@@ -276,10 +280,23 @@
     UI.wire();
 
     /* A failed write means the rest of the session would vanish on reload, so
-       it is said out loud rather than discovered later. */
+       it is said out loud rather than discovered later.
+
+       Once per burst, not once per write. A draft is saved on every
+       keystroke, so a full quota used to put one toast on screen per
+       character typed — a wall of identical red boxes over the editor
+       the reader was trying to rescue work from. The save row beside
+       Submit carries the live state and the buttons; this is the one
+       sentence that says it out loud, including on the pages that have
+       no such row. */
+    let saidFull = 0;
     Store.on((event, detail) => {
-      if (event === 'storage-error') {
-        UI.toast('Could not save — your browser refused the write. Export your progress from Settings.', 'bad', 12000);
+      if (event === 'storage-error' && Date.now() - saidFull > 15000) {
+        saidFull = Date.now();
+        UI.toast('Could not save — your browser refused the write, most likely '
+          + 'because its storage is full. Nothing has been lost from this tab. '
+          + 'Export your progress from Settings, or download your code from the '
+          + 'row beside Submit.', 'bad', 12000);
       }
       /* The quota filled and the oldest submission history was pruned
          to make the write fit. Said out loud with the policy in it,
@@ -342,5 +359,10 @@
     /* What a multi-file exercise is, so a test can pack and unpack a
        workspace the same way the page does. */
     Workspace,
+    /* Which files are on screen, and the search over them. Exposed
+       because the claim worth testing is a negative one — that no
+       grading testbench, reference solution or hidden case is ever in
+       that set — and a test can only check it by asking. */
+    WsFiles, WsSearch, WsZip, WsDiff, SaveState,
   };
 })();

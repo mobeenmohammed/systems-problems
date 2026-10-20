@@ -65,7 +65,7 @@ const rows = () => page.evaluate(() => {
     return n ? Math.round(n.getBoundingClientRect().height) : null;
   };
   return {
-    right: r('.ws-right'), strip: r('.ws-tabs-work'),
+    right: r('.ws-right'), strip: r('.ws-tabs-work'), crumbs: r('.ws-crumbs'),
     editor: r('.ws-editor'), pane: r('#resultPane'), foot: r('.ws-foot'),
   };
 });
@@ -288,10 +288,13 @@ section('the editor is the column, not half of it');
     (await page.locator('.ws-hgutter').count()) === 0);
   /* The action bar is a row of the page now, not the last row of this
      column, because the column itself can be hidden and Run cannot. So
-     the column is the strip plus the editor, and the bar is below both
-     panels. */
-  ok(`the editor fills what the strip leaves (${r.strip} + ${r.editor} = ${r.right})`,
-    Math.abs(r.right - (r.strip + r.editor)) < 4);
+     the column is the tab strip, the breadcrumb strip and the editor,
+     and the bar is below both panels. */
+  ok(`the breadcrumb strip is one line (${r.crumbs}px)`,
+    r.crumbs > 0 && r.crumbs < 48);
+  ok(`the editor fills what the two strips leave `
+    + `(${r.strip} + ${r.crumbs} + ${r.editor} = ${r.right})`,
+  Math.abs(r.right - (r.strip + r.crumbs + r.editor)) < 4);
   ok(`and the action bar is outside it (${r.foot}px, below)`,
     r.foot > 0 && await page.evaluate(() => {
       const foot = document.querySelector('.ws-foot').getBoundingClientRect();
@@ -396,7 +399,7 @@ section('Reset layout');
   await page.waitForTimeout(1100);
 
   const skewed = await cols();
-  await page.locator('.ws-menu > summary').click();
+  await page.locator('.ws-menu-more > summary').click();
   await page.waitForTimeout(150);
   await page.locator('#resetLayoutBtn').click();
   await page.waitForTimeout(500);

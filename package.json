@@ -63,6 +63,8 @@
     "build:rustc": "bash scripts/build-rustc-wasm.sh",
     "test:project": "node tests/browser/project.test.mjs",
     "test:workspace": "node tests/browser/workspace.test.mjs",
+    "test:editing": "node tests/browser/editing.test.mjs",
+    "test:versions": "node tests/browser/versions.test.mjs",
     "test:courses": "node tests/browser/courses.test.mjs",
     "test:new": "node tests/browser/newcontent.test.mjs"
   },
