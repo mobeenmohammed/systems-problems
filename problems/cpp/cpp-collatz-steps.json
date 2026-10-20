@@ -1,0 +1,53 @@
+{
+  "id": "cpp-collatz-steps",
+  "title": "How long until it reaches one",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "loops",
+    "while",
+    "overflow",
+    "long-long"
+  ],
+  "estimate": 16,
+  "prereqs": [
+    {
+      "concept": "cpp-loops",
+      "why": "The loop runs until a condition on the value holds, and nothing in the program knows in advance how many passes that is."
+    },
+    {
+      "concept": "cpp-integer-types",
+      "why": "The values on the way can be far larger than the input, which is what forces a wider type."
+    }
+  ],
+  "statement": "Start with an integer `n` and repeat:\n\n- if `n` is even, replace it with `n / 2`\n- if `n` is odd, replace it with `3 * n + 1`\n\nuntil `n` is 1. Print how many replacements that took.\n\n```\ninput:   6         output:  steps 8\ninput:   1         output:  steps 0\n```\n\nFor 6 the sequence is 6, 3, 10, 5, 16, 8, 4, 2, 1 — nine numbers and\ntherefore eight steps between them.\n\n### The point of the problem\n\nA loop whose condition is about the **value**, not a counter:\n\n```cpp\nwhile (n != 1)\n{\n    // change n\n    ++steps;\n}\n```\n\nNothing in the program knows how many passes that is. For 27 it is\n111, and the sequence climbs to 9232 on the way; for 1 it is none at\nall. (Whether every starting value reaches 1 is an open problem in\nmathematics. Every value in range here does, which has been checked\nrather than assumed.)\n\n### The part that catches people\n\nThe intermediate values get **much** bigger than the input. Starting\nfrom 704,511 the sequence peaks above 56 billion, which does not fit\nin a 32-bit `int`. Signed overflow is undefined behaviour, so the\nprogram would not merely give a wrong count — it would have no\ndefined meaning at all.\n\nSo `n` is a `long long`, which is at least 64 bits:\n\n```cpp\nlong long n{};\nstd::cin >> n;\n```\n\nThe step count stays an ordinary `int` — it never gets past a few\nhundred.\n\n### Constraints\n\n`n` starts between 1 and 1,000,000 inclusive. The largest\nintermediate value reachable from that range is around 5.6 × 10¹⁰,\ncomfortably inside a `long long`.\n\n### Boundary cases\n\n- **1** takes no steps. The loop condition is false on arrival.\n- **2** takes one.\n- **27** takes 111 and climbs to 9232 on the way, which is the case\n  that catches a loop written for small numbers.\n- **704,511** is the one that overflows a 32-bit `int`.",
+  "hints": [
+    "The loop is `while (n != 1)`. Inside it, one `if` chooses which of the two replacements to make, and then the step count goes up by one.",
+    "Use `n % 2 == 0` to test for even. Note that `n / 2` on an even number is exact, so integer division is the right tool and no rounding question arises.",
+    "Declare `n` as `long long`, not `int`. With 704511 as the input an `int` overflows partway through, and the answer you get back is not wrong so much as meaningless."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n\nint main()\n{\n    long long n{};\n    std::cin >> n;\n\n    // your code here — keep halving or tripling until n is 1, counting the steps\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "6\n",
+        "expect": "steps 8\n"
+      },
+      {
+        "stdin": "1\n",
+        "expect": "steps 0\n"
+      }
+    ]
+  }
+}

@@ -2161,6 +2161,80 @@ html[data-focus] .rail { display: none; }
 .save-act:hover { background: var(--accent-soft); }
 .save-act:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
+/* ---------------- projects ----------------
+
+   One card per project, not per milestone. The card has to answer
+   three things at a glance — what is it, how far in am I, and what is
+   next — so the bar, the milestone pips and the button that names the
+   next step are all on it rather than one click away. */
+.projects {
+  display: grid; gap: var(--s4); margin-top: var(--s4);
+  grid-template-columns: repeat(auto-fill, minmax(min(22rem, 100%), 1fr));
+}
+.proj-card {
+  display: flex; flex-direction: column; gap: .5rem;
+  padding: var(--s4); border: 1px solid var(--border);
+  border-radius: var(--radius); background: var(--bg-elev);
+}
+.proj-card[data-state="completed"] { border-color: color-mix(in srgb, var(--ok) 45%, var(--border)); }
+.proj-card[data-state="attempted"] { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+.proj-top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s3); }
+.proj-top h3 { margin: 0; font-size: 1.02rem; }
+.proj-top h3 a { color: var(--text); text-decoration: none; }
+.proj-top h3 a:hover { color: var(--accent); }
+.proj-meta { display: flex; align-items: center; gap: .35rem; flex-wrap: wrap; }
+.proj-blurb { margin: 0; color: var(--text-dim); font-size: .86rem; }
+.proj-foot { display: grid; gap: .4rem; margin-top: auto; }
+.proj-filters { margin-top: var(--s3); }
+
+/* The milestones, as a row of numbers. Each is a link, because
+   somebody halfway through a project usually wants a particular step
+   rather than the next one, and the status is on the pip so the row
+   reads as progress rather than as a menu. */
+.proj-pips { display: flex; gap: .3rem; list-style: none; margin: .15rem 0 0; padding: 0; }
+.proj-pip {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.55rem; height: 1.55rem; border-radius: 50%;
+  border: 1px solid var(--border); background: var(--bg-inset);
+  color: var(--text-faint); font-size: .72rem; font-weight: 600;
+  text-decoration: none;
+}
+.proj-pip:hover { border-color: var(--accent); color: var(--text); text-decoration: none; }
+.proj-pip[data-status="solved"] {
+  background: color-mix(in srgb, var(--ok) 22%, transparent);
+  border-color: var(--ok); color: var(--text);
+}
+.proj-pip[data-status="attempted"],
+.proj-pip[data-status="revealed"] {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  border-color: var(--accent); color: var(--text);
+}
+
+/* ---- one project's overview ---- */
+.pov-sec { margin-top: var(--s6); }
+.pov-sec h2 { margin: 0 0 .2rem; font-size: 1.05rem; }
+.pov-needs, .pov-files {
+  list-style: none; margin: .4rem 0 0; padding: 0;
+  display: grid; gap: .2rem;
+}
+.pov-needs li, .pov-files li {
+  display: flex; align-items: baseline; gap: .4rem;
+  font-size: .86rem; padding: .15rem 0;
+}
+.pov-files li { border-bottom: 1px dashed var(--border); }
+.pov-steps { margin: .5rem 0 0; padding-left: 0; list-style: none; display: grid; gap: .4rem; }
+.pov-step {
+  display: grid; gap: .1rem; padding: var(--s3);
+  border: 1px solid var(--border); border-left-width: 3px;
+  border-radius: var(--radius-s); background: var(--bg-elev);
+}
+.pov-step[data-status="solved"] { border-left-color: var(--ok); }
+.pov-step[data-status="attempted"],
+.pov-step[data-status="revealed"] { border-left-color: var(--accent); }
+.pov-step-top { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); }
+.pov-step-title { font-weight: 600; font-size: .94rem; color: var(--text); text-decoration: none; }
+.pov-step-title:hover { color: var(--accent); }
+
 /* ---- comparing two versions ----
 
    Above the list of submissions, shut until it is asked for. The

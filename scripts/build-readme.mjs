@@ -77,8 +77,11 @@ const counts = [
   + `**${Object.keys(concepts).length} concepts** carry **${readings} readings** between them, `
   + `every one naming a book and a chapter or a specific page, with `
   + `${learnFrom} more for learning a topic from scratch. `
-  + `**${tracks.length} tracks** order subsets of the problems so there is always an obvious `
-  + `next one, and the weekly schedule runs to ${(weekly.weeks[weekly.weeks.length - 1] || {}).from}.`,
+  + `**${tracks.filter(t => t.kind !== 'project').length} tracks** order subsets of the `
+  + 'problems so there is always an obvious next one, '
+  + `**${tracks.filter(t => t.kind === 'project').length} projects** build one program over `
+  + `several milestones, and the weekly schedule runs to `
+  + `${(weekly.weeks[weekly.weeks.length - 1] || {}).from}.`,
   '',
   '```',
   `Topics        ${usedTopics.map(t => t.id).join(' · ')}`,
@@ -104,12 +107,19 @@ const topicRows = [
   }),
 ].join(NEWLINE);
 
-/* ---------------- the tracks ---------------- */
+/* ---------------- the tracks, and the projects ----------------
 
-const trackRows = [
+   Two tables, because they are two things. A track is a tree of
+   concepts drawn in Learn; a project is a program built over several
+   milestones, with its own catalogue at #/projects. They shared a
+   table while they shared a view, and listing "Project: a cache
+   simulator" among the courses said the old arrangement was still
+   true. */
+
+const rowsFor = list => [
   '| Track | Problems | What it is for |',
   '| --- | --- | --- |',
-  ...tracks.map(t => {
+  ...list.map(t => {
     /* A track may name a problem not yet written; the site drops those, and so
        does this count, so the README cannot promise more than exists. */
     const live = (t.problems || []).filter(id => index.some(p => p.id === id));
@@ -119,9 +129,14 @@ const trackRows = [
   }),
 ].join(NEWLINE);
 
+const isProject = t => t.kind === 'project';
+const trackRows = rowsFor(tracks.filter(t => !isProject(t)));
+const projectRows = rowsFor(tracks.filter(isProject))
+  .replace('| Track | Problems |', '| Project | Milestones |');
+
 /* ---------------- splice it in ---------------- */
 
-const BLOCKS = { counts, topics: topicRows, tracks: trackRows };
+const BLOCKS = { counts, topics: topicRows, tracks: trackRows, projects: projectRows };
 
 let readme = read('README.md');
 const missing = [];

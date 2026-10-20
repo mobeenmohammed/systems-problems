@@ -1,0 +1,43 @@
+{
+  "id": "cpp-arith-report",
+  "key": {
+    "cases": [
+      {
+        "stdin": "0 5\n",
+        "expect": "sum 5\ndifference -5\nproduct 0\nquotient 0\nremainder 0\n"
+      },
+      {
+        "stdin": "7 0\n",
+        "expect": "sum 7\ndifference 7\nproduct 0\nquotient undefined\nremainder undefined\n"
+      },
+      {
+        "stdin": "-7 -2\n",
+        "expect": "sum -9\ndifference -5\nproduct 14\nquotient 3\nremainder -1\n"
+      },
+      {
+        "stdin": "1000 7\n",
+        "expect": "sum 1007\ndifference 993\nproduct 7000\nquotient 142\nremainder 6\n"
+      },
+      {
+        "stdin": "-1000 3\n",
+        "expect": "sum -997\ndifference -1003\nproduct -3000\nquotient -333\nremainder -1\n"
+      },
+      {
+        "stdin": "5 5\n",
+        "expect": "sum 10\ndifference 0\nproduct 25\nquotient 1\nremainder 0\n"
+      },
+      {
+        "stdin": "3 4\n",
+        "expect": "sum 7\ndifference -1\nproduct 12\nquotient 0\nremainder 3\n"
+      },
+      {
+        "stdin": "0 0\n",
+        "expect": "sum 0\ndifference 0\nproduct 0\nquotient undefined\nremainder undefined\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n\nint main()\n{\n    int a{};\n    int b{};\n    if (!(std::cin >> a >> b)) return 0;\n\n    std::cout << \"sum \" << a + b << \"\\n\";\n    std::cout << \"difference \" << a - b << \"\\n\";\n    std::cout << \"product \" << a * b << \"\\n\";\n\n    if (b != 0)\n    {\n        std::cout << \"quotient \" << a / b << \"\\n\";\n        std::cout << \"remainder \" << a % b << \"\\n\";\n    }\n    else\n    {\n        std::cout << \"quotient undefined\\n\";\n        std::cout << \"remainder undefined\\n\";\n    }\n\n    return 0;\n}\n"
+    }
+  },
+  "explanation": "## The program\n\n```cpp\nstd::cout << \"sum \" << a + b << \"\\n\";\nstd::cout << \"difference \" << a - b << \"\\n\";\nstd::cout << \"product \" << a * b << \"\\n\";\n\nif (b != 0)\n{\n    std::cout << \"quotient \" << a / b << \"\\n\";\n    std::cout << \"remainder \" << a % b << \"\\n\";\n}\nelse\n{\n    std::cout << \"quotient undefined\\n\";\n    std::cout << \"remainder undefined\\n\";\n}\n```\n\n## Why the guard is not optional\n\nA lot of languages raise an exception on division by zero, and the\nhabit that comes from them is to divide and handle the failure. C++\ndoes not work that way: `a / 0` on integers is **undefined\nbehaviour**. The standard does not say it crashes; it says nothing\nat all about what the program does from that point on. In practice\non x86 it traps and the process dies, on some other targets it\nquietly produces a value, and with optimisation on, the compiler is\nentitled to assume the division never happens and delete code around\nit. None of those is something to rely on.\n\nSo the test comes first. `if (b != 0)` is not defensive clutter; it\nis the part of the program that makes the division legal.\n\n## Truncation, and the identity that decides it\n\n```\n 7 /  2 ==  3      7 %  2 ==  1\n-7 /  2 == -3     -7 %  2 == -1\n 7 / -2 == -3      7 % -2 ==  1\n-7 / -2 ==  3     -7 % -2 == -1\n```\n\nRead the second column off the first with `(a / b) * b + (a % b) ==\na`. Since C++11 the quotient is specified to truncate towards zero,\nso `-7 / 2` loses the .5 and becomes -3 rather than -4, and the\nremainder is whatever is needed to make the identity hold — which\nalways gives it the sign of `a`.\n\nPython chose the other consistent rule: it floors the quotient, so\n`-7 // 2` is -4 and `-7 % 2` is 1, and its remainder takes the sign\nof the divisor. Neither is wrong. They are different definitions,\nand mixing them up is how an index computed with `%` ends up\nnegative in one language and not the other.\n\n## The three lines that need no thought\n\nNotice how much of this problem is just printing. `a + b`, `a - b`\nand `a * b` cannot fail for inputs in this range, and writing them\nfirst — before thinking about division at all — means the program\ncompiles and runs and prints something correct within a minute. That\nis a habit worth having on much larger problems than this one.\n\n## What this does not check\n\nThe cases all supply two readable integers. A real program would\nhave to decide what to do about `std::cin >> a` failing — a letter\nwhere a number should be, or end of input. The reference returns\nquietly in that case, which is enough here and is not a general\nanswer."
+}

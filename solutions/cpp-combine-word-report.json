@@ -1,0 +1,47 @@
+{
+  "id": "cpp-combine-word-report",
+  "key": {
+    "cases": [
+      {
+        "stdin": "cat dog\n",
+        "expect": "words 2\nletters 6\nlongest cat\n"
+      },
+      {
+        "stdin": "123\n",
+        "expect": "words 1\nletters 0\nlongest 123\n"
+      },
+      {
+        "stdin": "AbC\n",
+        "expect": "words 1\nletters 3\nlongest AbC\n"
+      },
+      {
+        "stdin": "a bb ccc\n",
+        "expect": "words 3\nletters 6\nlongest ccc\n"
+      },
+      {
+        "stdin": "hello, world!\n",
+        "expect": "words 2\nletters 10\nlongest hello,\n"
+      },
+      {
+        "stdin": "x\n",
+        "expect": "words 1\nletters 1\nlongest x\n"
+      },
+      {
+        "stdin": "   \n",
+        "expect": "words 0\nletters 0\nlongest none\n"
+      },
+      {
+        "stdin": "one two three four five\n",
+        "expect": "words 5\nletters 19\nlongest three\n"
+      },
+      {
+        "stdin": "!!!! ab\n",
+        "expect": "words 2\nletters 2\nlongest !!!!\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n#include <string>\n#include <vector>\n\nbool isLetter(char c)\n{\n    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');\n}\n\nvoid summarise(const std::vector<std::string>& words,\n               int& letters, std::string& longest)\n{\n    letters = 0;\n    longest = words[0];\n\n    for (const std::string& word : words)\n    {\n        for (char c : word)\n        {\n            if (isLetter(c)) ++letters;\n        }\n\n        if (word.size() > longest.size()) longest = word;\n    }\n}\n\nint main()\n{\n    std::vector<std::string> words{};\n    std::string word{};\n\n    while (std::cin >> word) words.push_back(word);\n\n    if (words.empty())\n    {\n        std::cout << \"words 0\\n\";\n        std::cout << \"letters 0\\n\";\n        std::cout << \"longest none\\n\";\n        return 0;\n    }\n\n    int letters{};\n    std::string longest{};\n    summarise(words, letters, longest);\n\n    std::cout << \"words \" << words.size() << \"\\n\";\n    std::cout << \"letters \" << letters << \"\\n\";\n    std::cout << \"longest \" << longest << \"\\n\";\n\n    return 0;\n}\n"
+    }
+  },
+  "explanation": "## The program\n\n```cpp\nbool isLetter(char c)\n{\n    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');\n}\n\nvoid summarise(const std::vector<std::string>& words,\n               int& letters, std::string& longest)\n{\n    letters = 0;\n    longest = words[0];\n\n    for (const std::string& word : words)\n    {\n        for (char c : word)\n            if (isLetter(c)) ++letters;\n\n        if (word.size() > longest.size()) longest = word;\n    }\n}\n```\n\n## The predicate, and why the ranges work\n\n`c >= 'a' && c <= 'z'` relies on the letters being consecutive,\nwhich the standard guarantees for `a`–`z` and for `A`–`Z`\nseparately. It does **not** guarantee anything about the gap\nbetween the two blocks, which is why this is two ranges joined by\n`||` rather than one clever test.\n\nThere is a library version, `std::isalpha` from `<cctype>`, and it\nhas a trap worth knowing: it takes an `int` and the argument must be\nrepresentable as `unsigned char`, so passing a plain `char` that is\nnegative — which happens for bytes above 127 on platforms where\n`char` is signed — is undefined behaviour. The correct call is\n`std::isalpha(static_cast<unsigned char>(c))`. Writing the two\nranges out avoids the question entirely for ASCII.\n\n## const std::string& in the range-for\n\n```cpp\nfor (const std::string& word : words)       // no copy\nfor (std::string word : words)              // copies every word\n```\n\nFor `int` the difference was nothing. For a `std::string` the second\nform allocates and copies once per element, which is invisible in\nthe source and real in the profile. `const auto&` is the habit\nworth forming for anything that is not a built-in type.\n\nThe inner loop is `for (char c : word)` by value, because a `char`\ngenuinely is cheaper to copy than to refer to.\n\n## Two different lengths in one function\n\n`letters` counts only alphabetic characters; `longest` compares\nwhole words including punctuation. `fox!` is four characters and\nthree letters.\n\nThat is not a trick — it is what the statement says — but it is the\nsort of detail a reader skims past and then spends twenty minutes\non. When two quantities in one problem are both called \"length\",\nwrite down which is which before starting.\n\n## letters = 0 at the top\n\n`summarise` **sets** its outputs rather than adding to them, so it\nstarts `letters` at 0 rather than trusting the caller. The opposite\nchoice — the accumulator of the previous exercise — is equally\nvalid and a different contract. What is not valid is leaving it\nunspecified: a function whose output parameter is sometimes set and\nsometimes added to cannot be used correctly by anybody.\n\n## The empty case belongs to the caller again\n\n`summarise` reads `words[0]`, so it requires a non-empty vector, and\n`main` checks before calling. The alternative — having the function\ncope — would mean deciding what `longest` should be set to, and\nthere is no good answer: an empty string is indistinguishable from a\ngenuinely empty word.\n\n## What this does not check\n\nNon-ASCII text. A UTF-8 letter such as `é` is two bytes, neither of\nwhich satisfies `isLetter`, so it counts as zero letters and two\ncharacters of length. Handling that properly means deciding what a\ncharacter is, which is a question `std::string` does not answer —\nit holds bytes. The constraint says ASCII so the exercise can be\nabout composition rather than about Unicode."
+}

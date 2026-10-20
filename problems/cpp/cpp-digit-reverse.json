@@ -1,0 +1,53 @@
+{
+  "id": "cpp-digit-reverse",
+  "title": "A number, back to front",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "loops",
+    "while",
+    "modulo",
+    "accumulation"
+  ],
+  "estimate": 15,
+  "prereqs": [
+    {
+      "concept": "cpp-loops",
+      "why": "The number of passes is not known in advance — it depends on how many digits the number has — which is what a `while` is for."
+    },
+    {
+      "concept": "cpp-integer-types",
+      "why": "Every pass takes one digit off with `%` and `/`, and the result is built back up with multiplication."
+    }
+  ],
+  "statement": "Read one non-negative integer and print its digits in reverse order,\nas a number.\n\n```\ninput:   1234      output:  4321\ninput:   7         output:  7\ninput:   1230      output:  321\ninput:   0         output:  0\n```\n\nNote the third one: reversing `1230` gives `0321`, and as a number\nthat is `321`. Leading zeros are not printed, because the answer is\na number rather than a string of characters.\n\n### The point of the problem\n\nTwo operators take a number apart one digit at a time:\n\n```\nn % 10     the last digit\nn / 10     everything except the last digit\n```\n\nand one expression builds a number up one digit at a time:\n\n```\nresult = result * 10 + digit\n```\n\nMultiplying by ten shifts what is already there one place to the\nleft and leaves a space for the new digit. Running the two together\nreverses the number:\n\n```\nn = 1234   result = 0\nn = 123    result = 4          4 came off the right, went on the right\nn = 12     result = 43\nn = 1      result = 432\nn = 0      result = 4321       loop stops when n reaches 0\n```\n\nThe loop is a `while`, not a `for`: you do not know how many digits\nthere are until you have run out of them.\n\n### Constraints\n\nThe input is between 0 and 1,000,000 inclusive, so the reversed\nnumber is at most 9,999,999 and fits in an `int` with room to spare.\n\n### Boundary cases\n\n- **0** must print `0`. A `while (n > 0)` body never runs, and the\n  result is whatever you initialised it to — so initialise it to 0\n  and the answer is right for free.\n- **A single digit** prints itself.\n- **Trailing zeros**, as in `1230`, disappear. They become leading\n  zeros of the answer, and a number has none.\n- **`1000000`** is the extreme version of that: the answer is `1`.",
+  "hints": [
+    "You need two variables: the number you are taking apart, and the answer you are building up. Start the answer at 0.",
+    "Each pass does three things: take the last digit with `% 10`, push it onto the answer with `answer = answer * 10 + digit`, and remove it from the number with `n /= 10`.",
+    "The loop runs `while (n > 0)`. Check what happens when the input is 0 — the body never runs, and that is exactly right if the answer started at 0."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n\nint main()\n{\n    int n{};\n    std::cin >> n;\n\n    // your code here — peel digits off n and build the reversed number up\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "1234\n",
+        "expect": "4321\n"
+      },
+      {
+        "stdin": "1230\n",
+        "expect": "321\n"
+      }
+    ]
+  }
+}

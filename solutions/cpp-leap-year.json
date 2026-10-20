@@ -1,0 +1,47 @@
+{
+  "id": "cpp-leap-year",
+  "key": {
+    "cases": [
+      {
+        "stdin": "2023\n",
+        "expect": "common\n"
+      },
+      {
+        "stdin": "2000\n",
+        "expect": "leap\n"
+      },
+      {
+        "stdin": "2100\n",
+        "expect": "common\n"
+      },
+      {
+        "stdin": "2400\n",
+        "expect": "leap\n"
+      },
+      {
+        "stdin": "4\n",
+        "expect": "leap\n"
+      },
+      {
+        "stdin": "1\n",
+        "expect": "common\n"
+      },
+      {
+        "stdin": "1200\n",
+        "expect": "leap\n"
+      },
+      {
+        "stdin": "3000\n",
+        "expect": "common\n"
+      },
+      {
+        "stdin": "1996\n",
+        "expect": "leap\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n\nint main()\n{\n    int year{};\n    if (!(std::cin >> year)) return 0;\n\n    bool by4{ year % 4 == 0 };\n    bool by100{ year % 100 == 0 };\n    bool by400{ year % 400 == 0 };\n\n    bool leap{ by4 && (!by100 || by400) };\n\n    std::cout << (leap ? \"leap\" : \"common\") << \"\\n\";\n\n    return 0;\n}\n"
+    }
+  },
+  "explanation": "## The program\n\n```cpp\nbool by4{ year % 4 == 0 };\nbool by100{ year % 100 == 0 };\nbool by400{ year % 400 == 0 };\n\nbool leap{ by4 && (!by100 || by400) };\n\nstd::cout << (leap ? \"leap\" : \"common\") << \"\\n\";\n```\n\n## The brackets\n\n`&&` has higher precedence than `||`, exactly as `*` has higher\nprecedence than `+`. So this:\n\n```cpp\nby4 && !by100 || by400\n```\n\nmeans `(by4 && !by100) || by400`, which says \"a leap year is one\nthat divides by 4 but not 100, **or** anything divisible by 400\".\nThat happens to be true of every year, because every year divisible\nby 400 also divides by 4 — so the two rules agree on every input,\nand the missing brackets do not show up as a wrong answer here at\nall.\n\nWhich is the point worth taking away. Relying on precedence you have\nto look up is a bet that the next person to edit the line will look\nit up too. The brackets cost nothing and say what you meant.\n\n## Why \"unless\" becomes an OR\n\n```\nnot divisible by 100   OR   divisible by 400\n```\n\nreads as \"the century exception does not apply to you, or it does\nand you are excused from it\". Rules with an exception to the\nexception almost always come out as this shape: the general case,\n`||` the escape.\n\nThe same thing written as nested `if`s is longer and no clearer:\n\n```cpp\nif (year % 4 != 0)        leap = false;\nelse if (year % 100 != 0) leap = true;\nelse if (year % 400 != 0) leap = false;\nelse                      leap = true;\n```\n\nIt is correct, and it is four places to make a mistake instead of\none. Worth writing out once to convince yourself it says the same\nthing.\n\n## bool is a type, not just a condition\n\n`year % 4 == 0` is an expression whose value is `true` or `false`,\nand there is nothing special about storing it. Beginners often write\n\n```cpp\nif (year % 4 == 0) by4 = true; else by4 = false;\n```\n\nwhich is four extra words for `bool by4{ year % 4 == 0 };`. The\ncondition already **is** the answer.\n\n## What this does not check\n\nThe calendar. The Gregorian rule was adopted in 1582 and different\ncountries switched at different times, so \"was 1500 a leap year\"\nhas no single answer. This problem is the arithmetic rule applied\nuniformly, and says so in its constraints rather than pretending to\nbe a date library."
+}

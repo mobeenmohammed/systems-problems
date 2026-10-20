@@ -84,6 +84,44 @@ section('tracks name problems that exist');
       dupes.length === 0);
   }
 
+  /* A project track is drawn by #/projects rather than by Learn, and
+     its overview page reads the milestone order off the track while
+     every badge and the carry-forward read `project.step` off the
+     problems. Those two agreeing is not optional: a track whose
+     second entry calls itself step 3 would show a milestone list in
+     one order and a progress count in another.
+
+     There is no runtime check for this because there is nothing
+     sensible to do about it at runtime. It is a content error, so it
+     fails here. */
+  const projectTracks = tracks.filter(t => t.kind === 'project');
+  ok(`there are project tracks (${projectTracks.length})`, projectTracks.length > 0);
+  const byIdMap = new Map(problems.map(p => [p.id, p]));
+  for (const t of projectTracks) {
+    ok(`${t.id}: names the project id its problems use`, typeof t.project === 'string' && !!t.project);
+    const mine = (t.problems || []).map(id => byIdMap.get(id)).filter(Boolean);
+    const wrong = mine.filter(p => ((p.project || {}).id) !== t.project);
+    ok(`${t.id}: every milestone claims that project`
+      + `${wrong.length ? ` (${wrong.map(p => p.id).join(', ')})` : ''}`,
+    wrong.length === 0);
+    const steps = mine.map(p => (p.project || {}).step);
+    ok(`${t.id}: the steps are 1..${mine.length} in the track's order (${steps.join(', ')})`,
+      steps.every((n, i) => n === i + 1));
+    const ofs = [...new Set(mine.map(p => (p.project || {}).of))];
+    ok(`${t.id}: every milestone agrees there are ${mine.length} of them (${ofs.join(', ')})`,
+      ofs.length === 1 && ofs[0] === mine.length);
+    const labels = mine.map(p => (p.project || {}).label).filter(Boolean);
+    ok(`${t.id}: every milestone has a label for the overview`, labels.length === mine.length);
+  }
+  /* And nothing outside a project track may claim to be a milestone:
+     a project problem reachable only through Learn would be a
+     milestone with no project around it. */
+  const claimed = new Set(projectTracks.flatMap(t => t.problems || []));
+  const orphans = problems.filter(p => p.project && !claimed.has(p.id));
+  ok(`every milestone belongs to a project track`
+    + `${orphans.length ? ` (${orphans.map(p => p.id).join(', ')})` : ''}`,
+  orphans.length === 0);
+
   /* A weekly entry pointing at nothing would leave the dashboard's main action
      dead, which is worse than having no weekly problem at all. */
   const weekly = read('weekly.json');

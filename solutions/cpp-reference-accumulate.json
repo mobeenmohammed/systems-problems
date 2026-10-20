@@ -1,0 +1,43 @@
+{
+  "id": "cpp-reference-accumulate",
+  "key": {
+    "cases": [
+      {
+        "stdin": "5\n",
+        "expect": "even-positions 5\nodd-positions 0\ntotal 5\n"
+      },
+      {
+        "stdin": "1 2\n",
+        "expect": "even-positions 1\nodd-positions 2\ntotal 3\n"
+      },
+      {
+        "stdin": "-1 -2 -3 -4\n",
+        "expect": "even-positions -4\nodd-positions -6\ntotal -10\n"
+      },
+      {
+        "stdin": "0 0 0\n",
+        "expect": "even-positions 0\nodd-positions 0\ntotal 0\n"
+      },
+      {
+        "stdin": "1000000 1000000 1000000\n",
+        "expect": "even-positions 2000000\nodd-positions 1000000\ntotal 3000000\n"
+      },
+      {
+        "stdin": "1 2 3 4 5 6\n",
+        "expect": "even-positions 9\nodd-positions 12\ntotal 21\n"
+      },
+      {
+        "stdin": "7 -7\n",
+        "expect": "even-positions 7\nodd-positions -7\ntotal 0\n"
+      },
+      {
+        "stdin": "  \n",
+        "expect": "even-positions 0\nodd-positions 0\ntotal 0\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n#include <vector>\n\nvoid addAll(const std::vector<int>& values, long long& total)\n{\n    for (int value : values)\n    {\n        total += value;\n    }\n}\n\nint main()\n{\n    std::vector<int> evens{};\n    std::vector<int> odds{};\n    int x{};\n    int position{};\n\n    while (std::cin >> x)\n    {\n        if (position % 2 == 0) evens.push_back(x);\n        else odds.push_back(x);\n        ++position;\n    }\n\n    long long evenTotal{};\n    addAll(evens, evenTotal);\n\n    long long oddTotal{};\n    addAll(odds, oddTotal);\n\n    long long total{};\n    addAll(evens, total);\n    addAll(odds, total);\n\n    std::cout << \"even-positions \" << evenTotal << \"\\n\";\n    std::cout << \"odd-positions \" << oddTotal << \"\\n\";\n    std::cout << \"total \" << total << \"\\n\";\n\n    return 0;\n}\n"
+    }
+  },
+  "explanation": "## The program\n\n```cpp\nvoid addAll(const std::vector<int>& values, long long& total)\n{\n    for (int value : values) total += value;\n}\n\nlong long total{};\naddAll(evens, total);\naddAll(odds, total);\n```\n\n## += against =\n\nThis is the whole behavioural difference, and it is one character:\n\n```cpp\ntotal += value;     // contributes; two calls accumulate\ntotal = sum;        // reports; the second call overwrites the first\n```\n\nBoth are defensible functions and they are not interchangeable. The\nname has to say which: `addAll` adds, and a function called\n`sumOf` or `computeTotal` had better set. Reference parameters make\nthis ambiguity possible, which is one honest argument against them —\na function that returns its answer cannot be unclear about it.\n\n## In-out parameters\n\nThe `total` parameter is neither purely input nor purely output: it\nis read and written, and its incoming value matters. That is why it\ncannot be `const`, and why passing a literal is impossible:\n\n```cpp\naddAll(evens, 0);           // will not compile\n```\n\nA non-const reference cannot bind to a temporary, which is the\nlanguage stopping you from writing to something that is about to\nstop existing. `const long long&` would bind, and then the function\ncould not add to it anyway.\n\n## Why the design is slightly dubious\n\nWorth saying plainly: returning the sum is usually better.\n\n```cpp\nlong long sumOf(const std::vector<int>& values);\n\nlong long total{ sumOf(evens) + sumOf(odds) };\n```\n\nThe function then has no side effect, can be called in an\nexpression, and cannot be misused by forgetting to initialise the\naccumulator. The accumulator form earns its place when the thing\nbeing built up is expensive to copy — appending to a large vector\nor a string rather than returning a new one each time.\n\nA good exercise is not always a good design, and saying which is\nwhich is part of teaching it.\n\n## Positions count from zero\n\nThe first element is at position 0, which is even, so it goes in\n`evens`. \"First, third, fifth\" and \"positions 0, 2, 4\" are the same\nset described from different starting points, and the statement\nsays both so that there is nothing to guess.\n\n## What this does not check\n\nWhether `total` was initialised. `long long total;` without the `{}`\nis indeterminate, and `addAll` would add to rubbish — producing a\nwrong answer with no bad behaviour to notice. That is the standing\ncost of an accumulator parameter, and the reason the braces on\n`long long total{};` are not optional."
+}

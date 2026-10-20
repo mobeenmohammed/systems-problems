@@ -1,0 +1,53 @@
+{
+  "id": "cpp-mean-and-cast",
+  "title": "Two kinds of average",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "conversions",
+    "static-cast",
+    "floating-point",
+    "output"
+  ],
+  "estimate": 15,
+  "prereqs": [
+    {
+      "concept": "cpp-integer-types",
+      "why": "The first answer is integer division, and whether it truncates or rounds is the point."
+    },
+    {
+      "concept": "cpp-floating-point",
+      "why": "The second answer is a `double`, and getting one out of three `int`s needs a deliberate conversion."
+    }
+  ],
+  "statement": "Read three integers and print their mean twice: once as integer\narithmetic gives it, and once as a `double` to exactly two decimal\nplaces.\n\n```\ninput:   1 2 4\n\noutput:  integer 2\n         exact 2.33\n```\n\n- `integer` is `(a + b + c) / 3` with all three still `int`s, so it\n  truncates.\n- `exact` is the same sum divided by three as a real number, printed\n  with two digits after the point — always two, even when they are\n  zeros.\n\n### The point of the problem\n\n`(a + b + c) / 3` is integer division, whatever you assign it to:\n\n```cpp\ndouble wrong{ (a + b + c) / 3 };        // 2.0 — the 0.33 was lost\n                                        //       before the assignment\n```\n\nThe division happens first, between two `int`s, and only the result\nis converted. To get a real division, one operand has to be a\n`double` **before** the `/`:\n\n```cpp\ndouble right{ static_cast<double>(a + b + c) / 3 };\n```\n\n`static_cast<double>(x)` is how you ask for that conversion in\nwriting. There is an older spelling, `(double)x`, and a tempting\nshortcut, `/ 3.0`. All three work here. `static_cast` is the one to\nform the habit of, because it is searchable and it cannot silently\ndo something more drastic than you meant.\n\n### Two decimal places\n\nBy default `std::cout` prints a `double` with up to six significant\ndigits and drops trailing zeros, so 2.0 comes out as `2`. Fixing the\nformat takes two manipulators from `<iomanip>`:\n\n```cpp\n#include <iomanip>\nstd::cout << std::fixed << std::setprecision(2);\n```\n\nBoth are **sticky**: set them once, before you print, and every\n`double` afterwards uses them.\n\n### Constraints\n\nEach number is between -1000 and 1000 inclusive.\n\n### Boundary cases\n\n- **An exact mean.** `2 4 6` is `integer 4` and `exact 4.00` — two\n  zeros, not a bare `4`.\n- **Negatives.** `-1 -2 -4` sums to -7, and integer division\n  truncates towards zero, so it is `integer -2`, not -3. `exact` is\n  `-2.33`.\n- **A sum of zero.** `-3 0 3` is `integer 0` and `exact 0.00`.",
+  "hints": [
+    "Add the three numbers into one variable first. Both answers are about that sum, and having it named makes the two lines obviously about the same quantity.",
+    "For the second line, convert before dividing, not after: `static_cast<double>(total) / 3`. If you are getting `2.00` where `2.33` was wanted, the division happened in integers.",
+    "Add `#include <iomanip>` and print `std::fixed << std::setprecision(2)` once before the number. Without them a mean of 4 prints as `4` rather than `4.00`."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n\nint main()\n{\n    int a{};\n    int b{};\n    int c{};\n    std::cin >> a >> b >> c;\n\n    // your code here — print the truncating mean, then the same mean to 2 dp\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "1 2 4\n",
+        "expect": "integer 2\nexact 2.33\n"
+      },
+      {
+        "stdin": "2 4 6\n",
+        "expect": "integer 4\nexact 4.00\n"
+      }
+    ]
+  }
+}

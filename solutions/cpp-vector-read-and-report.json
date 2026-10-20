@@ -1,0 +1,43 @@
+{
+  "id": "cpp-vector-read-and-report",
+  "key": {
+    "cases": [
+      {
+        "stdin": "7\n",
+        "expect": "size 1\nfirst 7\nlast 7\nmiddle 7\n"
+      },
+      {
+        "stdin": "1 2\n",
+        "expect": "size 2\nfirst 1\nlast 2\nmiddle 2\n"
+      },
+      {
+        "stdin": "1 2 3 4\n",
+        "expect": "size 4\nfirst 1\nlast 4\nmiddle 3\n"
+      },
+      {
+        "stdin": "1 2 3\n",
+        "expect": "size 3\nfirst 1\nlast 3\nmiddle 2\n"
+      },
+      {
+        "stdin": "-5 -5 -5 -5 -5\n",
+        "expect": "size 5\nfirst -5\nlast -5\nmiddle -5\n"
+      },
+      {
+        "stdin": "0\n",
+        "expect": "size 1\nfirst 0\nlast 0\nmiddle 0\n"
+      },
+      {
+        "stdin": "10\n20\n30\n40\n50\n60\n",
+        "expect": "size 6\nfirst 10\nlast 60\nmiddle 40\n"
+      },
+      {
+        "stdin": "  \n",
+        "expect": "size 0\nfirst none\nlast none\nmiddle none\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n#include <vector>\n\nint main()\n{\n    std::vector<int> values{};\n    int x{};\n\n    while (std::cin >> x)\n    {\n        values.push_back(x);\n    }\n\n    std::cout << \"size \" << values.size() << \"\\n\";\n\n    if (values.empty())\n    {\n        std::cout << \"first none\\n\";\n        std::cout << \"last none\\n\";\n        std::cout << \"middle none\\n\";\n    }\n    else\n    {\n        std::cout << \"first \" << values.front() << \"\\n\";\n        std::cout << \"last \" << values.back() << \"\\n\";\n        std::cout << \"middle \" << values[values.size() / 2] << \"\\n\";\n    }\n\n    return 0;\n}\n"
+    }
+  },
+  "explanation": "## The program\n\n```cpp\nstd::vector<int> values{};\nint x{};\nwhile (std::cin >> x) values.push_back(x);\n\nstd::cout << \"size \" << values.size() << \"\\n\";\n\nif (values.empty()) { /* three none lines */ }\nelse\n{\n    std::cout << \"first \" << values.front() << \"\\n\";\n    std::cout << \"last \" << values.back() << \"\\n\";\n    std::cout << \"middle \" << values[values.size() / 2] << \"\\n\";\n}\n```\n\n## When a vector earns its place\n\nEvery earlier exercise read a value, used it, and forgot it. That\nis the cheapest thing a program can do and it works whenever the\nanswer is a running total, a count, or a maximum.\n\nIt stops working the moment an answer depends on *where* a value\nwas, or on comparing values to each other. \"The middle one\" cannot\nbe known until the last one has arrived. So the values have to be\nkept, and since the count is unknown until the end, a fixed array\nwill not do either.\n\n## push_back, and what it costs\n\n`push_back` adds one element and grows the vector if there is no\nroom. Growing means allocating a bigger block and copying, which\nsounds expensive and is not, because the capacity is **doubled**\nrather than increased by one. Pushing n elements therefore costs\nΟ(n) in total rather than Ο(n²) — each element is copied on\naverage a constant number of times.\n\nIf you do know the count in advance, `values.reserve(n)` avoids the\nregrowth entirely. Here it is not known, so it cannot.\n\n## Indexing an empty vector\n\nThis is the one that matters:\n\n```cpp\nstd::vector<int> v{};\nstd::cout << v[0];          // undefined behaviour\nstd::cout << v.front();     // undefined behaviour\nstd::cout << v.at(0);       // throws std::out_of_range\n```\n\n`operator[]` does not check, by design: it is the fast one, and\nmaking every access check would make vectors slower than arrays for\nno benefit in correct code. It will often *appear* to work and print\nwhatever was in memory, which is worse than crashing.\n\n`at()` checks and throws. Use it when the index came from outside\nthe program and you have not already validated it; use `[]` when\nthe loop bounds make the index safe by construction.\n\n## front(), back(), and the - 1\n\n`v.back()` and `v[v.size() - 1]` are the same element. The named\nversion says what it is for, and it cannot be written with the `- 1`\nmissing — which is the actual bug it prevents, since `v[v.size()]`\nis one past the end and `size()` is unsigned so the mistake does not\neven look like an off-by-one.\n\n## What this does not check\n\nMemory. Ten thousand `int`s is 40 KB and a vector will take as many\nas the machine has; a program reading an unbounded stream into\nmemory is making a promise about the input size that this one can\nmake because the constraints say so."
+}

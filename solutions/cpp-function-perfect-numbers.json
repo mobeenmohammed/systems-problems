@@ -1,0 +1,43 @@
+{
+  "id": "cpp-function-perfect-numbers",
+  "key": {
+    "cases": [
+      {
+        "stdin": "1\n",
+        "expect": "none\n"
+      },
+      {
+        "stdin": "6\n",
+        "expect": "6\n"
+      },
+      {
+        "stdin": "27\n",
+        "expect": "6\n"
+      },
+      {
+        "stdin": "28\n",
+        "expect": "6\n28\n"
+      },
+      {
+        "stdin": "496\n",
+        "expect": "6\n28\n496\n"
+      },
+      {
+        "stdin": "500\n",
+        "expect": "6\n28\n496\n"
+      },
+      {
+        "stdin": "10000\n",
+        "expect": "6\n28\n496\n8128\n"
+      },
+      {
+        "stdin": "8128\n",
+        "expect": "6\n28\n496\n8128\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n\nint divisorSum(int n)\n{\n    int total{};\n\n    for (int d = 1; d < n; ++d)\n    {\n        if (n % d == 0) total += d;\n    }\n\n    return total;\n}\n\nbool isPerfect(int n)\n{\n    return n == divisorSum(n);\n}\n\nint main()\n{\n    int n{};\n    if (!(std::cin >> n)) return 0;\n\n    bool found{};\n\n    for (int k = 1; k <= n; ++k)\n    {\n        if (isPerfect(k))\n        {\n            std::cout << k << \"\\n\";\n            found = true;\n        }\n    }\n\n    if (!found) std::cout << \"none\\n\";\n\n    return 0;\n}\n"
+    }
+  },
+  "explanation": "## The program\n\n```cpp\nint divisorSum(int n)\n{\n    int total{};\n    for (int d = 1; d < n; ++d)\n        if (n % d == 0) total += d;\n    return total;\n}\n\nbool isPerfect(int n)\n{\n    return n == divisorSum(n);\n}\n```\n\n## A one-line function earns its place\n\n`isPerfect` does nothing a reader could not have written inline.\nWhat it does is put a name on the comparison, so that the loop in\n`main` says what it is looking for:\n\n```cpp\nif (isPerfect(k))                 // reads as the definition\nif (k == divisorSum(k))           // reads as an implementation\n```\n\nBoth compile to the same thing. The first survives the day somebody\nwants abundant numbers as well, because then there is an obvious\nplace to put `isAbundant`.\n\n## Predicates are used directly\n\n```cpp\nif (isPerfect(k))              // yes\nif (isPerfect(k) == true)      // the same thing, said twice\nif (isPerfect(k) != false)     // and again\nreturn n == divisorSum(n);     // yes\nif (n == divisorSum(n)) return true; else return false;   // no\n```\n\nA function returning `bool` returns the condition itself. Comparing\na `bool` to `true` is the same reflex as writing `if (x == true)`,\nand worth losing early.\n\n## Proper divisors stop below n\n\n`for (int d = 1; d < n; ++d)` — strictly less than. With `<=` every\nnumber would include itself and the sum would always exceed it, so\nnothing would ever be perfect and the program would print `none` for\nevery input. That is a satisfying bug to find, because the output is\nuniform and gives no hint where to look.\n\n`divisorSum(1)` is 0: the loop runs zero times. So 1 is not perfect,\nwhich is correct and falls out rather than being special-cased.\n\n## The flag, and what it is for\n\n`found` records whether the loop printed anything, so that `none`\ncan be printed afterwards if it did not. The alternative — deciding\nin advance whether the range contains a perfect number — means\ndoing the whole search twice.\n\nThis is a common shape: a loop that may produce nothing, and a\nmessage for the empty case that can only be decided once the loop is\nover.\n\n## How slow is it, really\n\nThis is Ο(n²): for every `k` up to `n`, a loop up to `k`. At\nn = 10,000 that is about 50 million remainder operations, which is\nfast enough here and would not be at n = 1,000,000.\n\nThe standard improvement is to stop at √n and add both members of\neach divisor pair, which turns Ο(n) per number into Ο(√n). It is\nworth knowing and is not the exercise — and it is fiddly to get\nright for perfect squares, where the pair is one number counted\nonce.\n\n## What this does not check\n\nAnything above 10,000, where the Ο(n²) loop starts to matter, and\nthe odd perfect numbers — none is known, and none is known not to\nexist. Every perfect number ever found is even."
+}

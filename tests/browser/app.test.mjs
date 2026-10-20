@@ -555,9 +555,14 @@ ok('and so does the menu',
 await go(window, '#/learn');
 check('the learn view is showing', document.getElementById('view-learn').hidden, false);
 const trackCards = () => [...document.querySelectorAll('#learnTracks .track-card')];
+/* Every track Learn owns. Projects have their own catalogue at
+   #/projects and are deliberately not among these. */
 ok('every track is listed',
   trackCards().length
-    === window.SystemsLab.Catalog.allTracks().length);
+    === window.SystemsLab.Catalog.learnTracks().length);
+ok('and the projects are listed somewhere else',
+  window.SystemsLab.Catalog.allProjects().length > 0
+    && trackCards().every(c => !/project-/.test(c.getAttribute('href'))));
 ok('each has a progress bar', trackCards().every(c => c.querySelector('.bar i') !== null));
 
 /* The old card said "in progress" for every track with anything left, which

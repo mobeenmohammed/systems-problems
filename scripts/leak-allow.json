@@ -1,28 +1,39 @@
 {
   "_note": "Lines a statement shows on purpose. scripts/audit-leaks.mjs compares every reference solution against its own statement and fails on anything not declared here, so a new accidental leak cannot slip in while these stay. Each entry is a deliberate teaching decision: the line is the concept the problem exists to introduce, and the task around it is still the reader's to do. The case that prompted the audit - cpp-greet-and-sum printing the whole add() function it asked for - is NOT in this list; it was reworked so add() is given in the template and the task is a different function.",
-
   "algo-impl-count": {
-    "cpp": ["if (x < target) ++less;"],
+    "cpp": [
+      "if (x < target) ++less;"
+    ],
     "why": "Shown inside the counter-example that discusses where the overlap bug lives. The else-if chain, the three counters and the per-query reset are the work."
   },
   "cpp-loop-multiples": {
-    "cpp": ["for (int i = 1; i <= n; ++i)"],
+    "cpp": [
+      "for (int i = 1; i <= n; ++i)"
+    ],
     "why": "Problem 2 of the curriculum, and the for header is the thing being taught. The else-if chain inside it, and its ordering, is the work."
   },
   "cpp-sum-until-zero": {
-    "cpp": ["while (std::cin >> x && x != 0)"],
+    "cpp": [
+      "while (std::cin >> x && x != 0)"
+    ],
     "why": "The whole point of the problem is that this one expression does both jobs. Hiding it would leave a beginner with no way in; the accumulator, the counter and the boundary cases are the work."
   },
   "cpp-string-scan": {
-    "cpp": ["for (char c : line)"],
+    "cpp": [
+      "for (char c : line)"
+    ],
     "why": "A range-for over a string, shown because the problem introduces it. Classifying each character and building the uppercased copy is the work."
   },
   "cpp-map-word-count": {
-    "cpp": ["++count[word];"],
+    "cpp": [
+      "++count[word];"
+    ],
     "why": "The problem exists to explain that operator[] inserts a value-initialised entry. Lowercasing, the sorted output and the strict-greater tie-break are the work."
   },
   "rust-ownership-move": {
-    "rust": ["let n = measure(&word);"],
+    "rust": [
+      "let n = measure(&word);"
+    ],
     "why": "One call shown while explaining that a borrow leaves the caller's String usable. The three function bodies and the order they are called in are the work."
   },
   "rust-option-lookup": {
@@ -42,5 +53,124 @@
       "let mut it = line.split_whitespace();"
     ],
     "why": "This problem is the ? operator. It shows the staircase of matches and then the same thing with ?, because the comparison is the lesson. The error enum, its Display impl, the range check and the totals are the work."
+  },
+  "cpp-bool-is-a-value": {
+    "cpp": [
+      "std::cout << std::boolalpha;"
+    ],
+    "why": "The manipulator is the library fact the problem exists to teach, and nothing about the three conditions follows from it. Working out what inside, on-edge and outside mean, and that exactly one of them holds, is the work."
+  },
+  "cpp-collatz-steps": {
+    "cpp": [
+      "while (n != 1)"
+    ],
+    "why": "The loop condition is shown while explaining what a loop with no counter is. Choosing between the two replacements, counting the steps, and noticing that the values need a long long, is the work."
+  },
+  "cpp-combine-word-report": {
+    "cpp": [
+      "bool isLetter(char c)",
+      "void summarise(const std::vector<std::string>& words,",
+      "int& letters, std::string& longest)"
+    ],
+    "why": "Signatures the problem specifies in writing; they cannot not appear. Both bodies, the nested loop, the two different notions of length and the empty case are the work."
+  },
+  "cpp-digit-reverse": {
+    "cpp": [
+      "while (n > 0)"
+    ],
+    "why": "Shown while explaining why this is a while and not a for. The two digit operators, the accumulator and the order they go in are the work."
+  },
+  "cpp-function-default-power": {
+    "cpp": [
+      "long long power(int base, int exponent = 2)"
+    ],
+    "why": "The signature, including the default, is what the problem asks for in writing. The loop, the identity it starts at, and calling it both ways are the work."
+  },
+  "cpp-function-digit-sum": {
+    "cpp": [
+      "int digitSum(int n)",
+      "while (n > 0)"
+    ],
+    "why": "The signature is specified by the problem and the loop condition was taught two exercises earlier. Lifting the body into a function, and seeing that the parameter is a copy, is the work."
+  },
+  "cpp-function-gcd-lcm": {
+    "cpp": [
+      "int gcd(int a, int b)",
+      "long long lcm(int a, int b)",
+      "while (b != 0)",
+      "int r{ a % b };"
+    ],
+    "why": "The two signatures are specified, and Euclid’s algorithm is given deliberately — the exercise is writing lcm in terms of gcd rather than rediscovering number theory, and getting the division order right so it does not overflow."
+  },
+  "cpp-function-perfect-numbers": {
+    "cpp": [
+      "int divisorSum(int n)",
+      "bool isPerfect(int n)",
+      "if (isPerfect(k))",
+      "std::cout << k << \"\\n\";"
+    ],
+    "why": "Two specified signatures, and one line showing how a predicate reads at its call site. Both bodies, the strictly-below divisor bound and the none case are the work."
+  },
+  "cpp-leap-year": {
+    "cpp": [
+      "bool by4{ year % 4 == 0 };",
+      "bool by100{ year % 100 == 0 };",
+      "bool by400{ year % 400 == 0 };"
+    ],
+    "why": "Three named tests, offered so the rule can be discussed in words. How they combine — which is the entire exercise, and the thing the brackets decide — is not shown."
+  },
+  "cpp-letter-position": {
+    "cpp": [
+      "int offset{ letter - 'a' };"
+    ],
+    "why": "The one idea the problem exists to teach: a char is an integer and subtracting one gives a distance. Both uses of that distance, including the cast in the other direction and the off-by-one, are the work."
+  },
+  "cpp-mean-and-cast": {
+    "cpp": [
+      "std::cout << std::fixed << std::setprecision(2);"
+    ],
+    "why": "The two manipulators are a library fact with nothing to deduce. Where the conversion has to go relative to the division is the work, and is the thing the problem is about."
+  },
+  "cpp-reference-accumulate": {
+    "cpp": [
+      "void addAll(const std::vector<int>& values, long long& total)"
+    ],
+    "why": "A signature the problem specifies. Splitting the input by position, the += rather than =, and calling it twice on one accumulator are the work."
+  },
+  "cpp-reference-min-max": {
+    "cpp": [
+      "void extremes(const std::vector<int>& values, int& lowest, int& highest)"
+    ],
+    "why": "A signature the problem specifies, and reading its three parameter types is half the lesson. The body and the caller’s empty case are the work."
+  },
+  "cpp-reference-swap": {
+    "cpp": [
+      "void swapInts(int& a, int& b)"
+    ],
+    "why": "A signature the problem specifies, and the ampersands in it are the lesson. The three-line body, and why two lines will not do, is the work."
+  },
+  "cpp-running-extremes": {
+    "cpp": [
+      "while (std::cin >> x)"
+    ],
+    "why": "The read-as-condition idiom, shown because the problem introduces it. The starting-value problem for the minimum, and the empty case, are the work."
+  },
+  "cpp-seconds-to-clock": {
+    "cpp": [
+      "if (minutes < 10) std::cout << '0';"
+    ],
+    "why": "Two-digit padding without <iomanip>, shown so the exercise can be about the arithmetic. Splitting the seconds into three numbers is the work."
+  },
+  "cpp-string-longest-word": {
+    "cpp": [
+      "while (std::cin >> word)"
+    ],
+    "why": "The same read-as-condition idiom, over strings. That the empty string is a safe starting value, and that > rather than >= keeps the first of equals, is the work."
+  },
+  "cpp-vector-read-and-report": {
+    "cpp": [
+      "values.push_back(x);"
+    ],
+    "why": "The one call that introduces a growing container. Checking for empty before indexing, and the middle index, are the work."
   }
 }

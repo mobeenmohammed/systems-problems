@@ -1,0 +1,53 @@
+{
+  "id": "cpp-reference-accumulate",
+  "title": "A total that survives the call",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "references",
+    "accumulation",
+    "vector",
+    "long-long"
+  ],
+  "estimate": 17,
+  "prereqs": [
+    {
+      "concept": "cpp-references",
+      "why": "The running total is a reference parameter, so two calls add into the same variable."
+    },
+    {
+      "concept": "cpp-std-vector",
+      "why": "The numbers are split into two vectors by their position, and each is summed by the same function."
+    }
+  ],
+  "statement": "Write a function\n\n```cpp\nvoid addAll(const std::vector<int>& values, long long& total);\n```\n\nthat **adds** every element of `values` to `total`. It does not set\n`total`; it adds to whatever is already there, so calling it twice\non two different vectors leaves the sum of both.\n\nRead integers until the input runs out. Put the ones at even\npositions (the 1st, 3rd, 5th …, counting positions from 0) into one\nvector and the ones at odd positions into another, then report:\n\n```\ninput:   10 1 20 2 30\n\noutput:  even-positions 60\n         odd-positions 3\n         total 63\n```\n\n`even-positions` is 10 + 20 + 30, from positions 0, 2 and 4.\n`total` must come from calling `addAll` **twice on one\naccumulator**, not from adding the two sub-totals together.\n\n### The point of the problem\n\nA reference parameter is not only for returning a second answer. It\nis also how a function contributes to something the caller owns and\nkeeps. Declare one accumulator, start it at zero, and hand it to the\nfunction twice: after the first call it holds the first vector's sum,\nand after the second it holds both. Nothing between the calls adds\nanything up — the function does, into the caller's variable.\n\nWritten as `long long addAll(...)` returning a value, the caller\nwould have to write `total += addAll(odds);` — which is equally\ngood, and is usually the better design because the function then\nhas no side effect. The accumulator version is worth meeting\nbecause it is everywhere in existing code and because it makes the\n\"the caller still owns it\" idea concrete.\n\nThe distinction to be careful about is `=` against `+=` inside the\nfunction. `total = sum;` would silently turn two calls into one.\n\n### Constraints\n\nEach number is between -1,000,000 and 1,000,000, and there are at\nmost 10,000 of them. Ten thousand values of a million each is 10¹⁰,\nwhich does not fit in a 32-bit `int` — hence the `long long`.\n\n### Boundary cases\n\n- **No input.** Both vectors are empty, both sums are 0, and the\n  total is 0. `addAll` on an empty vector adds nothing, which the\n  loop does on its own.\n- **One number** is at position 0, so it counts as even and the odd\n  total is 0.\n- **Two numbers** put one in each.\n- **Negative numbers** make the totals fall rather than rise, which\n  is the case that catches a function adding absolute values.",
+  "hints": [
+    "Read into one vector first, then split it by index: `if (i % 2 == 0)` decides which of the two it belongs to. Doing the split while reading works too, with a counter.",
+    "Inside `addAll`, use `total += value` and not `total = ...`. Setting it would make the second call throw away what the first one did, which is exactly what the `total` line tests.",
+    "For the total, start a third accumulator at 0 and call `addAll` on both vectors in turn. Adding the two sub-totals together gives the same number and does not exercise the point."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n#include <vector>\n\n// your code here — define addAll so that it adds to the total rather than setting it\n\nint main()\n{\n    std::vector<int> evens{};\n    std::vector<int> odds{};\n    int x{};\n\n    // your code here — split the input by position, then sum each and both\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "10 1 20 2 30\n",
+        "expect": "even-positions 60\nodd-positions 3\ntotal 63\n"
+      },
+      {
+        "stdin": "",
+        "expect": "even-positions 0\nodd-positions 0\ntotal 0\n"
+      }
+    ]
+  }
+}

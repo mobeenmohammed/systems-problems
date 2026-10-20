@@ -1,0 +1,35 @@
+{
+  "id": "cpp-times-table",
+  "key": {
+    "cases": [
+      {
+        "stdin": "2\n",
+        "expect": "1 2\n2 4\n"
+      },
+      {
+        "stdin": "4\n",
+        "expect": "1 2 3 4\n2 4 6 8\n3 6 9 12\n4 8 12 16\n"
+      },
+      {
+        "stdin": "5\n",
+        "expect": "1 2 3 4 5\n2 4 6 8 10\n3 6 9 12 15\n4 8 12 16 20\n5 10 15 20 25\n"
+      },
+      {
+        "stdin": "9\n",
+        "expect": "1 2 3 4 5 6 7 8 9\n2 4 6 8 10 12 14 16 18\n3 6 9 12 15 18 21 24 27\n4 8 12 16 20 24 28 32 36\n5 10 15 20 25 30 35 40 45\n6 12 18 24 30 36 42 48 54\n7 14 21 28 35 42 49 56 63\n8 16 24 32 40 48 56 64 72\n9 18 27 36 45 54 63 72 81\n"
+      },
+      {
+        "stdin": "12\n",
+        "expect": "1 2 3 4 5 6 7 8 9 10 11 12\n2 4 6 8 10 12 14 16 18 20 22 24\n3 6 9 12 15 18 21 24 27 30 33 36\n4 8 12 16 20 24 28 32 36 40 44 48\n5 10 15 20 25 30 35 40 45 50 55 60\n6 12 18 24 30 36 42 48 54 60 66 72\n7 14 21 28 35 42 49 56 63 70 77 84\n8 16 24 32 40 48 56 64 72 80 88 96\n9 18 27 36 45 54 63 72 81 90 99 108\n10 20 30 40 50 60 70 80 90 100 110 120\n11 22 33 44 55 66 77 88 99 110 121 132\n12 24 36 48 60 72 84 96 108 120 132 144\n"
+      },
+      {
+        "stdin": "10\n",
+        "expect": "1 2 3 4 5 6 7 8 9 10\n2 4 6 8 10 12 14 16 18 20\n3 6 9 12 15 18 21 24 27 30\n4 8 12 16 20 24 28 32 36 40\n5 10 15 20 25 30 35 40 45 50\n6 12 18 24 30 36 42 48 54 60\n7 14 21 28 35 42 49 56 63 70\n8 16 24 32 40 48 56 64 72 80\n9 18 27 36 45 54 63 72 81 90\n10 20 30 40 50 60 70 80 90 100\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n\nint main()\n{\n    int n{};\n    if (!(std::cin >> n)) return 0;\n\n    for (int i = 1; i <= n; ++i)\n    {\n        for (int j = 1; j <= n; ++j)\n        {\n            if (j > 1) std::cout << ' ';\n            std::cout << i * j;\n        }\n        std::cout << \"\\n\";\n    }\n\n    return 0;\n}\n"
+    }
+  },
+  "explanation": "## The program\n\n```cpp\nfor (int i = 1; i <= n; ++i)\n{\n    for (int j = 1; j <= n; ++j)\n    {\n        if (j > 1) std::cout << ' ';\n        std::cout << i * j;\n    }\n    std::cout << \"\\n\";\n}\n```\n\n## How many times does the inner body run?\n\n`n` times for each of `n` passes of the outer loop, so `n * n` in\nall. The inner loop is re-entered from scratch every time: `j` is\ndeclared in its header, so it comes back into existence at 1 on each\npass, and there is nothing to reset by hand.\n\nThat is the main reason to declare the counter in the header rather\nthan above the loop. With `int j;` outside, the inner loop would\nleave `j` at `n + 1` and the second row would print nothing until\nsomebody remembered to set it back.\n\n## Where the newline goes\n\n```\ninside the inner loop    one number per line\nbetween the two loops    one row per line        ← what is wanted\nafter both loops         the whole table on one line\n```\n\nThree placements, three different programs, no compiler error\nbetween them. When a nested loop prints the wrong *shape*, this is\nalmost always what it is.\n\n## Separator before, not after\n\n```cpp\nif (j > 1) std::cout << ' ';\nstd::cout << i * j;\n```\n\nThe alternative — print the number, then a space, then strip the\nlast one — means either building the line in a string first or\ntesting `j < n` instead, which works and reads as \"all but the last\"\nrather than \"all but the first\". Both are fine. What does not work\nis printing the space unconditionally and hoping nobody notices: a\ntrailing space is a different line to a comparison that is checking\nexact output, and it is invisible on screen.\n\nThis is the most common reason a solution that looks right fails\nhere. If a case fails and the output looks identical, pipe it\nthrough something that shows the ends of lines.\n\n## What this does not check\n\nAlignment. A real multiplication table would pad the columns so they\nline up, which needs `std::setw` from `<iomanip>` and a decision\nabout how wide. The exact-match grading here wants single spaces, so\nthe exercise deliberately asks for the simpler thing; the\nconstraint that `n <= 12` is what keeps that from looking silly."
+}

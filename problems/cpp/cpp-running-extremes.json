@@ -1,0 +1,53 @@
+{
+  "id": "cpp-running-extremes",
+  "title": "Three answers in one pass",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "loops",
+    "stdin",
+    "accumulation",
+    "minimum"
+  ],
+  "estimate": 16,
+  "prereqs": [
+    {
+      "concept": "cpp-stdin-loop",
+      "why": "The numbers keep coming until the input runs out, and the loop condition is the read itself."
+    },
+    {
+      "concept": "cpp-loops",
+      "why": "Three running totals are maintained across the passes, and two of them cannot be initialised before the first value is seen."
+    }
+  ],
+  "statement": "Read integers until the input runs out, and print how many there\nwere, the smallest, and the largest.\n\n```\ninput:   4 -3 9 0 9\n\noutput:  count 5\n         min -3\n         max 9\n```\n\nIf there are **no numbers at all**, there is no smallest and no\nlargest, so print:\n\n```\ncount 0\nmin none\nmax none\n```\n\n### The point of the problem\n\nReading an unknown number of values is one idiom:\n\n```cpp\nint x{};\nwhile (std::cin >> x)\n{\n    // x holds the next value\n}\n```\n\n`std::cin >> x` returns the stream, and a stream used as a condition\nis true while it is still good. When the input ends — or contains\nsomething that is not a number — the read fails, the condition is\nfalse, and the loop stops.\n\nThe count is easy: add one each time. The minimum and the maximum\nare not, and the reason is worth sitting with: **what do you start\nthem at?** Starting the minimum at 0 is wrong the moment every input\nis positive. Starting it at some enormous number works until\nsomebody feeds in a larger one.\n\nThe answer that is always right is to have no minimum until the\nfirst value arrives, and let the first value *be* both the minimum\nand the maximum. The count already tells you whether that has\nhappened.\n\n### Constraints\n\nEach number is between -1,000,000 and 1,000,000. There may be any\nnumber of them, including none, spread over any number of lines.\n\n### Boundary cases\n\n- **No input at all.** The loop body never runs and the answer is\n  the three `none`-ish lines above.\n- **One number.** It is both the minimum and the maximum.\n- **All the same.** `5 5 5` has min and max both 5.\n- **All negative.** `-4 -9 -1` has max -1, which is what catches a\n  maximum initialised to 0.\n- **Repeats of the extreme**, as in the example above, change\n  nothing.",
+  "hints": [
+    "The reading loop is `while (std::cin >> x) { ... }`. Get the count working on its own first — that part has no awkward starting value.",
+    "For min and max, use the count you are already keeping: if this is the first number, it is both; otherwise compare against what you have.",
+    "Print the two `none` lines only when the count ended at zero. Do not try to find a starting value that is smaller than every possible input — that is the bug this problem is about."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n\nint main()\n{\n    int x{};\n    int count{};\n\n    // your code here — read until the input ends, tracking count, min and max\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "4 -3 9 0 9\n",
+        "expect": "count 5\nmin -3\nmax 9\n"
+      },
+      {
+        "stdin": "",
+        "expect": "count 0\nmin none\nmax none\n"
+      }
+    ]
+  }
+}

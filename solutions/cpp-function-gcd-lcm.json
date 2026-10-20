@@ -1,0 +1,43 @@
+{
+  "id": "cpp-function-gcd-lcm",
+  "key": {
+    "cases": [
+      {
+        "stdin": "7 7\n",
+        "expect": "gcd 7\nlcm 7\n"
+      },
+      {
+        "stdin": "1 97\n",
+        "expect": "gcd 1\nlcm 97\n"
+      },
+      {
+        "stdin": "99999 100000\n",
+        "expect": "gcd 1\nlcm 9999900000\n"
+      },
+      {
+        "stdin": "100000 100000\n",
+        "expect": "gcd 100000\nlcm 100000\n"
+      },
+      {
+        "stdin": "48 18\n",
+        "expect": "gcd 6\nlcm 144\n"
+      },
+      {
+        "stdin": "2 3\n",
+        "expect": "gcd 1\nlcm 6\n"
+      },
+      {
+        "stdin": "1 1\n",
+        "expect": "gcd 1\nlcm 1\n"
+      },
+      {
+        "stdin": "81 27\n",
+        "expect": "gcd 27\nlcm 81\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n\nint gcd(int a, int b)\n{\n    while (b != 0)\n    {\n        int r{ a % b };\n        a = b;\n        b = r;\n    }\n\n    return a;\n}\n\nlong long lcm(int a, int b)\n{\n    return static_cast<long long>(a / gcd(a, b)) * b;\n}\n\nint main()\n{\n    int a{};\n    int b{};\n    if (!(std::cin >> a >> b)) return 0;\n\n    std::cout << \"gcd \" << gcd(a, b) << \"\\n\";\n    std::cout << \"lcm \" << lcm(a, b) << \"\\n\";\n\n    return 0;\n}\n"
+    }
+  },
+  "explanation": "## The program\n\n```cpp\nint gcd(int a, int b)\n{\n    while (b != 0)\n    {\n        int r{ a % b };\n        a = b;\n        b = r;\n    }\n    return a;\n}\n\nlong long lcm(int a, int b)\n{\n    return static_cast<long long>(a / gcd(a, b)) * b;\n}\n```\n\n## Why Euclid works\n\nAny number dividing both `a` and `b` also divides `a % b`, because\n`a % b` is `a` minus a whole number of `b`s. So the pair `(a, b)`\nand the pair `(b, a % b)` have exactly the same set of common\ndivisors — and therefore the same greatest one. The second pair is\nstrictly smaller, so repeating it must stop, and it stops when the\nsecond number is 0, at which point the first is the answer.\n\nIt is fast: the remainder at least halves every two steps, so the\nnumber of passes is proportional to the number of *digits* rather\nthan to the numbers themselves. `gcd(99999, 100000)` takes three.\n\nThe three-line swap is the whole loop body. Writing it without the\ntemporary — `b = a % b; a = ...` — does not work, because the old\n`a` is needed twice.\n\n## lcm does not deserve an algorithm\n\nFor positive `a` and `b`:\n\n```\ngcd(a, b) × lcm(a, b) = a × b\n```\n\nso the lcm is `a * b / gcd(a, b)`, and the function is one line.\nWriting a second search loop for it would be slower, longer, and a\nsecond place for the same kind of bug.\n\nReaching for a function you have already written is the whole of\n\"decomposition\" at this scale. It is not an architectural principle;\nit is noticing that the thing in front of you is made of a thing you\nhave.\n\n## Divide first\n\n```cpp\na * b / gcd(a, b)             // 99999 * 100000 overflows an int\na / gcd(a, b) * b             // 99999 / 1 * 100000 — fine\n```\n\nInteger division normally loses information, so \"divide last\" is a\nreasonable default habit. This is the exception, and it is exact: by\ndefinition `gcd(a, b)` divides `a` with no remainder, so dividing\nearly throws nothing away. Having established that, doing it first\nkeeps the intermediate value small.\n\nThe `static_cast<long long>` then goes on the *left* operand before\nthe multiply, so the multiplication itself is done in 64 bits.\nCasting the result instead — `static_cast<long long>(a / g * b)` —\nwould be too late, exactly as with the mean and the `double`.\n\n## What this does not check\n\nZero and negative inputs, which the constraints exclude.\n`gcd(0, 0)` has no sensible answer and this loop returns 0;\n`lcm` would then divide by it. `std::gcd` and `std::lcm` in\n`<numeric>` handle the signs and are what you would reach for in\nreal code — writing Euclid by hand once is the point here."
+}

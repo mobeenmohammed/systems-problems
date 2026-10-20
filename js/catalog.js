@@ -342,6 +342,156 @@ const Catalog = (() => {
 
   const track = id => allTracks().find(t => t.id === id) || null;
 
+  /* ---------------- projects ----------------
+
+     A project was a track, drawn as a tree in Learn beside "Metric
+     spaces, from the axioms up". It is not that kind of thing. Learn
+     answers "what does this rest on" with a graph of concepts; a
+     project answers "what am I building and what is left", which is a
+     list with an order and a shape on disk. Drawing the second as the
+     first gave a four-node tree saying nothing and buried the file
+     layout and the milestone order, which is all a reader wants.
+
+     So the project tracks are marked `kind: "project"` in
+     data/tracks.json, Learn draws the others, and #/projects draws
+     these. Nothing moved: the same track rows, the same problem ids,
+     the same drafts and submissions and records under those ids. The
+     old Learn URLs redirect.
+
+     `isProject` is a property of the row rather than of its id, so a
+     project whose track is named something else is a data change. */
+
+  const isProject = t => (t && t.kind) === 'project';
+
+  /* What Learn draws. Everything that is not a project: courses,
+     topics, and the ordered sets that are genuinely about building up
+     a body of concepts. */
+  const learnTracks = (subject = null) => allTracks(subject).filter(t => !isProject(t));
+
+  /* The languages a project is written in, from its problems rather
+     than from a field: a hardware project is hdl because its problems
+     are, and nothing has to be kept in step. */
+  function projectLangs(problems) {
+    const langs = new Set();
+    for (const id of problems) {
+      const m = byId[id];
+      if (!m) continue;
+      if (m.type === 'hdl') { langs.add('sv'); continue; }
+      for (const l of (m.langs || [])) langs.add(l);
+    }
+    return [...langs];
+  }
+
+  /* The hardest milestone, which is what the project is: finishing it
+     means finishing that one. An average would say "intermediate"
+     about a project whose last step is advanced, which is the step
+     that decides whether somebody can finish. */
+  const DIFF_ORDER = ['beginner', 'intermediate', 'advanced'];
+
+  function projectDifficulty(problems) {
+    let worst = -1;
+    for (const id of problems) {
+      const at = DIFF_ORDER.indexOf((byId[id] || {}).difficulty);
+      if (at > worst) worst = at;
+    }
+    return worst < 0 ? 'intermediate' : DIFF_ORDER[worst];
+  }
+
+  /* One project, with everything a card and an overview need and
+     nothing either has to work out for itself.
+
+     The milestones are the track's order, not the `step` numbers: the
+     track is the authored sequence and the steps are a label on each
+     problem. The build refuses them disagreeing (see the project
+     checks in tests/content.test.mjs), so either would do, and the
+     track is the one that is a list. */
+  function projectOf(t) {
+    if (!isProject(t)) return null;
+    const problems = (t.problems || []).filter(id => byId[id]);
+    const milestones = problems.map((id, i) => {
+      const meta = byId[id];
+      const rec = Store.record(id);
+      const said = meta.project || {};
+      return {
+        id,
+        meta,
+        n: i + 1,
+        label: said.label || meta.title,
+        difficulty: meta.difficulty,
+        status: rec.status,
+        solved: rec.status === 'solved',
+        /* Which files this milestone opens with. The last one is the
+           fullest, so the overview shows the project's shape from
+           there rather than from the first. */
+        files: (meta.files || []).slice(),
+      };
+    });
+    const done = milestones.filter(m => m.solved).length;
+    /* Where Continue goes: the first unsolved milestone, or the last
+       one if they are all finished, because coming back to a finished
+       project means reading what you wrote. */
+    const next = milestones.find(m => !m.solved) || milestones[milestones.length - 1] || null;
+
+    return {
+      ...t,
+      problems,
+      milestones,
+      langs: projectLangs(problems),
+      difficulty: projectDifficulty(problems),
+      done,
+      total: milestones.length,
+      fraction: milestones.length ? done / milestones.length : 0,
+      state: !milestones.length ? 'empty'
+        : done >= milestones.length ? 'completed'
+          : done || milestones.some(m => m.status !== 'unsolved') ? 'attempted'
+            : 'not-started',
+      next,
+      /* The files of the last milestone: the whole shape of the thing
+         once it is finished. Earlier milestones have fewer. */
+      shape: milestones.length ? milestones[milestones.length - 1].files : [],
+    };
+  }
+
+  const allProjects = () => allTracks().filter(isProject).map(projectOf);
+
+  /* By track id (`project-cache-sim`), by the id the problems use
+     (`cache-sim`), or by any of its problems' ids. Three spellings
+     because three kinds of link arrive here: the catalogue's own, an
+     old Learn URL, and "which project is this milestone part of". */
+  function project(id) {
+    const want = String(id || '');
+    if (!want) return null;
+    const rows = allTracks().filter(isProject);
+    const hit = rows.find(t => t.id === want)
+      || rows.find(t => t.project === want)
+      || rows.find(t => (t.problems || []).includes(want));
+    return hit ? projectOf(hit) : null;
+  }
+
+  /* What a project rests on, for the overview to link into Learn.
+     The union of its milestones' prerequisites, in the order they are
+     first wanted, with the milestone that wants each one. Concepts
+     only: this is the bridge INTO Learn, and it deliberately does not
+     push the project back the other way — nothing here adds a project
+     to a course tree.
+
+     `prereqs` is the same relation the course trees are built from,
+     so a link out of here lands on the node a reader would have
+     reached by walking Learn. */
+  function projectNeeds(proj) {
+    if (!proj) return [];
+    const want = new Map();
+    for (const m of proj.milestones) {
+      for (const id of (m.meta.prereqs || [])) {
+        if (want.has(id)) continue;
+        const c = concepts[id];
+        if (c) want.set(id, { id, ...c, milestone: m.n });
+      }
+    }
+    return [...want.values()];
+  }
+
+
   /* Solved count and the next unsolved problem, which is the only thing a
      track really has to answer. */
   function trackProgress(t) {
@@ -684,6 +834,57 @@ const Catalog = (() => {
     return treeCache[key];
   }
 
+  /* ---------------- where a concept is taught ----------------
+
+     A link to a concept needs a track to show it in: Learn's node
+     route is #/learn/<track>/<concept>, because the panel's "what
+     else rests on this" is an answer about a tree rather than about
+     the concept in the abstract.
+
+     Prefer a track that REQUIRES the concept — one whose own problems
+     name it — over one that merely reaches it through a shared
+     prerequisite, so a link lands where the idea is taught rather
+     than where it happens to be visible. Project tracks are not
+     candidates: they are not drawn in Learn any more.
+
+     Falls back to the reading index, which lists every concept and
+     needs no track at all. */
+  const trackForConcept = (() => {
+    const cache = new Map();
+    return (conceptId) => {
+      if (!conceptId) return null;
+      if (cache.has(conceptId)) return cache.get(conceptId);
+      let best = null;
+      let loose = null;
+      for (const t of learnTracks()) {
+        const tree = trackTree(t.id);
+        if (!tree) continue;
+        let here = false;
+        (function walk(ns) {
+          for (const n of ns) {
+            if (n.id === conceptId) { here = true; return; }
+            walk(n.children);
+          }
+        })(tree.roots);
+        if (!here) continue;
+        if (!loose) loose = t.id;
+        const required = (t.problems || [])
+          .some(pid => ((byId[pid] || {}).prereqs || []).includes(conceptId));
+        if (required) { best = t.id; break; }
+      }
+      const out = best || loose;
+      cache.set(conceptId, out);
+      return out;
+    };
+  })();
+
+  /* Where to send a reader for one concept. A track if one teaches it,
+     the reading index otherwise, and never a dead link. */
+  function conceptHref(conceptId) {
+    const t = trackForConcept(conceptId);
+    return t ? `#/learn/${t}/${conceptId}` : '#/concepts';
+  }
+
   /* What a track is made of: readings, and then problems split four ways.
 
      The split is the point. A track's *required* work is the ordered list
@@ -892,6 +1093,10 @@ const Catalog = (() => {
     init, all, meta, list, sorted, get, solution,
     concept, allConcepts, chain, prereqsFor, readProgress,
     allTracks, track, trackProgress, thisWeek, topicResources, allResources,
+    /* Learn draws tracks; #/projects draws projects. Two questions, so
+       two lists, from one set of rows. */
+    learnTracks, allProjects, project, projectNeeds, isProject,
+    trackForConcept, conceptHref,
     counts, nextUp, problemsForConcept, readStatus, trackTree, treeProgress,
     allCourses, course, courseOf, foldedChapters, setFoldedChapters,
     trackCounts, trackRequired,

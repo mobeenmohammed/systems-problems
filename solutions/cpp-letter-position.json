@@ -1,0 +1,35 @@
+{
+  "id": "cpp-letter-position",
+  "key": {
+    "cases": [
+      {
+        "stdin": "z\n",
+        "expect": "upper Z\nposition 26\n"
+      },
+      {
+        "stdin": "m\n",
+        "expect": "upper M\nposition 13\n"
+      },
+      {
+        "stdin": "n\n",
+        "expect": "upper N\nposition 14\n"
+      },
+      {
+        "stdin": "b\n",
+        "expect": "upper B\nposition 2\n"
+      },
+      {
+        "stdin": "y\n",
+        "expect": "upper Y\nposition 25\n"
+      },
+      {
+        "stdin": "  q  \n",
+        "expect": "upper Q\nposition 17\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n\nint main()\n{\n    char letter{};\n    if (!(std::cin >> letter)) return 0;\n\n    int offset{ letter - 'a' };\n\n    std::cout << \"upper \" << static_cast<char>('A' + offset) << \"\\n\";\n    std::cout << \"position \" << offset + 1 << \"\\n\";\n\n    return 0;\n}\n"
+    }
+  },
+  "explanation": "## The program\n\n```cpp\nint offset{ letter - 'a' };\n\nstd::cout << \"upper \" << static_cast<char>('A' + offset) << \"\\n\";\nstd::cout << \"position \" << offset + 1 << \"\\n\";\n```\n\nOne number does both jobs. `offset` is how far along the alphabet the\nletter is, counting from zero; the position is that plus one, and the\ncapital is that far along from `'A'`.\n\n## What the standard actually promises\n\nThe letters `a`..`z` are consecutive, and `A`..`Z` are consecutive,\nand `0`..`9` are consecutive. Those are real guarantees and this\nprogram rests on the first two.\n\nWhat is **not** promised is that `'a' - 'A'` is 32, or that letters\nand digits sit in any particular order relative to each other. In\nASCII the gap is 32 and `'0'` comes before `'A'`, and code written\nto those numbers works on every machine anybody is likely to use and\nis still writing down an assumption it did not have to. `'A' +\noffset` makes no such assumption.\n\n## Why the cast is needed in one direction and not the other\n\n```cpp\nchar c{ 'c' };\nstd::cout << c;                      // c\nstd::cout << c - 'a';                // 2    — an int\nstd::cout << 'A' + 2;                // 67   — also an int\nstd::cout << static_cast<char>('A' + 2);  // C\n```\n\nArithmetic on small integer types promotes them to `int` first — the\nintegral promotions — so the *type* of `'A' + 2` is `int` even\nthough the value fits in a `char`. `operator<<` is overloaded for\nboth, and it picks by type: handed an `int` it prints digits. The\ncast is how you say which of the two overloads you meant.\n\n## Off by one, on purpose\n\nSubtraction counts from zero and alphabets are counted from one, so\nexactly one `+ 1` belongs in this program. Putting it in the wrong\nplace gives `b` for `a`, which the first test case catches\nimmediately — which is why `a` is one of the visible cases rather\nthan a hidden one.\n\n## What this does not check\n\nAnything that is not a lowercase letter. Given `C` the program\ncomputes a negative offset and prints rubbish, and given a digit it\nprints something stranger still. Deciding what a program should do\nwith input outside its contract is a real question; this exercise\nstates the contract instead of handling the violation, and the tests\nrespect it."
+}

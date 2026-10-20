@@ -1,0 +1,43 @@
+{
+  "id": "cpp-mean-and-cast",
+  "key": {
+    "cases": [
+      {
+        "stdin": "-1 -2 -4\n",
+        "expect": "integer -2\nexact -2.33\n"
+      },
+      {
+        "stdin": "-3 0 3\n",
+        "expect": "integer 0\nexact 0.00\n"
+      },
+      {
+        "stdin": "0 0 0\n",
+        "expect": "integer 0\nexact 0.00\n"
+      },
+      {
+        "stdin": "1 1 2\n",
+        "expect": "integer 1\nexact 1.33\n"
+      },
+      {
+        "stdin": "1 2 2\n",
+        "expect": "integer 1\nexact 1.67\n"
+      },
+      {
+        "stdin": "1000 1000 1000\n",
+        "expect": "integer 1000\nexact 1000.00\n"
+      },
+      {
+        "stdin": "-1000 -1000 -1000\n",
+        "expect": "integer -1000\nexact -1000.00\n"
+      },
+      {
+        "stdin": "5 5 6\n",
+        "expect": "integer 5\nexact 5.33\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iomanip>\n#include <iostream>\n\nint main()\n{\n    int a{};\n    int b{};\n    int c{};\n    if (!(std::cin >> a >> b >> c)) return 0;\n\n    int total{ a + b + c };\n\n    std::cout << \"integer \" << total / 3 << \"\\n\";\n\n    double exact{ static_cast<double>(total) / 3 };\n    std::cout << std::fixed << std::setprecision(2);\n    std::cout << \"exact \" << exact << \"\\n\";\n\n    return 0;\n}\n"
+    }
+  },
+  "explanation": "## The program\n\n```cpp\nint total{ a + b + c };\n\nstd::cout << \"integer \" << total / 3 << \"\\n\";\n\ndouble exact{ static_cast<double>(total) / 3 };\nstd::cout << std::fixed << std::setprecision(2);\nstd::cout << \"exact \" << exact << \"\\n\";\n```\n\n## The conversion has to happen before the division\n\nThis is the single most common beginner arithmetic bug in C++, and\nit is silent — nothing warns, and the answer is plausible.\n\n```cpp\ndouble a{ 7 / 3 };                          // 2.0\ndouble b{ static_cast<double>(7) / 3 };     // 2.3333...\ndouble c{ 7 / 3.0 };                        // 2.3333...\ndouble d{ static_cast<double>(7 / 3) };     // 2.0  — too late\n```\n\nThe rule is that `/` looks at the types of its two operands and\nnothing else. Two `int`s means integer division; what the result is\nassigned to is not part of that decision, so `a` and `d` have already\nlost the fraction by the time the conversion happens. One `double`\noperand is enough to make it a real division, which is why `b` and\n`c` both work.\n\n## Truncation towards zero, again\n\n`-7 / 3` is -2, not -3. The quotient is cut towards zero rather than\nrounded or floored, so a negative mean comes out *larger* than the\ntrue value while a positive one comes out smaller. If what you want\nis a rounded integer mean, say so: `static_cast<int>(std::lround(\nexact))`, or for non-negative integers the old trick of\n`(total + 1) / 3`. Do not expect `/` to round.\n\n## std::fixed and std::setprecision are sticky\n\nThey are not arguments to one print; they change the stream and stay\nchanged:\n\n```cpp\nstd::cout << std::fixed << std::setprecision(2);\nstd::cout << 1.5 << \" \" << 2.0 << \"\\n\";    // 1.50 2.00\n```\n\nWhich is convenient here and a nuisance in a longer program, where\nsomething printing a plain number three functions later suddenly has\ntwo decimal places. `std::setw` is the exception — it applies to the\nnext item only.\n\n## What this does not check\n\nRounding at the halfway point. The mean of three integers is either\nexact to two places or an endless 3 or 6, so no case here lands on a\ntie like 2.005 where the two common rounding rules disagree. A\nprogram printing money would have to decide that question on\npurpose; this one never meets it."
+}

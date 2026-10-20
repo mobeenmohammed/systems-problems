@@ -1,0 +1,53 @@
+{
+  "id": "cpp-function-gcd-lcm",
+  "title": "One function, written in terms of another",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "functions",
+    "decomposition",
+    "euclid",
+    "overflow"
+  ],
+  "estimate": 18,
+  "prereqs": [
+    {
+      "concept": "cpp-functions",
+      "why": "Two functions, and the second one calls the first instead of repeating it."
+    },
+    {
+      "concept": "cpp-loops",
+      "why": "Euclid’s algorithm is a `while` whose condition is about the values rather than a count."
+    }
+  ],
+  "statement": "Write two functions\n\n```cpp\nint gcd(int a, int b);\nlong long lcm(int a, int b);\n```\n\nand use them. Read two positive integers and print:\n\n```\ninput:   12 18\n\noutput:  gcd 6\n         lcm 36\n```\n\n### The point of the problem\n\n**Euclid’s algorithm** finds the greatest common divisor by\nrepeatedly replacing the larger number with its remainder modulo the\nsmaller:\n\n```\ngcd(48, 18)   →   gcd(18, 48 % 18 = 12)\n              →   gcd(12, 18 % 12 = 6)\n              →   gcd(6, 12 % 6 = 0)\n              →   6, because the second number reached zero\n```\n\nAs a loop:\n\n```cpp\nwhile (b != 0)\n{\n    int r{ a % b };\n    a = b;\n    b = r;\n}\nreturn a;\n```\n\n**The least common multiple** then comes free, because for positive\nnumbers `gcd(a, b) * lcm(a, b) == a * b`. So `lcm` does not need an\nalgorithm of its own — it needs to call `gcd`. That is the whole\nlesson: a function you have already written is a tool, and the\nsecond function should be three lines rather than a second loop.\n\n### The order of operations in lcm\n\nWrite it as\n\n```\na / gcd(a, b) * b\n```\n\nand **not** as `a * b / gcd(a, b)`. Both are mathematically the\nsame; only the first avoids computing `a * b`, which for inputs near\nthe top of the range is around 10¹⁰ and overflows an `int`. Dividing\nfirst is exact, because `gcd(a, b)` divides `a` by definition.\n\nThe result is a `long long` because an lcm can be as large as `a * b`\neven when neither input is.\n\n### Constraints\n\nBoth numbers are between 1 and 100,000 inclusive. Neither is zero.\n\n### Boundary cases\n\n- **`12 18`** share a factor; **`9 28`** are coprime, so their gcd is\n  1 and their lcm is the product.\n- **`7 7`** has gcd and lcm both 7.\n- **`1 97`** has gcd 1.\n- **`99999 100000`** are coprime and their lcm is 9,999,900,000 —\n  which does not fit in an `int`, and is the case that catches both\n  a narrow return type and the wrong multiplication order.",
+  "hints": [
+    "Write `gcd` first and test it on `12 18` before touching `lcm` at all. Euclid’s loop is three lines inside a `while (b != 0)`.",
+    "`lcm` should call `gcd`. If you find yourself writing a second loop you are solving a problem you have already solved.",
+    "Divide before multiplying: `static_cast<long long>(a / gcd(a, b)) * b`. Computing `a * b` first overflows for the larger inputs, and the division is exact so nothing is lost by doing it early."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n\n// your code here — define gcd with Euclid’s loop, then lcm in terms of it\n\nint main()\n{\n    int a{};\n    int b{};\n    std::cin >> a >> b;\n\n    // your code here — print the two labelled lines using the functions above\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "12 18\n",
+        "expect": "gcd 6\nlcm 36\n"
+      },
+      {
+        "stdin": "9 28\n",
+        "expect": "gcd 1\nlcm 252\n"
+      }
+    ]
+  }
+}

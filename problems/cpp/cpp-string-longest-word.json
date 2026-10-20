@@ -1,0 +1,53 @@
+{
+  "id": "cpp-string-longest-word",
+  "title": "The longest word there was",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "strings",
+    "stdin",
+    "loops",
+    "size"
+  ],
+  "estimate": 15,
+  "prereqs": [
+    {
+      "concept": "cpp-strings",
+      "why": "Words are read into a `std::string` and compared by length."
+    },
+    {
+      "concept": "cpp-stdin-loop",
+      "why": "The words keep coming until the input runs out, which is the same read-as-condition idiom as for numbers."
+    }
+  ],
+  "statement": "Read whitespace-separated words until the input runs out, then\nprint how many there were, the longest one, and how many characters\nit has.\n\n```\ninput:   the quick brown elephant ran\n\noutput:  words 5\n         longest elephant\n         letters 8\n```\n\nIf two words are the longest, report the **first** of them.\n\nIf there are no words at all:\n\n```\nwords 0\nlongest none\nletters 0\n```\n\n### The point of the problem\n\n`>>` on a `std::string` reads one whitespace-separated word, which\nmakes splitting a stream into words free:\n\n```cpp\nstd::string word{};\nwhile (std::cin >> word)\n{\n    // word holds the next one\n}\n```\n\nIt skips leading whitespace, reads until the next whitespace, and\ndoes not care whether that whitespace is a space, a tab or a\nnewline. A line with three spaces between two words still yields\ntwo words.\n\n`word.size()` is its length. Keeping the longest so far is the same\nrunning-maximum pattern as for numbers — with the same question\nabout what to start it at, and the same answer: the empty string\nhas length 0, so an empty `std::string` is a safe starting point\nand **every** word beats it.\n\nThat only works because the strict comparison `>` keeps the first of\nequals. Using `>=` would keep the last, which is a different answer\nto the question that was asked.\n\n### Constraints\n\nEach word is at most 40 characters and there are at most 1000 of\nthem. Words may contain any printable characters other than\nwhitespace, including punctuation — `don’t` is one word and so is\n`hello,`.\n\n### Boundary cases\n\n- **No input at all**, or input that is only whitespace: the three\n  lines above.\n- **One word** is both the count and the longest.\n- **A tie**, as in `cat dog`, reports `cat` — which is what `>`\n  rather than `>=` gives you.\n- **Words spread over several lines** are no different from words on\n  one line.",
+  "hints": [
+    "The loop is `while (std::cin >> word)`. A `std::string` read with `>>` is one word, so the splitting is done for you.",
+    "Keep the best word so far in a `std::string` that starts empty. Every real word is longer than the empty string, so no special case for the first one is needed.",
+    "Compare with `>` and not `>=`, or a later word of the same length will replace the one you should have kept. `cat dog` must report `cat`."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n#include <string>\n\nint main()\n{\n    std::string word{};\n    int count{};\n\n    // your code here — read every word, counting them and keeping the longest\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "the quick brown elephant ran\n",
+        "expect": "words 5\nlongest elephant\nletters 8\n"
+      },
+      {
+        "stdin": "",
+        "expect": "words 0\nlongest none\nletters 0\n"
+      }
+    ]
+  }
+}

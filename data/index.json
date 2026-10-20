@@ -1418,6 +1418,20 @@
     ],
     "langs": [
       "cpp"
+    ],
+    "files": [
+      {
+        "path": "ring_buffer.hpp",
+        "given": false
+      },
+      {
+        "path": "ring_buffer.cpp",
+        "given": false
+      },
+      {
+        "path": "main.cpp",
+        "given": true
+      }
     ]
   },
   {
@@ -1671,6 +1685,20 @@
     ],
     "langs": [
       "cpp"
+    ],
+    "files": [
+      {
+        "path": "ring_buffer.hpp",
+        "given": false
+      },
+      {
+        "path": "ring_buffer.cpp",
+        "given": false
+      },
+      {
+        "path": "main.cpp",
+        "given": true
+      }
     ]
   },
   {
@@ -1704,6 +1732,20 @@
     ],
     "langs": [
       "cpp"
+    ],
+    "files": [
+      {
+        "path": "ring_buffer.hpp",
+        "given": false
+      },
+      {
+        "path": "ring_buffer.cpp",
+        "given": false
+      },
+      {
+        "path": "main.cpp",
+        "given": false
+      }
     ]
   },
   {
@@ -1909,6 +1951,20 @@
     ],
     "langs": [
       "cpp"
+    ],
+    "files": [
+      {
+        "path": "include/cache.hpp",
+        "given": false
+      },
+      {
+        "path": "src/cache.cpp",
+        "given": false
+      },
+      {
+        "path": "main.cpp",
+        "given": true
+      }
     ]
   },
   {
@@ -1943,6 +1999,20 @@
     ],
     "langs": [
       "cpp"
+    ],
+    "files": [
+      {
+        "path": "include/cache.hpp",
+        "given": false
+      },
+      {
+        "path": "src/cache.cpp",
+        "given": false
+      },
+      {
+        "path": "main.cpp",
+        "given": true
+      }
     ]
   },
   {
@@ -1999,6 +2069,20 @@
     ],
     "langs": [
       "cpp"
+    ],
+    "files": [
+      {
+        "path": "include/cache.hpp",
+        "given": false
+      },
+      {
+        "path": "src/cache.cpp",
+        "given": false
+      },
+      {
+        "path": "main.cpp",
+        "given": true
+      }
     ]
   },
   {
@@ -2104,6 +2188,100 @@
     ]
   },
   {
+    "id": "cpp-arith-report",
+    "title": "Five answers from two numbers",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "arithmetic",
+      "integer-division",
+      "modulo",
+      "input"
+    ],
+    "estimate": 12,
+    "subject": "systems",
+    "prereqs": [
+      "cpp-initialisation",
+      "cpp-integer-types"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
+    "id": "cpp-bool-is-a-value",
+    "title": "A condition is a value",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "boolean",
+      "conditions",
+      "boolalpha",
+      "output"
+    ],
+    "estimate": 14,
+    "subject": "systems",
+    "prereqs": [
+      "cpp-conditions",
+      "cpp-fundamental-types"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
+    "id": "cpp-collatz-steps",
+    "title": "How long until it reaches one",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "loops",
+      "while",
+      "overflow",
+      "long-long"
+    ],
+    "estimate": 16,
+    "subject": "systems",
+    "prereqs": [
+      "cpp-loops",
+      "cpp-integer-types"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
+    "id": "cpp-combine-word-report",
+    "title": "Everything so far, on one line of text",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "references",
+      "strings",
+      "vector",
+      "functions",
+      "predicate"
+    ],
+    "estimate": 20,
+    "subject": "systems",
+    "prereqs": [
+      "cpp-references",
+      "cpp-strings",
+      "cpp-std-vector"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
     "id": "cpp-count-digits",
     "title": "How many digits, and their sum",
     "topic": "cpp",
@@ -2115,6 +2293,29 @@
       "while",
       "arithmetic",
       "integer-division"
+    ],
+    "estimate": 15,
+    "subject": "systems",
+    "prereqs": [
+      "cpp-loops",
+      "cpp-integer-types"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
+    "id": "cpp-digit-reverse",
+    "title": "A number, back to front",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "loops",
+      "while",
+      "modulo",
+      "accumulation"
     ],
     "estimate": 15,
     "subject": "systems",
@@ -2145,6 +2346,75 @@
     ]
   },
   {
+    "id": "cpp-function-default-power",
+    "title": "An argument you usually do not have to give",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "functions",
+      "default-arguments",
+      "loops",
+      "long-long"
+    ],
+    "estimate": 15,
+    "subject": "systems",
+    "prereqs": [
+      "cpp-functions",
+      "cpp-loops"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
+    "id": "cpp-function-digit-sum",
+    "title": "Write it once, call it many times",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "functions",
+      "return-value",
+      "loops",
+      "decomposition"
+    ],
+    "estimate": 16,
+    "subject": "systems",
+    "prereqs": [
+      "cpp-functions",
+      "cpp-stdin-loop"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
+    "id": "cpp-function-gcd-lcm",
+    "title": "One function, written in terms of another",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "functions",
+      "decomposition",
+      "euclid",
+      "overflow"
+    ],
+    "estimate": 18,
+    "subject": "systems",
+    "prereqs": [
+      "cpp-functions",
+      "cpp-loops"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
     "id": "cpp-function-min-of-three",
     "title": "A function with a job",
     "topic": "cpp",
@@ -2162,6 +2432,29 @@
     "prereqs": [
       "cpp-functions",
       "cpp-conditions"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
+    "id": "cpp-function-perfect-numbers",
+    "title": "Two helpers, stacked",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "functions",
+      "decomposition",
+      "predicate",
+      "loops"
+    ],
+    "estimate": 18,
+    "subject": "systems",
+    "prereqs": [
+      "cpp-functions",
+      "cpp-loops"
     ],
     "langs": [
       "cpp"
@@ -2255,6 +2548,52 @@
     ]
   },
   {
+    "id": "cpp-leap-year",
+    "title": "Three rules, and the order they go in",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "conditions",
+      "boolean",
+      "operator-precedence",
+      "modulo"
+    ],
+    "estimate": 14,
+    "subject": "systems",
+    "prereqs": [
+      "cpp-conditions",
+      "cpp-integer-types"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
+    "id": "cpp-letter-position",
+    "title": "A letter is a number",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "char",
+      "conversions",
+      "arithmetic",
+      "static-cast"
+    ],
+    "estimate": 12,
+    "subject": "systems",
+    "prereqs": [
+      "cpp-fundamental-types",
+      "cpp-initialisation"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
     "id": "cpp-loop-multiples",
     "title": "Your first loop",
     "topic": "cpp",
@@ -2302,6 +2641,52 @@
     ]
   },
   {
+    "id": "cpp-mean-and-cast",
+    "title": "Two kinds of average",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "conversions",
+      "static-cast",
+      "floating-point",
+      "output"
+    ],
+    "estimate": 15,
+    "subject": "systems",
+    "prereqs": [
+      "cpp-integer-types",
+      "cpp-floating-point"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
+    "id": "cpp-reference-accumulate",
+    "title": "A total that survives the call",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "references",
+      "accumulation",
+      "vector",
+      "long-long"
+    ],
+    "estimate": 17,
+    "subject": "systems",
+    "prereqs": [
+      "cpp-references",
+      "cpp-std-vector"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
     "id": "cpp-reference-clamp",
     "title": "A function that changes its caller's variable",
     "topic": "cpp",
@@ -2320,6 +2705,52 @@
       "cpp-references",
       "cpp-functions",
       "cpp-std-vector"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
+    "id": "cpp-reference-min-max",
+    "title": "Two answers out of one call",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "references",
+      "const-reference",
+      "vector",
+      "functions"
+    ],
+    "estimate": 17,
+    "subject": "systems",
+    "prereqs": [
+      "cpp-references",
+      "cpp-std-vector"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
+    "id": "cpp-reference-swap",
+    "title": "Changing the caller’s variables",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "references",
+      "functions",
+      "parameters",
+      "swap"
+    ],
+    "estimate": 14,
+    "subject": "systems",
+    "prereqs": [
+      "cpp-references",
+      "cpp-functions"
     ],
     "langs": [
       "cpp"
@@ -2350,6 +2781,29 @@
     ]
   },
   {
+    "id": "cpp-running-extremes",
+    "title": "Three answers in one pass",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "loops",
+      "stdin",
+      "accumulation",
+      "minimum"
+    ],
+    "estimate": 16,
+    "subject": "systems",
+    "prereqs": [
+      "cpp-stdin-loop",
+      "cpp-loops"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
     "id": "cpp-scope-shadowing",
     "title": "The variable that is not the variable you meant",
     "topic": "cpp",
@@ -2368,6 +2822,52 @@
     ]
   },
   {
+    "id": "cpp-seconds-to-clock",
+    "title": "Seconds, the way a clock reads them",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "arithmetic",
+      "integer-division",
+      "modulo",
+      "output"
+    ],
+    "estimate": 14,
+    "subject": "systems",
+    "prereqs": [
+      "cpp-integer-types",
+      "cpp-conditions"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
+    "id": "cpp-short-circuit-guard",
+    "title": "Why the order of && matters",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "boolean",
+      "short-circuit",
+      "conditions",
+      "undefined-behaviour"
+    ],
+    "estimate": 15,
+    "subject": "systems",
+    "prereqs": [
+      "cpp-conditions",
+      "cpp-integer-types"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
     "id": "cpp-sizeof-and-types",
     "title": "What the standard actually guarantees about sizes",
     "topic": "cpp",
@@ -2383,6 +2883,52 @@
     "subject": "systems",
     "prereqs": [
       "cpp-fundamental-types"
+    ]
+  },
+  {
+    "id": "cpp-string-build-reverse",
+    "title": "Build it backwards",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "strings",
+      "getline",
+      "loops",
+      "indexing"
+    ],
+    "estimate": 15,
+    "subject": "systems",
+    "prereqs": [
+      "cpp-strings",
+      "cpp-loops"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
+    "id": "cpp-string-longest-word",
+    "title": "The longest word there was",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "strings",
+      "stdin",
+      "loops",
+      "size"
+    ],
+    "estimate": 15,
+    "subject": "systems",
+    "prereqs": [
+      "cpp-strings",
+      "cpp-stdin-loop"
+    ],
+    "langs": [
+      "cpp"
     ]
   },
   {
@@ -2458,6 +3004,52 @@
     ]
   },
   {
+    "id": "cpp-times-table",
+    "title": "A table, two loops deep",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "loops",
+      "nested-loops",
+      "for",
+      "output"
+    ],
+    "estimate": 16,
+    "subject": "systems",
+    "prereqs": [
+      "cpp-loops",
+      "cpp-conditions"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
+    "id": "cpp-triangle-kind",
+    "title": "Is it even a triangle?",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "conditions",
+      "boolean",
+      "validation",
+      "ordering"
+    ],
+    "estimate": 16,
+    "subject": "systems",
+    "prereqs": [
+      "cpp-conditions",
+      "cpp-initialisation"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
     "id": "cpp-unsigned-wrap",
     "title": "Three minus five, unsigned",
     "topic": "cpp",
@@ -2474,6 +3066,52 @@
     "subject": "systems",
     "prereqs": [
       "cpp-integer-types"
+    ]
+  },
+  {
+    "id": "cpp-vector-above-mean",
+    "title": "Two passes over the same numbers",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "vector",
+      "loops",
+      "conversions",
+      "range-for"
+    ],
+    "estimate": 16,
+    "subject": "systems",
+    "prereqs": [
+      "cpp-std-vector",
+      "cpp-floating-point"
+    ],
+    "langs": [
+      "cpp"
+    ]
+  },
+  {
+    "id": "cpp-vector-read-and-report",
+    "title": "A list you keep",
+    "topic": "cpp",
+    "difficulty": "beginner",
+    "lane": "core",
+    "type": "code",
+    "tags": [
+      "vector",
+      "push-back",
+      "indexing",
+      "stdin"
+    ],
+    "estimate": 15,
+    "subject": "systems",
+    "prereqs": [
+      "cpp-std-vector",
+      "cpp-stdin-loop"
+    ],
+    "langs": [
+      "cpp"
     ]
   },
   {
@@ -3071,6 +3709,12 @@
     ],
     "langs": [
       "sv"
+    ],
+    "files": [
+      {
+        "path": "seq_match.sv",
+        "given": false
+      }
     ]
   },
   {
@@ -3103,6 +3747,20 @@
     ],
     "langs": [
       "sv"
+    ],
+    "files": [
+      {
+        "path": "seq_match.sv",
+        "given": false
+      },
+      {
+        "path": "det_counter.sv",
+        "given": false
+      },
+      {
+        "path": "seq_detect.sv",
+        "given": false
+      }
     ]
   },
   {
@@ -3134,6 +3792,12 @@
     ],
     "langs": [
       "sv"
+    ],
+    "files": [
+      {
+        "path": "fifo_mem.sv",
+        "given": false
+      }
     ]
   },
   {
@@ -3166,6 +3830,16 @@
     ],
     "langs": [
       "sv"
+    ],
+    "files": [
+      {
+        "path": "fifo_mem.sv",
+        "given": false
+      },
+      {
+        "path": "fifo.sv",
+        "given": false
+      }
     ]
   },
   {
@@ -3241,6 +3915,24 @@
     ],
     "langs": [
       "sv"
+    ],
+    "files": [
+      {
+        "path": "seq_match.sv",
+        "given": false
+      },
+      {
+        "path": "det_counter.sv",
+        "given": false
+      },
+      {
+        "path": "arm_gate.sv",
+        "given": false
+      },
+      {
+        "path": "seq_detect.sv",
+        "given": false
+      }
     ]
   },
   {

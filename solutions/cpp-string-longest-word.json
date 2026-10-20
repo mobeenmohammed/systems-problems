@@ -1,0 +1,43 @@
+{
+  "id": "cpp-string-longest-word",
+  "key": {
+    "cases": [
+      {
+        "stdin": "cat dog\n",
+        "expect": "words 2\nlongest cat\nletters 3\n"
+      },
+      {
+        "stdin": "hello\n",
+        "expect": "words 1\nlongest hello\nletters 5\n"
+      },
+      {
+        "stdin": "   \n",
+        "expect": "words 0\nlongest none\nletters 0\n"
+      },
+      {
+        "stdin": "a bb ccc dd e\n",
+        "expect": "words 5\nlongest ccc\nletters 3\n"
+      },
+      {
+        "stdin": "one\ntwo\nthree\n",
+        "expect": "words 3\nlongest three\nletters 5\n"
+      },
+      {
+        "stdin": "x\n",
+        "expect": "words 1\nlongest x\nletters 1\n"
+      },
+      {
+        "stdin": "aaa bbb\n",
+        "expect": "words 2\nlongest aaa\nletters 3\n"
+      },
+      {
+        "stdin": "punctuation, matters!\n",
+        "expect": "words 2\nlongest punctuation,\nletters 12\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n#include <string>\n\nint main()\n{\n    std::string word{};\n    std::string longest{};\n    int count{};\n\n    while (std::cin >> word)\n    {\n        ++count;\n        if (word.size() > longest.size()) longest = word;\n    }\n\n    std::cout << \"words \" << count << \"\\n\";\n\n    if (count == 0)\n    {\n        std::cout << \"longest none\\n\";\n        std::cout << \"letters 0\\n\";\n    }\n    else\n    {\n        std::cout << \"longest \" << longest << \"\\n\";\n        std::cout << \"letters \" << longest.size() << \"\\n\";\n    }\n\n    return 0;\n}\n"
+    }
+  },
+  "explanation": "## The program\n\n```cpp\nwhile (std::cin >> word)\n{\n    ++count;\n    if (word.size() > longest.size()) longest = word;\n}\n```\n\n## >> splits on whitespace, for free\n\nReading a `std::string` with `>>` does three things: skip any\nleading whitespace, read characters until the next whitespace, and\nleave that whitespace in the stream for next time. So a stream of\ntext becomes a stream of words with no splitting code at all, and\nruns of spaces, tabs and newlines are all the same separator.\n\nWhat it cannot do is tell you where the lines were, or treat\npunctuation as a separator. `hello,` is one word here, which the\nconstraints say on purpose — a real word-counter would have to\ndefine what a word is rather than inheriting the stream’s answer.\n\n## The empty string as a starting value\n\nThe running-maximum problem again, and this time there *is* an\nidentity: the empty string has length 0, and every word read by `>>`\nhas length at least 1, so the first word always wins. No \"is this\nthe first one\" test is needed.\n\nThat is the difference from the integer version, where no `int` is\nsmaller than every other `int`. Worth noticing, because it explains\nwhy one of the two problems needs a flag and the other does not.\n\n## > keeps the first, >= keeps the last\n\n```\ncat dog\n\nwith >     cat beats \"\" ; dog does not beat cat   → cat\nwith >=    cat beats \"\" ; dog ties and replaces   → dog\n```\n\nNeither is wrong in general; only one answers the question as\nasked. Whenever a problem says \"the first\" or \"the last\" of equals,\nthat sentence is telling you which comparison to write.\n\n## size() is unsigned, and here it does not matter\n\n`word.size()` is a `std::size_t`, and it is compared against another\n`std::size_t`, so no conversion happens and no warning appears. It\nis printed directly rather than stored in an `int`, for the same\nreason. The moment you mix it with a signed `int` — `for (int i = 0;\ni < word.size(); ++i)` — the comparison converts the `int` to\nunsigned and `-Wsign-compare` has something to say.\n\n## What this does not check\n\nWhat counts as a word. Hyphens, apostrophes, numbers and\npunctuation are all just characters to `>>`, so `well-known` is one\nword and `end.` is five letters and a full stop. Defining a word\nproperly means deciding about all of those, which is a different\nand much larger exercise."
+}

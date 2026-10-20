@@ -1,0 +1,53 @@
+{
+  "id": "cpp-seconds-to-clock",
+  "title": "Seconds, the way a clock reads them",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "arithmetic",
+    "integer-division",
+    "modulo",
+    "output"
+  ],
+  "estimate": 14,
+  "prereqs": [
+    {
+      "concept": "cpp-integer-types",
+      "why": "Every step here is an integer division or a remainder, and the whole exercise is choosing which."
+    },
+    {
+      "concept": "cpp-conditions",
+      "why": "Padding a number to two digits is one `if` on whether it is below ten."
+    }
+  ],
+  "statement": "Read one non-negative integer: a number of seconds. Print how long\nthat is, as `H:MM:SS`.\n\n```\ninput:   3661      output:  1:01:01\ninput:   59        output:  0:00:59\ninput:   86399     output:  23:59:59\ninput:   90061     output:  25:01:01\n```\n\nMinutes and seconds are **always two digits**, so 1 minute prints as\n`01`. Hours are **not** padded and **not** wrapped at 24 — 90061\nseconds is 25 hours and change, and the answer says 25.\n\n### The point of the problem\n\nThree numbers out of one, with `/` and `%` taking turns:\n\n```\nhours    = s / 3600            how many whole hours fit\nleftover = s % 3600            what is left after taking them out\nminutes  = leftover / 60       whole minutes in the leftover\nseconds  = leftover % 60       and what is left after those\n```\n\nYou can also write minutes as `s / 60 % 60` and seconds as `s % 60`\nwithout the intermediate variable. The version with `leftover` is\neasier to be sure about, and being sure is worth more than being\nshort.\n\n### Padding to two digits\n\nThere is a tool for this in `<iomanip>`, and you do not need it. A\nnumber below 10 needs one `0` in front of it:\n\n```cpp\nif (minutes < 10) std::cout << '0';\nstd::cout << minutes;\n```\n\n### Constraints\n\nThe input is between 0 and 10,000,000 inclusive, so hours fit\ncomfortably in an `int` and nothing overflows.\n\n### Boundary cases\n\n- **0** prints `0:00:00`. Both pads happen and the hour is a bare\n  zero.\n- **3599** is `0:59:59`; **3600** is `1:00:00`. Those two next to\n  each other catch an hour computed with the wrong operator.\n- **36000** is `10:00:00`, where the hour has two digits and still\n  must not be padded to three.",
+  "hints": [
+    "Take the hours out first: `int hours = s / 3600;`. Then work on what is left, `s % 3600`, which is now a number of seconds under an hour.",
+    "Minutes and seconds come out of the leftover the same way the hours came out of the whole: divide by 60 for the count, take the remainder of 60 for what is left.",
+    "For the padding, write a tiny two-line pattern and use it twice — print a `'0'` first if the value is below ten, then print the value. Do not pad the hours."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n\nint main()\n{\n    int s{};\n    std::cin >> s;\n\n    // your code here — split s into hours, minutes and seconds, then print H:MM:SS\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "3661\n",
+        "expect": "1:01:01\n"
+      },
+      {
+        "stdin": "59\n",
+        "expect": "0:00:59\n"
+      }
+    ]
+  }
+}

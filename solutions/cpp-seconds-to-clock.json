@@ -1,0 +1,43 @@
+{
+  "id": "cpp-seconds-to-clock",
+  "key": {
+    "cases": [
+      {
+        "stdin": "0\n",
+        "expect": "0:00:00\n"
+      },
+      {
+        "stdin": "3599\n",
+        "expect": "0:59:59\n"
+      },
+      {
+        "stdin": "3600\n",
+        "expect": "1:00:00\n"
+      },
+      {
+        "stdin": "86399\n",
+        "expect": "23:59:59\n"
+      },
+      {
+        "stdin": "90061\n",
+        "expect": "25:01:01\n"
+      },
+      {
+        "stdin": "36000\n",
+        "expect": "10:00:00\n"
+      },
+      {
+        "stdin": "60\n",
+        "expect": "0:01:00\n"
+      },
+      {
+        "stdin": "10000000\n",
+        "expect": "2777:46:40\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n\nint main()\n{\n    int s{};\n    if (!(std::cin >> s)) return 0;\n\n    int hours{ s / 3600 };\n    int leftover{ s % 3600 };\n    int minutes{ leftover / 60 };\n    int seconds{ leftover % 60 };\n\n    std::cout << hours << ':';\n    if (minutes < 10) std::cout << '0';\n    std::cout << minutes << ':';\n    if (seconds < 10) std::cout << '0';\n    std::cout << seconds << \"\\n\";\n\n    return 0;\n}\n"
+    }
+  },
+  "explanation": "## The program\n\n```cpp\nint hours{ s / 3600 };\nint leftover{ s % 3600 };\nint minutes{ leftover / 60 };\nint seconds{ leftover % 60 };\n\nstd::cout << hours << ':';\nif (minutes < 10) std::cout << '0';\nstd::cout << minutes << ':';\nif (seconds < 10) std::cout << '0';\nstd::cout << seconds << \"\\n\";\n```\n\n## Divide for the count, take the remainder for the rest\n\nThat is the whole idea, applied twice. `s / 3600` is \"how many whole\nhours are in `s`\"; `s % 3600` is \"and how much was not an hour\". The\nsecond number is a smaller version of the same problem, so the same\npair of operators solves it with 60 instead of 3600.\n\n```\ns = 3661\n\n  3661 / 3600 = 1        hours    = 1\n  3661 % 3600 = 61       leftover = 61\n    61 /   60 = 1        minutes  = 1\n    61 %   60 = 1        seconds  = 1\n```\n\nWritten without the intermediate variable, minutes is `s / 60 % 60`.\nThat reads left to right — divide by 60 to get total minutes, then\ntake 60 of them away at a time — and it is correct, but `leftover`\nmakes the structure visible, and you can print it while debugging.\n\n## Why the hour is not wrapped\n\nThe problem asks for an elapsed time, not a time of day. 90061\nseconds really is 25 hours and a bit; printing `1:01:01` would be\nanswering a different question, and it is the question a `% 24` would\nquietly change it into. Only wrap a unit when the thing being\nmeasured wraps.\n\n## Padding without <iomanip>\n\nThe library way is:\n\n```cpp\n#include <iomanip>\nstd::cout << std::setw(2) << std::setfill('0') << minutes;\n```\n\nwhich is worth knowing and has a catch: `setw` applies to the next\nitem only, while `setfill` is sticky and stays set for everything\nafterwards. Two `if`s have no such surprise, and on a two-digit pad\nthey are not longer.\n\n## What this does not check\n\nNegative input. The constraint says the number is not negative, and\nthe reference does not test for it — with a negative `s` every\ndivision truncates towards zero and the output is nonsense rather\nthan an error. A program taking this from a user rather than from a\nwell-behaved test would have to say so."
+}

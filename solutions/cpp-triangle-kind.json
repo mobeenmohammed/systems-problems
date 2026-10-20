@@ -1,0 +1,51 @@
+{
+  "id": "cpp-triangle-kind",
+  "key": {
+    "cases": [
+      {
+        "stdin": "5 5 5\n",
+        "expect": "equilateral\n"
+      },
+      {
+        "stdin": "5 5 8\n",
+        "expect": "isosceles\n"
+      },
+      {
+        "stdin": "1 2 3\n",
+        "expect": "not a triangle\n"
+      },
+      {
+        "stdin": "2 2 3\n",
+        "expect": "isosceles\n"
+      },
+      {
+        "stdin": "1 1 1\n",
+        "expect": "equilateral\n"
+      },
+      {
+        "stdin": "10 1 1\n",
+        "expect": "not a triangle\n"
+      },
+      {
+        "stdin": "1 10 1\n",
+        "expect": "not a triangle\n"
+      },
+      {
+        "stdin": "1000 1000 1000\n",
+        "expect": "equilateral\n"
+      },
+      {
+        "stdin": "6 8 10\n",
+        "expect": "scalene\n"
+      },
+      {
+        "stdin": "7 10 5\n",
+        "expect": "scalene\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n\nint main()\n{\n    int a{};\n    int b{};\n    int c{};\n    if (!(std::cin >> a >> b >> c)) return 0;\n\n    bool valid{ a + b > c && a + c > b && b + c > a };\n\n    if (!valid)\n        std::cout << \"not a triangle\\n\";\n    else if (a == b && b == c)\n        std::cout << \"equilateral\\n\";\n    else if (a == b || b == c || a == c)\n        std::cout << \"isosceles\\n\";\n    else\n        std::cout << \"scalene\\n\";\n\n    return 0;\n}\n"
+    }
+  },
+  "explanation": "## The program\n\n```cpp\nbool valid{ a + b > c && a + c > b && b + c > a };\n\nif (!valid)                            std::cout << \"not a triangle\\n\";\nelse if (a == b && b == c)             std::cout << \"equilateral\\n\";\nelse if (a == b || b == c || a == c)   std::cout << \"isosceles\\n\";\nelse                                   std::cout << \"scalene\\n\";\n```\n\n## Two ordering traps, one chain\n\nAn `else if` chain is tried top to bottom and stops at the first\nmatch, which makes the order part of the meaning rather than a\nmatter of taste.\n\n**Validity before shape.** `1 1 3` is isosceles-shaped and is not a\ntriangle. Test the shape first and you answer a question about a\nfigure that does not exist.\n\n**Equilateral before isosceles.** `a == b || b == c || a == c` is\ntrue of `5 5 5` as well, so with the two branches the other way\nround the equilateral case is unreachable — not wrong-looking, just\ndead. The compiler does not warn, because there is nothing\nsyntactically odd about an `else if` that can never be taken.\n\nThe general shape to remember: **narrow cases before broad ones**.\n\"All three\" is narrower than \"any two\", so it goes first.\n\n## Why all three pair tests\n\nThe inequality has to hold for every pair, and since the input can\narrive in any order you cannot know in advance which side is the\nlongest. `10 1 1` fails `b + c > a`; `1 1 10` fails `a + b > c`.\nChecking one pair catches one of them.\n\nThere is a shortcut: sort the three, and then a single test on the\ntwo smallest against the largest is enough. Worth knowing, and not\nshorter at this size.\n\n## Strictly greater\n\n```\n1 + 2 > 3   is false      1 2 3 is not a triangle\n1 + 2 >= 3  is true       — and would wrongly accept it\n```\n\nWith `>=`, the two short sides are allowed to meet exactly on the\nlong one: a triangle with zero area and no third corner. Whether a\ndegenerate case counts is a decision the problem has to make\nexplicitly, which is why the statement says \"strictly\".\n\n## What this does not check\n\nZero or negative sides, which the constraints exclude.\n\nZero happens to be handled anyway: `0 1 1` fails `a + b > c`, since\n`0 + 1 > 1` is false, so it is rejected as not a triangle. That is\nluck rather than design.\n\nNegative sides are not so lucky. `-5 -5 -5` passes every pair test,\nbecause `-5 + -5 > -5` is `-10 > -5`… which is false, so that one is\nrejected too. But `3 4 -1` passes `a + b > c` and `a + c > b` is\n`2 > 4`, false — also rejected. The inequality turns out to be\nsurprisingly robust here, and \"surprisingly\" is the problem: a program\ntaking real input should test the precondition it depends on rather\nthan hoping the arithmetic covers it."
+}

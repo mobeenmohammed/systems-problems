@@ -197,6 +197,63 @@ width it was dragged to. Run, Submit and Reset sit under both panels
 rather than inside the code column, so hiding the code does not hide
 them. Reset layout puts all of it back and leaves every draft alone.
 
+## Projects are not tracks
+
+A project used to be a track in `data/tracks.json` like any other, drawn
+in Learn as the tree of concepts it rests on, and reachable from the
+Content menu as `#/problems?project=1`. It was badly served by both.
+Learn answers "what does this rest on" with a graph of concepts, which
+for a three-milestone project is four boxes saying nothing; the
+catalogue filter gave a flat list of milestones with no sign of which
+came first or what the finished thing looks like.
+
+The four project tracks now carry `kind: "project"` and the id their
+problems use in their own `project` block:
+
+```json
+{ "id": "project-cache-sim", "kind": "project", "project": "cache-sim", ... }
+```
+
+`Catalog.learnTracks()` is what Learn draws — everything without that
+kind. `Catalog.allProjects()` is what `#/projects` draws, and
+`Catalog.project(id)` accepts the track id, the bare project id, or any
+of its problems' ids, because three kinds of link arrive there. Nothing
+moved underneath: the same track rows, the same problem ids, the same
+drafts and submissions and records under those ids.
+
+`#/projects` is one card per project, with its languages, its hardest
+milestone's difficulty (the one that decides whether somebody can
+finish), a progress bar, a numbered link per milestone, and a button
+that names the milestone it opens rather than only saying "Continue".
+The language, difficulty and progress filters live in the hash, so a
+filtered view is a link somebody can send and a reload does not lose
+it.
+
+`#/projects/<id>` is the overview: what you end up with (the track's
+`goal`, which was only ever a tooltip before), what it rests on, the
+file structure, and the milestones in order. The file structure comes
+from a `files` list the index now carries for multi-file problems —
+paths and which of them the exercise supplies — so the overview does
+not fetch three problem files to list nine paths, and the contents stay
+in the problem files where they belong.
+
+Prerequisites link into Learn through `Catalog.conceptHref()`, which
+prefers a track whose own problems name the concept over one that
+merely reaches it through a shared prerequisite, and falls back to the
+reading index when no track teaches it. The arrow points one way on
+purpose: a project links into Learn, and nothing adds a project to
+anybody's course tree.
+
+`#/learn/project-*` and `#/tracks/project-*` redirect to the overview,
+so bookmarks, the dashboard's "next up" and every link written before
+the split still land on the thing rather than on a 404.
+
+`tests/content.test.mjs` checks what cannot be fixed at runtime: that
+every milestone of a project track claims that project, that the
+`step` numbers are 1..n in the track's order, that they agree on `of`,
+that each has a label for the overview, and that no problem calls
+itself a milestone of a project no track lists.
+
 ## Which file you are in
 
 A strip under the tabs names the file the editor is showing: each

@@ -1,0 +1,53 @@
+{
+  "id": "cpp-triangle-kind",
+  "title": "Is it even a triangle?",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "conditions",
+    "boolean",
+    "validation",
+    "ordering"
+  ],
+  "estimate": 16,
+  "prereqs": [
+    {
+      "concept": "cpp-conditions",
+      "why": "Four answers from one chain of tests, and the order of the tests decides whether it is right."
+    },
+    {
+      "concept": "cpp-initialisation",
+      "why": "Three values are read in, and all three are needed before any test can be done."
+    }
+  ],
+  "statement": "Read three positive integers — three proposed side lengths — and\nprint exactly one of:\n\n```\nnot a triangle\nequilateral\nisosceles\nscalene\n```\n\nThree lengths are a triangle only if **every** pair of them adds up\nto strictly more than the third. If they do:\n\n- all three equal → `equilateral`\n- exactly two equal → `isosceles`\n- none equal → `scalene`\n\n```\ninput:   3 4 5     output:  scalene\ninput:   5 5 8     output:  isosceles\ninput:   5 5 5     output:  equilateral\ninput:   1 2 3     output:  not a triangle\n```\n\n### The point of the problem\n\nThe order of the tests is the whole exercise. Classification is\nmeaningless until validity is settled: `1 1 3` has two equal sides\nand is not a triangle at all, so a program that checks for\n`isosceles` first gets it wrong.\n\n```\nis it a triangle?  ---- no ---->  \"not a triangle\"\n      |\n     yes\n      v\nall three equal?   ---- yes --->  \"equilateral\"\n      |\n      no\n      v\nany two equal?     ---- yes --->  \"isosceles\"\n      |\n      no\n      v\n                                  \"scalene\"\n```\n\nThe second ordering matters too: every equilateral triangle has two\nequal sides, so `equilateral` has to be tested **before**\n`isosceles` or nothing ever reaches it. This is the same trap twice,\nin one problem.\n\n**Strictly** more, not \"more than or equal to\". `1 2 3` lies flat —\nthe two short sides meet exactly on the long one and enclose no\narea — so `a + b > c` with `>` rather than `>=` is what is wanted.\n\n### Constraints\n\nEach side is between 1 and 1000 inclusive. Nothing is zero and\nnothing is negative, so the only way to fail is the inequality.\nSums fit in an `int` easily.\n\n### Boundary cases\n\n- **`1 2 3`** is degenerate: exactly flat, and not a triangle.\n- **`1 1 3`** is two equal sides that still do not reach, which\n  catches testing shape before validity.\n- **`2 2 3`** is a real isosceles triangle, to prove the previous\n  case was rejected for the right reason.\n- **`1 1 1`** is the smallest equilateral one, and must not come out\n  as `isosceles`.\n- The three sides can arrive in any order, so all three pair tests\n  are needed — `10 1 1` fails on a different pair than `1 1 10`\n  would if you only checked one.",
+  "hints": [
+    "Do the validity test first, as one `bool`, and return or print early if it fails. Nothing after it has to think about invalid input again.",
+    "All three pairs need checking because the sides arrive in no particular order: `a + b > c && a + c > b && b + c > a`.",
+    "Test `equilateral` before `isosceles`. Three equal sides also satisfy \"two are equal\", so the other order can never reach the equilateral branch."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n\nint main()\n{\n    int a{};\n    int b{};\n    int c{};\n    std::cin >> a >> b >> c;\n\n    // your code here — reject it first if it is not a triangle, then name the kind\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "3 4 5\n",
+        "expect": "scalene\n"
+      },
+      {
+        "stdin": "1 1 3\n",
+        "expect": "not a triangle\n"
+      }
+    ]
+  }
+}

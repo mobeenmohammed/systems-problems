@@ -175,9 +175,16 @@ section('tracks and reading are no longer half hidden');
      so this only ever checked a hard-coded count of eleven, which is
      a check on how much content exists rather than on the page. */
   const tracks = await page.evaluate(() => ({
-    titles: window.SystemsLab.Catalog.allTracks().map(t => t.title),
+    /* Learn's own tracks. A project is not one of these any more — it
+       has its own catalogue at #/projects, and the old track URL
+       redirects there. See tests/browser/projects.test.mjs. */
+    titles: window.SystemsLab.Catalog.learnTracks().map(t => t.title),
+    projects: window.SystemsLab.Catalog.allProjects().map(t => t.title),
     text: document.body.textContent,
   }));
+  ok(`and the projects are not among them (${tracks.projects.length})`,
+    tracks.projects.length > 0
+      && tracks.projects.every(t => !tracks.titles.includes(t)));
   const missing = tracks.titles.filter(t => !tracks.text.includes(t));
   ok(`every one of the ${tracks.titles.length} tracks is on the page`
     + `${missing.length ? ` (missing: ${missing.join(', ')})` : ''}`,

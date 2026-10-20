@@ -1,0 +1,53 @@
+{
+  "id": "cpp-bool-is-a-value",
+  "title": "A condition is a value",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "boolean",
+    "conditions",
+    "boolalpha",
+    "output"
+  ],
+  "estimate": 14,
+  "prereqs": [
+    {
+      "concept": "cpp-conditions",
+      "why": "Three conditions are evaluated, named and printed rather than branched on, which is what makes `bool` a type rather than a piece of `if` syntax."
+    },
+    {
+      "concept": "cpp-fundamental-types",
+      "why": "`bool` is one of the fundamental types, and how it prints depends on the stream rather than on the value."
+    }
+  ],
+  "statement": "Read three integers `x`, `lo` and `hi` (with `lo <= hi`) and print\nthree lines, each a word and then `true` or `false`:\n\n```\ninput:   5 1 9\n\noutput:  inside true\n         on-edge false\n         outside false\n```\n\nThe three questions are:\n\n- `inside` — is `x` strictly between `lo` and `hi`?\n- `on-edge` — is `x` equal to `lo` or to `hi`?\n- `outside` — is `x` below `lo` or above `hi`?\n\n### The point of the problem\n\nTwo things, and the first one is the bigger:\n\n**A comparison is a value.** `lo < x` is an expression of type\n`bool`, no different in kind from `a + b` being an `int`. It does not\nhave to live inside an `if` — it can be stored in a variable and\nprinted, exactly like a number:\n\n```cpp\nbool positive{ x > 0 };\nstd::cout << positive;\n```\n\n**`bool` prints as a number unless you ask otherwise.** By default\n`std::cout << true` writes `1`. The manipulator that changes this\nlives in `<iostream>` and is sticky:\n\n```cpp\nstd::cout << std::boolalpha;\nstd::cout << true << \"\\n\";      // true\n```\n\n### One more thing, which will bite you\n\n`lo < x < hi` compiles. It does not mean what it looks like. `<` is\nleft-associative, so C++ reads it as `(lo < x) < hi`: compare `lo`\nand `x` to get a `bool`, convert that `bool` to 0 or 1, and compare\n**that** with `hi`. With `hi` above 1 the whole thing is almost\nalways `true`. Chained comparison is written with an explicit `&&`\nin C++, and there is no shorthand.\n\n### Constraints\n\nAll three numbers are between -1000 and 1000, and `lo <= hi`.\n\n### Boundary cases\n\n- **`1 1 9`** is on the edge: `inside` is false, `on-edge` is true,\n  `outside` is false. Exactly one of the three is true for every\n  valid input, which is a useful thing to check your own output\n  against.\n- **`0 1 9`** is outside, below.\n- **`5 5 5`** is the collapsed range, where `lo` and `hi` are the\n  same number and `x` is both of them: `on-edge` is true and the\n  other two are false. There is no room to be inside.",
+  "hints": [
+    "Write the three answers into three named `bool` variables before printing anything. The three lines then have nothing in them but a word and a variable.",
+    "Add `std::cout << std::boolalpha;` once, before the three lines. Without it you will print `1` and `0`, which is correct C++ and the wrong output.",
+    "`inside` needs two comparisons joined with `&&`. Writing `lo < x < hi` compiles and is wrong — see the note in the statement."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n\nint main()\n{\n    int x{};\n    int lo{};\n    int hi{};\n    std::cin >> x >> lo >> hi;\n\n    // your code here — answer the three questions, and print them as words\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "5 1 9\n",
+        "expect": "inside true\non-edge false\noutside false\n"
+      },
+      {
+        "stdin": "1 1 9\n",
+        "expect": "inside false\non-edge true\noutside false\n"
+      }
+    ]
+  }
+}

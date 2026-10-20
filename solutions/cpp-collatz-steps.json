@@ -1,0 +1,43 @@
+{
+  "id": "cpp-collatz-steps",
+  "key": {
+    "cases": [
+      {
+        "stdin": "2\n",
+        "expect": "steps 1\n"
+      },
+      {
+        "stdin": "27\n",
+        "expect": "steps 111\n"
+      },
+      {
+        "stdin": "7\n",
+        "expect": "steps 16\n"
+      },
+      {
+        "stdin": "704511\n",
+        "expect": "steps 242\n"
+      },
+      {
+        "stdin": "1000000\n",
+        "expect": "steps 152\n"
+      },
+      {
+        "stdin": "3\n",
+        "expect": "steps 7\n"
+      },
+      {
+        "stdin": "97\n",
+        "expect": "steps 118\n"
+      },
+      {
+        "stdin": "871\n",
+        "expect": "steps 178\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n\nint main()\n{\n    long long n{};\n    if (!(std::cin >> n)) return 0;\n\n    int steps{};\n\n    while (n != 1)\n    {\n        if (n % 2 == 0)\n            n /= 2;\n        else\n            n = 3 * n + 1;\n        ++steps;\n    }\n\n    std::cout << \"steps \" << steps << \"\\n\";\n\n    return 0;\n}\n"
+    }
+  },
+  "explanation": "## The program\n\n```cpp\nlong long n{};\nint steps{};\n\nwhile (n != 1)\n{\n    if (n % 2 == 0) n /= 2;\n    else            n = 3 * n + 1;\n    ++steps;\n}\n```\n\n## A loop with no count\n\n```\n6 → 3 → 10 → 5 → 16 → 8 → 4 → 2 → 1        8 steps\n7 → 22 → 11 → 34 → 17 → 52 → … → 1          16 steps\n27 → 82 → 41 → 124 → … (up to 9232) → 1    111 steps\n```\n\nThere is no formula for the length, and no way to pick a `for`\nbound. The loop ends because the value happens to reach 1, which is\nthe defining feature of a `while`: the data decides.\n\nIt is also, famously, not *proved* to end for every starting value.\nThe Collatz conjecture is open; it has been checked by machine past\n2⁶⁸, which covers this exercise several times over, and nobody has\na proof. A loop that might not terminate is normally a bug — here it\nis an unsolved problem, which is a nice reminder that \"this loop\nends\" is a claim and not a formality.\n\n## Why long long\n\nThe sequence does not decrease monotonically. From 27 it rises to\n9232; from 704,511 it rises past 5.6 × 10¹⁰. A 32-bit `int` holds\nup to about 2.1 × 10⁹, so `3 * n + 1` overflows well before then.\n\nSigned integer overflow in C++ is undefined behaviour. Not \"wraps to\na negative number\" — although that is what usually happens, and it\nwould send the loop off somewhere strange. The compiler is allowed\nto assume it never occurs, which means an optimiser can reason that\n`n` is always positive and transform the loop on that basis. There\nis no safe reading of a program that overflows.\n\n`long long` is at least 64 bits by the standard — in practice\nexactly 64 — which holds about 9.2 × 10¹⁸.\n\nNote that the counter stays an `int`. Widening everything \"to be\nsafe\" is a habit worth not forming; widen the thing that can\nactually get large, and know why.\n\n## Zero steps is an answer\n\nWith `n == 1` the condition is false before the first pass and the\ncount is 0. As with the digit-reversal problem, an empty loop gives\nthe right answer because the accumulator started at the identity —\nand a special case for it would be noise.\n\n## What this does not check\n\nStarting values outside 1 to 1,000,000. Zero loops forever (`0 / 2`\nis 0), and a negative start falls into one of the known negative\ncycles and never reaches 1. The constraint is doing real work, and a\nprogram taking this from a user would have to check it rather than\nhang."
+}

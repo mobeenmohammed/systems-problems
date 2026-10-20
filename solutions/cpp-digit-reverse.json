@@ -1,0 +1,43 @@
+{
+  "id": "cpp-digit-reverse",
+  "key": {
+    "cases": [
+      {
+        "stdin": "0\n",
+        "expect": "0\n"
+      },
+      {
+        "stdin": "7\n",
+        "expect": "7\n"
+      },
+      {
+        "stdin": "10\n",
+        "expect": "1\n"
+      },
+      {
+        "stdin": "1000000\n",
+        "expect": "1\n"
+      },
+      {
+        "stdin": "999999\n",
+        "expect": "999999\n"
+      },
+      {
+        "stdin": "100\n",
+        "expect": "1\n"
+      },
+      {
+        "stdin": "505\n",
+        "expect": "505\n"
+      },
+      {
+        "stdin": "123456\n",
+        "expect": "654321\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n\nint main()\n{\n    int n{};\n    if (!(std::cin >> n)) return 0;\n\n    int reversed{};\n\n    while (n > 0)\n    {\n        reversed = reversed * 10 + n % 10;\n        n /= 10;\n    }\n\n    std::cout << reversed << \"\\n\";\n\n    return 0;\n}\n"
+    }
+  },
+  "explanation": "## The program\n\n```cpp\nint reversed{};\n\nwhile (n > 0)\n{\n    reversed = reversed * 10 + n % 10;\n    n /= 10;\n}\n\nstd::cout << reversed << \"\\n\";\n```\n\n## The two halves of the trick\n\n**Taking apart.** `n % 10` and `n /= 10` are a pair: one reads the\nlast digit, the other throws it away. Together they walk a number\nfrom its right-hand end, and the loop ends when there is nothing\nleft.\n\n**Building up.** `reversed * 10 + digit` is the same idea run\nbackwards. Every existing digit moves one place left, and the new\none lands in the units.\n\nBecause the digits come off the right and go on the right, the\nnumber comes out reversed. Reading them off the left instead — which\nis much harder, since you would have to know how many digits there\nare first — would copy it unchanged.\n\n## Why `while` rather than `for`\n\nA `for` is for a known count. Here the count is \"however many digits\nthere are\", which is not known until the loop has finished finding\nout. The condition is a property of the data rather than a counter,\nand `while (n > 0)` says exactly that.\n\nYou could compute the digit count first and then use a `for`. It\nwould be two loops where one does, and the first of them would need\nthe same `while`.\n\n## The empty loop that gets zero right\n\nWith `n == 0` the condition is false immediately, the body never\nruns, and `reversed` is still 0 — which is the right answer. No\nspecial case is needed, and writing one\n\n```cpp\nif (n == 0) { std::cout << \"0\\n\"; return 0; }\n```\n\nis harmless noise. That is worth noticing because the opposite\nhappens just as often: a loop that *does* need a special case for\nthe empty input, like finding a minimum, where there is no sensible\nstarting value. The difference is whether the accumulator has an\nidentity — 0 for a sum, 1 for a product, and here 0 for a number\nwith no digits yet.\n\n## Where it would overflow\n\nReversing a number can make it bigger. `1,999,999,999` fits in a\n32-bit `int` and its reversal, `9,999,999,991`, does not — the\nmultiplication would overflow, which for a signed type is undefined\nbehaviour rather than a wrap. The constraint here keeps the input\nunder a million so that cannot arise. A general version would have\nto detect it before the multiply, not after.\n\n## What this does not check\n\nNegative input, which the constraints exclude. With `n` negative the\nloop never runs and the program prints 0 — quietly wrong rather than\nvisibly broken, which is the usual shape of a missing precondition."
+}

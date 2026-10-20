@@ -482,13 +482,18 @@ section('a project is findable and says where you are in it');
   ok('and the others linked',
     strip.steps.filter(s => s.here !== 'true').every(s => /#\/p\/proj-ring-logger-/.test(s.href || '')));
 
+  /* A project is not a track in Learn any more — it has its own
+     catalogue — and the old URL redirects there rather than 404ing.
+     See docs/multi-file.md and tests/browser/projects.test.mjs. */
   await go('#/tracks/project-ring-logger', 1600);
-  const track = await page.evaluate(() => ({
-    rows: document.querySelectorAll('#trackList .prow').length,
-    summary: (document.querySelector('.track-summary') || {}).textContent?.replace(/\s+/g, ' ') || '',
+  const moved = await page.evaluate(() => ({
+    hash: location.hash,
+    title: ((document.querySelector('.view:not([hidden]) h1')) || {}).textContent,
+    steps: document.querySelectorAll('.pov-step').length,
   }));
-  check('Learn has it as a track of three', track.rows, 3);
-  ok(`with its own progress (${track.summary.slice(0, 40)})`, /of 3 solved/.test(track.summary));
+  check('the old track URL lands on the overview', moved.hash, '#/projects/project-ring-logger');
+  check('which is the project it named', moved.title, 'Project: a ring-buffer event logger');
+  check('with all three milestones on it', moved.steps, 3);
 }
 
 section('a milestone carries the one before it forward, and re-runs its cases');

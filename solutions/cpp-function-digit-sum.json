@@ -1,0 +1,43 @@
+{
+  "id": "cpp-function-digit-sum",
+  "key": {
+    "cases": [
+      {
+        "stdin": "0\n",
+        "expect": "0 0\n"
+      },
+      {
+        "stdin": "1000000\n",
+        "expect": "1000000 1\n"
+      },
+      {
+        "stdin": "9\n",
+        "expect": "9 9\n"
+      },
+      {
+        "stdin": "999999\n",
+        "expect": "999999 54\n"
+      },
+      {
+        "stdin": "10 20 30\n",
+        "expect": "10 1\n20 2\n30 3\n"
+      },
+      {
+        "stdin": "1\n2\n3\n",
+        "expect": "1 1\n2 2\n3 3\n"
+      },
+      {
+        "stdin": "100000 100001\n",
+        "expect": "100000 1\n100001 2\n"
+      },
+      {
+        "stdin": "505 50 5\n",
+        "expect": "505 10\n50 5\n5 5\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n\nint digitSum(int n)\n{\n    int total{};\n\n    while (n > 0)\n    {\n        total += n % 10;\n        n /= 10;\n    }\n\n    return total;\n}\n\nint main()\n{\n    int x{};\n\n    while (std::cin >> x)\n    {\n        std::cout << x << ' ' << digitSum(x) << \"\\n\";\n    }\n\n    return 0;\n}\n"
+    }
+  },
+  "explanation": "## The program\n\n```cpp\nint digitSum(int n)\n{\n    int total{};\n\n    while (n > 0)\n    {\n        total += n % 10;\n        n /= 10;\n    }\n\n    return total;\n}\n\nint main()\n{\n    int x{};\n    while (std::cin >> x)\n        std::cout << x << ' ' << digitSum(x) << \"\\n\";\n}\n```\n\n## The parameter is a copy\n\nThis is the part worth being sure about. `digitSum` divides `n` down\nto zero, and yet:\n\n```cpp\nint x{ 123 };\nstd::cout << digitSum(x);   // 6\nstd::cout << x;             // 123, untouched\n```\n\nC++ passes by value: calling the function copies the argument into\nthe parameter, and the parameter is a local variable of the\nfunction like any other. Destroying it costs the caller nothing.\n\nThat is why the caller can print `x` and `digitSum(x)` on the same\nline without saving a copy first — and why the \"take a backup before\ncalling\" habit people bring from other languages is unnecessary\nhere. It is also why `void addOne(int n) { ++n; }` does nothing at\nall, which is the subject of the exercises on references.\n\n## Declare before use\n\nC++ reads a file top to bottom, and `main` cannot call a name it has\nnot seen. Either define the function above `main`, as here, or\ndeclare it above and define it below:\n\n```cpp\nint digitSum(int n);        // declaration: the name and the shape\n\nint main() { /* ... */ }\n\nint digitSum(int n)         // definition: the body\n{\n    /* ... */\n}\n```\n\nThe second form is what headers are for, and it is the reason a\nheader file can describe a library without containing it.\n\n## Zero, again\n\n`digitSum(0)` returns 0 because the loop never runs and `total`\nstarted at its identity. The same shape as the digit-reversal\nexercise, and the same reason it needs no special case.\n\n## What this does not check\n\nNegative numbers. `digitSum(-123)` returns 0 here, because `while (n\n> 0)` is false immediately — quietly wrong rather than an error. A\nversion that meant to handle them would take the absolute value\nfirst and would have to decide what `digitSum(INT_MIN)` means, since\nthat value has no positive counterpart."
+}

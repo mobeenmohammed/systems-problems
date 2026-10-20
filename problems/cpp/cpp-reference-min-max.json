@@ -1,0 +1,53 @@
+{
+  "id": "cpp-reference-min-max",
+  "title": "Two answers out of one call",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "references",
+    "const-reference",
+    "vector",
+    "functions"
+  ],
+  "estimate": 17,
+  "prereqs": [
+    {
+      "concept": "cpp-references",
+      "why": "Two references carry results out, and a const reference carries the input in without copying it."
+    },
+    {
+      "concept": "cpp-std-vector",
+      "why": "The whole container is passed to the function, which is where the cost of copying starts to matter."
+    }
+  ],
+  "statement": "Write a function\n\n```cpp\nvoid extremes(const std::vector<int>& values, int& lowest, int& highest);\n```\n\nthat finds the smallest and largest of `values` and writes them\ninto `lowest` and `highest`. Read integers until the input runs\nout and report:\n\n```\ninput:   4 -3 9 0 7\n\noutput:  min -3\n         max 9\n```\n\nIf there were no numbers, print `empty` on its own and do not call\nthe function — there is nothing for it to report.\n\n### The point of the problem\n\nA function can only `return` one thing. When two results belong\ntogether, the usual answer in C++ is reference parameters:\n\n```cpp\nint lo{};\nint hi{};\nextremes(values, lo, hi);        // both filled in by the call\n```\n\nNotice the three parameter types, and that all three are\ndeliberate:\n\n```\nconst std::vector<int>&     in     — do not copy, do not modify\nint&                        out    — write the answer here\nint&                        out\n```\n\n**Why `const` and `&` on the input.** Passing a vector by value\ncopies every element. For ten thousand `int`s that is 40 KB copied\nfor no reason. The `&` prevents the copy; the `const` then promises\nthe function will not modify it, which both documents the intention\nand lets the compiler stop you breaking it.\n\n**Why not `const` on the outputs.** They exist to be written to.\nA reader of the declaration can tell input from output by the\n`const` alone, which is most of why the convention is worth\nfollowing.\n\n### Constraints\n\nEach number is between -1,000,000 and 1,000,000, and there are at\nmost 10,000 of them, possibly none.\n\n### Boundary cases\n\n- **No numbers.** The function is not called at all. It has no\n  sensible values to write, and writing nothing while the caller\n  prints whatever `lo` happened to hold would be worse.\n- **One number** is both the minimum and the maximum.\n- **All negative.** `-4 -9 -1` has a maximum of -1, which is what\n  catches starting the maximum at 0.\n- **All equal** gives the same number twice.",
+  "hints": [
+    "Read everything into a `std::vector<int>` first, then decide whether to call the function at all. The empty case is the caller’s problem, not the function’s.",
+    "Inside the function, start both answers at `values[0]` and walk from index 1. That avoids inventing a starting value, and it is safe because the caller guarantees the vector is not empty.",
+    "The input parameter is `const std::vector<int>&`. Leaving the `&` off copies the whole vector on every call; leaving the `const` off compiles but stops saying that the function does not modify it."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n#include <vector>\n\n// your code here — define extremes, taking the vector in and two answers out\n\nint main()\n{\n    std::vector<int> values{};\n    int x{};\n\n    while (std::cin >> x) values.push_back(x);\n\n    // your code here — handle the empty case, otherwise call extremes and report\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "4 -3 9 0 7\n",
+        "expect": "min -3\nmax 9\n"
+      },
+      {
+        "stdin": "",
+        "expect": "empty\n"
+      }
+    ]
+  }
+}

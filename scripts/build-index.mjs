@@ -1049,6 +1049,15 @@ export function buildIndex(problems) {
          else, so the index says so rather than leaving the language
          filter unable to see it. */
       if (p.type === 'hdl') row.langs = ['sv'];
+      /* The shape of a multi-file workspace: the paths, and which of
+         them the exercise supplies. A project's overview page draws
+         the file structure from this rather than fetching three
+         problem files to list nine paths — and the contents stay in
+         the problem file, where they belong. */
+      const files = (p.payload || {}).files;
+      if (Array.isArray(files) && files.length) {
+        row.files = files.map(f => ({ path: String(f.path), given: !!f.readOnly }));
+      }
       return row;
     })
     .sort((a, b) =>

@@ -1,0 +1,53 @@
+{
+  "id": "cpp-vector-above-mean",
+  "title": "Two passes over the same numbers",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "vector",
+    "loops",
+    "conversions",
+    "range-for"
+  ],
+  "estimate": 16,
+  "prereqs": [
+    {
+      "concept": "cpp-std-vector",
+      "why": "The numbers are needed twice, so they have to be stored between the two passes."
+    },
+    {
+      "concept": "cpp-floating-point",
+      "why": "The mean is a `double` and comparing integers against it is the point of the second pass."
+    }
+  ],
+  "statement": "Read integers until the input runs out. Print their mean to two\ndecimal places, and how many of them are **strictly greater** than\nthat mean.\n\n```\ninput:   1 2 3 4 10\n\noutput:  mean 4.00\n         above 1\n```\n\nWith no numbers at all:\n\n```\nmean none\nabove 0\n```\n\n### The point of the problem\n\nYou cannot answer this in one pass. The mean is not known until\nevery number has been seen, and the comparison needs the mean — so\nthe numbers must be kept and walked twice:\n\n```\npass 1   read them all, into a vector, adding as you go\n         ↓\n         mean = total / count\n         ↓\npass 2   walk the vector again, counting the ones above it\n```\n\nThe second pass is a good place for a **range-based for**, which\nwalks a container without an index at all:\n\n```cpp\nfor (int item : someVector)\n{\n    // item is a copy of each element in turn\n}\n```\n\nThere is no `i`, so there is no off-by-one and no `size() - 1`. Use\nit whenever the position does not matter — which here it does not,\nsince the question is only how many elements pass a test.\n\n### The conversion, again\n\nThe mean is `total / count` with both of them integers, which is\ninteger division. Convert first:\n\n```cpp\ndouble mean{ static_cast<double>(total) / count };\n```\n\nComparing an `int` to a `double` is fine — the `int` is converted\nto `double` and the comparison is exact for values this small.\n\n### Constraints\n\nEach number is between -1,000,000 and 1,000,000, and there are at\nmost 10,000 of them. Ten thousand values of a million each is\n10¹⁰, which does **not** fit in a 32-bit `int`, so the running\ntotal has to be a `long long`. The count and the answer are small\nand stay `int`s.\n\n### Boundary cases\n\n- **No numbers.** The mean does not exist; print `none` and a count\n  of 0 rather than dividing by zero.\n- **All the same.** `5 5 5` has mean 5.00 and nothing strictly above\n  it, so `above 0`. This is the case that catches `>=`.\n- **One number** is its own mean, so again `above 0`.\n- **A skewed set**, as in the example: one large value drags the\n  mean above most of the data, and only itself is above it.",
+  "hints": [
+    "Store the numbers in a `std::vector<int>` as you read them, and add them to a running total in the same loop. Make that total a `long long` — ten thousand values of a million each would overflow an `int`.",
+    "Work out the mean as a `double` between the two loops: `static_cast<double>(total) / count`. Converting after the division gives the wrong answer.",
+    "The second loop can be `for (int value : values)` — no index at all. Compare with `>`, not `>=`: `5 5 5` must report `above 0`."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iomanip>\n#include <iostream>\n#include <vector>\n\nint main()\n{\n    std::vector<int> values{};\n    int x{};\n\n    // your code here — pass one: read and store, keeping a running total\n\n    // your code here — then the mean, then pass two: count the ones above it\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "1 2 3 4 10\n",
+        "expect": "mean 4.00\nabove 1\n"
+      },
+      {
+        "stdin": "",
+        "expect": "mean none\nabove 0\n"
+      }
+    ]
+  }
+}

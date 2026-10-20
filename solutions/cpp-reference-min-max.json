@@ -1,0 +1,43 @@
+{
+  "id": "cpp-reference-min-max",
+  "key": {
+    "cases": [
+      {
+        "stdin": "7\n",
+        "expect": "min 7\nmax 7\n"
+      },
+      {
+        "stdin": "-4 -9 -1\n",
+        "expect": "min -9\nmax -1\n"
+      },
+      {
+        "stdin": "5 5 5 5\n",
+        "expect": "min 5\nmax 5\n"
+      },
+      {
+        "stdin": "1 2 3 4 5\n",
+        "expect": "min 1\nmax 5\n"
+      },
+      {
+        "stdin": "5 4 3 2 1\n",
+        "expect": "min 1\nmax 5\n"
+      },
+      {
+        "stdin": "-1000000 1000000\n",
+        "expect": "min -1000000\nmax 1000000\n"
+      },
+      {
+        "stdin": "0\n",
+        "expect": "min 0\nmax 0\n"
+      },
+      {
+        "stdin": "  \n",
+        "expect": "empty\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n#include <vector>\n\nvoid extremes(const std::vector<int>& values, int& lowest, int& highest)\n{\n    lowest = values[0];\n    highest = values[0];\n\n    for (std::size_t i = 1; i < values.size(); ++i)\n    {\n        if (values[i] < lowest) lowest = values[i];\n        if (values[i] > highest) highest = values[i];\n    }\n}\n\nint main()\n{\n    std::vector<int> values{};\n    int x{};\n\n    while (std::cin >> x) values.push_back(x);\n\n    if (values.empty())\n    {\n        std::cout << \"empty\\n\";\n        return 0;\n    }\n\n    int lowest{};\n    int highest{};\n    extremes(values, lowest, highest);\n\n    std::cout << \"min \" << lowest << \"\\n\";\n    std::cout << \"max \" << highest << \"\\n\";\n\n    return 0;\n}\n"
+    }
+  },
+  "explanation": "## The program\n\n```cpp\nvoid extremes(const std::vector<int>& values, int& lowest, int& highest)\n{\n    lowest = values[0];\n    highest = values[0];\n\n    for (std::size_t i = 1; i < values.size(); ++i)\n    {\n        if (values[i] < lowest)  lowest = values[i];\n        if (values[i] > highest) highest = values[i];\n    }\n}\n```\n\n## Three parameters, three different jobs\n\n```\nconst std::vector<int>&   read it, do not copy it, do not change it\nint&                      this is where an answer goes\nint&                      and here is the other one\n```\n\nReading a declaration like that tells you how the function is used\nbefore you look at the body, which is most of the value of the\nconvention. A `const&` is an input; a plain `&` is an output or an\nin-out; a by-value parameter is an input small enough not to care.\n\n## What const buys\n\nTwo things, and the second matters more than it looks.\n\n**It stops the copy from being needed.** Without the `&` the whole\nvector is duplicated on every call. For 10,000 `int`s that is 40 KB\nof memcpy per call, for nothing.\n\n**It is checked.** Add `values.push_back(0);` inside the function\nand it will not compile. A promise the compiler enforces is worth\nmore than a comment saying the same thing, and this is the cheapest\nsuch promise in the language.\n\n## Starting from the first element\n\nThe same running-minimum question as before, answered by the\ncaller: the function is only ever called on a non-empty vector, so\n`values[0]` exists and is a legitimate starting value for both\nanswers. The loop then starts at index 1, since element 0 has\nalready been accounted for.\n\nThat guarantee is a **precondition**, and it lives in the caller.\nLetting the function cope instead — by returning early, or writing\nzeros — would mean the caller could not tell \"the minimum is 0\"\nfrom \"there was nothing\". Keeping it out, and printing `empty`\nbefore the call, keeps both answers honest.\n\nA library version would take the question seriously:\n`std::minmax_element` returns iterators, and on an empty range it\nreturns the end iterator, which the caller must check. Same problem,\nsame shape of answer.\n\n## Two results without references\n\nModern C++ has other ways:\n\n```cpp\nstd::pair<int, int> extremes(const std::vector<int>& v);\nauto [lo, hi] = extremes(values);           // structured bindings\n```\n\nwhich reads better at the call site and is usually preferred now.\nReference out-parameters are still everywhere in existing code, and\nare the form that needs understanding first.\n\n## What this does not check\n\nWhat the function does when its precondition is broken. Calling\n`extremes` on an empty vector reads `values[0]`, which is undefined\nbehaviour — it will not throw, and it may well print a plausible\nnumber. A defensive version would `assert(!values.empty())`, which\ndocuments the requirement and checks it in debug builds."
+}

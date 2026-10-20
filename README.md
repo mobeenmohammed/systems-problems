@@ -21,13 +21,13 @@ serves it directly.
 ## What is in it
 
 <!-- generated:counts -->
-**182 problems** across 13 topics, 56 of them compiled and run in C++, Rust, Python, JavaScript. **219 concepts** carry **617 readings** between them, every one naming a book and a chapter or a specific page, with 33 more for learning a topic from scratch. **19 tracks** order subsets of the problems so there is always an obvious next one, and the weekly schedule runs to 2027-04-05.
+**206 problems** across 13 topics, 80 of them compiled and run in C++, Rust, Python, JavaScript. **219 concepts** carry **617 readings** between them, every one naming a book and a chapter or a specific page, with 33 more for learning a topic from scratch. **15 tracks** order subsets of the problems so there is always an obvious next one, **4 projects** build one program over several milestones, and the weekly schedule runs to 2027-04-05.
 
 ```
 Topics        cpp · rust · arch · os · linux · compilers · hpc · dist · fpga · algo · sysdesign · metric · prob
 Difficulty    Beginner · Intermediate · Advanced
 Types         mcq · multi · numeric · short · order · match · predict · locate · code · approx · counterexample · exact · hdl · proof · proofsteps · structured
-Total time    about 54 hours at the stated estimates
+Total time    about 60 hours at the stated estimates
 ```
 <!-- /generated:counts -->
 
@@ -39,7 +39,7 @@ across ten topics" by hand, and both numbers were wrong within a day.
 <!-- generated:topics -->
 | Topic | Problems | Code | Time |
 | --- | --- | --- | --- |
-| **C++** | 23 — 18 / 5 / 0 by difficulty | 14 | ~6 h |
+| **C++** | 47 — 42 / 5 / 0 by difficulty | 38 | ~12 h |
 | **Rust** | 11 — 4 / 5 / 2 by difficulty | 11 | ~5 h |
 | **Computer Architecture** | 11 — 3 / 6 / 2 by difficulty | 6 | ~4 h |
 | **Operating Systems** | 7 — 2 / 4 / 1 by difficulty | 2 | ~2 h |
@@ -1386,7 +1386,7 @@ beside the catalogue — and three data files back it up:
 | Track | Problems | What it is for |
 | --- | --- | --- |
 | **C++ foundations** | 10 | The language as far as your notes go: initialisation, types and sizes, scope, linkage, namespaces and enums. |
-| **Writing C++, a step at a time** | 12 | Twelve programs in prerequisite order: a condition, then a loop, then a function, then a container. |
+| **Writing C++, a step at a time** | 36 | Thirty-six programs in prerequisite order, in six bands: arithmetic and input, then conditions, then loops, then functions, then strings and vectors, then references and a few problems that need several of them at once. |
 | **Building what the library gives you** | 8 | The standard library's simplest tools, written out: a search, a count, a binary search, a stack, a ring buffer and a growable array. |
 | **Simulating the machine** | 7 | Six small programs that each stand in for a piece of real hardware or a real kernel: byte order, cache lookup, page replacement, CPU scheduling, a state machine and a shift register. |
 | **Rust foundations** | 9 | Ownership, borrowing, slices, Option, Result and the ? operator - in that order, because each one is the answer to a question the previous one raises. |
@@ -1397,14 +1397,25 @@ beside the catalogue — and three data files back it up:
 | **Metric spaces, from the axioms up** | 12 | Distance as four conditions rather than a formula, and then everything that follows from them: balls, open and closed sets, convergence, completeness, continuity and a first look at compactness. |
 | **Probability, in the order it makes sense** | 12 | Sample spaces and counting first, because most errors are made before any arithmetic; then conditioning, independence, random variables, expectation and variance, and a first continuous distribution. |
 | **Writing hardware, and watching it run** | 10 | Five designs you write in SystemVerilog and simulate in this tab — a 2-to-1 multiplexer and a 4-to-1, a counter, an edge detector and a state machine that finds a pattern — with the waveform beside each one. |
-| **Project: a ring-buffer event logger** | 3 | One program over three files and three milestones: a bounded queue, a policy for what to do when it is full, and a view over what it holds. |
-| **Project: a synchronous FIFO** | 2 | Two modules in two files: a parameterised block of storage with a registered read, and the pointers and flags that turn it into a queue. |
 | **Metric Spaces, the whole unit** | 21 | The seven chapters of the Metric Spaces unit as one tree: definitions and examples, limits and uniform convergence, completeness and Banach, open and closed sets, connectedness, sequential compactness, compactness. |
 | **Probability 2, the whole unit** | 21 | The seven chapters of Probability 2 as one tree: foundations and the strong law, random walks and Wald, Markov chains, Poisson processes, continuous-time chains and queues, martingales, Brownian motion. |
-| **Project: a cache simulator** | 3 | One program over three files in three directories, and three milestones: taking an address apart, choosing what to throw out, and deciding when memory finds out. |
-| **Project: a sequence detector** | 3 | Four SystemVerilog modules built up over three milestones: a detector whose pattern is an input, a saturating counter, a top that is nothing but wiring, and an arming gate. |
 | **Programs that are already wrong** | 7 | Seven complete programs, each with one defect in it, across C++, Rust, Python and SystemVerilog. |
 <!-- /generated:tracks -->
+
+A project is a different kind of thing and has its own catalogue at
+`#/projects`: one program built over several milestones, each adding a
+requirement to the last, with your files carried forward and every earlier
+requirement still checked. Each has an overview page with its goal, what it
+rests on, its file structure and its milestones in order.
+
+<!-- generated:projects -->
+| Project | Milestones | What it is for |
+| --- | --- | --- |
+| **Project: a ring-buffer event logger** | 3 | One program over three files and three milestones: a bounded queue, a policy for what to do when it is full, and a view over what it holds. |
+| **Project: a synchronous FIFO** | 2 | Two modules in two files: a parameterised block of storage with a registered read, and the pointers and flags that turn it into a queue. |
+| **Project: a cache simulator** | 3 | One program over three files in three directories, and three milestones: taking an address apart, choosing what to throw out, and deciding when memory finds out. |
+| **Project: a sequence detector** | 3 | Four SystemVerilog modules built up over three milestones: a detector whose pattern is an input, a saturating counter, a top that is nothing but wiring, and an arming gate. |
+<!-- /generated:projects -->
 
 ### The workspace
 

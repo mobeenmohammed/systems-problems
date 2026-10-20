@@ -1,0 +1,53 @@
+{
+  "id": "cpp-short-circuit-guard",
+  "title": "Why the order of && matters",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "boolean",
+    "short-circuit",
+    "conditions",
+    "undefined-behaviour"
+  ],
+  "estimate": 15,
+  "prereqs": [
+    {
+      "concept": "cpp-conditions",
+      "why": "`&&` evaluates its left operand first and may not evaluate its right at all, and this exercise depends on that."
+    },
+    {
+      "concept": "cpp-integer-types",
+      "why": "The thing being guarded against is integer division by zero, which is undefined behaviour rather than an error."
+    }
+  ],
+  "statement": "Read two integers `a` and `b` and print one line:\n\n- if `b` is zero: `cannot divide by zero`\n- else if `b` divides `a` exactly: `divides ` and the quotient\n- otherwise: `remainder ` and `a % b`\n\n```\ninput:   12 4     output:  divides 3\ninput:   13 4     output:  remainder 1\ninput:   5 0      output:  cannot divide by zero\ninput:   -13 4    output:  remainder -1\n```\n\n### The point of the problem\n\nWrite the middle test as one condition:\n\n```cpp\nif (b != 0 && a % b == 0)\n```\n\nand then notice that the order of the two halves is not a style\nchoice. `&&` is **short-circuiting**: it evaluates the left operand,\nand if that is false it stops, leaving the right operand\n*unevaluated*. So when `b` is zero, `a % b` never happens.\n\nSwap them:\n\n```cpp\nif (a % b == 0 && b != 0)       // broken\n```\n\nand `a % b` runs first, with `b` zero — which is undefined\nbehaviour. The test that was supposed to prevent it is sitting to\nthe right of the thing it was guarding, where it is too late. The\ntwo expressions are not the same expression written differently;\none of them has a well-defined meaning and the other does not.\n\n`||` short-circuits the same way, in the mirror image: if the left\noperand is true the right one is skipped.\n\n### Constraints\n\n`a` and `b` are between -1000 and 1000 inclusive. `b` may be zero.\n\n### Boundary cases\n\n- **`b` is zero** is the case the guard exists for, and it is\n  reached for every value of `a`, including zero.\n- **`0 7`** prints `divides 0`. Zero divides exactly by anything\n  non-zero.\n- **`-13 4`** prints `remainder -1`: `%` takes the sign of the left\n  operand in C++, so the remainder of a negative number is negative.\n- **`7 -7`** prints `divides -1`, where the quotient is negative and\n  the division is still exact.",
+  "hints": [
+    "Three outcomes, so an `if` / `else if` / `else` chain. Decide first which of the three has to be tested earliest.",
+    "Put `b != 0` on the left of the `&&`. Because `&&` stops as soon as its left side is false, that is what keeps `a % b` from ever running with a zero divisor.",
+    "If `-13 4` is printing `remainder 3`, you have taken an absolute value or borrowed another language’s rule. `%` in C++ gives -1 here, with the sign of the left operand."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n\nint main()\n{\n    int a{};\n    int b{};\n    std::cin >> a >> b;\n\n    // your code here — one of three lines, with the zero divisor guarded first\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "12 4\n",
+        "expect": "divides 3\n"
+      },
+      {
+        "stdin": "5 0\n",
+        "expect": "cannot divide by zero\n"
+      }
+    ]
+  }
+}

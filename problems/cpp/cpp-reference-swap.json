@@ -1,0 +1,53 @@
+{
+  "id": "cpp-reference-swap",
+  "title": "Changing the caller’s variables",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "references",
+    "functions",
+    "parameters",
+    "swap"
+  ],
+  "estimate": 14,
+  "prereqs": [
+    {
+      "concept": "cpp-references",
+      "why": "A reference parameter is another name for the caller’s variable, and that is the only way a function can change it."
+    },
+    {
+      "concept": "cpp-functions",
+      "why": "The difference between a parameter that is a copy and one that is not is the whole exercise."
+    }
+  ],
+  "statement": "Write a function\n\n```cpp\nvoid swapInts(int& a, int& b);\n```\n\nthat exchanges the values of the two variables the caller passed.\nRead two integers, print them, call the function, and print them\nagain:\n\n```\ninput:   3 8\n\noutput:  before 3 8\n         after 8 3\n```\n\n### The point of the problem\n\nWrite it without the ampersands and nothing happens:\n\n```cpp\nvoid swapInts(int a, int b)        // does nothing useful\n{\n    int t{ a };\n    a = b;\n    b = t;\n}\n```\n\nThe function swaps its own two copies and then they are destroyed.\nThe caller’s variables were never involved. It compiles, it runs,\nand `after` prints the same numbers as `before` — which is a\nfrustrating bug to meet without knowing this rule, because there is\nnothing wrong with the swapping code.\n\nAn `int&` parameter is **not** a copy. It is another name for the\nvariable the caller passed, for the duration of the call:\n\n```cpp\nvoid swapInts(int& a, int& b)\n{\n    int t{ a };\n    a = b;\n    b = t;\n}\n```\n\nNothing changes at the call site. `swapInts(x, y)` looks identical\neither way, which is worth knowing: in C++ you cannot tell from a\ncall whether its arguments can be modified. You have to look at the\ndeclaration.\n\n### Constraints\n\nBoth numbers are between -1,000,000 and 1,000,000.\n\n### Boundary cases\n\n- **Two equal values** swap to themselves, which is correct and\n  proves nothing — so do not test only with those.\n- **Negative values** are no different.\n- The three-line swap needs the temporary. `a = b; b = a;`\n  overwrites `a` before it has been read, and both variables end up\n  holding what `b` held.",
+  "hints": [
+    "The parameters are `int&`, not `int`. Without the ampersands the function swaps two copies and the caller sees nothing.",
+    "The body needs a third variable to hold one value while the other is overwritten. Two assignments on their own lose one of them.",
+    "Print the two numbers before the call and after it. If both lines are the same, check the parameter types first — the body is probably fine."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n\n// your code here — define swapInts so it changes the caller’s two variables\n\nint main()\n{\n    int a{};\n    int b{};\n    std::cin >> a >> b;\n\n    // your code here — print before, swap, print after\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "3 8\n",
+        "expect": "before 3 8\nafter 8 3\n"
+      },
+      {
+        "stdin": "-4 4\n",
+        "expect": "before -4 4\nafter 4 -4\n"
+      }
+    ]
+  }
+}

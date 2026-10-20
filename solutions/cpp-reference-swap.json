@@ -1,0 +1,35 @@
+{
+  "id": "cpp-reference-swap",
+  "key": {
+    "cases": [
+      {
+        "stdin": "0 0\n",
+        "expect": "before 0 0\nafter 0 0\n"
+      },
+      {
+        "stdin": "7 7\n",
+        "expect": "before 7 7\nafter 7 7\n"
+      },
+      {
+        "stdin": "1000000 -1000000\n",
+        "expect": "before 1000000 -1000000\nafter -1000000 1000000\n"
+      },
+      {
+        "stdin": "1 2\n",
+        "expect": "before 1 2\nafter 2 1\n"
+      },
+      {
+        "stdin": "-5 -9\n",
+        "expect": "before -5 -9\nafter -9 -5\n"
+      },
+      {
+        "stdin": "0 1\n",
+        "expect": "before 0 1\nafter 1 0\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n\nvoid swapInts(int& a, int& b)\n{\n    int temp{ a };\n    a = b;\n    b = temp;\n}\n\nint main()\n{\n    int a{};\n    int b{};\n    if (!(std::cin >> a >> b)) return 0;\n\n    std::cout << \"before \" << a << ' ' << b << \"\\n\";\n    swapInts(a, b);\n    std::cout << \"after \" << a << ' ' << b << \"\\n\";\n\n    return 0;\n}\n"
+    }
+  },
+  "explanation": "## The program\n\n```cpp\nvoid swapInts(int& a, int& b)\n{\n    int temp{ a };\n    a = b;\n    b = temp;\n}\n```\n\n## A reference is another name, not a copy\n\n```\nvoid f(int  n)      n is a new variable, initialised from the argument\nvoid f(int& n)      n is the argument, under a second name\n```\n\nEverything else follows from that one sentence. Assigning to `n`\nin the second case assigns to the caller’s variable, because they\nare the same object. There is no pointer to dereference and no\nsyntax at the call site — `f(x)` either way.\n\nC++ before references had only the pointer version:\n\n```cpp\nvoid swapInts(int* a, int* b)\n{\n    int t{ *a };\n    *a = *b;\n    *b = t;\n}\n\nswapInts(&x, &y);      // the & at the call site says \"may be changed\"\n```\n\nwhich is noisier and has one advantage: the caller can see it. With\nreferences the call looks like any other, which is why a reference\nparameter that is not `const` is worth a second look when you read\na declaration.\n\n## Why the temporary is needed\n\n```cpp\na = b;      // a is now 8; the old 3 is gone\nb = a;      // b is now 8 as well\n```\n\nThe first assignment destroys the value the second one needed. A\nswap of two variables always needs somewhere to put one of them —\neither a third variable, or one of the arithmetic tricks\n(`a += b; b = a - b; a -= b;`) which are shorter, slower, harder to\nread, and overflow. Use the temporary.\n\n## There is already one\n\n`std::swap(a, b)` from `<utility>` does this for any type, and is\nwhat you should call in real code. Writing it once by hand is the\npoint here, because it is the shortest possible program that shows\nwhat a reference parameter is for.\n\n## What this does not check\n\nCalling it with the same variable twice — `swapInts(x, x)`. Both\nreferences then name one object, the three assignments still work\nout correctly, and the value is unchanged. Not every function with\ntwo reference parameters survives that, and a function that cannot\nis said not to be *self-assignment safe*."
+}

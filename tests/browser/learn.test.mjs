@@ -50,7 +50,13 @@ await open('#/learn');
   const m = await page.evaluate(() => ({
     groups: [...document.querySelectorAll('.learn-group-head')].map(h => h.textContent),
     cards: document.querySelectorAll('#learnTracks .track-card').length,
-    all: window.SystemsLab.Catalog.allTracks().length,
+    all: window.SystemsLab.Catalog.learnTracks().length,
+    /* Projects have their own catalogue now. Learn draws the tracks
+       that are trees of concepts; a project is a list with an order
+       and a shape on disk, and was four boxes saying nothing here. */
+    projects: window.SystemsLab.Catalog.allProjects().length,
+    projectCards: [...document.querySelectorAll('#learnTracks .track-card')]
+      .filter(a => /#\/learn\/project-/.test(a.getAttribute('href') || '')).length,
     nav: ((document.querySelector('.navmenu-item[aria-current] .navmenu-title')
       || {}).childNodes || [{}])[0].textContent,
     /* They are entries in the Content menu now rather than tabs in the
@@ -58,11 +64,13 @@ await open('#/learn');
     gone: document.querySelectorAll('#nav > a').length,
     toConcepts: !!document.querySelector('#learnIndex a[href="#/concepts"]'),
   }));
-  check('every track has a card', m.cards, m.all);
+  check('every track Learn owns has a card', m.cards, m.all);
   /* Counted from the data rather than written down: a number typed
      into a test is a test that fails when content is added, which is
      not a failure. */
   ok(`and there is a card for each (${m.cards})`, m.cards === m.all && m.cards > 0);
+  ok(`the projects are not among them (${m.projects} of them, elsewhere)`,
+    m.projects > 0 && m.projectCards === 0);
   ok('grouped by subject', m.groups.includes('Systems') && m.groups.includes('Mathematics'));
   check('Learn is the entry marked as the page you are on', m.nav.trim(), 'Learn');
   check('Tracks and Reading are no longer their own tabs', m.gone, 0);

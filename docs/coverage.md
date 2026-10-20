@@ -338,3 +338,111 @@ of, and `needs` records the real prerequisite rather than the order the
 notes happen to use. The build refuses a prerequisite that points
 forwards through a course, and refuses required material that rests on
 a concept the notes exclude.
+
+## The beginner C++ band
+
+Added after the round above, to fill the gap it left: the catalogue
+had twenty beginner C++ exercises and most of them assumed a loop and
+a function already. These twenty-four start from reading two numbers
+and finish at a program that uses a predicate, a vector of strings and
+three reference parameters at once.
+
+Each one is single-file, C++ only, and uses nothing it has not been
+shown — no templates, no manual memory, no algorithm header, and no
+standard-library container beyond `std::string` and `std::vector`.
+
+- **Band 1** — Variables, arithmetic, input and output, conversions
+- **Band 2** — Conditions and Boolean expressions
+- **Band 3** — Loops, counting and accumulation
+- **Band 4** — Functions and simple decomposition
+- **Band 5** — Strings and basic vector operations
+- **Band 6** — References, and combinations of what came before
+
+| band | id | title | minutes | cases (visible + hidden) |
+| --- | --- | --- | --- | --- |
+| 1 | `cpp-arith-report` | Five answers from two numbers | 12 | 2 + 8 |
+| 1 | `cpp-seconds-to-clock` | Seconds, the way a clock reads them | 14 | 2 + 8 |
+| 1 | `cpp-mean-and-cast` | Two kinds of average | 15 | 2 + 8 |
+| 1 | `cpp-letter-position` | A letter is a number | 12 | 2 + 6 |
+| 2 | `cpp-leap-year` | Three rules, and the order they go in | 14 | 2 + 9 |
+| 2 | `cpp-triangle-kind` | Is it even a triangle? | 16 | 2 + 10 |
+| 2 | `cpp-bool-is-a-value` | A condition is a value | 14 | 2 + 8 |
+| 2 | `cpp-short-circuit-guard` | Why the order of && matters | 15 | 2 + 9 |
+| 3 | `cpp-digit-reverse` | A number, back to front | 15 | 2 + 8 |
+| 3 | `cpp-times-table` | A table, two loops deep | 16 | 2 + 6 |
+| 3 | `cpp-running-extremes` | Three answers in one pass | 16 | 2 + 9 |
+| 3 | `cpp-collatz-steps` | How long until it reaches one | 16 | 2 + 8 |
+| 4 | `cpp-function-digit-sum` | Write it once, call it many times | 16 | 2 + 8 |
+| 4 | `cpp-function-default-power` | An argument you usually do not have to give | 15 | 2 + 8 |
+| 4 | `cpp-function-gcd-lcm` | One function, written in terms of another | 18 | 2 + 8 |
+| 4 | `cpp-function-perfect-numbers` | Two helpers, stacked | 18 | 2 + 8 |
+| 5 | `cpp-string-build-reverse` | Build it backwards | 15 | 2 + 7 |
+| 5 | `cpp-string-longest-word` | The longest word there was | 15 | 2 + 8 |
+| 5 | `cpp-vector-read-and-report` | A list you keep | 15 | 2 + 8 |
+| 5 | `cpp-vector-above-mean` | Two passes over the same numbers | 16 | 2 + 8 |
+| 6 | `cpp-reference-swap` | Changing the caller’s variables | 14 | 2 + 6 |
+| 6 | `cpp-reference-min-max` | Two answers out of one call | 17 | 2 + 8 |
+| 6 | `cpp-reference-accumulate` | A total that survives the call | 17 | 2 + 8 |
+| 6 | `cpp-combine-word-report` | Everything so far, on one line of text | 20 | 2 + 9 |
+
+24 exercises, 239 test cases between them.
+
+### How the expected output was checked
+
+Every case was computed twice, by two implementations written
+from the same statement and sharing no code:
+
+1. a Python function, written from the problem statement;
+2. the C++ reference, compiled with `g++ -std=c++20 -O2 -Wall
+   -Wextra -Werror` and run on the same input.
+
+Nothing was written to `problems/` or `solutions/` until the two
+agreed on every case of every exercise. A reference that agrees
+only with itself proves nothing, and "I ran it and copied the
+output" is exactly that.
+
+The two agreed on every case on the first run. That is partly the
+point and partly luck: the places where the two languages genuinely
+differ — C++ truncating integer division towards zero where Python
+floors, and `%` taking the sign of the left operand rather than the
+right — were written into the oracle deliberately, because those
+differences are what three of the exercises are *about*. An oracle
+written carelessly would have disagreed there and the statements
+would have been the thing to fix.
+
+What the process did catch, separately, was a reference that would
+have overflowed at its own stated limits: `cpp-vector-above-mean`
+allows ten thousand values of a million each, which sums to 10¹⁰
+and does not fit in an `int`. No test case reached both limits at
+once, so nothing would have failed. The total is a `long long`, the
+statement says why, and the explanation now teaches it.
+
+Every reference was then compiled again by the **browser**
+toolchain — clang 20.1.2 targeting wasm32-wasi — and run against
+its own visible and hidden cases, which is what `npm run
+audit:cxx` does and what `data/cxx-support.json` records.
+
+### Where they sit
+
+All twenty-four are in the `cpp-first-programs` track, which
+went from twelve problems to thirty-six and is now ordered in
+the six bands above. The existing exercises were not moved to
+the end: they sit in the band they belong to, so the step
+between any two consecutive problems is one idea.
+
+### Grading limits, stated
+
+Every one of these is graded by exact output comparison over a
+fixed set of cases. That checks the program produces the right
+characters for those inputs and nothing else: it does not check
+that the loop is a `for`, that the function is called, or that
+the reference parameter was used rather than worked around.
+Three of the exercises ask for something a hidden case cannot
+see — calling `power(base)` with one argument,
+`addAll` accumulating rather than setting, and `summarise`
+writing through its references — and each says so in its
+statement rather than pretending the grader is checking it.
+
+Each solution also carries a **What this does not check**
+section naming the inputs its constraints exclude and what the
+reference would do with them.

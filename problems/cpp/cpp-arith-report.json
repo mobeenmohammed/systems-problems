@@ -1,0 +1,53 @@
+{
+  "id": "cpp-arith-report",
+  "title": "Five answers from two numbers",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "arithmetic",
+    "integer-division",
+    "modulo",
+    "input"
+  ],
+  "estimate": 12,
+  "prereqs": [
+    {
+      "concept": "cpp-initialisation",
+      "why": "The two variables exist before `std::cin` writes to them, and an uninitialised one that is never read into holds rubbish."
+    },
+    {
+      "concept": "cpp-integer-types",
+      "why": "Integer division and `%` are integer operations, and what they do with a negative operand is the whole second half of this problem."
+    }
+  ],
+  "statement": "Read two integers `a` and `b` and print five lines:\n\n```\ninput:   4 3\n\noutput:  sum 7\n         difference 1\n         product 12\n         quotient 1\n         remainder 1\n```\n\nEach line is the word, one space, then the number.\n\n- `difference` is `a - b`, in that order.\n- `quotient` and `remainder` are `a / b` and `a % b`.\n- If `b` is zero there is no quotient and no remainder. Print the\n  first three lines as usual, then exactly:\n\n```\nquotient undefined\nremainder undefined\n```\n\n### The point of the problem\n\n`/` between two `int`s is **integer division**: it throws the\nfractional part away rather than rounding. `7 / 2` is 3, not 3.5 and\nnot 4. `%` gives what is left over, so that for any `b` that is not\nzero:\n\n```\n(a / b) * b + (a % b)  ==  a\n```\n\nThat identity is the definition, and it is what fixes the answer for\nnegative numbers. C++ truncates the quotient **towards zero**, so\n`-7 / 2` is -3; the identity then forces `-7 % 2` to be -1, because\n-3 times 2 is -6 and -6 plus -1 is -7. The remainder takes the sign\nof the left operand.\n\nReading two values is one statement:\n\n```cpp\nstd::cin >> a >> b;\n```\n\n`>>` skips over spaces and newlines, so it does not matter whether\nthe two numbers are on one line or two.\n\n### Constraints\n\nBoth numbers are between -1000 and 1000 inclusive. Nothing here can\noverflow an `int`.\n\n### Boundary cases\n\n- **`b` is zero.** Dividing by zero is not an error you can catch;\n  it is undefined behaviour, which means the program may do anything\n  at all. The only safe thing is not to do it, so test `b` before\n  you divide.\n- **A negative operand.** `-7 2` must print `quotient -3` and\n  `remainder -1`. If you reach for Python’s answer here you will\n  write -4 and 1, which is a different and equally consistent rule —\n  just not the one C++ uses.\n- **`a` is zero.** `0 5` is `quotient 0`, `remainder 0`. There is\n  nothing special about it; it falls out of the same arithmetic.",
+  "hints": [
+    "Read both numbers with one statement: `std::cin >> a >> b;`. The first three lines need no thought — get them printing before you worry about division at all.",
+    "The last two lines depend on `b`. One `if` with an `else`, around the two lines that divide, is the whole of it: `if (b != 0) { ... } else { ... }`.",
+    "For negatives, do not compute the remainder yourself. `%` already gives the C++ answer; `-7 % 2` is -1. If you are getting 1, you have probably taken an absolute value somewhere."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n\nint main()\n{\n    int a{};\n    int b{};\n    std::cin >> a >> b;\n\n    // your code here — print the five lines, and guard the two that divide\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "4 3\n",
+        "expect": "sum 7\ndifference 1\nproduct 12\nquotient 1\nremainder 1\n"
+      },
+      {
+        "stdin": "-7 2\n",
+        "expect": "sum -5\ndifference -9\nproduct -14\nquotient -3\nremainder -1\n"
+      }
+    ]
+  }
+}

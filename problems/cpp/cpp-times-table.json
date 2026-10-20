@@ -1,0 +1,53 @@
+{
+  "id": "cpp-times-table",
+  "title": "A table, two loops deep",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "loops",
+    "nested-loops",
+    "for",
+    "output"
+  ],
+  "estimate": 16,
+  "prereqs": [
+    {
+      "concept": "cpp-loops",
+      "why": "A loop inside a loop, where the inner one runs from the start again on every pass of the outer one."
+    },
+    {
+      "concept": "cpp-conditions",
+      "why": "Putting a space between numbers but not after the last one is one test inside the inner loop."
+    }
+  ],
+  "statement": "Read one integer `n` and print an `n` by `n` multiplication table.\nRow `i` column `j` holds `i * j`, counting both from 1.\n\n```\ninput:   3\n\noutput:  1 2 3\n         2 4 6\n         3 6 9\n```\n\nNumbers in a row are separated by a **single space**, and there is\n**no space at the end of a line**. Every row ends with a newline,\nincluding the last.\n\n### The point of the problem\n\nA loop inside a loop. The outer one walks the rows, the inner one\nwalks the columns of the row it is in, and the inner one runs all\nthe way through on **every** pass of the outer one:\n\n```\nfor each row i from 1 to n\n    for each column j from 1 to n\n        print the entry\n    end the line\n```\n\nThe inner loop runs all the way through on every pass of the outer\none, so its body happens `n * n` times in total. Declare each counter\nin its own loop header and the inner one starts again from 1 by\nitself.\n\nWhere the newline goes is the structural question, and there are\nthree places it could go. Inside the inner loop it prints one number\nper line; after both loops it prints the whole table on one line. Only\none of the three is right, and no compiler will tell you which.\n\n### The separator\n\n\"Space between, none at the end\" is the standard small nuisance of\nprinting a list. Printing a space after every number leaves one at the\nend of each line, which is a wrong answer you cannot see. The usual\nfix is to print the separator **before** every item except the first,\nwhich turns \"strip the last one\" into a test on the column number.\n\n### Constraints\n\n`n` is between 1 and 12 inclusive, so the largest entry is 144 and\nthe columns are not expected to line up — single spaces, not padding.\n\n### Boundary cases\n\n- **`n = 1`** is one line containing `1`, with no space anywhere.\n- **`n = 2`** is the smallest case where the separator rule is\n  visible at all.\n- A trailing space on any line is a wrong answer, and is invisible\n  when you look at your own output. If a case fails and the line\n  looks right, suspect that first.",
+  "hints": [
+    "Two `for` loops, one inside the other. Get the shape right before worrying about spaces: print every number followed by a space, check the rows are correct, and fix the separator afterwards.",
+    "The newline belongs to the row, so it goes in the outer loop after the inner loop has finished — not inside the inner loop.",
+    "For the separator, print a space *before* each number except the first in its row: `if (j > 1) std::cout << ' ';`. Printing it after each number leaves one at the end of every line."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n\nint main()\n{\n    int n{};\n    std::cin >> n;\n\n    // your code here — one loop for the rows, one inside it for the columns\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "3\n",
+        "expect": "1 2 3\n2 4 6\n3 6 9\n"
+      },
+      {
+        "stdin": "1\n",
+        "expect": "1\n"
+      }
+    ]
+  }
+}

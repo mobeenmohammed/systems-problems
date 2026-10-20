@@ -9,7 +9,8 @@
 
 (() => {
 
-  const VIEWS = ['home', 'problems', 'problem', 'learn', 'tracks', 'concepts', 'profile',
+  const VIEWS = ['home', 'problems', 'problem', 'learn', 'projects', 'tracks',
+    'concepts', 'profile',
     'shop', 'settings', 'setup', '404',
     'assess', 'assess-brief', 'assess-run', 'assess-review', 'review'];
 
@@ -130,16 +131,37 @@
         return;
 
       /* Learn is the tracks-as-trees view: #/learn, #/learn/<track>, and
-         #/learn/<track>/<concept> for a node. */
+         #/learn/<track>/<concept> for a node.
+
+         A project is not one of those any more, and a link to one is
+         not broken — it is a link to a thing that moved, so it goes
+         where the thing went rather than to a 404. Bookmarks, the
+         dashboard's "next up", and every link written before the
+         split all land on the overview. */
       case 'learn':
+        if (path[1] && Catalog.project(path[1])) {
+          location.replace(`#/projects/${Catalog.project(path[1]).id}`);
+          return;
+        }
         show('learn');
         UI.renderLearn(path[1] || null, path[2] || null);
+        break;
+
+      /* Projects: #/projects for the catalogue, #/projects/<id> for
+         one project's overview. */
+      case 'projects':
+        show('projects');
+        UI.renderProjects(path[1] || null);
         break;
 
       /* Kept so older links and bookmarks still land somewhere: the flat
          list of a track's problems, reached from inside Learn. */
       case 'tracks':
         if (!path[1]) { location.hash = '#/learn'; return; }
+        if (Catalog.project(path[1])) {
+          location.replace(`#/projects/${Catalog.project(path[1]).id}`);
+          return;
+        }
         show('tracks');
         UI.renderTracks(path[1]);
         break;

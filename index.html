@@ -358,7 +358,11 @@
         <select id="fDebug">
           <option value="">Anything</option>
           <option value="1">Debugging only</option>
-          <option value="project">Projects only</option>
+          <!-- "Project milestones", not "Projects": this filters the
+               problem list down to the milestones. The projects
+               themselves are at #/projects, which is a catalogue of
+               projects rather than of their parts. -->
+          <option value="project">Project milestones</option>
         </select>
       </label>
       <button class="btn btn-sm btn-ghost" id="fClear">Clear</button>
@@ -522,6 +526,18 @@
        have to stay on screen while a problem fills the rest of it. -->
   <section id="view-assess-run" class="view" hidden>
     <div id="assessRun"></div>
+  </section>
+
+  <!-- ---------------- projects ----------------
+
+       Its own view, not a filter on the catalogue and not a track in
+       Learn. A project is "what am I building and what is left", which
+       is a list with an order and a shape on disk; Learn answers "what
+       does this rest on", which is a graph. Drawing the first as the
+       second gave a four-node tree saying nothing and buried the file
+       layout, which is the part a reader wants. -->
+  <section id="view-projects" class="view" hidden>
+    <div id="projectsHost"></div>
   </section>
 
   <section id="view-tracks" class="view" hidden>

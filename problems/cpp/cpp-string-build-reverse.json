@@ -1,0 +1,53 @@
+{
+  "id": "cpp-string-build-reverse",
+  "title": "Build it backwards",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "strings",
+    "getline",
+    "loops",
+    "indexing"
+  ],
+  "estimate": 15,
+  "prereqs": [
+    {
+      "concept": "cpp-strings",
+      "why": "A `std::string` is read, indexed and grown here, which is three of the four things strings are for."
+    },
+    {
+      "concept": "cpp-loops",
+      "why": "The loop walks the string from its last character to its first."
+    }
+  ],
+  "statement": "Read one whole line of text — spaces included — and print it\nbackwards.\n\n```\ninput:   hello world        output:  dlrow olleh\ninput:   abc                output:  cba\ninput:   a                  output:  a\n```\n\nAn empty line reverses to an empty line: print just the newline.\n\n### The point of the problem\n\n**Reading a line, not a word.** `std::cin >> line` stops at the\nfirst space, so `hello world` would read only `hello`. The whole\nline, spaces and all, needs:\n\n```cpp\nstd::string line{};\nstd::getline(std::cin, line);\n```\n\n`getline` reads up to the newline and does not keep it.\n\n**Indexing and size.** `line[i]` is the character at position `i`,\ncounting from 0, and `line.size()` is how many there are. So the\nlast character is `line[line.size() - 1]`.\n\n**Growing a string.** `result += c` appends one character to the end\nof a string. Start from an empty one and append the characters of\n`line` from its last to its first, and what you have built is the\nanswer.\n\nCounting down is where this gets awkward, and the awkwardness is the\npoint — see the boundary cases below before writing the loop.\n\n### Constraints\n\nThe line is at most 200 characters, and may contain any printable\ncharacters including spaces. There is exactly one line of input.\n\n### Boundary cases\n\n- **An empty line.** `size()` is 0 and the loop must not run. This\n  is where counting down bites: `line.size()` has an **unsigned**\n  type, so `line.size() - 1` on an empty string is not -1 — it is\n  the largest `std::size_t` there is, and `line[that]` reads far\n  past the end. Write the loop as `i > 0` over `i - 1`, or use a\n  signed index, and the problem disappears.\n- **One character** reverses to itself.\n- **Leading and trailing spaces** are part of the line and are\n  reversed with everything else.",
+  "hints": [
+    "Read the line with `std::getline(std::cin, line);`, not with `>>`. With `>>` anything after the first space is left behind.",
+    "Build a second string rather than trying to reverse in place. Start it empty and append characters from the end of the original with `result += line[...]`.",
+    "Be careful counting down. `line.size()` is unsigned, so on an empty line `size() - 1` is an enormous number rather than -1. Looping `for (std::size_t i = line.size(); i > 0; --i)` and using `line[i - 1]` avoids it."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n#include <string>\n\nint main()\n{\n    std::string line{};\n    if (!std::getline(std::cin, line)) return 0;\n\n    // your code here — build a second string holding line’s characters backwards\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "hello world\n",
+        "expect": "dlrow olleh\n"
+      },
+      {
+        "stdin": "abc\n",
+        "expect": "cba\n"
+      }
+    ]
+  }
+}

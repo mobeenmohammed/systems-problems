@@ -62,11 +62,13 @@
     "test:editor-sv": "node tests/browser/editor-sv.test.mjs",
     "build:rustc": "bash scripts/build-rustc-wasm.sh",
     "test:project": "node tests/browser/project.test.mjs",
+    "test:projects": "node tests/browser/projects.test.mjs",
     "test:workspace": "node tests/browser/workspace.test.mjs",
     "test:editing": "node tests/browser/editing.test.mjs",
     "test:versions": "node tests/browser/versions.test.mjs",
     "test:courses": "node tests/browser/courses.test.mjs",
-    "test:new": "node tests/browser/newcontent.test.mjs"
+    "test:new": "node tests/browser/newcontent.test.mjs",
+    "test:cppbasics": "node tests/browser/cppbasics.test.mjs"
   },
   "devDependencies": {
     "@bjorn3/browser_wasi_shim": "^0.4.2",

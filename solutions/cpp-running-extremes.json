@@ -1,0 +1,47 @@
+{
+  "id": "cpp-running-extremes",
+  "key": {
+    "cases": [
+      {
+        "stdin": "7\n",
+        "expect": "count 1\nmin 7\nmax 7\n"
+      },
+      {
+        "stdin": "5 5 5\n",
+        "expect": "count 3\nmin 5\nmax 5\n"
+      },
+      {
+        "stdin": "-4 -9 -1\n",
+        "expect": "count 3\nmin -9\nmax -1\n"
+      },
+      {
+        "stdin": "1 2 3 4 5\n",
+        "expect": "count 5\nmin 1\nmax 5\n"
+      },
+      {
+        "stdin": "5 4 3 2 1\n",
+        "expect": "count 5\nmin 1\nmax 5\n"
+      },
+      {
+        "stdin": "0\n",
+        "expect": "count 1\nmin 0\nmax 0\n"
+      },
+      {
+        "stdin": "-1000000 1000000\n",
+        "expect": "count 2\nmin -1000000\nmax 1000000\n"
+      },
+      {
+        "stdin": "3\n4\n5\n",
+        "expect": "count 3\nmin 3\nmax 5\n"
+      },
+      {
+        "stdin": "  \n",
+        "expect": "count 0\nmin none\nmax none\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n\nint main()\n{\n    int x{};\n    int count{};\n    int lowest{};\n    int highest{};\n\n    while (std::cin >> x)\n    {\n        if (count == 0)\n        {\n            lowest = x;\n            highest = x;\n        }\n        else\n        {\n            if (x < lowest) lowest = x;\n            if (x > highest) highest = x;\n        }\n        ++count;\n    }\n\n    std::cout << \"count \" << count << \"\\n\";\n\n    if (count == 0)\n    {\n        std::cout << \"min none\\n\";\n        std::cout << \"max none\\n\";\n    }\n    else\n    {\n        std::cout << \"min \" << lowest << \"\\n\";\n        std::cout << \"max \" << highest << \"\\n\";\n    }\n\n    return 0;\n}\n"
+    }
+  },
+  "explanation": "## The program\n\n```cpp\nwhile (std::cin >> x)\n{\n    if (count == 0) { lowest = x; highest = x; }\n    else\n    {\n        if (x < lowest)  lowest = x;\n        if (x > highest) highest = x;\n    }\n    ++count;\n}\n```\n\n## while (std::cin >> x)\n\n`std::cin >> x` is an expression whose value is the stream, and a\nstream converts to `bool` as \"am I still usable\". So the condition\nmeans: read the next number, and keep going if that worked.\n\nIt fails on end of input and on malformed input alike, which is\nusually what you want for a filter reading numbers and sometimes\nnot — a program that must tell \"no more data\" from \"that was not a\nnumber\" has to look at `std::cin.eof()` and `std::cin.fail()`\nseparately afterwards.\n\nWhat you must not write is:\n\n```cpp\nwhile (!std::cin.eof())     // wrong\n{\n    std::cin >> x;\n    // ...\n}\n```\n\n`eof()` reports that a *previous* read hit the end, so this runs the\nbody one extra time with `x` holding whatever the failed read left\nbehind. Test the read, not the flag.\n\n## The starting value problem\n\nA sum starts at 0 and a product starts at 1, because those are the\nvalues that leave the answer unchanged — the identity for the\noperation. Minimum has no such value among the `int`s: whatever you\npick, some input is smaller.\n\nThere are three ways out, and they are worth knowing apart:\n\n1. **Use the first element.** What the reference does. It is correct\n   for every input and needs the \"have I seen one yet\" test, which\n   the count supplies for free.\n2. **Start at the extreme of the type**, `std::numeric_limits<int>\n   ::max()` from `<limits>`. Correct for `int`, and it quietly\n   answers \"what is the minimum of nothing\" with a very large\n   number, which is a lie that looks like data.\n3. **Start at 0.** Wrong, and the test that catches it is a set of\n   all-negative numbers — which is why there is one above.\n\n## One pass, three answers\n\nAll three are accumulated in the same loop. That matters more than\nit looks: the input here is a stream, and a stream can only be read\nonce. Three separate loops would need the numbers stored first —\nwhich is fine for a thousand of them and not for a billion.\n\n## What this does not check\n\nThe difference between \"the input ended\" and \"the input contained a\nword\". Both stop the loop, and both are reported as however many\nnumbers were read before that point. A program validating its input\nwould have to separate them."
+}

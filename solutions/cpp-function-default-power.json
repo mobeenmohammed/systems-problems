@@ -1,0 +1,43 @@
+{
+  "id": "cpp-function-default-power",
+  "key": {
+    "cases": [
+      {
+        "stdin": "0 0\n",
+        "expect": "square 0\npower 1\n"
+      },
+      {
+        "stdin": "0 5\n",
+        "expect": "square 0\npower 0\n"
+      },
+      {
+        "stdin": "1 12\n",
+        "expect": "square 1\npower 1\n"
+      },
+      {
+        "stdin": "20 12\n",
+        "expect": "square 400\npower 4096000000000000\n"
+      },
+      {
+        "stdin": "2 10\n",
+        "expect": "square 4\npower 1024\n"
+      },
+      {
+        "stdin": "7 1\n",
+        "expect": "square 49\npower 7\n"
+      },
+      {
+        "stdin": "10 9\n",
+        "expect": "square 100\npower 1000000000\n"
+      },
+      {
+        "stdin": "20 0\n",
+        "expect": "square 400\npower 1\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n\nlong long power(int base, int exponent = 2)\n{\n    long long result{ 1 };\n\n    for (int i = 0; i < exponent; ++i)\n    {\n        result *= base;\n    }\n\n    return result;\n}\n\nint main()\n{\n    int base{};\n    int exponent{};\n    if (!(std::cin >> base >> exponent)) return 0;\n\n    std::cout << \"square \" << power(base) << \"\\n\";\n    std::cout << \"power \" << power(base, exponent) << \"\\n\";\n\n    return 0;\n}\n"
+    }
+  },
+  "explanation": "## The program\n\n```cpp\nlong long power(int base, int exponent = 2)\n{\n    long long result{ 1 };\n    for (int i = 0; i < exponent; ++i) result *= base;\n    return result;\n}\n\nstd::cout << \"square \" << power(base) << \"\\n\";\nstd::cout << \"power \" << power(base, exponent) << \"\\n\";\n```\n\n## The default is part of the declaration, not the body\n\nThe `= 2` is not a statement that runs; it is information the\ncompiler uses at the **call site** to fill in the missing argument.\nSo it belongs wherever the caller can see it:\n\n```cpp\nlong long power(int base, int exponent = 2);    // declaration\n\nlong long power(int base, int exponent)         // definition — no = 2\n{\n    /* ... */\n}\n```\n\nRepeating the default on both is an error: \"default argument given\nfor parameter 2 of ...\". In a real project the declaration lives in\na header and the definition in a `.cpp`, which makes the rule read\nnaturally — the header is what callers read, so the default goes\nthere.\n\n## Defaults fill from the right\n\n```cpp\nvoid f(int a, int b = 1, int c = 2);     // fine\nvoid g(int a = 1, int b);                // error\n```\n\nArguments are matched by position, so a gap in the middle would be\nunreadable: `g(5)` could not say whether 5 was `a` or `b`. C++ has\nno named arguments to resolve it with, so the rule is simply that\nevery parameter after a defaulted one must also be defaulted.\n\n## Starting at the identity\n\n`result` starts at 1 because 1 is what leaves a product unchanged.\nThe same reasoning as 0 for a sum, and it pays off at the edge:\n`power(n, 0)` runs the body zero times and returns 1, which is the\nconventional answer, without a branch.\n\n`power(0, 0)` returns 1 here as well. That is a definition rather\nthan a fact — 0⁰ is genuinely ambiguous in analysis, and is taken as\n1 in combinatorics and in most programming libraries because it\nmakes formulas come out. `std::pow(0.0, 0.0)` is also 1. The\nstatement says so rather than leaving the reader to discover which\nconvention the tests used.\n\n## Why the return type is wider than the arguments\n\n20 and 12 both fit in an `int` with room to spare; 20¹² does not.\nThe size of the inputs says nothing about the size of the output,\nand multiplication is where that gap opens fastest. `result` is a\n`long long` from the start, so every `*=` is a 64-bit multiply —\ndeclaring it `int` and returning it into a `long long` would\noverflow before the conversion, the same mistake as dividing in\n`int`s and assigning to a `double`.\n\n## What this does not check\n\nNegative exponents, which the constraints exclude — the loop would\nrun zero times and return 1, when the right answer is not an integer\nat all. A general `power` would either reject them or return a\n`double`."
+}

@@ -1,0 +1,53 @@
+{
+  "id": "cpp-leap-year",
+  "title": "Three rules, and the order they go in",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "conditions",
+    "boolean",
+    "operator-precedence",
+    "modulo"
+  ],
+  "estimate": 14,
+  "prereqs": [
+    {
+      "concept": "cpp-conditions",
+      "why": "The whole answer is one Boolean expression, and whether it is parenthesised correctly is the exercise."
+    },
+    {
+      "concept": "cpp-integer-types",
+      "why": "Each of the three rules is a `%` test for divisibility."
+    }
+  ],
+  "statement": "Read one integer year and print `leap` or `common`.\n\nA year is a leap year when:\n\n1. it divides by 4, **and**\n2. it does not divide by 100, **unless**\n3. it also divides by 400.\n\n```\ninput:   2024    output:  leap      divides by 4, not by 100\ninput:   2023    output:  common    does not divide by 4\ninput:   1900    output:  common    divides by 100, not by 400\ninput:   2000    output:  leap      divides by 400\n```\n\n### The point of the problem\n\nThree rules with an \"unless\" in them, written as one expression. The\nshape that works is:\n\n```\ndivisible by 4   AND   ( not divisible by 100   OR   divisible by 400 )\n```\n\nThe brackets are doing real work. `&&` binds **tighter** than `||`,\nso without them C++ reads the expression as\n\n```\n( by4 AND not by100 )   OR   by400\n```\n\nwhich is a different sentence. It happens to pick out the same years —\nanything divisible by 400 divides by 4 as well, so the `|| by400` on\nthe outside can only agree with the bracketed version — and that is\nthe trap rather than the escape. The expression you did not mean is\ncorrect by accident, so no test anywhere will tell you the brackets\nare missing. Write them because they say what you meant, not because\nthe compiler needs them.\n\nIt helps to name the three tests:\n\n```cpp\nbool by4{ year % 4 == 0 };\nbool by100{ year % 100 == 0 };\nbool by400{ year % 400 == 0 };\n```\n\nA `bool` is an ordinary variable holding `true` or `false`. Once the\nthree have names, the rule reads almost like the English above it.\n\n### Constraints\n\nThe year is between 1 and 4000 inclusive. (The rule only became the\ncalendar in 1582, which this problem ignores — it is arithmetic, not\nhistory.)\n\n### Boundary cases\n\n- **1900 and 2000** are the pair that separates a correct rule from\n  \"divides by 4\". Both divide by 100; only one divides by 400.\n- **2100** is `common`, and **2400** is `leap`. Same pair, a century\n  later, and worth checking because a reader who hard-codes 2000\n  passes the first pair and fails this one.\n- **4** is `leap` — the smallest one — and **1** is `common`.",
+  "hints": [
+    "Write the three divisibility tests into three named `bool` variables first. The rule is much easier to get right when it is about names rather than about three copies of `%`.",
+    "The shape is `by4 && (!by100 || by400)`. Mind the brackets: `&&` binds tighter than `||`, so leaving them out changes the rule.",
+    "If 1900 is coming out as `leap`, you are testing only divisibility by 4. If 2000 is coming out as `common`, the `by400` escape is missing or is on the wrong side of the `&&`."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n\nint main()\n{\n    int year{};\n    std::cin >> year;\n\n    // your code here — decide leap or common, and print one of those two words\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "2024\n",
+        "expect": "leap\n"
+      },
+      {
+        "stdin": "1900\n",
+        "expect": "common\n"
+      }
+    ]
+  }
+}

@@ -357,7 +357,8 @@ const UI = (() => {
     const questions = all.filter(p => !Catalog.WRITTEN_TYPES.has(p.type)).length;
     const coding = all.length - questions;
     const hardware = all.filter(p => p.type === 'hdl').length;
-    const tracks = Catalog.allTracks().length;
+    const tracks = Catalog.learnTracks().length;
+    const projects = Catalog.allProjects();
     const concepts = Catalog.allConcepts().length;
     const week = Catalog.thisWeek();
     const weekly = week && week.meta;
@@ -429,7 +430,8 @@ const UI = (() => {
         title: 'Assess',
         items: [
           {
-            icon: 'project', label: 'Projects', href: '#/problems?project=1',
+            icon: 'project', label: 'Projects', href: '#/projects',
+            count: projects.length,
             blurb: 'Build one thing across several files and several '
               + 'milestones, each adding a requirement to the last.',
           },
@@ -487,6 +489,7 @@ const UI = (() => {
      lights Learn — the alternative is a menu that goes blank exactly when
      you have gone somewhere and want to know where. */
   const NAV_ALIAS = [
+    [/^#\/projects/, '#/projects'],
     [/^#\/p\//, '#/problems'],
     [/^#\/tracks/, '#/learn'],
     [/^#\/learn/, '#/learn'],
@@ -729,7 +732,15 @@ const UI = (() => {
       href: `#/p/${up.meta.id}`,
       body: up.track
         ? el('p', {}, [
-            el('a', { class: 'quiet', href: `#/tracks/${up.track.id}`, text: up.track.title }),
+            /* A project's route is #/projects now. The old one still
+               redirects, and a link that bounces is a link that was
+               written before the thing moved — so ask where it is. */
+            el('a', {
+              class: 'quiet',
+              href: Catalog.isProject(up.track)
+                ? `#/projects/${up.track.id}` : `#/tracks/${up.track.id}`,
+              text: up.track.title,
+            }),
             ` · ${up.progress.done} of ${up.progress.total} solved`,
           ])
         : null,
@@ -926,12 +937,16 @@ const UI = (() => {
 
   function renderLearnIndex() {
     const host = $('#learnTracks');
-    const tracks = Catalog.allTracks();
+    /* Projects are not tracks here any more: they have their own
+       catalogue, their own progress and their own overview pages. See
+       the note above Catalog.projectOf(). */
+    const tracks = Catalog.learnTracks();
     const blurb = $('#learnBlurb');
     if (blurb) {
       blurb.textContent = tracks.length
         ? `${tracks.length} tracks. Each one is a tree of what it rests on — `
-          + 'pick a node to see what to read and what to try.'
+          + 'pick a node to see what to read and what to try. '
+          + 'Projects are in Projects.'
         : 'Ordered sets of problems that build on each other.';
     }
 
@@ -1960,11 +1975,287 @@ const UI = (() => {
     body.scrollTop = 0;
   }
 
+  /* ---------------- projects ----------------
+
+     A project used to be a track in Learn and a filter on the
+     catalogue, and was badly served by both. Learn draws a track as
+     the tree of concepts it rests on, which for a three-milestone
+     project is four boxes saying nothing; the catalogue filter gave a
+     flat list of milestones with no sign of which came first or what
+     the finished thing looks like.
+
+     So: one card per project here, and an overview page per project
+     that says what you are building, what it rests on, what the files
+     are, and which milestone is next. Nothing moved underneath — the
+     same track rows, the same problem ids, the same drafts and
+     records — and the old Learn URLs redirect, which is handled in
+     the router rather than here. */
+
+  /* The catalogue's own labels: one table, so the project cards and the
+     language filter in #/problems cannot disagree about what `sv` is
+     called. */
+  const langWord = id => Catalog.LANG_LABEL[id] || id;
+
+  /* The filters live in the hash, not in a module variable, so a
+     filtered view is a link somebody can send and a reload does not
+     lose it. Read loosely: an unknown value is ignored rather than
+     producing an empty list. */
+  function projectFilters() {
+    const q = new URLSearchParams((location.hash.split('?')[1] || ''));
+    return {
+      lang: q.get('lang') || '',
+      difficulty: q.get('difficulty') || '',
+      progress: q.get('progress') || '',
+    };
+  }
+
+  function setProjectFilter(key, value) {
+    const now = projectFilters();
+    now[key] = value;
+    const q = new URLSearchParams();
+    for (const [k, v] of Object.entries(now)) if (v) q.set(k, v);
+    const tail = q.toString();
+    location.hash = tail ? `#/projects?${tail}` : '#/projects';
+  }
+
+  const PROGRESS_WORD = {
+    'not-started': 'Not started',
+    attempted: 'In progress',
+    completed: 'Finished',
+  };
+
+  function filterProjects(rows, f) {
+    return rows.filter(p => {
+      if (f.lang && !p.langs.includes(f.lang)) return false;
+      if (f.difficulty && p.difficulty !== f.difficulty) return false;
+      if (f.progress && p.state !== f.progress) return false;
+      return true;
+    });
+  }
+
+  function renderProjects(id) {
+    const host = $('#projectsHost');
+    if (!host) return;
+    leaveGraph();
+    const proj = id ? Catalog.project(id) : null;
+    if (id && !proj) {
+      host.replaceChildren(el('div', { class: 'empty' }, [
+        el('h2', { text: 'No such project' }),
+        el('p', { class: 'muted', text:
+          'That link points at a project that is not in the catalogue.' }),
+        el('a', { class: 'btn', href: '#/projects' }, ['All projects']),
+      ]));
+      return;
+    }
+    if (proj) { renderProjectOverview(host, proj); return; }
+    renderProjectList(host);
+  }
+
+  /* ---- the catalogue ---- */
+
+  function renderProjectList(host) {
+    const all = Catalog.allProjects();
+    const f = projectFilters();
+    const rows = filterProjects(all, f);
+
+    const langs = [...new Set(all.flatMap(p => p.langs))].sort();
+    const diffs = ['beginner', 'intermediate', 'advanced']
+      .filter(d => all.some(p => p.difficulty === d));
+    const states = ['not-started', 'attempted', 'completed']
+      .filter(s => all.some(p => p.state === s));
+
+    /* A filter that would empty the list is still offered, with its
+       count, because "none of these yet" is an answer. */
+    /* `anyLabel` rather than `all`, which is the list of projects two
+       scopes up and was being handed to filterProjects as a string. */
+    const picker = (key, label, values, word, anyLabel) => el('label', {}, [
+      label,
+      el('select', {
+        class: 'proj-filter', 'data-filter': key,
+        onchange: e => setProjectFilter(key, e.currentTarget.value),
+      }, [
+        el('option', { value: '', selected: !f[key] || undefined }, [anyLabel]),
+        ...values.map(v => el('option', {
+          value: v, selected: f[key] === v || undefined,
+        }, [`${word(v)} (${filterProjects(all, { ...f, [key]: v }).length})`])),
+      ]),
+    ]);
+
+    host.replaceChildren(
+      el('h1', { text: 'Projects' }),
+      el('p', { class: 'muted', style: 'max-width:68ch', text:
+        `${all.length} ${all.length === 1 ? 'project' : 'projects'}. `
+        + 'Each one is a single program built over several milestones, each '
+        + 'adding a requirement to the last, with your files carried forward '
+        + 'and every earlier requirement still checked.' }),
+      el('div', { class: 'filters proj-filters' }, [
+        picker('lang', 'Language', langs, langWord, 'Any language'),
+        picker('difficulty', 'Difficulty', diffs,
+          d => d[0].toUpperCase() + d.slice(1), 'Any difficulty'),
+        picker('progress', 'Progress', states,
+          s => PROGRESS_WORD[s] || s, 'Any progress'),
+        (f.lang || f.difficulty || f.progress)
+          ? el('a', { class: 'btn btn-sm btn-ghost', href: '#/projects' }, ['Clear'])
+          : null,
+      ]),
+      rows.length
+        ? el('div', { class: 'projects' }, rows.map(projectCard))
+        : el('div', { class: 'empty' }, [
+          el('h2', { text: 'No project matches those filters' }),
+          el('a', { class: 'btn', href: '#/projects' }, ['Show all projects']),
+        ]),
+      el('p', { class: 'tiny faint', style: 'margin-top:1rem' }, [
+        'A project is not a course. What each milestone rests on is on its '
+        + 'own overview, and links into ',
+        el('a', { href: '#/learn' }, ['Learn']),
+        '.',
+      ]),
+    );
+  }
+
+  function projectCard(p) {
+    const pct = Math.round(p.fraction * 100);
+    /* Start or Continue, and which milestone either one opens: a
+       button that says "Continue" without saying where is a button
+       somebody has to click to find out. */
+    const go = p.next ? `#/p/${p.next.id}` : '#/projects';
+    const verb = p.state === 'completed' ? 'Revisit'
+      : p.state === 'not-started' ? 'Start' : 'Continue';
+
+    return el('div', { class: 'proj-card', 'data-state': p.state }, [
+      el('div', { class: 'proj-top' }, [
+        el('h3', {}, [el('a', { href: `#/projects/${p.id}`, text: p.title })]),
+        stateChip(p.state),
+      ]),
+      el('div', { class: 'proj-meta tiny' }, [
+        ...p.langs.map(l => el('span', { class: 'pill pill-plain', text: langWord(l) })),
+        el('span', { class: 'pill pill-plain', text:
+          p.difficulty[0].toUpperCase() + p.difficulty.slice(1) }),
+        el('span', { class: 'faint', text:
+          `${p.total} ${p.total === 1 ? 'milestone' : 'milestones'}` }),
+      ]),
+      el('p', { class: 'proj-blurb', text: firstSentence(p.blurb) }),
+      el('div', { class: 'proj-foot' }, [
+        el('div', { class: 'bar', title: `${pct}%` }, [el('i', { style: `width:${pct}%` })]),
+        el('div', { class: 'spread tiny' }, [
+          el('span', { text: `${p.done} of ${p.total} milestones` }),
+          el('span', { class: 'faint', text: PROGRESS_WORD[p.state] || '' }),
+        ]),
+        /* The milestones as pips, each a link: somebody coming back to
+           a project halfway through usually wants a particular step
+           rather than the next one. */
+        el('ol', { class: 'proj-pips' }, p.milestones.map(m => el('li', {}, [
+          el('a', {
+            class: 'proj-pip', href: `#/p/${m.id}`, 'data-status': m.status,
+            title: `${m.n}. ${m.label} — ${m.solved ? 'solved' : m.status === 'unsolved' ? 'not started' : 'attempted'}`,
+          }, [String(m.n)]),
+        ]))),
+        el('div', { class: 'row' }, [
+          p.next ? el('a', { class: 'btn btn-sm', href: go }, [
+            `${verb}: ${p.next.label}`,
+          ]) : null,
+          el('a', { class: 'btn btn-sm btn-ghost', href: `#/projects/${p.id}` }, ['Overview']),
+        ]),
+      ]),
+    ]);
+  }
+
+  /* ---- one project ---- */
+
+  function renderProjectOverview(host, p) {
+    const needs = Catalog.projectNeeds(p);
+    const pct = Math.round(p.fraction * 100);
+    const verb = p.state === 'completed' ? 'Revisit'
+      : p.state === 'not-started' ? 'Start' : 'Continue';
+
+    host.replaceChildren(
+      el('div', { class: 'phead' }, [
+        el('div', { class: 'crumbs' }, [
+          el('a', { href: '#/projects', text: '\u2190 All projects' }),
+        ]),
+        el('h1', { text: p.title }),
+        el('div', { class: 'proj-meta tiny' }, [
+          ...p.langs.map(l => el('span', { class: 'pill pill-plain', text: langWord(l) })),
+          el('span', { class: 'pill pill-plain', text:
+            p.difficulty[0].toUpperCase() + p.difficulty.slice(1) }),
+          el('span', { class: 'faint', text:
+            `${p.done} of ${p.total} milestones \u00b7 ${PROGRESS_WORD[p.state] || ''}` }),
+        ]),
+        el('p', { class: 'muted', style: 'max-width:70ch', text: p.blurb }),
+        el('div', { class: 'bar', title: `${pct}%` }, [el('i', { style: `width:${pct}%` })]),
+        p.next ? el('div', { class: 'row', style: 'margin-top:.6rem' }, [
+          el('a', { class: 'btn', href: `#/p/${p.next.id}` }, [`${verb}: ${p.next.label}`]),
+        ]) : null,
+      ]),
+
+      /* What finishing it means. The track's own sentence, which was
+         written for exactly this and was only ever shown as a tooltip
+         on a card in Learn. */
+      p.goal ? el('section', { class: 'pov-sec' }, [
+        el('h2', { text: 'What you end up with' }),
+        el('p', { class: 'prose', style: 'max-width:70ch', text: p.goal }),
+      ]) : null,
+
+      /* Prerequisites, as links into Learn. Out of here and into
+         there, and deliberately not the other way: a project is not a
+         node in anybody's course tree. */
+      needs.length ? el('section', { class: 'pov-sec' }, [
+        el('h2', { text: 'What it rests on' }),
+        el('p', { class: 'tiny faint', text:
+          `${needs.length} ${needs.length === 1 ? 'concept' : 'concepts'}, `
+          + 'in the order the milestones want them. Each one opens where it '
+          + 'is taught.' }),
+        el('ul', { class: 'pov-needs' }, needs.map(c => el('li', {}, [
+          el('a', { href: Catalog.conceptHref(c.id), text: c.name || c.id }),
+          el('span', { class: 'tiny faint', text: ` \u00b7 milestone ${c.milestone}` }),
+        ]))),
+      ]) : null,
+
+      /* The shape on disk. The last milestone's file list, because
+         that is the finished thing; the earlier ones have fewer. */
+      p.shape.length ? el('section', { class: 'pov-sec' }, [
+        el('h2', { text: 'The files' }),
+        el('p', { class: 'tiny faint', text:
+          'What the workspace holds by the last milestone. Earlier ones have '
+          + 'fewer, and your files are carried forward from each to the next.' }),
+        el('ul', { class: 'pov-files' }, p.shape.map(f => el('li', {}, [
+          el('span', { class: 'mono', text: f.path }),
+          f.given ? el('span', { class: 'mf-tag mf-tag-ro', text: 'given' }) : null,
+        ]))),
+      ]) : null,
+
+      el('section', { class: 'pov-sec' }, [
+        el('h2', { text: 'The milestones' }),
+        el('p', { class: 'tiny faint', text:
+          'In order. Each one re-runs everything the ones before it asked for, '
+          + 'so a later milestone cannot be finished by undoing an earlier one.' }),
+        el('ol', { class: 'pov-steps' }, p.milestones.map(m => el('li', {
+          class: 'pov-step', 'data-status': m.status,
+        }, [
+          el('div', { class: 'pov-step-top' }, [
+            el('a', { class: 'pov-step-title', href: `#/p/${m.id}`, text: `${m.n}. ${m.label}` }),
+            /* A milestone's three states, in the words the track
+               cards already use for the same three. */
+            stateChip(m.solved ? 'completed'
+              : m.status === 'unsolved' ? 'not-started' : 'attempted'),
+          ]),
+          el('p', { class: 'tiny faint', text: m.meta.title }),
+          el('div', { class: 'tiny faint' }, [
+            el('span', { text: m.difficulty[0].toUpperCase() + m.difficulty.slice(1) }),
+            m.meta.estimate ? el('span', { text: ` \u00b7 about ${m.meta.estimate} min` }) : null,
+            m.files.length ? el('span', { text:
+              ` \u00b7 ${m.files.length} ${m.files.length === 1 ? 'file' : 'files'}` }) : null,
+          ]),
+        ]))),
+      ]),
+    );
+  }
+
   /* ---------------- tracks ---------------- */
 
   function renderTracks(trackId) {
     const host = $('#trackList');
-    const tracks = Catalog.allTracks();
+    const tracks = Catalog.learnTracks();
 
     const blurb = $('#tracksBlurb');
     if (blurb) {
@@ -3556,6 +3847,7 @@ const UI = (() => {
   return {
     toast, refreshPurse, applyCosmetics, wire, endPreview,
     renderHome, renderCatalog, renderConcepts, renderProfile, renderShop, renderSettings,
+    renderProjects,
     paintMe, closeMe, renderContentMenu, markNav, closeContent,
     renderTracks, renderLearn, renderResources, problemList, leaveGraph,
     renderReview,

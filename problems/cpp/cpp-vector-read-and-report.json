@@ -1,0 +1,53 @@
+{
+  "id": "cpp-vector-read-and-report",
+  "title": "A list you keep",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "vector",
+    "push-back",
+    "indexing",
+    "stdin"
+  ],
+  "estimate": 15,
+  "prereqs": [
+    {
+      "concept": "cpp-std-vector",
+      "why": "The numbers have to be kept, because three of the four answers are about positions rather than about running totals."
+    },
+    {
+      "concept": "cpp-stdin-loop",
+      "why": "How many there are is not known in advance, which is exactly when a vector earns its place over an array."
+    }
+  ],
+  "statement": "Read integers until the input runs out, keep them, and report:\n\n```\ninput:   4 -3 9 0 7\n\noutput:  size 5\n         first 4\n         last 7\n         middle 9\n```\n\n`middle` is the element at index `size / 2`, using integer\ndivision — so for 5 elements it is index 2, and for 4 elements it\nis index 2 as well, the first of the two in the middle.\n\nWith no input at all:\n\n```\nsize 0\nfirst none\nlast none\nmiddle none\n```\n\n### The point of the problem\n\nThe previous problems streamed: each value was used and thrown\naway. These answers are about *positions*, which means the values\nhave to be kept, and how many there will be is not known until the\nend. That is what `std::vector` is for.\n\n```cpp\n#include <vector>\n\nstd::vector<int> values{};         // empty\nvalues.push_back(x);               // one longer\nvalues.size()                      // how many\nvalues[0]                          // the first\nvalues[values.size() - 1]          // the last\n```\n\nA vector grows as you push onto it; you never say how big it will\nbe. There are named versions of the first and last — `values\n.front()` and `values.back()` — which say what they mean and avoid\nthe `- 1`.\n\n### Constraints\n\nEach number is between -1,000,000 and 1,000,000 and there are at\nmost 10,000 of them, possibly none.\n\n### Boundary cases\n\n- **No input.** `size()` is 0 and there is no first, last or middle.\n  Every one of `values[0]`, `.front()` and `.back()` on an empty\n  vector is undefined behaviour, not an error — so the empty case\n  has to be checked before any of them is used.\n- **One number** is the first, the last, and the middle.\n- **An even count**, as in `1 2 3 4`: the middle is index 2, which\n  holds 3. Integer division rounds down, which here means the later\n  of the two central elements.\n- **Two numbers**: `middle` is the second.",
+  "hints": [
+    "Push each number onto a `std::vector<int>` as you read it: `values.push_back(x);` inside the `while (std::cin >> x)` loop.",
+    "Check `values.empty()` before touching any element. Indexing an empty vector is undefined behaviour, which may not crash and may quietly print rubbish.",
+    "The middle index is `values.size() / 2`. For the first and last, `values.front()` and `values.back()` say what they mean more clearly than `values[0]` and `values[values.size() - 1]`."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n#include <vector>\n\nint main()\n{\n    std::vector<int> values{};\n    int x{};\n\n    // your code here — read every number into the vector, then report on it\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "4 -3 9 0 7\n",
+        "expect": "size 5\nfirst 4\nlast 7\nmiddle 9\n"
+      },
+      {
+        "stdin": "",
+        "expect": "size 0\nfirst none\nlast none\nmiddle none\n"
+      }
+    ]
+  }
+}

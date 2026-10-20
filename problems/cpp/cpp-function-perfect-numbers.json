@@ -1,0 +1,53 @@
+{
+  "id": "cpp-function-perfect-numbers",
+  "title": "Two helpers, stacked",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "functions",
+    "decomposition",
+    "predicate",
+    "loops"
+  ],
+  "estimate": 18,
+  "prereqs": [
+    {
+      "concept": "cpp-functions",
+      "why": "Three levels: a function that adds things up, a function that asks a question using it, and a loop that asks that question repeatedly."
+    },
+    {
+      "concept": "cpp-loops",
+      "why": "The inner helper is a counted loop over possible divisors."
+    }
+  ],
+  "statement": "A **perfect number** is one that equals the sum of its proper\ndivisors — the divisors below itself. 6 is perfect, because\n1 + 2 + 3 = 6.\n\nWrite two functions:\n\n```cpp\nint divisorSum(int n);     // the sum of the divisors of n below n\nbool isPerfect(int n);     // whether n equals that sum\n```\n\nThen read one integer `n` and print every perfect number from 1 to\n`n` inclusive, one per line, in increasing order. If there are none,\nprint `none`.\n\n```\ninput:   30        output:  6\n                            28\n\ninput:   5         output:  none\n```\n\n### The point of the problem\n\nThree layers, each one short because the one below it exists:\n\n```\nmain          loop from 1 to n, print the ones that are perfect\n  isPerfect   n == divisorSum(n)\n    divisorSum  loop from 1 to n-1, add the ones that divide\n```\n\n`isPerfect` is one line. That is not a sign it was not worth\nwriting — it is a sign the decomposition is right. The name says\nwhat the comparison means, and `main` reads as a sentence about\nperfect numbers rather than about sums of divisors.\n\nA function returning `bool` is a **predicate**, and it reads best\nwhen it is used directly as a condition:\n\n```cpp\nif (isPerfect(k)) std::cout << k << \"\\n\";\n```\n\nnot `if (isPerfect(k) == true)`, which is the same thing said twice.\n\n### Constraints\n\n`n` is between 1 and 10,000 inclusive. The simple\ndivisor loop is fast enough: 10,000 numbers each checking up to\n10,000 divisors is about 50 million operations, which runs in well\nunder a second.\n\n### Boundary cases\n\n- **`n = 1`** prints `none`. 1 has no proper divisors at all, so its\n  divisor sum is 0, and 0 is not 1.\n- **`n = 6`** prints `6` — the boundary is inclusive.\n- **`n = 5`** prints `none`, which is the case that catches printing\n  nothing at all instead.\n- **`n = 10000`** finds 6, 28, 496 and 8128. The next one after that\n  is 33,550,336, so the list stops looking sparse only much later.",
+  "hints": [
+    "Write `divisorSum` first and check it by hand: `divisorSum(6)` is 6, `divisorSum(12)` is 16, `divisorSum(1)` is 0.",
+    "The divisor loop runs `for (int d = 1; d < n; ++d)` — strictly below `n`, because `n` divides itself and is not a *proper* divisor.",
+    "Keep a `bool found` in `main` so you know at the end whether to print `none`. Checking it after the loop is simpler than working out in advance whether the range contains one."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n\n// your code here — define divisorSum(n), then isPerfect(n) in terms of it\n\nint main()\n{\n    int n{};\n    std::cin >> n;\n\n    // your code here — print each perfect number up to n, or none if there are none\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "30\n",
+        "expect": "6\n28\n"
+      },
+      {
+        "stdin": "5\n",
+        "expect": "none\n"
+      }
+    ]
+  }
+}

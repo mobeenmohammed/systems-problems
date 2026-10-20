@@ -1,0 +1,47 @@
+{
+  "id": "cpp-short-circuit-guard",
+  "key": {
+    "cases": [
+      {
+        "stdin": "13 4\n",
+        "expect": "remainder 1\n"
+      },
+      {
+        "stdin": "-13 4\n",
+        "expect": "remainder -1\n"
+      },
+      {
+        "stdin": "0 7\n",
+        "expect": "divides 0\n"
+      },
+      {
+        "stdin": "7 -7\n",
+        "expect": "divides -1\n"
+      },
+      {
+        "stdin": "0 0\n",
+        "expect": "cannot divide by zero\n"
+      },
+      {
+        "stdin": "-12 4\n",
+        "expect": "divides -3\n"
+      },
+      {
+        "stdin": "1000 3\n",
+        "expect": "remainder 1\n"
+      },
+      {
+        "stdin": "-1000 -1000\n",
+        "expect": "divides 1\n"
+      },
+      {
+        "stdin": "1 1000\n",
+        "expect": "remainder 1\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n\nint main()\n{\n    int a{};\n    int b{};\n    if (!(std::cin >> a >> b)) return 0;\n\n    if (b == 0)\n        std::cout << \"cannot divide by zero\\n\";\n    else if (a % b == 0)\n        std::cout << \"divides \" << a / b << \"\\n\";\n    else\n        std::cout << \"remainder \" << a % b << \"\\n\";\n\n    return 0;\n}\n"
+    }
+  },
+  "explanation": "## The program\n\n```cpp\nif (b == 0)\n    std::cout << \"cannot divide by zero\\n\";\nelse if (a % b == 0)\n    std::cout << \"divides \" << a / b << \"\\n\";\nelse\n    std::cout << \"remainder \" << a % b << \"\\n\";\n```\n\nThe reference takes the zero case out first with its own branch,\nwhich makes the `&&` unnecessary: everything after the first `if`\nalready knows `b` is not zero. That is usually the better shape when\nthe guarded case has something of its own to say. The `&&` version\n\n```cpp\nif (b != 0 && a % b == 0)       std::cout << \"divides \" << a / b << \"\\n\";\nelse if (b != 0)                std::cout << \"remainder \" << a % b << \"\\n\";\nelse                            std::cout << \"cannot divide by zero\\n\";\n```\n\nis equally correct and repeats `b != 0`, which is a hint that the\ntest wants to be a branch of its own.\n\n## Short-circuit evaluation\n\n`&&` and `||` are the two operators in C++ that are specified **not**\nto evaluate both sides:\n\n```\nleft && right       right is evaluated only if left is true\nleft || right       right is evaluated only if left is false\n```\n\nThat is a guarantee, not an optimisation, and there is a sequence\npoint between the two — the left operand is fully evaluated,\nside-effects included, before the right one is even considered. So\nthis is a correct and idiomatic thing to write:\n\n```cpp\nif (p != nullptr && p->ready)        // dereference guarded by the test\nif (i < v.size() && v[i] == x)       // index guarded by the test\nif (b != 0 && a % b == 0)            // division guarded by the test\n```\n\nand each one is broken by swapping the operands. The guard has to be\non the left, because \"left first\" is the only ordering the language\npromises.\n\n## `&` is not a short `&&`\n\n`a & b` is bitwise AND. It evaluates both operands always, and on\n`bool`s it gives the right answer for the wrong reason — so\n`b != 0 & a % b == 0` divides by zero after all. It also has lower\nprecedence than `==`, so that line does not even parse the way it\nreads. Two different operators with similar spellings and different\nrules; use `&&` for logic.\n\n## Why division by zero is not an exception\n\nInteger division by zero in C++ is undefined behaviour. Not an\nexception to catch, not a value to check afterwards — the standard\ndeclines to say what the program does at all. On most hardware it\ntraps and the process dies, which feels like an error being\nreported, but you cannot rely on it: with optimisation on, a\ncompiler may reason backwards from \"this division happens\" to \"`b`\nis not zero\" and delete a later test you wrote. The guard must come\nfirst.\n\nFloating point is different. `1.0 / 0.0` is `inf` under IEEE 754 and\nis perfectly well defined, which is why the same mistake in `double`\narithmetic produces a strange number instead of a crash.\n\n## What this does not check\n\nThe one input where the division itself is undefined even with a\nnon-zero divisor: the most negative `int` divided by -1, whose true\nquotient has no representation. The constraints keep the numbers\nsmall enough that it cannot arise here, and a program handling\narbitrary input would have to test for it by name."
+}

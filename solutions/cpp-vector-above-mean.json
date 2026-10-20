@@ -1,0 +1,43 @@
+{
+  "id": "cpp-vector-above-mean",
+  "key": {
+    "cases": [
+      {
+        "stdin": "5 5 5\n",
+        "expect": "mean 5.00\nabove 0\n"
+      },
+      {
+        "stdin": "7\n",
+        "expect": "mean 7.00\nabove 0\n"
+      },
+      {
+        "stdin": "1 2 3 4\n",
+        "expect": "mean 2.50\nabove 2\n"
+      },
+      {
+        "stdin": "-4 -2 0 2 4\n",
+        "expect": "mean 0.00\nabove 2\n"
+      },
+      {
+        "stdin": "1000000 -1000000\n",
+        "expect": "mean 0.00\nabove 1\n"
+      },
+      {
+        "stdin": "1 1 1 1 100\n",
+        "expect": "mean 20.80\nabove 1\n"
+      },
+      {
+        "stdin": "2 4\n",
+        "expect": "mean 3.00\nabove 1\n"
+      },
+      {
+        "stdin": "  \n",
+        "expect": "mean none\nabove 0\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iomanip>\n#include <iostream>\n#include <vector>\n\nint main()\n{\n    std::vector<int> values{};\n    int x{};\n    long long total{};\n\n    while (std::cin >> x)\n    {\n        values.push_back(x);\n        total += x;\n    }\n\n    if (values.empty())\n    {\n        std::cout << \"mean none\\n\";\n        std::cout << \"above 0\\n\";\n        return 0;\n    }\n\n    double mean{ static_cast<double>(total) / static_cast<double>(values.size()) };\n\n    int above{};\n    for (int value : values)\n    {\n        if (value > mean) ++above;\n    }\n\n    std::cout << std::fixed << std::setprecision(2);\n    std::cout << \"mean \" << mean << \"\\n\";\n    std::cout << \"above \" << above << \"\\n\";\n\n    return 0;\n}\n"
+    }
+  },
+  "explanation": "## The program\n\n```cpp\nwhile (std::cin >> x) { values.push_back(x); total += x; }\n\nif (values.empty()) { /* none, 0 */ return 0; }\n\ndouble mean{ static_cast<double>(total) / static_cast<double>(values.size()) };\n\nint above{};\nfor (int value : values)\n    if (value > mean) ++above;\n```\n\n## Why two passes are unavoidable\n\nThe second question depends on the answer to the first, and the\nfirst is not known until every value has been seen. No amount of\ncleverness collapses this into one pass over a stream — which is\nexactly why the values have to be stored rather than consumed.\n\nThis is the general shape of \"compare each item against an aggregate\nof all the items\", and it comes up constantly: counting values above\nthe average, normalising a list by its total, marking the outliers.\nRecognising it tells you immediately that you need memory\nproportional to the input.\n\n## The range-based for\n\n```cpp\nfor (int value : values)            // a copy of each element\nfor (const int& value : values)     // a reference, no copy\nfor (int& value : values)           // a reference you can write through\n```\n\nFor an `int` the copy is free and the first form is clearest. For\nanything larger — a `std::string`, a struct — `const auto&` avoids\ncopying every element, and forgetting it is a real and invisible\ncost in a loop over a large container.\n\nWhat you give up is the index. If you need to know *where* an\nelement was, or to compare neighbours, go back to the counted loop.\n\n## Strictly greater\n\n`5 5 5` has mean 5 and nothing above it. With `>=` the answer would\nbe 3, and it is a question the problem has to settle explicitly —\n\"above average\" in English is ambiguous about the boundary in\nexactly the way `>` and `>=` are not.\n\n## Comparing an int with a double\n\n`value > mean` converts `value` to `double` and compares. For\nintegers under about 2⁵³ that conversion is exact, so nothing is\nlost, and since the mean of integers is either an integer or\nstrictly between two of them, a value can never be *almost* equal to\nthe mean in a way that rounding could flip. The comparison is safe\nhere, and that is a fact about this problem rather than about\nfloating point in general.\n\n## The total is a long long, and had to be\n\nTen thousand values of up to a million each sum to 10¹⁰. A\n32-bit `int` stops at about 2.1 × 10⁹, so an `int` total would\noverflow — undefined behaviour, and silent.\n\nThe arithmetic is worth doing before choosing the type, every\ntime: **largest value × how many of them**. It takes ten seconds\nand it is the difference between a program that works and one that\nworks on the inputs you happened to try. Here each individual value\nfits in an `int` comfortably and their sum does not, which is the\nusual shape of the trap.\n\n`values.size()` is cast explicitly on the other side of the\ndivision. Dividing a `long long` by a `std::size_t` would compile,\nand the cast says a real division was meant rather than leaving the\nreader to work out which conversions apply.\n\n## What this does not check\n\nA mean that is hard to compute accurately. Every mean here is a\nratio of two modest integers, so the `double` holds it to far more\nprecision than two printed digits need. Averaging numbers that\ndiffer by many orders of magnitude is a genuinely hard problem — a\nnaïve running sum loses the small ones — and nothing here goes\nnear it."
+}

@@ -1,0 +1,58 @@
+{
+  "id": "cpp-combine-word-report",
+  "title": "Everything so far, on one line of text",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "references",
+    "strings",
+    "vector",
+    "functions",
+    "predicate"
+  ],
+  "estimate": 20,
+  "prereqs": [
+    {
+      "concept": "cpp-references",
+      "why": "Two answers come back through reference parameters, and the vector of words goes in through a const one."
+    },
+    {
+      "concept": "cpp-strings",
+      "why": "Each word is a `std::string` whose characters are examined one at a time."
+    },
+    {
+      "concept": "cpp-std-vector",
+      "why": "The words are collected into a vector before anything is asked of them."
+    }
+  ],
+  "statement": "The last of these, and it uses all of it. Write two functions:\n\n```cpp\nbool isLetter(char c);\n\nvoid summarise(const std::vector<std::string>& words,\n               int& letters, std::string& longest);\n```\n\n- `isLetter` is true for `a`–`z` and `A`–`Z`, and false for\n  everything else.\n- `summarise` sets `letters` to the total number of letters across\n  all the words, and `longest` to the longest word — the first of\n  them if several tie.\n\nRead whitespace-separated words until the input runs out, collect\nthem, and report:\n\n```\ninput:   the quick brown fox!\n\noutput:  words 4\n         letters 16\n         longest quick\n```\n\n`fox!` is four characters and three letters, which is why `letters`\nis 16 rather than 17. `quick` and `brown` are both five characters;\n`quick` came first.\n\nWith no words at all:\n\n```\nwords 0\nletters 0\nlongest none\n```\n\n### The point of the problem\n\nNothing new. A predicate function, a vector of strings, a nested\nloop over the characters of each word, a `const&` input and two\nreference outputs — each of which you have now written on its own.\nThe exercise is putting them together without the program turning\ninto a single long `main`.\n\nA shape worth copying:\n\n```\nmain        read the words into a vector; handle the empty case;\n            call summarise; print\n  summarise walk the words, totalling letters and tracking the\n            longest\n    isLetter  answer one question about one character\n```\n\nNote that `longest` is **not** about letters — it is the longest\nword by total characters, punctuation included. Two different\nnotions of length in one function, which is exactly the sort of\nthing a statement has to pin down and a reader has to read\ncarefully.\n\n### Constraints\n\nEach word is at most 40 characters and there are at most 1000 of\nthem. Words contain printable ASCII only.\n\n### Boundary cases\n\n- **No words**, or only whitespace: the three lines above, and\n  `summarise` is not called.\n- **A word with no letters at all**, such as `123`, counts as a\n  word, contributes nothing to `letters`, and can still be the\n  longest.\n- **A tie on length** reports the first, so `cat dog` gives `cat`.\n- **Mixed case** counts both: `AbC` is three letters.",
+  "hints": [
+    "Write `isLetter` first and nothing else. It is one `return` with two ranges joined by `||`, and the rest of the program is easier to think about once it exists.",
+    "`summarise` has two jobs and one loop: for each word, add its letters to the running count, and replace `longest` if this word is longer. Counting letters needs an inner loop over the word’s characters.",
+    "Use `>` rather than `>=` when comparing lengths, or a later word of the same length replaces the one that should have been kept. And remember `longest` is by characters, not by letters."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n#include <string>\n#include <vector>\n\n// your code here — define isLetter(c), then summarise(words, letters, longest)\n\nint main()\n{\n    std::vector<std::string> words{};\n    std::string word{};\n\n    while (std::cin >> word) words.push_back(word);\n\n    // your code here — the empty case, then one call to summarise, then three lines\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "the quick brown fox!\n",
+        "expect": "words 4\nletters 16\nlongest quick\n"
+      },
+      {
+        "stdin": "",
+        "expect": "words 0\nletters 0\nlongest none\n"
+      }
+    ]
+  }
+}

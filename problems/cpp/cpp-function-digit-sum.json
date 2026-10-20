@@ -1,0 +1,53 @@
+{
+  "id": "cpp-function-digit-sum",
+  "title": "Write it once, call it many times",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "functions",
+    "return-value",
+    "loops",
+    "decomposition"
+  ],
+  "estimate": 16,
+  "prereqs": [
+    {
+      "concept": "cpp-functions",
+      "why": "The exercise is a function with one parameter and one return value, called repeatedly rather than written out repeatedly."
+    },
+    {
+      "concept": "cpp-stdin-loop",
+      "why": "The caller reads numbers until the input runs out, so the function has to work for each of them in turn."
+    }
+  ],
+  "statement": "Write a function\n\n```cpp\nint digitSum(int n);\n```\n\nthat returns the sum of the decimal digits of `n`. Then read\nintegers until the input runs out, and for each one print the number\nand its digit sum:\n\n```\ninput:   123 4000 7\n\noutput:  123 6\n         4000 4\n         7 7\n```\n\n### The point of the problem\n\nThe digit-peeling loop you have written before, lifted out into a\nfunction so that `main` does not contain it three times.\n\n```cpp\nint digitSum(int n)\n{\n    // a loop, and a return\n}\n```\n\nThree things a function gives you that a copied loop does not:\n\n- **A name.** `digitSum(x)` says what it is for; eight lines of `%`\n  and `/` say how it works and leave the reader to infer the rest.\n- **One place to fix.** A bug in a loop written out three times is\n  three bugs.\n- **Its own variables.** `n` inside `digitSum` is a *copy* of what\n  the caller passed. The function can take it apart freely and the\n  caller’s value is untouched, which is what lets the caller print\n  the original number on the same line as its sum.\n\nThat last point is worth checking deliberately. The obvious\nimplementation destroys its parameter — and it does not matter,\nbecause the parameter is not the caller’s variable.\n\n### Constraints\n\nEach number is between 0 and 1,000,000 inclusive, so no digit sum\nexceeds 54 and nothing is negative. There may be any number of them,\nincluding none.\n\n### Boundary cases\n\n- **0** has a digit sum of 0, and the usual `while (n > 0)` loop\n  never runs — which gives the right answer if the total starts at\n  0.\n- **No input at all** prints nothing. Not a blank line: nothing.\n- **A single digit** sums to itself.\n- **`1000000`** sums to 1, which catches a loop that stops at the\n  first zero digit instead of at the end of the number.",
+  "hints": [
+    "Write the function first and call it once from `main` with a hard-coded number. Get that working before adding the reading loop.",
+    "Inside the function: a running total starting at 0, and a `while (n > 0)` that adds `n % 10` and then does `n /= 10`. The parameter is your copy, so changing it is fine.",
+    "The caller is `while (std::cin >> x) std::cout << x << ' ' << digitSum(x) << \"\\n\";`. Note that `x` is still the original number after the call — the function only changed its own copy."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n\n// your code here — define int digitSum(int n), above main so main can see it\n\nint main()\n{\n    int x{};\n\n    // your code here — read until the input ends, printing each number and its sum\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "123 4000 7\n",
+        "expect": "123 6\n4000 4\n7 7\n"
+      },
+      {
+        "stdin": "",
+        "expect": ""
+      }
+    ]
+  }
+}

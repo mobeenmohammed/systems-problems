@@ -1,0 +1,53 @@
+{
+  "id": "cpp-letter-position",
+  "title": "A letter is a number",
+  "topic": "cpp",
+  "difficulty": "beginner",
+  "lane": "core",
+  "type": "code",
+  "tags": [
+    "char",
+    "conversions",
+    "arithmetic",
+    "static-cast"
+  ],
+  "estimate": 12,
+  "prereqs": [
+    {
+      "concept": "cpp-fundamental-types",
+      "why": "`char` is an integer type that happens to be printed as a character, and this exercise is that sentence made concrete."
+    },
+    {
+      "concept": "cpp-initialisation",
+      "why": "The character is read into a variable that has to exist, and `{}` gives it a known value first."
+    }
+  ],
+  "statement": "Read one lowercase letter and print two lines: the same letter in\nupper case, and its position in the alphabet counting from 1.\n\n```\ninput:   c         input:   a         input:   z\n\noutput:  upper C   output:  upper A   output:  upper Z\n         position 3         position 1         position 26\n```\n\n### The point of the problem\n\nA `char` is an integer. Not \"like\" an integer — it is one, a small\none, and arithmetic on it is ordinary integer arithmetic:\n\n```cpp\nchar letter{ 'c' };\nint offset{ letter - 'a' };      // 2\n```\n\nThat subtraction works because the letters `a` to `z` are guaranteed\nto have consecutive codes in every encoding C++ allows, so the gap\nbetween a letter and `'a'` is how far along the alphabet it is.\n(The digits `'0'` to `'9'` are guaranteed consecutive too. Letters\noutside the basic Latin alphabet are not, which is why this kind of\narithmetic stops working the moment text stops being ASCII.)\n\nGoing the other way needs a cast, because `'a' + 2` is an `int`:\n\n```cpp\nstd::cout << static_cast<char>('A' + offset);\n```\n\nWithout the cast, `std::cout` is handed an `int` and prints the\nnumber — `67` rather than `C`. That is not a bug in `cout`; it is\nprinting exactly the type it was given.\n\n### Constraints\n\nThe input is a single character, one of `a` to `z`. Reading it with\n`std::cin >> letter` skips any leading whitespace.\n\n### Boundary cases\n\n- **`a`** is position 1, not 0. The offset is 0 and the position is\n  the offset plus one — an off-by-one waiting to happen.\n- **`z`** is position 26, which is the other end of the same\n  mistake.\n- There is no case for an input that is not a lowercase letter, and\n  the program is not asked to detect one.",
+  "hints": [
+    "Work out one number first: how far the letter is from `'a'`. `letter - 'a'` is an `int`, and everything else follows from it.",
+    "The position is that distance plus one, because the alphabet is counted from 1 and subtraction counts from 0.",
+    "For the upper-case letter, add the same distance to `'A'` and wrap the result in `static_cast<char>(...)`. Printed without the cast you get a number instead of a letter."
+  ],
+  "payload": {
+    "langs": [
+      "cpp"
+    ],
+    "profile": "standard",
+    "limits": {
+      "runMs": 3000
+    },
+    "templates": {
+      "cpp": "#include <iostream>\n\nint main()\n{\n    char letter{};\n    std::cin >> letter;\n\n    // your code here — print the upper-case letter, then its 1-based position\n\n    return 0;\n}\n"
+    },
+    "cases": [
+      {
+        "stdin": "c\n",
+        "expect": "upper C\nposition 3\n"
+      },
+      {
+        "stdin": "a\n",
+        "expect": "upper A\nposition 1\n"
+      }
+    ]
+  }
+}

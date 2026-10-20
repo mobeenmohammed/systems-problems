@@ -1,0 +1,39 @@
+{
+  "id": "cpp-string-build-reverse",
+  "key": {
+    "cases": [
+      {
+        "stdin": "\n",
+        "expect": "\n"
+      },
+      {
+        "stdin": "a\n",
+        "expect": "a\n"
+      },
+      {
+        "stdin": "  spaced  \n",
+        "expect": "  decaps  \n"
+      },
+      {
+        "stdin": "ab cd ef\n",
+        "expect": "fe dc ba\n"
+      },
+      {
+        "stdin": "racecar\n",
+        "expect": "racecar\n"
+      },
+      {
+        "stdin": "12345\n",
+        "expect": "54321\n"
+      },
+      {
+        "stdin": "Hello, World!\n",
+        "expect": "!dlroW ,olleH\n"
+      }
+    ],
+    "reference": {
+      "cpp": "#include <iostream>\n#include <string>\n\nint main()\n{\n    std::string line{};\n    if (!std::getline(std::cin, line)) return 0;\n\n    std::string result{};\n\n    for (std::size_t i = line.size(); i > 0; --i)\n    {\n        result += line[i - 1];\n    }\n\n    std::cout << result << \"\\n\";\n\n    return 0;\n}\n"
+    }
+  },
+  "explanation": "## The program\n\n```cpp\nstd::string line{};\nstd::getline(std::cin, line);\n\nstd::string result{};\nfor (std::size_t i = line.size(); i > 0; --i)\n{\n    result += line[i - 1];\n}\n\nstd::cout << result << \"\\n\";\n```\n\n## getline against >>\n\n```\ninput:  hello world\n\nstd::cin >> s                 s is \"hello\"\nstd::getline(std::cin, s)     s is \"hello world\"\n```\n\n`>>` treats whitespace as a separator and skips it; `getline` treats\nthe newline as a terminator and keeps everything before it. Mixing\nthe two is the classic trap: after `std::cin >> n`, the newline you\npressed is still in the buffer, so the next `getline` returns an\nempty string. The usual fix is `std::cin.ignore()` before the\n`getline`, and the better fix is not to mix them in one program\nunless you must.\n\n## The unsigned countdown\n\nThis is the real content of the exercise.\n\n```cpp\nfor (std::size_t i = line.size() - 1; i >= 0; --i)   // broken\n```\n\nTwo things are wrong with it at once. On an **empty** line,\n`size()` is 0, and 0 minus 1 in an unsigned type does not go\nnegative — it wraps to 18,446,744,073,709,551,615. The loop then\nindexes far past the end of the string.\n\nAnd even on a non-empty line, `i >= 0` is **always true** for an\nunsigned `i`, so after `i` reaches 0 the next `--i` wraps and the\nloop keeps going. Compilers warn about that one if you ask\n(`-Wtype-limits`); nothing warns about the first.\n\nTwo ways out:\n\n```cpp\nfor (std::size_t i = line.size(); i > 0; --i)   result += line[i - 1];\nfor (int i = static_cast<int>(line.size()) - 1; i >= 0; --i) result += line[i];\n```\n\nThe first keeps the unsigned type and never lets it reach the\ndangerous value; the second converts to a signed type where\nsubtracting past zero behaves as expected. The first is preferred\nbecause it needs no cast.\n\n## Why unsigned at all\n\n`size()` returns `std::size_t` because a size cannot be negative\nand the type can therefore address twice as much memory. The cost\nis exactly this family of bugs, and it is widely regarded as a\nmistake in the standard library’s design — one it is far too late\nto change. Knowing that the type is unsigned, and that unsigned\nsubtraction wraps rather than going negative, is the defence.\n\n## Building rather than reversing in place\n\nReversing in place is possible — swap the ends and walk inwards —\nand is what `std::reverse` from `<algorithm>` does. Building a\nsecond string is easier to be sure about and costs one extra copy\nof a 200-character string, which is nothing.\n\n## What this does not check\n\nAnything beyond ASCII. Reversing a UTF-8 string byte by byte takes\nmulti-byte characters apart and produces invalid text — the\ncharacters of a string and its bytes are not the same thing, and\n`std::string` indexes bytes. The constraint says printable ASCII so\nthe exercise can stay about loops and indices."
+}
