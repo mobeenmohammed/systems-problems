@@ -76,6 +76,15 @@ const WORKSPACE = (() => {
   return new Function(`${src}; return Workspace;`)();
 })();
 
+/* And the page's own composition of a probe with a submission, for the
+   same reason: if this script composed it differently it would be
+   certifying something the reader never runs. */
+const PROBE = (() => {
+  const src = fs.readFileSync(path.join(ROOT, 'js/runners/probe.js'), 'utf8');
+  // eslint-disable-next-line no-new-func -- our own file, read at audit time.
+  return new Function(`${src}; return RunProbe;`)();
+})();
+
 const findSolution = id =>
   JSON.parse(fs.readFileSync(path.join(ROOT, 'solutions', `${id}.json`), 'utf8'));
 
@@ -170,9 +179,39 @@ async function tryProblem(tc, meta) {
     };
   }
 
+  /* The problem's own harness, composed with the reference exactly as the
+     page composes it with a submission. A probe that will not build for
+     wasm32 would reject every correct answer on this toolchain, so it
+     decides certification on the same terms the cases do. */
+  const probe = workspace ? null : key.probe;
+  if (probe) {
+    const pcases = PROBE.cases(probe);
+    const pbuilt = await tc.compile(PROBE.compose(probe.source, reference), BROWSER_FLAGS);
+    if (!pbuilt.ok) {
+      const first = pbuilt.stderr.split('\n').find(l => /error:/.test(l)) || '';
+      return {
+        id: meta.id, verdict: 'native-only',
+        reason: 'The reference solution builds for WebAssembly but this exercise\'s '
+          + `own test harness does not${first ? `: ${first.replace(/^[^:]*:\d+:\d+:\s*/, '').trim()}` : '.'}`,
+        detail: pbuilt.stderr.trim().split('\n').slice(0, 6).join('\n'),
+      };
+    }
+    for (const c of pcases) {
+      const r = await runCase(pbuilt.module, c.stdin || '', wasiMod);
+      if (r.exit !== 0 || norm(r.stdout) !== norm(c.expect)) {
+        return {
+          id: meta.id, verdict: 'native-only',
+          reason: 'The reference solution passes every case for WebAssembly and then '
+            + `answers a direct call differently: ${r.exit !== 0 ? `exit ${r.exit}` : `wanted ${JSON.stringify(norm(c.expect).slice(0, 40))}, got ${JSON.stringify(norm(r.stdout).slice(0, 40))}`}.`,
+        };
+      }
+    }
+  }
+
   return {
     id: meta.id, verdict: 'browser',
     cases: cases.length,
+    probes: probe ? PROBE.cases(probe).length : 0,
     warnings: (built.stderr.match(/warning:/g) || []).length,
   };
 }
@@ -200,7 +239,7 @@ for (const meta of cppProblems) {
   results.push(r);
   const mark = r.verdict === 'browser' ? 'ok  ' : '--  ';
   console.log(`${mark}${r.id.padEnd(38)} ${r.verdict === 'browser'
-    ? `${r.cases} cases, ${Date.now() - t} ms`
+    ? `${r.cases} cases${r.probes ? ` + ${r.probes} direct` : ''}, ${Date.now() - t} ms`
     : (r.reason || '').slice(0, 72)}`);
   if (r.detail) console.log(`      ${r.detail.split('\n').join('\n      ')}`);
 }

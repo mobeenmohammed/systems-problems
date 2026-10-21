@@ -35,6 +35,18 @@
         "expect": "even-positions 0\nodd-positions 0\ntotal 0\n"
       }
     ],
+    "probe": {
+      "label": "Direct call",
+      "source": "int main()\n{\n    std::vector<int> first{ 1, 2, 3 };\n    std::vector<int> second{ 10, -4 };\n    std::vector<int> none{};\n\n    long long total{ 100 };\n    addAll(first, total);\n    std::cout << \"after-first \" << total << \"\\n\";\n    addAll(second, total);\n    std::cout << \"after-second \" << total << \"\\n\";\n    addAll(none, total);\n    std::cout << \"after-empty \" << total << \"\\n\";\n\n    long long negative{ -5 };\n    addAll(first, negative);\n    std::cout << \"negative \" << negative << \"\\n\";\n\n    std::vector<int> many(10000, 1000000);\n    long long wide{ 0 };\n    addAll(many, wide);\n    std::cout << \"wide \" << wide << \"\\n\";\n\n    return 0;\n}\n",
+      "cases": [
+        {
+          "label": "addAll into a total that is not zero",
+          "calls": "A total starting at 100, then addAll on {1, 2, 3}, on {10, -4} and on an empty vector in turn — the same variable every time. Then a total starting at -5. Then ten thousand values of a million, which is the size the constraints allow.",
+          "stdin": "",
+          "expect": "after-first 106\nafter-second 112\nafter-empty 112\nnegative 1\nwide 10000000000\n"
+        }
+      ]
+    },
     "reference": {
       "cpp": "#include <iostream>\n#include <vector>\n\nvoid addAll(const std::vector<int>& values, long long& total)\n{\n    for (int value : values)\n    {\n        total += value;\n    }\n}\n\nint main()\n{\n    std::vector<int> evens{};\n    std::vector<int> odds{};\n    int x{};\n    int position{};\n\n    while (std::cin >> x)\n    {\n        if (position % 2 == 0) evens.push_back(x);\n        else odds.push_back(x);\n        ++position;\n    }\n\n    long long evenTotal{};\n    addAll(evens, evenTotal);\n\n    long long oddTotal{};\n    addAll(odds, oddTotal);\n\n    long long total{};\n    addAll(evens, total);\n    addAll(odds, total);\n\n    std::cout << \"even-positions \" << evenTotal << \"\\n\";\n    std::cout << \"odd-positions \" << oddTotal << \"\\n\";\n    std::cout << \"total \" << total << \"\\n\";\n\n    return 0;\n}\n"
     }

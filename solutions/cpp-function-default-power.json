@@ -35,6 +35,18 @@
         "expect": "square 400\npower 1\n"
       }
     ],
+    "probe": {
+      "label": "Direct call",
+      "source": "int main()\n{\n    std::cout << \"default 7 \" << power(7) << \"\\n\";\n    std::cout << \"default 2 \" << power(2) << \"\\n\";\n    std::cout << \"default 0 \" << power(0) << \"\\n\";\n    std::cout << \"default 20 \" << power(20) << \"\\n\";\n    std::cout << \"given 3 4 \" << power(3, 4) << \"\\n\";\n    std::cout << \"given 20 12 \" << power(20, 12) << \"\\n\";\n    std::cout << \"given 9 0 \" << power(9, 0) << \"\\n\";\n    std::cout << \"given 1 12 \" << power(1, 12) << \"\\n\";\n    return 0;\n}\n",
+      "cases": [
+        {
+          "label": "power with one argument",
+          "calls": "power(7), power(2), power(0), power(20) — one argument each, so the default has to exist and has to be 2 — then power(3, 4), power(20, 12), power(9, 0), power(1, 12).",
+          "stdin": "",
+          "expect": "default 7 49\ndefault 2 4\ndefault 0 0\ndefault 20 400\ngiven 3 4 81\ngiven 20 12 4096000000000000\ngiven 9 0 1\ngiven 1 12 1\n"
+        }
+      ]
+    },
     "reference": {
       "cpp": "#include <iostream>\n\nlong long power(int base, int exponent = 2)\n{\n    long long result{ 1 };\n\n    for (int i = 0; i < exponent; ++i)\n    {\n        result *= base;\n    }\n\n    return result;\n}\n\nint main()\n{\n    int base{};\n    int exponent{};\n    if (!(std::cin >> base >> exponent)) return 0;\n\n    std::cout << \"square \" << power(base) << \"\\n\";\n    std::cout << \"power \" << power(base, exponent) << \"\\n\";\n\n    return 0;\n}\n"
     }

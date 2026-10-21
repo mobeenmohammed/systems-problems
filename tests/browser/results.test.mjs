@@ -262,8 +262,11 @@ section('a submission runs the samples and the hidden ones, and says so');
   const m = await summary();
   check('all seven', m.heading, 'Result (7/7)');
   check('counted as seven', m.total, '7');
+  /* The note names the case sets that ran. An exercise with a probe adds
+     ", and the checks that call your functions directly" — this one has
+     none, so the sentence ends after the hidden ones. */
   ok(`and described as what it was (${m.note})`,
-    /7 cases: the samples and the hidden ones/.test(m.note));
+    /7 cases: the samples, the hidden ones\./.test(m.note));
   ok(`the header says it was a submission (${m.when})`, /^Submission · /.test(m.when));
   /* The old wording for this was "7 hidden cases passed", which was never
      true: a submission runs the visible ones too. */

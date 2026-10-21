@@ -35,6 +35,18 @@
         "expect": "505 10\n50 5\n5 5\n"
       }
     ],
+    "probe": {
+      "label": "Direct call",
+      "source": "int main()\n{\n    std::cout << \"sums\";\n    for (int n : std::vector<int>{ 0, 7, 9, 10, 1234, 999999, 1000000, 100001, 505 }) std::cout << ' ' << digitSum(n);\n    std::cout << \"\\n\";\n\n    int kept{ 4821 };\n    const auto got = digitSum(kept);\n    std::cout << \"kept \" << kept << \" \" << got << \"\\n\";\n\n    return 0;\n}\n",
+      "cases": [
+        {
+          "label": "digitSum, called directly",
+          "calls": "digitSum on 0, 7, 9, 10, 1234, 999999, 1000000, 100001, 505. Then digitSum on a variable, which is printed afterwards — the statement says the parameter is a copy and the caller’s value survives, so this is that claim.",
+          "stdin": "",
+          "expect": "sums 0 7 9 1 10 54 1 2 10\nkept 4821 15\n"
+        }
+      ]
+    },
     "reference": {
       "cpp": "#include <iostream>\n\nint digitSum(int n)\n{\n    int total{};\n\n    while (n > 0)\n    {\n        total += n % 10;\n        n /= 10;\n    }\n\n    return total;\n}\n\nint main()\n{\n    int x{};\n\n    while (std::cin >> x)\n    {\n        std::cout << x << ' ' << digitSum(x) << \"\\n\";\n    }\n\n    return 0;\n}\n"
     }

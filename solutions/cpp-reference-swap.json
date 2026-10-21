@@ -27,6 +27,18 @@
         "expect": "before 0 1\nafter 1 0\n"
       }
     ],
+    "probe": {
+      "label": "Direct call",
+      "source": "int main()\n{\n    int a{ 3 };\n    int b{ 8 };\n    swapInts(a, b);\n    std::cout << \"swapped \" << a << \" \" << b << \"\\n\";\n\n    int c{ -1000000 };\n    int d{ 1000000 };\n    swapInts(c, d);\n    std::cout << \"wide \" << c << \" \" << d << \"\\n\";\n\n    int e{ 0 };\n    int f{ 1 };\n    swapInts(e, f);\n    swapInts(e, f);\n    std::cout << \"twice \" << e << \" \" << f << \"\\n\";\n\n    std::vector<int> v{ 1, 2 };\n    swapInts(v[0], v[1]);\n    std::cout << \"elements \" << v[0] << \" \" << v[1] << \"\\n\";\n\n    return 0;\n}\n",
+      "cases": [
+        {
+          "label": "swapInts, with the caller’s own variables",
+          "calls": "swapInts on two variables the grader owns, then on two at the ends of the allowed range, then twice over on the same pair, then on two elements of a vector. Every value is read back afterwards by the caller.",
+          "stdin": "",
+          "expect": "swapped 8 3\nwide 1000000 -1000000\ntwice 0 1\nelements 2 1\n"
+        }
+      ]
+    },
     "reference": {
       "cpp": "#include <iostream>\n\nvoid swapInts(int& a, int& b)\n{\n    int temp{ a };\n    a = b;\n    b = temp;\n}\n\nint main()\n{\n    int a{};\n    int b{};\n    if (!(std::cin >> a >> b)) return 0;\n\n    std::cout << \"before \" << a << ' ' << b << \"\\n\";\n    swapInts(a, b);\n    std::cout << \"after \" << a << ' ' << b << \"\\n\";\n\n    return 0;\n}\n"
     }

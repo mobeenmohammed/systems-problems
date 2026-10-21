@@ -1,0 +1,98 @@
+{
+  "_note": "Wrong programs that the grader used to accept, each paired with how it is now caught. Test data: tests/content.test.mjs compiles every one. Not served to the page.",
+  "rejects": {
+    "cpp-function-default-power": [
+      {
+        "why": "power is declared with two required parameters and main passes 2 by hand, so there is no default argument anywhere in the program",
+        "fails": "probe",
+        "cpp": "#include <iostream>\n\nlong long power(int base, int exponent)\n{\n    long long result{ 1 };\n\n    for (int i = 0; i < exponent; ++i)\n    {\n        result *= base;\n    }\n\n    return result;\n}\n\nint main()\n{\n    int base{};\n    int exponent{};\n    if (!(std::cin >> base >> exponent)) return 0;\n\n    std::cout << \"square \" << power(base, 2) << \"\\n\";\n    std::cout << \"power \" << power(base, exponent) << \"\\n\";\n\n    return 0;\n}\n"
+      },
+      {
+        "why": "the default is 1 rather than 2, and main passes 2 explicitly, so every printed line is right and power(base) is not",
+        "fails": "probe",
+        "cpp": "#include <iostream>\n\nlong long power(int base, int exponent = 1)\n{\n    long long result{ 1 };\n\n    for (int i = 0; i < exponent; ++i)\n    {\n        result *= base;\n    }\n\n    return result;\n}\n\nint main()\n{\n    int base{};\n    int exponent{};\n    if (!(std::cin >> base >> exponent)) return 0;\n\n    std::cout << \"square \" << power(base, 2) << \"\\n\";\n    std::cout << \"power \" << power(base, exponent) << \"\\n\";\n\n    return 0;\n}\n"
+      }
+    ],
+    "cpp-reference-accumulate": [
+      {
+        "why": "addAll SETS the total instead of adding to it, and main hides that by adding the two sub-totals together itself",
+        "fails": "probe",
+        "cpp": "#include <iostream>\n#include <vector>\n\nvoid addAll(const std::vector<int>& values, long long& total)\n{\n    long long sum{};\n\n    for (int value : values)\n    {\n        sum += value;\n    }\n\n    total = sum;\n}\n\nint main()\n{\n    std::vector<int> evens{};\n    std::vector<int> odds{};\n    int x{};\n    int position{};\n\n    while (std::cin >> x)\n    {\n        if (position % 2 == 0) evens.push_back(x);\n        else odds.push_back(x);\n        ++position;\n    }\n\n    long long evenTotal{};\n    addAll(evens, evenTotal);\n\n    long long oddTotal{};\n    addAll(odds, oddTotal);\n\n    std::cout << \"even-positions \" << evenTotal << \"\\n\";\n    std::cout << \"odd-positions \" << oddTotal << \"\\n\";\n    std::cout << \"total \" << evenTotal + oddTotal << \"\\n\";\n\n    return 0;\n}\n"
+      },
+      {
+        "why": "addAll accumulates into a 32-bit local before adding it on, which every existing case was too small to notice",
+        "fails": "probe",
+        "cpp": "#include <iostream>\n#include <vector>\n\nvoid addAll(const std::vector<int>& values, long long& total)\n{\n    int sum{};\n\n    for (int value : values)\n    {\n        sum += value;\n    }\n\n    total += sum;\n}\n\nint main()\n{\n    std::vector<int> evens{};\n    std::vector<int> odds{};\n    int x{};\n    int position{};\n\n    while (std::cin >> x)\n    {\n        if (position % 2 == 0) evens.push_back(x);\n        else odds.push_back(x);\n        ++position;\n    }\n\n    long long evenTotal{};\n    addAll(evens, evenTotal);\n\n    long long oddTotal{};\n    addAll(odds, oddTotal);\n\n    long long total{};\n    addAll(evens, total);\n    addAll(odds, total);\n\n    std::cout << \"even-positions \" << evenTotal << \"\\n\";\n    std::cout << \"odd-positions \" << oddTotal << \"\\n\";\n    std::cout << \"total \" << total << \"\\n\";\n\n    return 0;\n}\n"
+      }
+    ],
+    "cpp-combine-word-report": [
+      {
+        "why": "summarise prints the report itself and never writes to its reference parameters; main calls it and prints nothing",
+        "fails": "probe",
+        "cpp": "#include <iostream>\n#include <string>\n#include <vector>\n\nbool isLetter(char c)\n{\n    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');\n}\n\nvoid summarise(const std::vector<std::string>& words,\n               int& letters, std::string& longest)\n{\n    (void)letters;\n    (void)longest;\n\n    int total{};\n    std::string best{ words[0] };\n\n    for (const std::string& word : words)\n    {\n        for (char c : word)\n        {\n            if (isLetter(c)) ++total;\n        }\n\n        if (word.size() > best.size()) best = word;\n    }\n\n    std::cout << \"words \" << words.size() << \"\\n\";\n    std::cout << \"letters \" << total << \"\\n\";\n    std::cout << \"longest \" << best << \"\\n\";\n}\n\nint main()\n{\n    std::vector<std::string> words{};\n    std::string word{};\n\n    while (std::cin >> word) words.push_back(word);\n\n    if (words.empty())\n    {\n        std::cout << \"words 0\\n\";\n        std::cout << \"letters 0\\n\";\n        std::cout << \"longest none\\n\";\n        return 0;\n    }\n\n    int letters{};\n    std::string longest{};\n    summarise(words, letters, longest);\n\n    return 0;\n}\n"
+      },
+      {
+        "why": "there is no isLetter function: the two character ranges are written out inline, so nothing can call it",
+        "fails": "probe",
+        "cpp": "#include <iostream>\n#include <string>\n#include <vector>\n\nvoid summarise(const std::vector<std::string>& words,\n               int& letters, std::string& longest)\n{\n    letters = 0;\n    longest = words[0];\n\n    for (const std::string& word : words)\n    {\n        for (char c : word)\n        {\n            if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) ++letters;\n        }\n\n        if (word.size() > longest.size()) longest = word;\n    }\n}\n\nint main()\n{\n    std::vector<std::string> words{};\n    std::string word{};\n\n    while (std::cin >> word) words.push_back(word);\n\n    if (words.empty())\n    {\n        std::cout << \"words 0\\n\";\n        std::cout << \"letters 0\\n\";\n        std::cout << \"longest none\\n\";\n        return 0;\n    }\n\n    int letters{};\n    std::string longest{};\n    summarise(words, letters, longest);\n\n    std::cout << \"words \" << words.size() << \"\\n\";\n    std::cout << \"letters \" << letters << \"\\n\";\n    std::cout << \"longest \" << longest << \"\\n\";\n\n    return 0;\n}\n"
+      },
+      {
+        "why": "summarise adds to letters instead of setting it, which is invisible while the caller always starts it at zero",
+        "fails": "probe",
+        "cpp": "#include <iostream>\n#include <string>\n#include <vector>\n\nbool isLetter(char c)\n{\n    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');\n}\n\nvoid summarise(const std::vector<std::string>& words,\n               int& letters, std::string& longest)\n{\n    longest = words[0];\n\n    for (const std::string& word : words)\n    {\n        for (char c : word)\n        {\n            if (isLetter(c)) ++letters;\n        }\n\n        if (word.size() > longest.size()) longest = word;\n    }\n}\n\nint main()\n{\n    std::vector<std::string> words{};\n    std::string word{};\n\n    while (std::cin >> word) words.push_back(word);\n\n    if (words.empty())\n    {\n        std::cout << \"words 0\\n\";\n        std::cout << \"letters 0\\n\";\n        std::cout << \"longest none\\n\";\n        return 0;\n    }\n\n    int letters{};\n    std::string longest{};\n    summarise(words, letters, longest);\n\n    std::cout << \"words \" << words.size() << \"\\n\";\n    std::cout << \"letters \" << letters << \"\\n\";\n    std::cout << \"longest \" << longest << \"\\n\";\n\n    return 0;\n}\n"
+      }
+    ],
+    "cpp-function-digit-sum": [
+      {
+        "why": "there is no digitSum function; the loop is inline in main for the fourth time, which is the one thing the exercise asks you not to do",
+        "fails": "probe",
+        "cpp": "#include <iostream>\n\nint main()\n{\n    int x{};\n\n    while (std::cin >> x)\n    {\n        int n{ x };\n        int total{};\n\n        while (n > 0)\n        {\n            total += n % 10;\n            n /= 10;\n        }\n\n        std::cout << x << ' ' << total << \"\\n\";\n    }\n\n    return 0;\n}\n"
+      },
+      {
+        "why": "digitSum takes its parameter by reference and destroys the caller’s variable; main happens to keep its own copy, so nothing shows",
+        "fails": "probe",
+        "cpp": "#include <iostream>\n\nint digitSum(int& n)\n{\n    int total{};\n\n    while (n > 0)\n    {\n        total += n % 10;\n        n /= 10;\n    }\n\n    return total;\n}\n\nint main()\n{\n    int x{};\n\n    while (std::cin >> x)\n    {\n        int copy{ x };\n        std::cout << x << ' ' << digitSum(copy) << \"\\n\";\n    }\n\n    return 0;\n}\n"
+      }
+    ],
+    "cpp-function-gcd-lcm": [
+      {
+        "why": "Euclid’s loop is inline in main and there is no gcd function, so lcm cannot be three lines that call it",
+        "fails": "probe",
+        "cpp": "#include <iostream>\n\nint main()\n{\n    int a{};\n    int b{};\n    if (!(std::cin >> a >> b)) return 0;\n\n    int x{ a };\n    int y{ b };\n\n    while (y != 0)\n    {\n        int r{ x % y };\n        x = y;\n        y = r;\n    }\n\n    std::cout << \"gcd \" << x << \"\\n\";\n    std::cout << \"lcm \" << static_cast<long long>(a / x) * b << \"\\n\";\n\n    return 0;\n}\n"
+      }
+    ],
+    "cpp-function-perfect-numbers": [
+      {
+        "why": "both functions are gone and main is two nested loops, so the three layers the exercise is about do not exist",
+        "fails": "probe",
+        "cpp": "#include <iostream>\n\nint main()\n{\n    int n{};\n    if (!(std::cin >> n)) return 0;\n\n    bool found{};\n\n    for (int k = 1; k <= n; ++k)\n    {\n        int total{};\n\n        for (int d = 1; d < k; ++d)\n        {\n            if (k % d == 0) total += d;\n        }\n\n        if (total == k)\n        {\n            std::cout << k << \"\\n\";\n            found = true;\n        }\n    }\n\n    if (!found) std::cout << \"none\\n\";\n\n    return 0;\n}\n"
+      },
+      {
+        "why": "divisorSum counts n itself among its divisors, and isPerfect compensates by comparing against twice n, so the printed list is right",
+        "fails": "probe",
+        "cpp": "#include <iostream>\n\nint divisorSum(int n)\n{\n    int total{};\n\n    for (int d = 1; d <= n; ++d)\n    {\n        if (n % d == 0) total += d;\n    }\n\n    return total;\n}\n\nbool isPerfect(int n)\n{\n    return divisorSum(n) == 2 * n;\n}\n\nint main()\n{\n    int n{};\n    if (!(std::cin >> n)) return 0;\n\n    bool found{};\n\n    for (int k = 1; k <= n; ++k)\n    {\n        if (isPerfect(k))\n        {\n            std::cout << k << \"\\n\";\n            found = true;\n        }\n    }\n\n    if (!found) std::cout << \"none\\n\";\n\n    return 0;\n}\n"
+      }
+    ],
+    "cpp-reference-min-max": [
+      {
+        "why": "extremes prints the two lines itself and leaves lowest and highest as the caller set them",
+        "fails": "probe",
+        "cpp": "#include <iostream>\n#include <vector>\n\nvoid extremes(const std::vector<int>& values, int& lowest, int& highest)\n{\n    (void)lowest;\n    (void)highest;\n\n    int lo{ values[0] };\n    int hi{ values[0] };\n\n    for (std::size_t i = 1; i < values.size(); ++i)\n    {\n        if (values[i] < lo) lo = values[i];\n        if (values[i] > hi) hi = values[i];\n    }\n\n    std::cout << \"min \" << lo << \"\\n\";\n    std::cout << \"max \" << hi << \"\\n\";\n}\n\nint main()\n{\n    std::vector<int> values{};\n    int x{};\n\n    while (std::cin >> x) values.push_back(x);\n\n    if (values.empty())\n    {\n        std::cout << \"empty\\n\";\n        return 0;\n    }\n\n    int lowest{};\n    int highest{};\n    extremes(values, lowest, highest);\n\n    return 0;\n}\n"
+      }
+    ],
+    "cpp-reference-swap": [
+      {
+        "why": "swapInts takes its parameters by value and swaps two copies; main swaps its own variables by hand afterwards",
+        "fails": "probe",
+        "cpp": "#include <iostream>\n\nvoid swapInts(int a, int b)\n{\n    int temp{ a };\n    a = b;\n    b = temp;\n}\n\nint main()\n{\n    int a{};\n    int b{};\n    if (!(std::cin >> a >> b)) return 0;\n\n    std::cout << \"before \" << a << ' ' << b << \"\\n\";\n\n    swapInts(a, b);\n\n    int temp{ a };\n    a = b;\n    b = temp;\n\n    std::cout << \"after \" << a << ' ' << b << \"\\n\";\n\n    return 0;\n}\n"
+      }
+    ],
+    "cpp-vector-above-mean": [
+      {
+        "why": "the running total is an int, which overflows at the sizes the constraints allow — no case reached them until now",
+        "fails": "cases",
+        "cpp": "#include <iomanip>\n#include <iostream>\n#include <vector>\n\nint main()\n{\n    std::vector<int> values{};\n    int x{};\n    int total{};\n\n    while (std::cin >> x)\n    {\n        values.push_back(x);\n        total += x;\n    }\n\n    if (values.empty())\n    {\n        std::cout << \"mean none\\n\";\n        std::cout << \"above 0\\n\";\n        return 0;\n    }\n\n    double mean{ static_cast<double>(total) / static_cast<double>(values.size()) };\n\n    int above{};\n    for (int value : values)\n    {\n        if (value > mean) ++above;\n    }\n\n    std::cout << std::fixed << std::setprecision(2);\n    std::cout << \"mean \" << mean << \"\\n\";\n    std::cout << \"above \" << above << \"\\n\";\n\n    return 0;\n}\n"
+      }
+    ]
+  }
+}

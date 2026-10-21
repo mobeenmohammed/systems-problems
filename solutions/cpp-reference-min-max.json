@@ -35,6 +35,18 @@
         "expect": "empty\n"
       }
     ],
+    "probe": {
+      "label": "Direct call",
+      "source": "int main()\n{\n    int lowest{};\n    int highest{};\n\n    std::vector<int> sample{ 4, -3, 9, 0, 7 };\n    lowest = 123;\n    highest = -123;\n    extremes(sample, lowest, highest);\n    std::cout << \"sample \" << lowest << \" \" << highest << \"\\n\";\n\n    std::vector<int> negatives{ -4, -9, -1 };\n    lowest = 0;\n    highest = 0;\n    extremes(negatives, lowest, highest);\n    std::cout << \"negatives \" << lowest << \" \" << highest << \"\\n\";\n\n    std::vector<int> one{ 5 };\n    lowest = -77;\n    highest = 77;\n    extremes(one, lowest, highest);\n    std::cout << \"one \" << lowest << \" \" << highest << \"\\n\";\n\n    std::vector<int> same{ 3, 3, 3 };\n    lowest = 0;\n    highest = 0;\n    extremes(same, lowest, highest);\n    std::cout << \"same \" << lowest << \" \" << highest << \"\\n\";\n\n    std::vector<int> wide{ 1000000, -1000000 };\n    lowest = 0;\n    highest = 0;\n    extremes(wide, lowest, highest);\n    std::cout << \"wide \" << lowest << \" \" << highest << \"\\n\";\n\n    return 0;\n}\n",
+      "cases": [
+        {
+          "label": "extremes, with its outputs read back",
+          "calls": "extremes on five vectors. Before each call lowest and highest hold values that are not the answer; after each call they are printed by the caller, not by the function.",
+          "stdin": "",
+          "expect": "sample -3 9\nnegatives -9 -1\none 5 5\nsame 3 3\nwide -1000000 1000000\n"
+        }
+      ]
+    },
     "reference": {
       "cpp": "#include <iostream>\n#include <vector>\n\nvoid extremes(const std::vector<int>& values, int& lowest, int& highest)\n{\n    lowest = values[0];\n    highest = values[0];\n\n    for (std::size_t i = 1; i < values.size(); ++i)\n    {\n        if (values[i] < lowest) lowest = values[i];\n        if (values[i] > highest) highest = values[i];\n    }\n}\n\nint main()\n{\n    std::vector<int> values{};\n    int x{};\n\n    while (std::cin >> x) values.push_back(x);\n\n    if (values.empty())\n    {\n        std::cout << \"empty\\n\";\n        return 0;\n    }\n\n    int lowest{};\n    int highest{};\n    extremes(values, lowest, highest);\n\n    std::cout << \"min \" << lowest << \"\\n\";\n    std::cout << \"max \" << highest << \"\\n\";\n\n    return 0;\n}\n"
     }

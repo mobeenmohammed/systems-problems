@@ -430,19 +430,99 @@ the six bands above. The existing exercises were not moved to
 the end: they sit in the band they belong to, so the step
 between any two consecutive problems is one idea.
 
-### Grading limits, stated
+### Grading limits, and what stopped being one
 
-Every one of these is graded by exact output comparison over a
-fixed set of cases. That checks the program produces the right
-characters for those inputs and nothing else: it does not check
-that the loop is a `for`, that the function is called, or that
-the reference parameter was used rather than worked around.
-Three of the exercises ask for something a hidden case cannot
-see — calling `power(base)` with one argument,
-`addAll` accumulating rather than setting, and `summarise`
-writing through its references — and each says so in its
-statement rather than pretending the grader is checking it.
+These exercises are graded by exact output comparison over a fixed
+set of cases. That is a complete check of what a program prints and
+a very incomplete check of what an exercise asked for. "Write a
+function `power(base, exponent = 2)` and call it with one argument"
+is a requirement about the shape of the code, and a program with no
+function in it at all prints the same characters.
 
-Each solution also carries a **What this does not check**
-section naming the inputs its constraints exclude and what the
-reference would do with them.
+Eight of the twenty-four said so and left it there. They now carry
+a **probe**: a `main` the problem owns, compiled with the
+submission, calling the functions the statement named and printing
+what came back. `js/runners/probe.js` composes the two — the
+submitted `main` is renamed with a macro and never runs, every
+header it asked for hoisted above the rename so the macro cannot
+reach library text — and the result is one translation unit that
+every backend compiles like any other single file.
+
+| exercise | what the direct calls see |
+|---|---|
+| `cpp-function-default-power` | `power(7)` with one argument: the default has to exist and has to be 2 |
+| `cpp-reference-accumulate` | a total starting at 100, three calls into it, and ten thousand values of a million |
+| `cpp-combine-word-report` | `isLetter` either side of both ranges; `summarise` with `letters` pre-set to something other than zero, read back after the call |
+| `cpp-function-digit-sum` | `digitSum` exists; and the caller's variable survives being passed |
+| `cpp-function-gcd-lcm` | both names exist; two lcms wider than an `int` |
+| `cpp-function-perfect-numbers` | both names exist; `divisorSum` alone, so "divisors below n" means that |
+| `cpp-reference-min-max` | `extremes` with both outputs pre-set to wrong values and read back |
+| `cpp-reference-swap` | `swapInts` on the grader's own variables, and on two vector elements |
+
+Each of those statements has a **What the grader checks** section.
+That is not decoration: a grader that rejects a program for a
+reason the exercise never mentioned is a trap, and
+`tests/content.test.mjs` fails if a probed exercise has no such
+section.
+
+`tests/probe-rejects.json` holds fifteen programs that the grader
+accepted before this existed — `addAll` setting its total instead
+of adding, `summarise` printing the report itself, `swapInts`
+without the ampersands and `main` swapping by hand, `power` with
+two required parameters. The test compiles every one with a real
+compiler and insists on both halves of the claim: that it still
+passes every input case, and that it is now rejected. Fourteen go
+to a probe — five of those do not compile against the harness, nine
+answer a direct call wrongly — and the fifteenth is caught by the
+input case that was missing. A grader nobody has tried to fool is a
+grader whose strictness is a guess.
+
+`cpp-vector-above-mean` was the other kind of gap — its statement
+says the running total "has to be a `long long`" and the largest
+case was two values, so an `int` passed. There is now a case of
+2,200 values of a million, which is what the constraints always
+allowed.
+
+**What is still not checked, and is labelled as such in each
+statement:**
+
+- which calls a submission's own `main` makes. `power(base)` and
+  `power(base, 2)` are indistinguishable from outside, and so are
+  `addAll(evens, t); addAll(odds, t);` and `evenTotal + oddTotal`.
+- whether `lcm` calls `gcd` or repeats Euclid's loop. Both are
+  correct programs; one of them is the point.
+- whether a loop is a `for` or a `while`, and every other matter of
+  form that two correct programs can differ on.
+
+### The other sixteen, audited
+
+The remaining sixteen prescribe no named function, so there is
+nothing a probe could call. Each one's stated requirement was traced
+to the case that catches its absence:
+
+| exercise | the requirement | the case that sees it |
+|---|---|---|
+| `cpp-short-circuit-guard` | the guard must short-circuit | `5 0` and `0 0` — an unguarded divide traps, and a trap is not a wrong answer |
+| `cpp-string-build-reverse` | `getline`, not `cin >>` | `  spaced  ` and `hello world`, which a word-at-a-time read mangles |
+| `cpp-collatz-steps` | a 64-bit running value | `704511`, whose trajectory peaks at 56,991,483,520 |
+| `cpp-seconds-to-clock` | hours are not padded to three | `10000000`, which is 2777 hours |
+| `cpp-triangle-kind` | equilateral tested before isosceles | `5 5 5` and `1 1 1` |
+| `cpp-arith-report` | division truncates toward zero | `-7 2` and `-1000 3` |
+| `cpp-letter-position` | the cast back to `char` | without it the output is a number |
+| `cpp-mean-and-cast` | a real division, `fixed`, two decimals | `1 2 4` is 2.33 and not 2 |
+| `cpp-digit-reverse` | 0 prints 0 | `0`, where `while (n > 0)` never runs |
+| `cpp-running-extremes`, `cpp-vector-read-and-report` | the empty-input guard | the empty case and the whitespace-only one |
+| `cpp-leap-year`, `cpp-times-table`, `cpp-string-longest-word`, `cpp-bool-is-a-value` | arithmetic, formatting and branch order | every case |
+
+The one that failed this audit was `cpp-vector-above-mean`, above.
+
+No probe is implemented by matching the source text, and none ever
+will be: a regex over somebody's program rejects valid code for
+looking unusual and accepts invalid code for looking ordinary. What
+is checked here is behaviour and compilation, which is why a
+missing function is a build failure with the compiler's own words
+rather than a verdict somebody wrote.
+
+Each solution also carries a **What this does not check** section
+naming the inputs its constraints exclude and what the reference
+would do with them.

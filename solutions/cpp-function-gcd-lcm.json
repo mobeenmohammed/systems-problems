@@ -35,6 +35,18 @@
         "expect": "gcd 27\nlcm 81\n"
       }
     ],
+    "probe": {
+      "label": "Direct call",
+      "source": "int main()\n{\n    std::cout << \"gcd\";\n    std::cout << ' ' << gcd(12, 18);\n    std::cout << ' ' << gcd(18, 48);\n    std::cout << ' ' << gcd(9, 28);\n    std::cout << ' ' << gcd(7, 7);\n    std::cout << ' ' << gcd(1, 97);\n    std::cout << ' ' << gcd(100000, 100000);\n    std::cout << ' ' << gcd(99999, 100000);\n    std::cout << \"\\n\";\n\n    std::cout << \"lcm\";\n    std::cout << ' ' << lcm(12, 18);\n    std::cout << ' ' << lcm(9, 28);\n    std::cout << ' ' << lcm(1, 1);\n    std::cout << ' ' << lcm(99999, 100000);\n    std::cout << ' ' << lcm(100000, 99998);\n    std::cout << \"\\n\";\n\n    return 0;\n}\n",
+      "cases": [
+        {
+          "label": "gcd and lcm, called directly",
+          "calls": "gcd on (12, 18), (18, 48), (9, 28), (7, 7), (1, 97), (100000, 100000), (99999, 100000), then lcm on (12, 18), (9, 28), (1, 1), (99999, 100000), (100000, 99998) — the last two of which are larger than an int holds.",
+          "stdin": "",
+          "expect": "gcd 6 6 1 7 1 100000 1\nlcm 36 252 1 9999900000 4999900000\n"
+        }
+      ]
+    },
     "reference": {
       "cpp": "#include <iostream>\n\nint gcd(int a, int b)\n{\n    while (b != 0)\n    {\n        int r{ a % b };\n        a = b;\n        b = r;\n    }\n\n    return a;\n}\n\nlong long lcm(int a, int b)\n{\n    return static_cast<long long>(a / gcd(a, b)) * b;\n}\n\nint main()\n{\n    int a{};\n    int b{};\n    if (!(std::cin >> a >> b)) return 0;\n\n    std::cout << \"gcd \" << gcd(a, b) << \"\\n\";\n    std::cout << \"lcm \" << lcm(a, b) << \"\\n\";\n\n    return 0;\n}\n"
     }

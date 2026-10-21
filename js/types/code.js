@@ -961,7 +961,13 @@ fn main() {
     verdict.cases.forEach((c, i) => {
       const open = !c.pass;
       const body = el('div', { class: 'io' }, [
-        el('div', {}, [el('h5', { text: 'stdin' }), el('pre', { text: (c.stdinShown || '') || '(none)' })]),
+        /* A case the problem's own harness ran had no input to speak of:
+           what matters is which call it made, so that is what goes where
+           the stdin would be. "(none)" above an expected value of 49
+           tells a reader nothing about where 49 came from. */
+        c.calls
+          ? el('div', {}, [el('h5', { text: 'how it was called' }), el('pre', { text: c.calls })])
+          : el('div', {}, [el('h5', { text: 'stdin' }), el('pre', { text: (c.stdinShown || '') || '(none)' })]),
         el('div', {}, [el('h5', { text: 'expected' }), el('pre', { text: c.expect || '(nothing)' })]),
         el('div', {}, [
           el('h5', { text: 'got' }),
@@ -986,7 +992,7 @@ fn main() {
           head.setAttribute('aria-expanded', String(!body.hidden));
         },
       }, [
-        el('span', { class: 'case-name', text: `Case ${i + 1}` }),
+        el('span', { class: 'case-name', text: c.label || `Case ${i + 1}` }),
         el('span', { class: 'faint tiny case-why', text: c.why }),
         el('span', { class: 'faint tiny mono case-ms', text: dur(c.ms) }),
         el('span', { class: 'case-status', 'data-pass': String(c.pass),
@@ -1044,7 +1050,7 @@ fn main() {
       ]))),
 
       first ? el('p', { class: 'rsum-why', 'data-kind': 'failed' },
-        [`Case ${cases.indexOf(first) + 1}: ${first.why}`]) : null,
+        [`${first.label || `Case ${cases.indexOf(first) + 1}`}: ${first.why}`]) : null,
       dirty ? el('p', { class: 'rsum-why', 'data-kind': 'warn' }, [
         'Every case passed and the sanitizer still had something to say. The '
         + 'output is right; the program is not.',
@@ -1053,7 +1059,8 @@ fn main() {
       /* What actually ran. "7 hidden cases passed" was never true of a
          submission: it runs the samples and the hidden ones together. */
       el('p', { class: 'rsum-note', text: isSubmission
-        ? `${total} ${total === 1 ? 'case' : 'cases'}: the samples and the hidden ones.`
+        ? `${total} ${total === 1 ? 'case' : 'cases'}: the samples, the hidden ones`
+          + `${cases.some(c => c.calls) ? ', and the checks that call your functions directly' : ''}.`
         : `${total} sample ${total === 1 ? 'case' : 'cases'}. Submit also runs the hidden ones.` }),
     ]);
   }
@@ -1518,6 +1525,48 @@ fn main() {
             || `${reply.backend ? Runners.label(reply.backend) : 'Nothing available'} could not run this.`,
           noAttempt: true, reply, verdict, at: Date.now(),
         };
+      }
+
+      /* The second phase: a `main` the problem owns, compiled with the
+         submitted program and calling the functions the statement asked
+         for. See js/runners/probe.js for why a requirement like "the
+         exponent defaults to 2" is invisible to the first phase.
+
+         Only when the first phase passed. A reader whose program prints
+         the wrong characters has a more useful failure to read than this
+         one, and running it anyway would put two unrelated problems in
+         front of them at once. */
+      if (verdict.correct && typeof RunProbe !== 'undefined' && RunProbe.has(key, response)) {
+        const probe = key.probe;
+        const probeCases = RunProbe.cases(probe);
+        const preply = await Runners.run(response.lang,
+          RunProbe.compose(probe.source, response.source), probeCases, {
+            problemId: problem.id,
+            profile: pay.profile || 'standard',
+            compileMs: (pay.limits || {}).compileMs,
+            runMs: (pay.limits || {}).runMs,
+            signal: state && state.abort ? state.abort.signal : undefined,
+            onStage: () => { if (live()) setExec('running', 'Calling your functions directly…'); },
+          });
+
+        /* A runner that stopped answering between the two phases. The
+           check did not run, so nothing may claim it passed — and the
+           reader has lost nothing, because this records no attempt. */
+        if (preply.judgeDown) {
+          return {
+            correct: false, score: 0, lang: response.lang,
+            backend: preply.backend || null,
+            kind: preply.kind || 'service',
+            detail: preply.detail || null,
+            feedback: preply.cancelled ? preply.judgeError
+              : 'Your program passed every case, and then the runner stopped '
+                + 'answering before the checks that call your functions directly. '
+                + 'Nothing was recorded — submit again.',
+            noAttempt: true, reply: preply, verdict, at: Date.now(),
+          };
+        }
+
+        RunProbe.fold(verdict, preply, probe);
       }
 
       return {

@@ -39,6 +39,18 @@
         "expect": "words 2\nletters 2\nlongest !!!!\n"
       }
     ],
+    "probe": {
+      "label": "Direct call",
+      "source": "int main()\n{\n    std::cout << \"letters\";\n    for (char c : std::string{ \"azAZmQ\" }) std::cout << ' ' << isLetter(c);\n    std::cout << \"\\n\";\n\n    std::cout << \"others\";\n    for (char c : std::string{ \"09!_ [`{@\" }) std::cout << ' ' << isLetter(c);\n    std::cout << \"\\n\";\n\n    int letters{};\n    std::string longest{};\n\n    std::vector<std::string> sample{ \"the\", \"quick\", \"brown\", \"fox!\" };\n    letters = -1;\n    longest = \"unset\";\n    summarise(sample, letters, longest);\n    std::cout << \"sample \" << letters << \" \" << longest << \"\\n\";\n\n    std::vector<std::string> tie{ \"cat\", \"dog\" };\n    letters = 99;\n    longest = \"unset\";\n    summarise(tie, letters, longest);\n    std::cout << \"tie \" << letters << \" \" << longest << \"\\n\";\n\n    std::vector<std::string> punctuation{ \"ab\", \"!!!!\" };\n    letters = 7;\n    longest = \"unset\";\n    summarise(punctuation, letters, longest);\n    std::cout << \"punctuation \" << letters << \" \" << longest << \"\\n\";\n\n    std::vector<std::string> one{ \"123\" };\n    letters = -3;\n    longest = \"unset\";\n    summarise(one, letters, longest);\n    std::cout << \"one \" << letters << \" \" << longest << \"\\n\";\n\n    return 0;\n}\n",
+      "cases": [
+        {
+          "label": "isLetter and summarise, called directly",
+          "calls": "isLetter on six letters and on nine characters that are not letters — including [ and the backtick, the two characters that sit just outside the two ranges. Then summarise four times, each time with letters holding something other than zero and longest holding \"unset\", and both read back afterwards.",
+          "stdin": "",
+          "expect": "letters 1 1 1 1 1 1\nothers 0 0 0 0 0 0 0 0 0\nsample 16 quick\ntie 6 cat\npunctuation 2 !!!!\none 0 123\n"
+        }
+      ]
+    },
     "reference": {
       "cpp": "#include <iostream>\n#include <string>\n#include <vector>\n\nbool isLetter(char c)\n{\n    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');\n}\n\nvoid summarise(const std::vector<std::string>& words,\n               int& letters, std::string& longest)\n{\n    letters = 0;\n    longest = words[0];\n\n    for (const std::string& word : words)\n    {\n        for (char c : word)\n        {\n            if (isLetter(c)) ++letters;\n        }\n\n        if (word.size() > longest.size()) longest = word;\n    }\n}\n\nint main()\n{\n    std::vector<std::string> words{};\n    std::string word{};\n\n    while (std::cin >> word) words.push_back(word);\n\n    if (words.empty())\n    {\n        std::cout << \"words 0\\n\";\n        std::cout << \"letters 0\\n\";\n        std::cout << \"longest none\\n\";\n        return 0;\n    }\n\n    int letters{};\n    std::string longest{};\n    summarise(words, letters, longest);\n\n    std::cout << \"words \" << words.size() << \"\\n\";\n    std::cout << \"letters \" << letters << \"\\n\";\n    std::cout << \"longest \" << longest << \"\\n\";\n\n    return 0;\n}\n"
     }

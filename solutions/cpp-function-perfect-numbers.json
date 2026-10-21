@@ -35,6 +35,18 @@
         "expect": "6\n28\n496\n8128\n"
       }
     ],
+    "probe": {
+      "label": "Direct call",
+      "source": "int main()\n{\n    std::cout << \"divisorSum\";\n    for (int n : std::vector<int>{ 1, 6, 12, 28, 496, 8128, 10000 }) std::cout << ' ' << divisorSum(n);\n    std::cout << \"\\n\";\n\n    std::cout << \"isPerfect\";\n    for (int n : std::vector<int>{ 1, 6, 12, 27, 28, 496, 8128, 10000 }) std::cout << ' ' << isPerfect(n);\n    std::cout << \"\\n\";\n\n    return 0;\n}\n",
+      "cases": [
+        {
+          "label": "divisorSum and isPerfect, called directly",
+          "calls": "divisorSum on 1, 6, 12, 28, 496, 8128, 10000, then isPerfect on 1, 6, 12, 27, 28, 496, 8128, 10000. Both have to exist as functions for this to compile at all.",
+          "stdin": "",
+          "expect": "divisorSum 0 6 16 28 496 8128 14211\nisPerfect 0 1 0 0 1 1 1 0\n"
+        }
+      ]
+    },
     "reference": {
       "cpp": "#include <iostream>\n\nint divisorSum(int n)\n{\n    int total{};\n\n    for (int d = 1; d < n; ++d)\n    {\n        if (n % d == 0) total += d;\n    }\n\n    return total;\n}\n\nbool isPerfect(int n)\n{\n    return n == divisorSum(n);\n}\n\nint main()\n{\n    int n{};\n    if (!(std::cin >> n)) return 0;\n\n    bool found{};\n\n    for (int k = 1; k <= n; ++k)\n    {\n        if (isPerfect(k))\n        {\n            std::cout << k << \"\\n\";\n            found = true;\n        }\n    }\n\n    if (!found) std::cout << \"none\\n\";\n\n    return 0;\n}\n"
     }

@@ -891,6 +891,133 @@ if (codeProblems.length) {
   console.log('  --    no code problems yet');
 }
 
+/* ---------------- probes: the requirement the output cannot show ---------------- */
+
+/* An exercise that says "write a function `power(base, exponent = 2)`" is
+   graded by comparing printed characters, and printed characters cannot
+   tell that apart from a program with no function in it at all. The
+   exercises that ask for something unobservable carry a `key.probe`: a
+   `main` the problem owns, compiled with the submission.
+
+   Two claims per probe, and both are checked here against a real
+   compiler, because a grader nobody has tried to fool is a grader whose
+   strictness is a guess:
+
+     · the reference solution passes its own probe
+     · each program in tests/probe-rejects.json — every one of which the
+       grader accepted before this existed — is now rejected, either
+       because it does not compile against the probe or because it gives
+       the wrong answer to a direct call
+
+   The rejects file also carries mistakes caught by an ordinary input
+   case that was missing, marked `fails: "cases"`. Those are checked the
+   other way round: the case set has to reject them. */
+
+section('probes accept the reference and reject what used to pass');
+
+const rejectFile = JSON.parse(read('tests/probe-rejects.json'));
+const probed = problems.filter(p => ((solutions[p.id] || {}).key || {}).probe);
+
+{
+  const { run, languages, detectPrlimit } = await import('../judge/server.mjs');
+  await detectPrlimit();
+  const toolchains = await languages();
+  const have = Object.fromEntries(toolchains.map(l => [l.id, l.available]));
+  const { grab: grabRun } = loadScripts(['js/runners/harness.js', 'js/runners/probe.js']);
+  const RunHarness = grabRun('RunHarness');
+  const RunProbe = grabRun('RunProbe');
+
+  /* One program, one case set, one answer: did the grader call it correct? */
+  async function verdictFor(id, source, cases, limits) {
+    const reply = await run({
+      lang: 'cpp', source, profile: 'standard',
+      cases: cases.map(c => ({ stdin: c.stdin })), limits,
+    });
+    const v = RunHarness.judgeRun(reply, cases.map(c => c.expect));
+    return { built: v.built, correct: v.correct, feedback: v.feedback, stderr: reply.compile.stderr };
+  }
+
+  const ids = [...new Set([...probed.map(p => p.id), ...Object.keys(rejectFile.rejects)])].sort();
+
+  if (!have.cpp) {
+    console.log(`  --    no C++ toolchain here — ${ids.length} probed exercises verified in CI`);
+  } else {
+    for (const id of ids) {
+      const p = problems.find(x => x.id === id);
+      const sol = solutions[id];
+      const probe = (sol.key || {}).probe || null;
+      const limits = (p.payload || {}).limits;
+      const inputCases = [...(p.payload.cases || []), ...(sol.key.cases || [])];
+
+      if (probe) {
+        const v = await verdictFor(id, RunProbe.compose(probe.source, sol.key.reference.cpp),
+          RunProbe.cases(probe), limits);
+        if (!ok(`${id}: the reference solution passes its own probe`, v.correct)) {
+          console.log(`        ${v.built ? v.feedback : v.stderr.slice(0, 400)}`);
+        }
+      }
+
+      for (const r of rejectFile.rejects[id] || []) {
+        const onCases = await verdictFor(id, r.cpp, inputCases, limits);
+
+        if (r.fails === 'cases') {
+          ok(`${id}: a case rejects it — ${r.why}`, !onCases.correct);
+          continue;
+        }
+
+        /* The premise of the claim. If this stops being true the reject is
+           no longer evidence of anything, and quietly dropping it would
+           leave the probe looking better tested than it is. */
+        if (!ok(`${id}: it still passes every input case — ${r.why}`, onCases.correct)) {
+          console.log(`        ${onCases.built ? onCases.feedback : onCases.stderr.slice(0, 300)}`);
+          continue;
+        }
+
+        const onProbe = await verdictFor(id, RunProbe.compose(probe.source, r.cpp),
+          RunProbe.cases(probe), limits);
+        ok(`${id}: the probe rejects it — ${r.why}`, !onProbe.correct);
+      }
+    }
+  }
+}
+
+/* Every reject names an exercise that has a probe, or is marked as caught
+   by a case. A reject for a probe that was removed would otherwise sit
+   there passing for the wrong reason. */
+section('the reject fixtures still match the exercises they are about');
+for (const [id, list] of Object.entries(rejectFile.rejects)) {
+  ok(`${id}: is a problem`, !!problems.find(p => p.id === id));
+  for (const r of list) {
+    ok(`${id}: "${r.why.slice(0, 50)}" says how it is caught`,
+      r.fails === 'probe' || r.fails === 'cases');
+    if (r.fails === 'probe') {
+      ok(`${id}: has a probe to be rejected by`, !!((solutions[id] || {}).key || {}).probe);
+    }
+  }
+}
+
+/* The probe's own shape, and the one thing about it that is a rule rather
+   than a preference: it must not be reachable from the problem file. A
+   probe in payload would be a grading harness on screen. */
+section('every probe is well formed and lives with the answer key');
+for (const p of probed) {
+  const probe = solutions[p.id].key.probe;
+  ok(`${p.id}: the probe has a main`, /\bint\s+main\s*\(/.test(probe.source));
+  ok(`${p.id}: the probe has at least one case`,
+    Array.isArray(probe.cases) && probe.cases.length > 0);
+  for (const c of probe.cases || []) {
+    ok(`${p.id}: a probe case expects something`, !!String(c.expect || '').trim());
+    ok(`${p.id}: a probe case says how it called the code`, !!String(c.calls || probe.calls || '').trim());
+  }
+  ok(`${p.id}: the probe is not in the problem file`, !(p.payload || {}).probe);
+  ok(`${p.id}: single-file, which is what a renamed main makes sense for`,
+    !Array.isArray((p.payload || {}).files) || !(p.payload || {}).files.length);
+  /* The statement has to say the check exists. A grader that rejects a
+     program for a reason the exercise never mentioned is a trap. */
+  ok(`${p.id}: the statement says the grader calls the code directly`,
+    /What the grader checks/.test(p.statement));
+}
+
 /* ---------------- predict keys checked against a real compiler ---------------- */
 
 /* A predicted output is the one kind of key that can be verified absolutely:
