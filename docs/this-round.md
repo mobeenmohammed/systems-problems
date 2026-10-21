@@ -1,8 +1,124 @@
-# This round, item by item
+# This round: grading that can be trusted, and one failure chased down
 
-The eight items of the brief, what was built for each, and what was
-not. Written as a checklist because the brief asked for one, and kept
-because the "what was not" column is the part that is easy to lose.
+Four items. No new editor features and no new content batch — the
+work was making the grader check what the exercises claim, and
+finding out what actually happened the one time the deployed site
+failed a test.
+
+The previous round's eight-item checklist is below, kept because its
+"what was not done" column is the part that is easy to lose.
+
+---
+
+## 1 and 2. Requirements the output cannot show
+
+An exercise graded by comparing printed characters cannot tell
+`power(base)` from `power(base, 2)`, cannot tell `addAll` adding
+from `addAll` setting when the caller always starts at zero, and
+cannot tell `summarise` writing through its references from
+`summarise` printing the report itself. Three exercises said so in
+their statements and left it there; five more had the same hole and
+had not noticed.
+
+All eight now carry a **probe**: a `main` the problem owns,
+compiled with the submission, calling the functions the statement
+named. `js/runners/probe.js` is the composition — the submitted
+`main` renamed by macro and never called, every header it asked for
+hoisted above the rename so the macro cannot touch library text,
+`#line` so diagnostics inside somebody's own code still name their
+own lines. One translation unit, so every backend compiles it like
+any other single file and nothing in the runner layer had to change.
+
+It runs on Submit, after the input cases pass, and its results join
+the same list of rows under names of their own — "power with one
+argument" — with "how it was called" where the stdin would be.
+
+**Fifteen wrong programs, in `tests/probe-rejects.json`**, are the
+evidence that it works. Each is one the old grader accepted, and
+`tests/content.test.mjs` compiles every one with a real compiler and
+checks both halves of the claim: that it still passes every input
+case, and that it is now rejected. Fourteen go to a probe — five of
+those do not compile against the harness, nine answer a direct call
+wrongly — and the fifteenth is caught by the input case that was
+missing.
+
+`cpp-vector-above-mean` was a plainer gap: its statement says the
+total "has to be a `long long`" and no case was bigger than two
+values. There is now one of 2,200 values of a million.
+
+**What is still not checked** is written into each statement under
+**What the grader checks** — which calls a submission's own `main`
+makes, and whether `lcm` calls `gcd` or repeats the loop. No probe
+matches source text and none will: a regex over somebody's program
+rejects valid code for looking unusual. `docs/coverage.md` has the
+per-exercise table.
+
+## 3. The journey a reader actually walks
+
+`tests/browser/journeys.test.mjs` needs a hosted runner, which the
+published site does not have and most machines are not running. It
+used to exit 1 when it could not find one, putting a red line in a
+sweep for a machine configured exactly like production. It now says
+**NOT RUN — 0 passed, 0 failed** and exits 0, and names the suite
+that does cover the default path.
+
+That suite is **`tests/browser/journeys-cpp.test.mjs`**, 47 checks,
+needing nothing but `npm run serve`: the homepage to an exercise by
+the links that are on it, real keystrokes, Run on the clang in the
+tab, a program that does not build (the compiler-output pane opens
+by itself, the diagnostics are a list of places, and the Results
+pane says it did not build rather than scoring it zero), a program
+that does not stop and stopping it, a language change and back, a
+reload, Submit, and finally the direct calls rejecting a program
+whose printed output is right.
+
+## 4. The one deployed failure
+
+`browser/workspace` failed one assertion against the deployed site —
+"there is still an editor", which looks for `.cm-editor` — and
+passed on a re-run. Calling that a network flake was a guess.
+
+**What the evidence says.** `render()` in `js/types/code.js` is
+synchronous: it sets `state.problem` and builds the editor in one
+tick. The two assertions either side of the failing one passed, so
+`state.problem` was the new problem — a half-finished mount cannot
+explain it. The suite's own "no uncaught errors" check also passed,
+so nothing threw. The only path left is `Editor.create` taking its
+textarea fallback, which happens when `window.CM` is falsy, which
+happens when `vendor/codemirror.js` did not load. `.cm-editor` is
+named in exactly one assertion in that file, which is why one check
+failed and eighty-five did not.
+
+**What was confirmed.** Blocking that one script reproduces the
+signature exactly: `.cm-editor` absent, the type reporting
+single-file, no page errors. So the mechanism is certain.
+
+**What was not.** Ten runs against the deployed site did not
+reproduce the occurrence. I cannot say that is what happened that
+day, only that it is the one state consistent with what was
+recorded. The original run kept no page-level artefact, which is
+its own lesson.
+
+**What changed because of it.**
+
+- The fallback's status line said "Everything else works", which
+  stopped being true when find, replace, Quick Open, go to line and
+  comment toggling arrived — all of them are no-ops on that path.
+  It now names what is missing, says that what you type is still
+  saved on this device, and carries a **Reload the page** button,
+  because one asset failing to arrive is what this almost always is.
+- The draft question was checked rather than assumed: text typed
+  into the fallback goes through the same `Store.saveDraft`, and it
+  is still there after a reload that gets the real editor back.
+  `browser/editing` has a section that blocks the script and proves
+  all of it.
+- The assertion that failed now carries the editor backend and
+  `window.CM` in its own name, so a repeat says which of the two
+  things went wrong instead of costing another day.
+
+---
+
+# The round before: eight items
 
 Three commits:
 
@@ -16,8 +132,6 @@ Items 2 and 3 share a commit because they share generated files —
 `data/index.json`, `data/tracks.json`, the README and
 `docs/coverage.md` all carry both, and splitting them would have meant
 a commit whose own checks do not pass.
-
----
 
 ## 1. Collapse either workspace panel
 

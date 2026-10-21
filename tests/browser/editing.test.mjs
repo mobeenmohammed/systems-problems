@@ -523,5 +523,95 @@ check('Alt+P off a problem page opens nothing',
 
 check('no uncaught errors on the page', errors, []);
 
+/* ============================================================
+   when the editor's own library does not arrive
+   ============================================================
+
+   browser/workspace once failed one assertion against the deployed
+   site — "there is still an editor", which looks for `.cm-editor` —
+   and passed on a re-run. render() in js/types/code.js is synchronous,
+   so a half-built page cannot explain that: the only way to reach that
+   state with no uncaught error is Editor.create taking its fallback,
+   which happens when vendor/codemirror.js did not load.
+
+   Ten runs against the deployed site did not reproduce it, so this is
+   not a proof of what happened that day. It is the behaviour that
+   state produces, made deliberate and checked — including the part
+   that actually matters, which is that nothing typed is lost. */
+
+section('vendor/codemirror.js did not load');
+{
+  const fctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+  const fp = await fctx.newPage();
+  const ferrors = [];
+  fp.on('pageerror', e => ferrors.push(`pageerror: ${e.message}`));
+  await fp.route('**/vendor/codemirror.js', r => r.abort());
+  await fp.goto(`${BASE}/#/p/${ONE}`, { waitUntil: 'networkidle' });
+  await fp.waitForTimeout(2400);
+
+  const state = await fp.evaluate(() => ({
+    cm: !!window.CM,
+    cmEditor: !!document.querySelector('.cm-editor'),
+    backend: window.SystemsLab.ProblemTypes.get('code').editor().backend,
+    typable: !!document.querySelector('.ed-plain textarea'),
+    status: ((document.querySelector('.ed-status') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
+    shown: (() => {
+      const e = document.querySelector('.ed-status');
+      return !!e && getComputedStyle(e).display !== 'none' && e.getBoundingClientRect().height > 0;
+    })(),
+    retry: ((document.querySelector('.ed-status button') || {}).textContent || '').trim(),
+  }));
+
+  check('the page still has an editor to type in', state.typable, true);
+  check('it is the plain one', state.backend, 'textarea');
+  ok('nothing was thrown', ferrors.length === 0);
+  ok('and the reader is told, where they are looking', state.shown);
+  ok('told which file did not load', /did not load/.test(state.status));
+  /* The old wording was "Everything else works", which stopped being
+     true when find, Quick Open and go to line arrived — all of them
+     are no-ops on this path. */
+  ok('without claiming everything else works',
+    !/Everything else works/.test(state.status)
+    && /find and replace|Quick Open/.test(state.status));
+  ok('told that what they type is still saved', /saved on this device/i.test(state.status));
+  check('and offered the one thing that fixes it', state.retry, 'Reload the page');
+
+  /* The dead features are left out of the menu rather than offered and
+     doing nothing. */
+  await fp.locator('.ws-menu-keys summary').click();
+  await fp.waitForTimeout(300);
+  const menu = await fp.evaluate(() => ({
+    rows: [...document.querySelectorAll('.ws-keys .ws-key-row')]
+      .map(r => r.textContent.replace(/\s+/g, ' ').trim()),
+    said: ((document.querySelector('.ws-keys') || {}).textContent || '').replace(/\s+/g, ' '),
+  }));
+  ok('the menu does not offer find on a textarea',
+    !menu.rows.some(r => /Find and replace/i.test(r)));
+  ok('or go to line, or comment toggling',
+    !menu.rows.some(r => /Go to line|line comment/i.test(r)));
+  ok('and says why they are missing', /plain text box/.test(menu.said));
+
+  /* The part that would actually hurt: typing into the fallback and
+     getting it back. */
+  const area = fp.locator('.ed-plain textarea');
+  await area.click();
+  await fp.keyboard.type('// written while the library was missing', { delay: 0 });
+  await fp.waitForTimeout(800);
+  const draft = await fp.evaluate(id => window.SystemsLab.Store.record(id).draft, ONE);
+  ok('what was typed is in the draft', JSON.stringify(draft).includes('while the library was missing'));
+
+  await fp.unroute('**/vendor/codemirror.js');
+  await fp.reload({ waitUntil: 'networkidle' });
+  await fp.waitForTimeout(2400);
+  const back = await fp.evaluate(() => ({
+    backend: window.SystemsLab.ProblemTypes.get('code').editor().backend,
+    value: window.SystemsLab.ProblemTypes.get('code').editor().value,
+  }));
+  check('a reload gets the real editor back', back.backend, 'codemirror');
+  ok('with the same text in it', back.value.includes('while the library was missing'));
+  ok('and no errors on the way', ferrors.length === 0);
+  await fctx.close();
+}
+
 await browser.close();
 report('browser/editing');

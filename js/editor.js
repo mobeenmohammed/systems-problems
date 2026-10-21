@@ -581,11 +581,37 @@ const Editor = (() => {
     area.readOnly = opts.readOnly;
     host.append(area);
 
+    /* What is missing, what is not, and a way out.
+
+       This used to say "Everything else works", which stopped being true
+       the round find, replace, Quick Open, go to line and comment
+       toggling arrived: all of those are the stubs below, and they do
+       nothing here. The menu leaves their rows out, so nobody is offered
+       a dead button — but a status line that overstates what survived is
+       worse than one that is blunt about it.
+
+       The reload matters more than the wording. This path is almost
+       always one asset fetch that failed, a reload fixes it, and what is
+       typed here is saved by the same Store.saveDraft as the real editor
+       — so there is nothing to lose by pressing it. Which is itself
+       worth saying, because a reader who has just been told something
+       did not load will not assume that. */
     const status = document.createElement('div');
-    status.className = 'ed-status';
+    status.className = 'ed-status ed-status-plain';
     status.dataset.state = 'warning';
-    status.textContent = 'Syntax highlighting is unavailable — vendor/codemirror.js did not load. '
-      + 'Everything else works.';
+    status.append(document.createTextNode(
+      'The editor’s own library did not load, so this is a plain text box: '
+      + 'no highlighting, no find and replace, no Quick Open, no go to line. '
+      + 'Typing, running, submitting and saving all work, and what you write '
+      + 'here is saved on this device like anything else. '
+      + 'Usually one file failed to arrive and a reload is enough. '));
+
+    const retry = document.createElement('button');
+    retry.type = 'button';
+    retry.className = 'save-act';
+    retry.textContent = 'Reload the page';
+    retry.addEventListener('click', () => location.reload());
+    status.append(retry);
 
     mount.append(host, status);
 

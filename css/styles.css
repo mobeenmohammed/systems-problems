@@ -1235,6 +1235,15 @@ pre.code-block[data-lang]::before {
   color: var(--text-faint);
   font-family: var(--mono);
 }
+/* The fallback editor's status line is a sentence with a control at the
+   end of it, not a one-line status: ordinary text, wrapping, and the
+   same small button the save row uses. */
+.ed-status-plain {
+  font-family: inherit; font-size: .8rem; line-height: 1.5;
+  white-space: normal;
+}
+.ed-status-plain .save-act { margin-left: .35rem; vertical-align: baseline; }
+
 .ed-status[data-state="clean"]   { color: var(--ok); }
 .ed-status[data-state="warning"] { color: var(--warn); }
 .ed-status[data-state="error"]   { color: var(--danger); }

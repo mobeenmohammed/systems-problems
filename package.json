@@ -69,7 +69,8 @@
     "test:courses": "node tests/browser/courses.test.mjs",
     "test:new": "node tests/browser/newcontent.test.mjs",
     "test:cppbasics": "node tests/browser/cppbasics.test.mjs",
-    "test:probe": "node tests/probe.test.mjs"
+    "test:probe": "node tests/probe.test.mjs",
+    "test:journeys-cpp": "node tests/browser/journeys-cpp.test.mjs"
   },
   "devDependencies": {
     "@bjorn3/browser_wasi_shim": "^0.4.2",

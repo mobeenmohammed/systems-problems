@@ -424,10 +424,21 @@ const single = await page.evaluate(() => ({
   tree: !!document.querySelector('.mf-tree'),
   editor: !!document.querySelector('.cm-editor'),
   showDesc: !!document.querySelector('.ws-show-desc'),
+  /* Carried so that a failure says which of two very different things
+     went wrong: no editor was built at all, or Editor.create took its
+     textarea fallback because vendor/codemirror.js did not arrive.
+     This assertion failed once against the deployed site and the
+     answer took a day to narrow down, because the name said neither. */
+  backend: (() => {
+    try { return window.SystemsLab.ProblemTypes.get('code').editor().backend; }
+    catch { return 'no editor'; }
+  })(),
+  cm: !!window.CM,
 }));
 check('it is not multi-file', single.multi, false);
 check('there is no explorer', single.tree, false);
-check('there is still an editor', single.editor, true);
+check(`there is still an editor (${single.backend}, window.CM ${single.cm})`,
+  single.editor, true);
 
 await go(`#/p/${HDL}`);
 const hdlSide = await page.evaluate(() => ({

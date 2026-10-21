@@ -67,9 +67,18 @@ const reachable = async url => {
 const proxyUp = await reachable(`${PROXY}/health`);
 const runnerUp = await reachable('http://127.0.0.1:2000/health');
 if (!proxyUp && !runnerUp) {
-  console.log('\n  nothing can compile C++: start one with  npm run proxy');
-  console.log('  (the editor journeys would pass, but Run and Submit cannot)');
-  process.exit(1);
+  /* NOT a failure, and not a pass either: this suite exercises the
+     hosted path, nothing here can provide one, and so none of it ran.
+     It used to exit 1, which put a red line in a sweep for a machine
+     that was configured exactly as the published site is — and the
+     browser path, which is what readers actually use, has its own
+     suite that needs nothing. */
+  console.log('\n  journeys: NOT RUN — 0 passed, 0 failed, 0 checked.');
+  console.log('  This suite is the hosted-runner path and nothing here can run C++.');
+  console.log('  Start one with  npm run proxy  (or a judge on 2000) to check it.');
+  console.log('  The default browser path is tests/browser/journeys-cpp.test.mjs,');
+  console.log('  which needs only  npm run serve.');
+  process.exit(0);
 }
 console.log(`  --    compiled languages run via ${proxyUp ? 'the hosted proxy' : 'a local runner'}`);
 
